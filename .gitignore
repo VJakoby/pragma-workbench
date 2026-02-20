@@ -4,3 +4,6 @@
 /scans/*
 
 node_modules/*
+
+*.code-workspace
+
