@@ -1,9 +1,9 @@
 /**
- * PKBI Server
+ * Dashboard Server
  * -----------
  * Express server that:
  *  - Serves the dashboard (dashboard.html)
- *  - Serves the original PKBI search UI (index.html)
+ *  - Serves the original search UI (index.html)
  *  - Auto-discovers services from knowledge_base/
  *  - Provides /api/services  — list all discovered services
  *  - Provides /api/preview   — render a .md file to HTML
@@ -15,7 +15,7 @@
  *  project/
  *  ├── server.js
  *  ├── dashboard.html
- *  ├── index.html          (original PKBI UI)
+ *  ├── index.html          (original search UI)
  *  ├── package.json
  *  └── knowledge_base/
  *      ├── 22.md           (SSH)
@@ -175,8 +175,8 @@ let searchIndex = null; // Fuse instance
 
 function buildIndex() {
   if (!fs.existsSync(KB_DIR)) {
-    console.warn(`[PKBI] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
-    fs.mkdirSync(KB_DIR, { recursive: true });
+    //console.warn(`[Dashboard] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
+    //fs.mkdirSync(KB_DIR, { recursive: true });
     serviceIndex = [];
     searchIndex = null;
     return;
@@ -217,7 +217,7 @@ function buildIndex() {
     ],
   });
 
-  console.log(`[PKBI] Indexed ${serviceIndex.length} service(s) from knowledge_base/`);
+  console.log(`[Dashboard] Indexed ${serviceIndex.length} service(s) from knowledge_base/`);
 }
 
 // ─────────────────────────────────────────────
@@ -244,17 +244,15 @@ function extractCategory(content, filename) {
   const match = content.match(/<!--\s*category:\s*(.+?)\s*-->/i);
   if (match) return match[1].trim();
 
-  const slug = path.basename(filename, '.md').toLowerCase();
-  if (/active.?directory|ad\b|kerberos|ldap/.test(slug)) return 'Active Directory';
-  if (/linux|privesc/.test(slug)) return 'Linux';
-  if (/windows/.test(slug)) return 'Windows';
-  if (/web|http|burp|owasp/.test(slug)) return 'Web';
-  if (/network|pivot|tunnel/.test(slug)) return 'Network';
-  if (/mobile|android|ios/.test(slug)) return 'Mobile';
-  if (/cloud|aws|azure|gcp/.test(slug)) return 'Cloud';
-  if (/crypto|cipher/.test(slug)) return 'Cryptography';
-  if (/recon|osint/.test(slug)) return 'Recon';
-  if (/forensic|dfir/.test(slug)) return 'Forensics';
+  const tagMatch = content.match(/^category:\s*(.+)$/m);
+  if (tagMatch) return tagMatch[1].trim();
+
+  // Try to find a category in the directory structure or filename
+  if (filename.toLowerCase().includes('linux')) return 'Linux';
+  if (filename.toLowerCase().includes('windows')) return 'Windows';
+  if (filename.toLowerCase().includes('web')) return 'Web';
+  if (filename.toLowerCase().includes('active-directory') || filename.toLowerCase().includes('ad-')) return 'Active Directory';
+
   return 'General';
 }
 
@@ -274,9 +272,9 @@ const METH_ICONS = {
 
 function buildMethodologyIndex() {
   if (!fs.existsSync(METH_DIR)) {
-    fs.mkdirSync(METH_DIR, { recursive: true });
+    //fs.mkdirSync(METH_DIR, { recursive: true });
     methodologyIndex = [];
-    console.log(`[PKBI] methodologies/ not found — created empty dir at ${METH_DIR}`);
+    //console.log(`[Dashboard] methodologies/ not found — created empty dir at ${METH_DIR}`);
     return;
   }
 
@@ -302,7 +300,7 @@ function buildMethodologyIndex() {
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
-  console.log(`[PKBI] Indexed ${methodologyIndex.length} methodology guide(s) from methodologies/`);
+  console.log(`[Dashboard] Indexed ${methodologyIndex.length} methodology guide(s) from methodologies/`);
 }
 
 
@@ -353,7 +351,7 @@ app.get('/api/services', (req, res) => {
 });
 
 /**
- * GET /api/sources  (backward compat with original PKBI UI)
+ * GET /api/sources  (backward compat with original search UI)
  */
 app.get('/api/sources', (req, res) => {
   const sources = serviceIndex.map(svc => ({
@@ -384,14 +382,19 @@ app.get('/api/preview', (req, res) => {
   const fileParam = req.query.file;
   if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
 
-  // Security: resolve and ensure path stays inside KB_DIR
-  const resolved = path.resolve(KB_DIR, path.basename(fileParam));
-  if (!resolved.startsWith(KB_DIR)) {
-    return res.status(403).json({ error: 'Access denied' });
+  // Resolve path. Supports absolute paths or paths relative to KB_DIR.
+  // We relax the "must be in KB_DIR" constraint to allow previewing indexed files
+  // from other local locations, as long as they are .md files.
+  let resolved = path.isAbsolute(fileParam) ? fileParam : path.resolve(KB_DIR, fileParam);
+
+  if (!fs.existsSync(resolved) && !path.isAbsolute(fileParam)) {
+    // Try methodologies directory as fallback
+    const methResolved = path.resolve(METH_DIR, fileParam);
+    if (fs.existsSync(methResolved)) resolved = methResolved;
   }
 
-  if (!fs.existsSync(resolved)) {
-    return res.status(404).json({ error: `File not found: ${path.basename(fileParam)}` });
+  if (!fs.existsSync(resolved) || !fs.lstatSync(resolved).isFile()) {
+    return res.status(404).json({ error: `File not found: ${fileParam}` });
   }
 
   try {
@@ -410,7 +413,7 @@ app.get('/api/preview', (req, res) => {
  * Returns matching services with relevance scores and snippets.
  */
 app.post('/api/search', (req, res) => {
-  const { query = '', fuzzyMode = 'normal' } = req.body;
+  const { query = '', fuzzyMode = 'off' } = req.body;
   const q = query.trim();
   const startTime = Date.now();
 
@@ -518,23 +521,97 @@ app.get('/api/methodology/:id', (req, res) => {
   });
 });
 
-// ─────────────────────────────────────────────
-// Live reload (optional, via chokidar)
-// ─────────────────────────────────────────────
+/**
+ * POST /api/search-proxy
+ * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3002).
+ * Returns top 5 results by relevance score.
+ *
+ * The external server is the search indexer project — it exposes POST /api/search
+ * and accepts { query, fuzzy, fuzzy_prefer }.
+ */
+const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3002';
+
+app.post('/api/search-proxy', async (req, res) => {
+  const { query = '', fuzzyMode = 'off', scope = 'all' } = req.body;
+  if (!query.trim()) return res.json({ results: [], query });
+
+  try {
+    // Node 18+ has native fetch; fall back to http for older versions
+    let responseData;
+
+    if (typeof fetch !== 'undefined') {
+      const r = await fetch(`${SEARCH_URL}/api/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          fuzzy: fuzzyMode !== 'off',
+          fuzzy_prefer: fuzzyMode === 'prefer',
+          scope,
+        }),
+        signal: AbortSignal.timeout(4000),
+      });
+      responseData = await r.json();
+    } else {
+      // Fallback using built-in http module
+      responseData = await new Promise((resolve, reject) => {
+        const http = require('http');
+        const url = new URL(`${SEARCH_URL}/api/search`);
+        const body = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer', scope });
+        const options = {
+          hostname: url.hostname,
+          port: url.port || 3002,
+          path: url.pathname,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+          timeout: 4000,
+        };
+        const req2 = http.request(options, (res2) => {
+          let data = '';
+          res2.on('data', chunk => { data += chunk; });
+          res2.on('end', () => { try { resolve(JSON.parse(data)); } catch { reject(new Error('Bad JSON')); } });
+        });
+        req2.on('error', reject);
+        req2.on('timeout', () => { req2.destroy(); reject(new Error('Timeout')); });
+        req2.write(body);
+        req2.end();
+      });
+    }
+
+    const results = (responseData.results || [])
+      .slice(0, 5)
+      .map(r => ({
+        title: r.title,
+        source_name: r.source_name,
+        url: r.url,
+        relevance_score: r.relevance_score,
+        match_type: r.match_type,
+        snippet: r.snippet,
+        is_local: r.is_local,
+        file_path: r.file_path,
+      }));
+
+    res.json({ results, query, total: responseData.total_matches || results.length });
+  } catch (err) {
+    // Search indexer is not running — return graceful empty result, not an error
+    console.warn(`[Dashboard] Search proxy unavailable: ${err.message}`);
+    res.json({ results: [], query, offline: true });
+  }
+});
 if (chokidar) {
   chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
-      console.log(`[PKBI] ${event}: ${path.basename(filePath)} — rebuilding service index…`);
+      console.log(`[Dashboard] ${event}: ${path.basename(filePath)} — rebuilding service index…`);
       buildIndex();
     }
   });
   chokidar.watch(METH_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
-      console.log(`[PKBI] ${event}: ${path.basename(filePath)} — rebuilding methodology index…`);
+      console.log(`[Dashboard] ${event}: ${path.basename(filePath)} — rebuilding methodology index…`);
       buildMethodologyIndex();
     }
   });
-  console.log('[PKBI] Watching knowledge_base/ and methodologies/ for changes (chokidar active)');
+  console.log('[Dashboard] Watching knowledge_base/ and methodologies/ for changes (chokidar active)');
 }
 
 // ─────────────────────────────────────────────
@@ -544,8 +621,7 @@ buildIndex();
 buildMethodologyIndex();
 
 app.listen(PORT, () => {
-  console.log(`\n  📖 PKBI running at http://localhost:${PORT}`);
-  console.log(`  🗂️  Dashboard       → http://localhost:${PORT}/`);
+  console.log(`\n  📖🔍 MMD Dashboard running at http://localhost:${PORT}`);
   console.log(`  📂 public/          → ${PUBLIC_DIR}`);
   console.log(`  📂 knowledge_base/  → ${KB_DIR}  (${serviceIndex.length} services)`);
   console.log(`  📂 methodologies/   → ${METH_DIR}  (${methodologyIndex.length} guides)\n`);
