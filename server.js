@@ -1,8 +1,8 @@
 /**
- * Dashboard Server
+ * PRAGMA Server
  * -----------
  * Express server that:
- *  - Serves the dashboard (dashboard.html)
+ *  - Serves PRAGMA (app.html)
  *  - Serves the app UI (app.html)
  *  - Auto-discovers services from knowledge_base/
  *  - Provides /api/services  — list all discovered services
@@ -14,7 +14,7 @@
  *
  *  project/
  *  ├── server.js
- *  ├── dashboard.html
+ *  ├── app.html
  *  ├── app.html            (main UI)
  *  ├── package.json
  *  └── knowledge_base/
@@ -174,7 +174,7 @@ let searchIndex  = null; // Fuse instance
 
 function buildIndex() {
   if (!fs.existsSync(KB_DIR)) {
-    console.warn(`[Dashboard] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
+    console.warn(`[PRAGMA] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
     fs.mkdirSync(KB_DIR, { recursive: true });
     serviceIndex = [];
     searchIndex  = null;
@@ -216,7 +216,7 @@ function buildIndex() {
     ],
   });
 
-  console.log(`[Dashboard] Indexed ${serviceIndex.length} service(s) from knowledge_base/`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from knowledge_base/`);
 }
 
 // ─────────────────────────────────────────────
@@ -274,7 +274,7 @@ const METH_ICONS = {
 function buildMethodologyIndex() {
   if (!fs.existsSync(METH_DIR)) {
     methodologyIndex = [];
-    console.log('[Dashboard] knowledge_base/methodologies/ not found — skipping.');
+    console.log('[PRAGMA] knowledge_base/methodologies/ not found — skipping.');
     return;
   }
 
@@ -300,7 +300,7 @@ function buildMethodologyIndex() {
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
-  console.log(`[Dashboard] Indexed ${methodologyIndex.length} methodology guide(s) from knowledge_base/methodologies/`);
+  console.log(`[PRAGMA] Indexed ${methodologyIndex.length} methodology guide(s) from knowledge_base/methodologies/`);
 }
 
 
@@ -537,7 +537,7 @@ app.get('/api/methodology/:id', (req, res) => {
  * The external server is the search indexer project — it exposes POST /api/search
  * and accepts { query, fuzzy, fuzzy_prefer }.
  */
-const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3002';
+const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3001';
 
 app.post('/api/search-proxy', async (req, res) => {
   const { query = '', fuzzyMode = 'normal' } = req.body;
@@ -567,7 +567,7 @@ app.post('/api/search-proxy', async (req, res) => {
         const body    = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const options = {
           hostname: url.hostname,
-          port:     url.port || 3002,
+          port:     url.port || 3001,
           path:     url.pathname,
           method:   'POST',
           headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
@@ -600,7 +600,7 @@ app.post('/api/search-proxy', async (req, res) => {
 
     res.json({ results, query, total: responseData.total_matches || results.length });
   } catch (err) {
-    console.warn(`[Dashboard] Search proxy error: ${err.message}`);
+    console.warn(`[PRAGMA] Search proxy error: ${err.message}`);
     res.json({ results: [], query, offline: true, error: err.message });
   }
 });
@@ -746,17 +746,17 @@ function noteFilename(note) {
 if (chokidar) {
   chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
-      console.log(`[Dashboard] ${event}: ${path.basename(filePath)} — rebuilding service index…`);
+      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding service index…`);
       buildIndex();
     }
   });
   chokidar.watch(METH_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
-      console.log(`[Dashboard] ${event}: ${path.basename(filePath)} — rebuilding methodology index…`);
+      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding methodology index…`);
       buildMethodologyIndex();
     }
   });
-  console.log('[Dashboard] Watching knowledge_base/ (incl. methodologies/) for changes (chokidar active)');
+  console.log('[PRAGMA] Watching knowledge_base/ (incl. methodologies/) for changes (chokidar active)');
 }
 
 // ─────────────────────────────────────────────
@@ -766,8 +766,8 @@ buildIndex();
 buildMethodologyIndex();
 
 app.listen(PORT, () => {
-  console.log(`\n  📖 Dashboard running at http://localhost:${PORT}`);
-  console.log(`  🗂️  Dashboard       → http://localhost:${PORT}/`);
+  console.log(`\n  📖 PRAGMA running at http://localhost:${PORT}`);
+  console.log(`  🗂️  PRAGMA          → http://localhost:${PORT}/`);
   console.log(`  📂 public/          → ${PUBLIC_DIR}`);
   console.log(`  📂 knowledge_base/  → ${KB_DIR}  (${serviceIndex.length} services)`);
   console.log(`  📂 methodologies/   → ${METH_DIR}  (${methodologyIndex.length} guides)\n`);
