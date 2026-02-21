@@ -1,9 +1,14 @@
 
-.xml
 
-/scans/*
+# Notes
+notes/*
+
+*.json
+
 
 node_modules/*
 
+
+.vscode
 *.code-workspace
 

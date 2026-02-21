@@ -1,0 +1,2301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsConsole</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:       #0a0d12;
+  --bg2:      #0f1319;
+  --bg3:      #141c26;
+  --bg4:      #1a2435;
+  --border:   #1f2e40;
+  --border2:  #2a3f58;
+  --text:     #c9d8ec;
+  --text2:    #8fa3bc;
+  --muted:    #4e6278;
+  --accent:   #38bdf8;
+  --accent2:  #0ea5e9;
+  --green:    #34d399;
+  --purple:   #a78bfa;
+  --red:      #f87171;
+  --orange:   #fb923c;
+  --yellow:   #fbbf24;
+  --sidebar-w: 220px;
+  --topbar-h:  48px;
+}
+
+[data-theme="light"]{
+  --bg:       #f1f5f9;
+  --bg2:      #ffffff;
+  --bg3:      #e8eef6;
+  --bg4:      #dce5f0;
+  --border:   #c8d7e8;
+  --border2:  #b0c4da;
+  --text:     #1a2535;
+  --text2:    #3a5068;
+  --muted:    #7a90a8;
+  --accent:   #0369a1;
+  --accent2:  #0284c7;
+  --green:    #059669;
+  --purple:   #7c3aed;
+  --red:      #dc2626;
+  --orange:   #ea580c;
+  --yellow:   #d97706;
+}
+
+html,body{height:100%;overflow:hidden}
+
+body{
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex-direction:column;height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:var(--topbar-h);
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 14px; gap:10px;
+  flex-shrink:0; z-index:50;
+}
+
+.topbar-logo{
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:700; font-size:15px;
+  color:var(--accent);
+  letter-spacing:0.05em;
+  flex-shrink:0;
+  margin-right:8px;
+}
+.topbar-logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
+
+/* target pill */
+.target-pill{
+  display:flex;align-items:center;gap:0;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:6px; overflow:hidden; flex-shrink:0;
+}
+.target-seg{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 10px;
+}
+.target-seg+.target-seg{border-left:1px solid var(--border)}
+.target-seg-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);
+}
+.target-seg-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--muted);flex-shrink:0;
+  transition:background 0.2s;
+}
+.target-seg-dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
+.target-input{
+  background:none;border:none;outline:none;
+  color:var(--text);font-family:'IBM Plex Mono',monospace;
+  font-size:12px;width:130px;
+}
+.target-input::placeholder{color:var(--muted)}
+
+/* cmd palette trigger */
+.cmd-trigger{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;
+  cursor:pointer;transition:all 0.15s;
+  color:var(--muted);font-size:12px;
+  font-family:'IBM Plex Mono',monospace;
+  flex:1;max-width:380px;
+}
+.cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
+.cmd-trigger-icon{font-size:13px}
+.cmd-trigger-text{flex:1;text-align:left}
+.cmd-trigger-kbd{
+  font-size:10px;background:var(--bg4);
+  border:1px solid var(--border2);
+  border-radius:3px;padding:1px 5px;
+  color:var(--muted);
+}
+
+.topbar-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+
+.tb-btn{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:5px 10px;
+  cursor:pointer;transition:all 0.15s;
+  color:var(--muted);font-size:12px;
+  font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap;
+}
+.tb-btn:hover{border-color:var(--border2);color:var(--text)}
+.tb-btn.active{border-color:var(--accent);color:var(--accent)}
+
+/* ── BODY SPLIT ── */
+.body-split{
+  display:flex;flex:1;overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  flex-shrink:0;overflow:hidden;
+}
+
+.sidebar-section{flex-shrink:0}
+.sidebar-section-hdr{
+  padding:10px 14px 6px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;font-weight:700;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--muted);
+}
+
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 14px;
+  cursor:pointer;transition:all 0.12s;
+  border-left:2px solid transparent;
+  font-size:14px;color:var(--text2);
+  user-select:none;
+}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{
+  background:rgba(56,189,248,0.06);
+  border-left-color:var(--accent);
+  color:var(--accent);
+}
+.nav-item-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.nav-item-label{flex:1;font-size:13px}
+.nav-item-count{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;color:var(--muted);
+  background:var(--bg4);
+  border-radius:4px;padding:1px 5px;
+}
+
+.sidebar-divider{height:1px;background:var(--border);margin:4px 0}
+
+/* category list */
+.cat-scroll{overflow-y:auto;flex:1;padding-bottom:8px}
+.cat-scroll::-webkit-scrollbar{width:3px}
+.cat-scroll::-webkit-scrollbar-track{background:transparent}
+.cat-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── MAIN PANEL ── */
+.main-panel{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* panel tabs (Services / Methodologies / Notes / Search) */
+.panel-tabs{
+  display:flex;align-items:stretch;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;padding:0 16px;gap:0;
+}
+.panel-tab{
+  padding:0 16px;height:36px;
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:500;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all 0.15s;white-space:nowrap;
+  font-family:'IBM Plex Mono',monospace;
+}
+.panel-tab:hover{color:var(--text2)}
+.panel-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel-tab-icon{font-size:13px}
+.panel-tab-badge{
+  font-size:10px;background:var(--bg4);
+  border-radius:3px;padding:1px 5px;
+  color:var(--muted);
+}
+.panel-tab.active .panel-tab-badge{background:rgba(56,189,248,0.12);color:var(--accent)}
+
+/* panel views */
+.panel-view{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel-view.active{display:flex}
+
+/* ── SERVICE / GUIDE VIEW ── */
+.cards-toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;flex-shrink:0;
+  background:var(--bg);border-bottom:1px solid var(--border);
+}
+
+.local-search{
+  position:relative;flex:1;max-width:340px;
+}
+.local-search input{
+  width:100%;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);
+  padding:6px 10px 6px 30px;
+  font-size:12px;font-family:'IBM Plex Mono',monospace;
+  outline:none;transition:border-color 0.15s;
+}
+.local-search input:focus{border-color:var(--accent)}
+.local-search input::placeholder{color:var(--muted)}
+.local-search-icon{
+  position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:12px;pointer-events:none;
+}
+
+.toolbar-count{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;color:var(--muted);
+  margin-left:auto;
+}
+
+.cards-area{
+  flex:1;overflow-y:auto;padding:14px 16px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:10px;
+  align-content:start;
+}
+.cards-area::-webkit-scrollbar{width:4px}
+.cards-area::-webkit-scrollbar-track{background:transparent}
+.cards-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.card{
+  position:relative;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:14px;
+  cursor:pointer;transition:all 0.15s;overflow:hidden;
+  user-select:none;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--card-accent,var(--accent));opacity:0.5;
+  transition:opacity 0.15s;
+}
+.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.card:hover::before{opacity:1}
+.card.active-card{border-color:var(--accent);background:rgba(56,189,248,0.04)}
+.card.active-card::before{opacity:1}
+
+.card-icon{font-size:20px;margin-bottom:8px;display:block}
+.card-port{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--muted);margin-bottom:4px;letter-spacing:0.06em;
+}
+.card-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-cat{
+  display:inline-block;margin-top:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
+}
+
+.card.hidden{display:none}
+
+/* empty state */
+.empty-state{
+  grid-column:1/-1;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:10px;
+  color:var(--muted);text-align:center;
+}
+.empty-state-icon{font-size:32px;opacity:0.4}
+.empty-state-title{font-size:14px;font-weight:500}
+.empty-state-hint{font-size:12px;font-family:'IBM Plex Mono',monospace}
+
+/* ── CONTENT PANEL (right side, reader) ── */
+.content-panel{
+  width:520px;
+  background:var(--bg2);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  flex-shrink:0;position:relative;
+  min-width:320px;max-width:820px;
+}
+.content-panel.hidden-panel{width:0!important;overflow:hidden;border:none;min-width:0}
+
+.content-panel-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;min-height:44px;
+}
+.content-panel-icon{font-size:18px}
+.content-panel-title{
+  flex:1;font-size:14px;font-weight:600;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.content-panel-meta{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  flex-shrink:0;
+}
+.content-panel-close{
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:15px;padding:2px 6px;
+  border-radius:4px;transition:all 0.12s;
+}
+.content-panel-close:hover{background:var(--bg4);color:var(--text)}
+
+.content-panel-body{
+  flex:1;overflow-y:auto;padding:20px 22px;
+  font-size:15px;line-height:1.75;
+}
+.content-panel-body::-webkit-scrollbar{width:4px}
+.content-panel-body::-webkit-scrollbar-track{background:transparent}
+.content-panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── MARKDOWN RENDERING ── */
+.md-content{font-family:'IBM Plex Sans',sans-serif;font-size:15px;line-height:1.85}
+.md-content h1{
+  font-size:1.4em;font-weight:700;color:var(--accent);
+  margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;letter-spacing:-0.01em;
+}
+.md-content h2{
+  font-size:1.1em;font-weight:600;color:var(--text);
+  margin:22px 0 8px;font-family:'IBM Plex Sans',sans-serif;
+  padding-left:10px;border-left:2px solid var(--accent2);
+}
+.md-content h3{
+  font-size:1em;font-weight:600;color:var(--text2);
+  margin:16px 0 6px;font-family:'IBM Plex Sans',sans-serif;
+}
+.md-content h4{font-size:0.95em;font-weight:600;color:var(--muted);margin:12px 0 4px}
+.md-content p{margin-bottom:10px;color:var(--text2)}
+.md-content a{color:var(--accent);text-decoration:none}
+.md-content a:hover{text-decoration:underline}
+.md-content strong{color:var(--text);font-weight:600}
+.md-content em{color:var(--orange)}
+.md-content ul,.md-content ol{padding-left:20px;margin-bottom:10px}
+.md-content li{margin-bottom:4px;color:var(--text2)}
+.md-content li::marker{color:var(--accent2)}
+.md-content hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.md-content blockquote{
+  border-left:3px solid var(--accent2);padding-left:14px;
+  margin:12px 0;color:var(--muted);font-style:italic;
+}
+.md-content table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px}
+.md-content th{
+  background:var(--bg3);color:var(--accent);
+  padding:7px 12px;border:1px solid var(--border);
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;
+  font-family:'IBM Plex Mono',monospace;
+}
+.md-content td{padding:7px 12px;border:1px solid var(--border);color:var(--text2)}
+.md-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
+
+/* Code blocks with IP injection */
+.code-block-wrap{position:relative;margin:12px 0}
+.code-block-wrap pre{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:14px 16px;overflow-x:auto;
+}
+.code-block-wrap pre code{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;line-height:1.65;color:var(--green);
+  background:none;border:none;padding:0;
+}
+.copy-btn{
+  position:absolute;top:8px;right:8px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:5px;padding:3px 9px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+  opacity:0;
+}
+.code-block-wrap:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+
+/* Inline code */
+.md-content code:not(pre code){
+  font-family:'IBM Plex Mono',monospace;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;
+  font-size:0.88em;color:var(--green);
+}
+
+/* IP injection highlight */
+.ip-injected{color:var(--yellow);font-weight:600}
+
+/* ── NOTES VIEW ── */
+.notes-layout{display:flex;flex:1;overflow:hidden}
+
+.notes-list{
+  width:200px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:relative;
+  min-width:160px;max-width:400px;
+}
+.notes-list-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:600;color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;
+}
+.notes-list-items{flex:1;overflow-y:auto}
+.notes-list-items::-webkit-scrollbar{width:3px}
+.notes-list-items::-webkit-scrollbar-thumb{background:var(--border2)}
+
+.note-item{
+  padding:10px 12px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background 0.1s;border-left:2px solid transparent;
+}
+.note-item:hover{background:var(--bg3)}
+.note-item.active{background:rgba(56,189,248,0.05);border-left-color:var(--accent)}
+.note-item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.note-item-preview{
+  font-size:12px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'IBM Plex Mono',monospace;
+}
+.note-item-date{
+  font-size:10px;color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;margin-top:3px;
+}
+.note-item-session{
+  font-size:9px;color:var(--purple);font-family:'IBM Plex Mono',monospace;
+  margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.notes-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.notes-editor-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.note-title-input{
+  flex:1;background:none;border:none;outline:none;
+  font-size:15px;font-weight:600;color:var(--text);
+  font-family:'IBM Plex Sans',sans-serif;
+}
+.note-title-input::placeholder{color:var(--muted)}
+.note-save-status{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  flex-shrink:0;
+}
+.note-save-status.saved{color:var(--green)}
+.note-textarea{
+  flex:1;background:none;border:none;outline:none;resize:none;
+  padding:16px;color:var(--text2);font-size:14px;line-height:1.8;
+  font-family:'IBM Plex Mono',monospace;
+}
+.note-textarea::placeholder{color:var(--muted)}
+.notes-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;color:var(--muted);text-align:center;padding:40px;
+}
+.notes-empty-icon{font-size:28px;opacity:0.3}
+.notes-empty-text{font-size:13px}
+.notes-empty-hint{font-size:11px;font-family:'IBM Plex Mono',monospace}
+
+.icon-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:14px;padding:3px 6px;
+  border-radius:4px;transition:all 0.12s;
+}
+.icon-btn:hover{background:var(--bg4);color:var(--text)}
+.icon-btn.danger:hover{background:rgba(248,113,113,0.1);color:var(--red)}
+
+/* ── SEARCH RESULTS VIEW ── */
+.search-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.search-toolbar{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+}
+.search-input-row{
+  display:flex;align-items:center;gap:8px;
+}
+.search-big{
+  position:relative;flex:1;
+}
+.search-big input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);padding:9px 12px 9px 36px;
+  font-size:13px;font-family:'IBM Plex Mono',monospace;
+  outline:none;transition:border-color 0.15s;
+}
+.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(56,189,248,0.1)}
+.search-big input::placeholder{color:var(--muted)}
+.search-big-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:14px;pointer-events:none;
+}
+.search-clear-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);padding:6px 12px;cursor:pointer;transition:all 0.15s;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;white-space:nowrap;
+}
+.search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
+
+.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctrl-label{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
+}
+.btn-group{
+  display:flex;border-radius:5px;overflow:hidden;
+  border:1px solid var(--border2);
+}
+.btn-group-item{
+  background:var(--bg3);border:none;color:var(--muted);
+  padding:3px 10px;font-size:10px;font-weight:600;
+  cursor:pointer;transition:all 0.12s;
+  font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;
+  white-space:nowrap;
+}
+.btn-group-item:not(:last-child){border-right:1px solid var(--border)}
+.btn-group-item.active{background:var(--accent);color:#000}
+.btn-group-item.fuzzy-active{background:var(--purple);color:#fff}
+.btn-group-item:not(.active):not(.fuzzy-active):hover{background:var(--bg4);color:var(--text)}
+
+.search-status{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--muted);margin-left:auto;
+}
+
+.results-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.results-list::-webkit-scrollbar{width:4px}
+.results-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.result-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+  cursor:pointer;transition:all 0.15s;
+  position:relative;overflow:hidden;
+}
+.result-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--accent);opacity:0;transition:opacity 0.15s;
+}
+.result-card.local-result::before{background:var(--green)}
+.result-card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.result-card:hover::before{opacity:1}
+
+.result-card-top{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;gap:10px;margin-bottom:5px;
+}
+.result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.result-score{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
+  background:var(--accent2);color:#000;
+  padding:2px 7px;border-radius:4px;flex-shrink:0;
+}
+.result-card.local-result .result-score{background:var(--green)}
+.result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+.result-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  padding:1px 6px;border-radius:3px;
+}
+.result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
+.result-badge.local{color:var(--green);background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)}
+.result-snippet{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2);
+  line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.results-offline{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:10px;
+  color:var(--muted);text-align:center;
+}
+.results-offline-icon{font-size:28px;opacity:0.4}
+.results-offline-text{font-size:13px}
+.results-offline-hint{font-size:11px;font-family:'IBM Plex Mono',monospace}
+
+/* ── COMMAND PALETTE ── */
+.cmd-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);
+}
+.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+
+.cmd-box{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;width:90%;max-width:580px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
+  animation:cmdSlide 0.15s ease;
+}
+@keyframes cmdSlide{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+
+.cmd-input-row{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.cmd-input-icon{font-size:16px;color:var(--muted)}
+.cmd-input{
+  flex:1;background:none;border:none;outline:none;
+  font-size:16px;color:var(--text);
+  font-family:'IBM Plex Mono',monospace;
+}
+.cmd-input::placeholder{color:var(--muted)}
+.cmd-esc{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:4px;padding:2px 7px;color:var(--muted);
+}
+
+.cmd-results{max-height:400px;overflow-y:auto}
+.cmd-results::-webkit-scrollbar{width:3px}
+.cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
+
+.cmd-group-hdr{
+  padding:8px 16px 4px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--muted);
+}
+.cmd-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px;cursor:pointer;transition:background 0.1s;
+}
+.cmd-item:hover,.cmd-item.selected{background:rgba(56,189,248,0.07)}
+.cmd-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.cmd-item-main{flex:1;overflow:hidden}
+.cmd-item-title{font-size:14px;color:var(--text);font-weight:500}
+.cmd-item-sub{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cmd-item-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  background:var(--bg4);border:1px solid var(--border);
+  border-radius:3px;padding:1px 6px;color:var(--muted);flex-shrink:0;
+}
+.cmd-footer{
+  padding:8px 16px;border-top:1px solid var(--border);
+  display:flex;gap:14px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+}
+.cmd-footer-key{
+  display:flex;align-items:center;gap:5px;
+}
+.cmd-footer-key kbd{
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:3px;padding:1px 5px;font-size:9px;
+}
+
+/* ── SCROLLBAR GENERAL ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── RESPONSIVE / MEDIA ── */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .content-panel{display:none}
+}
+
+    /* ── Note markdown hint bar ── */
+    .note-md-hint {
+      display: flex; align-items: center; gap: 0;
+      padding: 5px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0; flex-wrap: nowrap; overflow: hidden;
+    }
+    .note-md-hint span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      padding: 2px 8px; cursor: default;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .note-md-hint span:last-child { border-right: none; }
+    .note-md-hint span:hover { color: var(--text2); }
+
+    /* ── Note type filter bar ── */
+    .notes-type-filter {
+      display: flex; gap: 0; overflow-x: auto; flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 8px; background: var(--bg);
+    }
+    .notes-type-filter::-webkit-scrollbar { height: 2px; }
+    .notes-type-filter::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .note-type-btn {
+      background: none; border: none; cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+      color: var(--muted); padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
+    }
+    .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
+    .note-type-btn.active { color: var(--accent); background: rgba(56,189,248,0.08); }
+
+    /* Note type badge on list items */
+    .note-item-type {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .note-type-general     { color: var(--muted);   background: var(--bg4); }
+    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.2); }
+    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
+    .note-type-recon       { color: var(--accent);  background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.15); }
+    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
+
+    /* New note type picker grid */
+    .new-note-type-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .new-note-type-btn {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 8px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+      color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
+    }
+    .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
+
+/* ── Resize drag handles ── */
+.drag-handle{
+  position:absolute;
+  z-index:20;
+  transition:background 0.15s;
+}
+/* Notes list — right edge */
+.drag-handle-right{
+  top:0;right:-3px;bottom:0;width:6px;
+  cursor:col-resize;
+}
+.drag-handle-right::after{
+  content:'';
+  position:absolute;top:0;bottom:0;
+  left:2px;width:2px;
+  background:transparent;
+  transition:background 0.15s;
+}
+.drag-handle-right:hover::after,
+.drag-handle-right.dragging::after{
+  background:var(--accent);
+}
+/* Content panel — left edge */
+.drag-handle-left{
+  top:0;left:-3px;bottom:0;width:6px;
+  cursor:col-resize;
+}
+.drag-handle-left::after{
+  content:'';
+  position:absolute;top:0;bottom:0;
+  right:2px;width:2px;
+  background:transparent;
+  transition:background 0.15s;
+}
+.drag-handle-left:hover::after,
+.drag-handle-left.dragging::after{
+  background:var(--accent);
+}
+/* Prevent text selection while dragging */
+body.is-resizing{user-select:none;cursor:col-resize!important}
+body.is-resizing *{cursor:col-resize!important}
+
+/* ── Session block in sidebar ── */
+.session-active {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px; cursor: pointer;
+  transition: background 0.12s; border-left: 2px solid transparent;
+}
+.session-active:hover { background: var(--bg3); border-left-color: var(--accent); }
+.session-active-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background 0.2s;
+}
+.session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.session-active-info { flex: 1; overflow: hidden; }
+.session-active-name {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em;
+}
+.session-active-target {
+  font-size: 10px; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+/* Session modal */
+.session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.session-field { display: flex; flex-direction: column; gap: 4px; }
+.session-field label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.session-field input {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 7px 10px;
+  font-size: 13px; font-family: 'IBM Plex Mono', monospace;
+  outline: none; transition: border-color 0.15s;
+}
+.session-field input:focus { border-color: var(--accent); }
+.session-field input::placeholder { color: var(--muted); }
+.session-actions { display: flex; gap: 8px; margin-top: 4px; }
+.session-btn {
+  flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.session-btn.primary {
+  background: var(--accent); color: #000; border-color: var(--accent);
+}
+.session-btn.primary:hover { background: var(--accent2); }
+.session-btn.secondary { background: var(--bg3); color: var(--text2); }
+.session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
+.session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.session-list-hdr {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  padding: 0 2px 4px;
+}
+.session-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--border);
+  transition: all 0.12s;
+}
+.session-list-item:hover { border-color: var(--border2); }
+.session-list-item.active-session { border-color: var(--accent); background: rgba(56,189,248,0.06); }
+.session-list-item-name {
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-weight: 700; color: var(--text);
+}
+.session-list-item-meta { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-export-btn {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  padding: 3px 8px; cursor: pointer; transition: all 0.12s; flex-shrink: 0;
+}
+.session-export-btn:hover { border-color: var(--green); color: var(--green); }
+.session-delete-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 13px; padding: 2px 4px; border-radius: 4px; transition: all 0.12s;
+  flex-shrink: 0;
+}
+.session-delete-btn:hover { color: var(--red); }
+.export-feedback {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  padding: 8px 10px; border-radius: 6px; margin-top: 4px;
+}
+.export-feedback.ok { color: var(--green); background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); }
+.export-feedback.err { color: var(--red); background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+
+/* ── Notes scope bar (Session / Unassigned / All) ── */
+.notes-scope-bar {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+.note-scope-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  color: var(--muted); padding: 6px 4px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.note-scope-btn:hover { color: var(--text2); }
+.note-scope-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── TOPBAR ── -->
+  <div class="topbar">
+    <div class="topbar-logo">OPS<span>// console</span></div>
+
+    <div class="target-pill" id="targetPill">
+      <div class="target-seg">
+        <span class="target-seg-label">IP</span>
+        <div class="target-seg-dot" id="ipDot"></div>
+        <input class="target-input" id="targetIP" type="text" placeholder="0.0.0.0" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="target-seg">
+        <span class="target-seg-label">Domain</span>
+        <div class="target-seg-dot" id="domainDot"></div>
+        <input class="target-input" id="targetDomain" type="text" placeholder="target.local" spellcheck="false" autocomplete="off" style="width:140px">
+      </div>
+    </div>
+
+    <button class="cmd-trigger" onclick="openCmd()" title="⌘K">
+      <span class="cmd-trigger-icon">⌘</span>
+      <span class="cmd-trigger-text">Quick open, search anything…</span>
+      <span class="cmd-trigger-kbd">⌘K</span>
+    </button>
+
+    <div class="topbar-actions">
+      <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
+    </div>
+  </div>
+
+  <!-- ── BODY ── -->
+  <div class="body-split">
+
+    <!-- ── SIDEBAR ── -->
+    <div class="sidebar">
+      <!-- Active session -->
+      <div class="sidebar-section" id="sessionSection">
+        <div class="sidebar-section-hdr">Session</div>
+        <div class="session-active" id="sessionActive" onclick="openSessionModal()">
+          <div class="session-active-dot" id="sessionDot"></div>
+          <div class="session-active-info">
+            <div class="session-active-name" id="sessionName">No session</div>
+            <div class="session-active-target" id="sessionTarget">click to set</div>
+          </div>
+          <span class="session-active-arrow">›</span>
+        </div>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr">Navigate</div>
+        <div class="nav-item active" onclick="switchView('services',this)" id="nav-services">
+          <span class="nav-item-icon">🔌</span>
+          <span class="nav-item-label">Services</span>
+          <span class="nav-item-count" id="svc-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies">
+          <span class="nav-item-icon">📋</span>
+          <span class="nav-item-label">Guides</span>
+          <span class="nav-item-count" id="meth-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('notes',this)" id="nav-notes">
+          <span class="nav-item-icon">📝</span>
+          <span class="nav-item-label">Notes</span>
+          <span class="nav-item-count" id="notes-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
+          <span class="nav-item-icon">🔍</span>
+          <span class="nav-item-label">Search</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Category filters (contextual) -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
+      </div>
+      <div class="cat-scroll" id="catList"></div>
+    </div>
+
+    <!-- ── MAIN PANEL ── -->
+    <div class="main-panel">
+
+      <!-- ── SERVICES VIEW ── -->
+      <div class="panel-view active" id="view-services">
+        <div class="cards-toolbar">
+          <div class="local-search">
+            <span class="local-search-icon">⌕</span>
+            <input type="text" id="svcSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('services',this.value)">
+          </div>
+          <span class="toolbar-count" id="svc-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="svcGrid"></div>
+      </div>
+
+      <!-- ── METHODOLOGIES VIEW ── -->
+      <div class="panel-view" id="view-methodologies">
+        <div class="cards-toolbar">
+          <div class="local-search">
+            <span class="local-search-icon">⌕</span>
+            <input type="text" id="methSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('methodologies',this.value)">
+          </div>
+          <span class="toolbar-count" id="meth-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="methGrid"></div>
+      </div>
+
+      <!-- ── SEARCH VIEW ── -->
+      <div class="panel-view" id="view-search">
+        <div class="search-toolbar">
+          <div class="search-input-row">
+            <div class="search-big">
+              <span class="search-big-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Search across all indexed sources…" autocomplete="off" oninput="onSearch(this.value)">
+            </div>
+            <button class="search-clear-btn" onclick="clearSearch()">✕ Clear</button>
+          </div>
+          <div class="search-controls-row">
+            <span class="ctrl-label">Scope</span>
+            <div class="btn-group" id="scopeGroup">
+              <button class="btn-group-item active" data-scope="all" onclick="setScope('all',this)">All</button>
+              <button class="btn-group-item" data-scope="local" onclick="setScope('local',this)">Local</button>
+              <button class="btn-group-item" data-scope="online" onclick="setScope('online',this)">Online</button>
+            </div>
+            <span class="ctrl-label">Fuzzy</span>
+            <div class="btn-group" id="fuzzyGroup">
+              <button class="btn-group-item" data-fuzzy="off" onclick="setFuzzy('off',this)">Off</button>
+              <button class="btn-group-item fuzzy-active" data-fuzzy="normal" onclick="setFuzzy('normal',this)">On</button>
+              <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
+            </div>
+            <span class="search-status" id="searchStatus"></span>
+          </div>
+        </div>
+        <div class="results-list" id="resultsList">
+          <div class="results-offline">
+            <div class="results-offline-icon">🔍</div>
+            <div class="results-offline-text">Start typing to search</div>
+            <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NOTES VIEW ── -->
+      <div class="panel-view" id="view-notes">
+        <div class="notes-layout">
+          <div class="notes-list">
+            <div class="notes-list-hdr">
+              <span>Notes</span>
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note">＋</button>
+            </div>
+            <div class="notes-scope-bar">
+              <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
+              <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
+              <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
+            </div>
+            <div class="notes-type-filter" id="notesTypeFilter">
+              <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
+              <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
+              <button class="note-type-btn" data-type="credentials" onclick="setNoteFilter('credentials',this)">Creds</button>
+              <button class="note-type-btn" data-type="privesc" onclick="setNoteFilter('privesc',this)">PrivEsc</button>
+              <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
+              <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
+            </div>
+            <div class="notes-list-items" id="notesList"></div>
+          <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
+          </div>
+          <div class="notes-editor" id="notesEditor">
+            <div class="notes-empty" id="notesEmpty">
+              <div class="notes-empty-icon">📝</div>
+              <div class="notes-empty-text">No note selected</div>
+              <div class="notes-empty-hint">Click ＋ to create a new note</div>
+            </div>
+            <div id="noteEditArea" style="display:none;flex:1;display:none;flex-direction:column;overflow:hidden">
+              <div class="notes-editor-hdr">
+                <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title…">
+                <span class="note-save-status" id="noteSaveStatus">saved</span>
+                <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
+              </div>
+              <div class="note-md-hint">
+                <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
+                <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+              </div>
+              <textarea class="note-textarea" id="noteBody"
+                placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
+                onkeydown="noteTabHandler(event)"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main-panel -->
+
+    <!-- ── CONTENT PANEL (reader) ── -->
+    <div class="content-panel hidden-panel" id="contentPanel">
+      <div class="drag-handle drag-handle-left" id="contentPanelHandle"></div>
+      <div class="content-panel-hdr">
+        <span class="content-panel-icon" id="cpIcon">📄</span>
+        <span class="content-panel-title" id="cpTitle">—</span>
+        <span class="content-panel-meta" id="cpMeta"></span>
+        <button class="content-panel-close" onclick="closeContent()">✕</button>
+      </div>
+      <div class="content-panel-body">
+        <div class="md-content" id="cpContent"></div>
+      </div>
+    </div>
+
+  </div><!-- end body-split -->
+</div>
+
+<!-- ── SESSION MODAL ── -->
+<div class="cmd-overlay" id="sessionOverlay" onclick="closeSessionModalIfOutside(event)">
+  <div class="cmd-box" style="max-width:420px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">🎯</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
+      <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div class="session-modal-body">
+      <!-- New session form -->
+      <div class="session-field">
+        <label>New session codename</label>
+        <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="session-field" style="flex:1">
+          <label>Target IP</label>
+          <input id="newSessionIP" type="text" placeholder="10.10.10.x" autocomplete="off">
+        </div>
+        <div class="session-field" style="flex:1">
+          <label>Domain</label>
+          <input id="newSessionDomain" type="text" placeholder="corp.local" autocomplete="off">
+        </div>
+      </div>
+      <div class="session-actions">
+        <button class="session-btn primary" onclick="createSession()">＋ Create Session</button>
+      </div>
+      <div id="exportFeedback" style="display:none"></div>
+      <!-- Existing sessions -->
+      <div class="session-list" id="sessionList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── NEW NOTE MODAL ── -->
+<div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
+  <div class="cmd-box" style="max-width:380px">
+    <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
+      <span class="cmd-input-icon">📝</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);font-weight:600">New Note</span>
+      <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
+      <div class="new-note-type-grid" id="newNoteTypeGrid">
+        <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
+        <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
+        <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
+        <button class="new-note-type-btn" data-type="recon"       onclick="newNote('recon')"      >🔭 Recon</button>
+        <button class="new-note-type-btn" data-type="loot"        onclick="newNote('loot')"       >💰 Loot</button>
+        <button class="new-note-type-btn" data-type="exploit"     onclick="newNote('exploit')"    >💥 Exploit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMMAND PALETTE ── -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
+  <div class="cmd-box">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">⌘</span>
+      <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
+      <span class="cmd-esc">ESC</span>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+    <div class="cmd-footer">
+      <span class="cmd-footer-key"><kbd>↑↓</kbd> navigate</span>
+      <span class="cmd-footer-key"><kbd>↵</kbd> open</span>
+      <span class="cmd-footer-key"><kbd>ESC</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let SERVICES      = [];
+let METHODOLOGIES = [];
+let activeView    = 'services';
+let activeDoc     = null;
+let activeCat     = 'all';
+let searchScope   = 'all';
+let fuzzyMode     = 'normal';
+let searchDebounce;
+let cmdSelected   = 0;
+let cmdItems      = [];
+let notes         = {};
+let sessions      = {};
+let activeSessionId = null;
+let activeNoteId  = null;
+let noteSaveTimer;
+
+const ACCENT_COLORS = [
+  '#38bdf8','#34d399','#a78bfa','#fb923c',
+  '#f87171','#fbbf24','#22d3ee','#6ee7b7',
+];
+const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
+
+// ═══════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════
+function applyTheme(t) {
+  if (t === 'light') {
+    document.documentElement.setAttribute('data-theme','light');
+    document.getElementById('themeBtn').textContent = '🌙 Dark';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('themeBtn').textContent = '☀ Light';
+  }
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('ops-theme', cur);
+  applyTheme(cur);
+}
+applyTheme(localStorage.getItem('ops-theme') || 'dark');
+
+// ═══════════════════════════════════════════════
+// TARGET
+// ═══════════════════════════════════════════════
+function initTarget() {
+  const ipEl  = document.getElementById('targetIP');
+  const domEl = document.getElementById('targetDomain');
+  ipEl.value  = localStorage.getItem('ops-ip')     || '';
+  domEl.value = localStorage.getItem('ops-domain') || '';
+  updateTargetDots();
+
+  ipEl.addEventListener('input', () => {
+    localStorage.setItem('ops-ip', ipEl.value);
+    updateTargetDots();
+    refreshCodeBlocks();
+  });
+  domEl.addEventListener('input', () => {
+    localStorage.setItem('ops-domain', domEl.value);
+    updateTargetDots();
+    refreshCodeBlocks();
+  });
+}
+function updateTargetDots() {
+  document.getElementById('ipDot').classList.toggle('active',
+    document.getElementById('targetIP').value.trim() !== '');
+  document.getElementById('domainDot').classList.toggle('active',
+    document.getElementById('targetDomain').value.trim() !== '');
+}
+function getIP()     { return document.getElementById('targetIP').value.trim() || '<IP>'; }
+function getDomain() { return document.getElementById('targetDomain').value.trim() || '<DOMAIN>'; }
+
+// ═══════════════════════════════════════════════
+// IP INJECTION into rendered HTML code blocks
+// ═══════════════════════════════════════════════
+function injectTargets(rawHtml) {
+  const ip     = esc(getIP());
+  const domain = esc(getDomain());
+  const span   = (val) => `<span class="ip-injected">${val}</span>`;
+
+  // IP placeholders — covers HackTricks, GTFOBins, OSCP notes conventions
+  const ipPatterns = [
+    // Angle-bracket style (raw and HTML-escaped)
+    /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
+    /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
+    /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
+    // Shell variable style
+    /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
+    /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
+    // Curly brace template style
+    /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
+    /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
+    // HackTricks-specific
+    /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
+    // Literal placeholder text in code blocks
+    /\b10\.10\.10\.X\b/g,  /\b10\.10\.X\.X\b/g,
+  ];
+
+  const domainPatterns = [
+    /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
+    /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
+    /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
+    /\$DOMAIN\b/g,  /\$FQDN\b/g,  /\$DC\b/g,
+    /\{DOMAIN\}/g,  /\{domain\}/g,  /\{FQDN\}/g,  /\{\{domain\}\}/g,
+    /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
+  ];
+
+  let out = rawHtml;
+  for (const p of ipPatterns)     out = out.replace(p, span(ip));
+  for (const p of domainPatterns) out = out.replace(p, span(domain));
+  return out;
+}
+
+function wrapCodeBlocks(container) {
+  // Wrap every pre > code in a copy-button wrapper
+  container.querySelectorAll('pre').forEach(pre => {
+    if (pre.parentElement.classList.contains('code-block-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'code-block-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'copy';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Get plain text (strip injected spans)
+      const raw = pre.innerText;
+      navigator.clipboard.writeText(raw).then(() => {
+        btn.textContent = '✓ copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function refreshCodeBlocks() {
+  const el = document.getElementById('cpContent');
+  if (!el || !activeDoc) return;
+  renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function init() {
+  initTarget();
+  initNotes();
+
+  // Fetch services
+  try {
+    const r = await fetch('/api/services');
+    const d = await r.json();
+    SERVICES = d.services || [];
+  } catch(e) { console.warn('services unavailable', e); }
+
+  // Fetch methodologies
+  try {
+    const r = await fetch('/api/methodologies');
+    const d = await r.json();
+    METHODOLOGIES = d.guides || [];
+  } catch(e) { console.warn('methodologies unavailable', e); }
+
+  document.getElementById('svc-count').textContent  = SERVICES.length;
+  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
+
+  renderCards('services');
+  renderCards('methodologies');
+  buildSidebar('services');
+}
+
+// ═══════════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════════
+function switchView(view, navEl) {
+  activeView = view;
+  document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  else document.getElementById('nav-'+view)?.classList.add('active');
+
+  // Update sidebar categories
+  if (view === 'services' || view === 'methodologies') buildSidebar(view);
+  else document.getElementById('catList').innerHTML = '';
+
+  if (view === 'search') {
+    setTimeout(() => document.getElementById('searchInput').focus(), 50);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SIDEBAR CATEGORIES
+// ═══════════════════════════════════════════════
+function buildSidebar(view) {
+  const items = view === 'services' ? SERVICES : METHODOLOGIES;
+  const cats  = ['all', ...new Set(items.map(i => i.category))].filter(Boolean);
+  const list  = document.getElementById('catList');
+  document.getElementById('cat-hdr').textContent = 'Categories';
+  activeCat = 'all';
+
+  list.innerHTML = cats.map(cat => `
+    <div class="nav-item${cat==='all'?' active':''}" data-cat="${esc(cat)}"
+         onclick="setCat('${esc(cat)}', this, '${view}')">
+      <span class="nav-item-icon">${cat==='all'?'◈':'·'}</span>
+      <span class="nav-item-label">${cat==='all'?'All':esc(cat)}</span>
+      ${cat!=='all'?`<span class="nav-item-count">${items.filter(i=>i.category===cat).length}</span>`:''}
+    </div>`).join('');
+}
+
+function setCat(cat, el, view) {
+  activeCat = cat;
+  document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
+}
+
+// ═══════════════════════════════════════════════
+// CARDS RENDERING
+// ═══════════════════════════════════════════════
+function renderCards(view) {
+  const items  = view === 'services' ? SERVICES : METHODOLOGIES;
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const grid   = document.getElementById(gridId);
+  grid.innerHTML = '';
+
+  if (items.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📂</div>
+      <div class="empty-state-title">No ${view} found</div>
+      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base':'methodologies'}/ folder</div>
+    </div>`;
+    return;
+  }
+
+  items.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id  = item.id;
+    card.dataset.cat = item.category || '';
+    card.style.setProperty('--card-accent', accentFor(idx));
+    card.innerHTML = `
+      <span class="card-icon">${item.icon || '📄'}</span>
+      ${item.port ? `<div class="card-port">${esc(item.port)}</div>` : ''}
+      <div class="card-name">${esc(item.name)}</div>
+      <div class="card-desc">${esc(item.description || '')}</div>
+      <span class="card-cat">${esc(item.category || '')}</span>`;
+    card.onclick = () => openItem(view, item.id);
+    grid.appendChild(card);
+  });
+
+  updateToolbarCount(view, items.length);
+}
+
+function filterCards(view, query) {
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const q      = query.toLowerCase().trim();
+  const cards  = document.querySelectorAll(`#${gridId} .card`);
+  let vis      = 0;
+
+  cards.forEach(card => {
+    const name  = card.querySelector('.card-name')?.textContent.toLowerCase() || '';
+    const desc  = card.querySelector('.card-desc')?.textContent.toLowerCase() || '';
+    const port  = card.querySelector('.card-port')?.textContent.toLowerCase() || '';
+    const cat   = card.dataset.cat || '';
+    const catOk = activeCat === 'all' || cat === activeCat;
+    const qOk   = !q || name.includes(q) || desc.includes(q) || port.includes(q) || cat.toLowerCase().includes(q);
+    const show  = catOk && qOk;
+    card.classList.toggle('hidden', !show);
+    if (show) vis++;
+  });
+
+  updateToolbarCount(view, vis);
+}
+
+function updateToolbarCount(view, n) {
+  const total = (view === 'services' ? SERVICES : METHODOLOGIES).length;
+  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
+  el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
+}
+
+// ═══════════════════════════════════════════════
+// OPEN ITEM → CONTENT PANEL
+// ═══════════════════════════════════════════════
+async function openItem(view, id) {
+  // Mark card as active
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (card) card.classList.add('active-card');
+
+  const panel = document.getElementById('contentPanel');
+  panel.classList.remove('hidden-panel');
+  document.getElementById('cpTitle').textContent = 'Loading…';
+  document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
+
+  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/methodology/${encodeURIComponent(id)}`;
+  try {
+    const r = await fetch(endpoint);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    const meta = view === 'services'
+      ? `${d.port} · ${d.category}`
+      : `${d.category} · ${d.wordCount} words`;
+    activeDoc = { html: d.html, icon: d.icon || '📄', title: d.name, meta };
+    renderContent(d.html, d.icon || '📄', d.name, meta);
+  } catch(e) {
+    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+async function openPreviewByPath(title, filePath) {
+  const panel = document.getElementById('contentPanel');
+  panel.classList.remove('hidden-panel');
+  document.getElementById('cpTitle').textContent = title;
+  document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
+
+  try {
+    const r = await fetch(`/api/preview?file=${encodeURIComponent(filePath)}`);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop() };
+    renderContent(d.html, '🔍', title, filePath.split('/').pop());
+  } catch(e) {
+    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+function renderContent(html, icon, title, meta) {
+  document.getElementById('cpIcon').textContent  = icon;
+  document.getElementById('cpTitle').textContent = title;
+  document.getElementById('cpMeta').textContent  = meta || '';
+  const el = document.getElementById('cpContent');
+  el.innerHTML = injectTargets(html);
+  wrapCodeBlocks(el);
+  // Scroll back to top
+  el.parentElement.scrollTop = 0;
+}
+
+function closeContent() {
+  document.getElementById('contentPanel').classList.add('hidden-panel');
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
+  activeDoc = null;
+}
+
+// ═══════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════
+function onSearch(val) {
+  clearTimeout(searchDebounce);
+  if (val.trim().length < 2) {
+    document.getElementById('resultsList').innerHTML = `<div class="results-offline">
+      <div class="results-offline-icon">🔍</div>
+      <div class="results-offline-text">Start typing to search</div>
+      <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+    </div>`;
+    document.getElementById('searchStatus').textContent = '';
+    return;
+  }
+  document.getElementById('searchStatus').textContent = 'searching…';
+  searchDebounce = setTimeout(() => runSearch(val.trim()), 300);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  onSearch('');
+  document.getElementById('searchInput').focus();
+}
+
+function setScope(s, btn) {
+  searchScope = s;
+  document.querySelectorAll('#scopeGroup .btn-group-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length >= 2) runSearch(q);
+}
+
+function setFuzzy(f, btn) {
+  fuzzyMode = f;
+  document.querySelectorAll('#fuzzyGroup .btn-group-item').forEach(b => {
+    b.classList.remove('active','fuzzy-active');
+  });
+  btn.classList.add(f === 'off' ? 'active' : 'fuzzy-active');
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length >= 2) runSearch(q);
+}
+
+async function runSearch(query) {
+  try {
+    const r = await fetch('/api/search-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, fuzzyMode })
+    });
+    const d = await r.json();
+    if (d.offline) {
+      console.warn('[Search] Proxy returned offline. Server error:', d.error || 'unknown');
+    }
+    let results = d.results || [];
+
+    // Filter by scope
+    if (searchScope === 'local')  results = results.filter(r => r.is_local);
+    if (searchScope === 'online') results = results.filter(r => !r.is_local);
+
+    renderResults(query, results, d.offline || false);
+  } catch(e) {
+    console.error('[Search] Fetch failed:', e.message);
+    renderResults(query, [], true);
+  }
+}
+
+function renderResults(query, results, offline) {
+  const list = document.getElementById('resultsList');
+  const stat = document.getElementById('searchStatus');
+
+  if (offline) {
+    stat.textContent = '⚠ offline';
+    list.innerHTML = `<div class="results-offline">
+      <div class="results-offline-icon">⚠</div>
+      <div class="results-offline-text">Search indexer not reachable</div>
+      <div class="results-offline-hint">Check console · <a href="/api/search-ping" target="_blank" style="color:var(--accent)">ping indexer</a></div>
+    </div>`;
+    return;
+  }
+
+  stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+
+  if (!results.length) {
+    list.innerHTML = `<div class="results-offline">
+      <div class="results-offline-icon">∅</div>
+      <div class="results-offline-text">No results for "${esc(query)}"</div>
+      <div class="results-offline-hint">Try different keywords or enable Max fuzzy</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = results.map(r => {
+    const score   = typeof r.relevance_score === 'number' ? r.relevance_score.toFixed(1) : (r.relevance_score || '');
+    const snippet = r.snippet ? (typeof r.snippet === 'object' ? r.snippet.text : r.snippet) : '';
+    const trimmed = snippet ? snippet.replace(/\s+/g,' ').trim().slice(0,180) : '';
+    const isLocal = r.is_local;
+    const href    = isLocal ? '#' : (r.url || '#');
+
+    return `<div class="result-card${isLocal?' local-result':''}"
+         data-local="${isLocal?'1':'0'}"
+         data-filepath="${esc(r.file_path||'')}"
+         data-title="${esc(r.title||'')}"
+         data-url="${esc(href)}"
+         onclick="handleResultClick(this)">
+      <div class="result-card-top">
+        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+        ${score ? `<span class="result-score">${score}</span>` : ''}
+      </div>
+      <div class="result-meta">
+        <span class="result-source">${esc(r.source_name||'')}</span>
+        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${isLocal ? `<span class="result-badge local">local</span>` : ''}
+      </div>
+      ${trimmed ? `<div class="result-snippet">${esc(trimmed)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function handleResultClick(el) {
+  if (el.dataset.local === '1') {
+    openPreviewByPath(el.dataset.title, el.dataset.filepath);
+  } else {
+    window.open(el.dataset.url, '_blank', 'noopener');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// COMMAND PALETTE
+// ═══════════════════════════════════════════════
+function openCmd() {
+  document.getElementById('cmdOverlay').classList.add('open');
+  document.getElementById('cmdInput').value = '';
+  buildCmdResults('');
+  setTimeout(() => document.getElementById('cmdInput').focus(), 30);
+}
+
+function closeCmd() {
+  document.getElementById('cmdOverlay').classList.remove('open');
+  cmdSelected = 0; cmdItems = [];
+}
+
+function closeCmdIfOutside(e) {
+  if (e.target === document.getElementById('cmdOverlay')) closeCmd();
+}
+
+function buildCmdResults(q) {
+  const ql    = q.toLowerCase().trim();
+  const res   = document.getElementById('cmdResults');
+  cmdItems    = [];
+  let html    = '';
+
+  // Services
+  const svcs = SERVICES.filter(s =>
+    !ql || s.name.toLowerCase().includes(ql) || (s.port||'').includes(ql) ||
+    (s.category||'').toLowerCase().includes(ql)
+  ).slice(0, 6);
+
+  if (svcs.length) {
+    html += `<div class="cmd-group-hdr">Services</div>`;
+    svcs.forEach(s => {
+      cmdItems.push({ type:'service', id:s.id, label:s.name });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">${s.icon||'📄'}</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(s.name)}</div>
+          <div class="cmd-item-sub">${esc(s.port||'')} · ${esc(s.category||'')}</div>
+        </div>
+        <span class="cmd-item-tag">service</span>
+      </div>`;
+    });
+  }
+
+  // Methodologies
+  const meths = METHODOLOGIES.filter(m =>
+    !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
+  ).slice(0, 5);
+
+  if (meths.length) {
+    html += `<div class="cmd-group-hdr">Guides</div>`;
+    meths.forEach(m => {
+      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">${m.icon||'📋'}</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(m.name)}</div>
+          <div class="cmd-item-sub">${esc(m.category||'')}</div>
+        </div>
+        <span class="cmd-item-tag">guide</span>
+      </div>`;
+    });
+  }
+
+  // Notes
+  const noteList = Object.values(notes).filter(n =>
+    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql)
+  ).slice(0, 3);
+
+  if (noteList.length) {
+    html += `<div class="cmd-group-hdr">Notes</div>`;
+    noteList.forEach(n => {
+      cmdItems.push({ type:'note', id:n.id, label:n.title });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">📝</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(n.title||'Untitled')}</div>
+          <div class="cmd-item-sub">${esc((n.body||'').slice(0,60))}</div>
+        </div>
+        <span class="cmd-item-tag">note</span>
+      </div>`;
+    });
+  }
+
+  // Search action
+  if (ql) {
+    cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
+    html += `<div class="cmd-group-hdr">Search</div>
+    <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+      <span class="cmd-item-icon">🔍</span>
+      <div class="cmd-item-main">
+        <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
+        <div class="cmd-item-sub">Search the full knowledge index</div>
+      </div>
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'IBM Plex Mono',monospace">
+      Type to search services, guides and notes…
+    </div>`;
+  }
+
+  res.innerHTML = html;
+  cmdSelected = 0;
+  updateCmdSelection();
+}
+
+function onCmdInput(val) { buildCmdResults(val); }
+
+function onCmdKey(e) {
+  if (e.key === 'Escape') { closeCmd(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); cmdSelected = Math.min(cmdSelected+1, cmdItems.length-1); updateCmdSelection(); }
+  if (e.key === 'ArrowUp')   { e.preventDefault(); cmdSelected = Math.max(cmdSelected-1, 0); updateCmdSelection(); }
+  if (e.key === 'Enter')     { e.preventDefault(); execCmd(cmdSelected); }
+}
+
+function updateCmdSelection() {
+  document.querySelectorAll('.cmd-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === cmdSelected);
+  });
+}
+
+function execCmd(idx) {
+  const item = cmdItems[idx];
+  if (!item) return;
+  closeCmd();
+  if (item.type === 'service') {
+    switchView('services', document.getElementById('nav-services'));
+    openItem('services', item.id);
+  } else if (item.type === 'methodology') {
+    switchView('methodologies', document.getElementById('nav-methodologies'));
+    openItem('methodologies', item.id);
+  } else if (item.type === 'note') {
+    switchView('notes', document.getElementById('nav-notes'));
+    setTimeout(() => openNote(item.id), 50);
+  } else if (item.type === 'search') {
+    switchView('search', document.getElementById('nav-search'));
+    document.getElementById('searchInput').value = item.query;
+    runSearch(item.query);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NOTES
+// Schema per note:
+//   id        — unique key, e.g. "note_1718000000000"
+//   type      — "general" | "credentials" | "privesc" | "recon" | "loot" | "exploit"
+//   title     — string
+//   body      — markdown string
+//   target_ip — snapshot of IP at creation time (for future export grouping)
+//   target_domain — snapshot of domain at creation time
+//   created   — timestamp ms
+//   updated   — timestamp ms
+//
+// Persisted as notes.json via /api/notes/save.
+// localStorage is a fallback/cache. Future export will use type + target to
+// group notes into per-engagement markdown files.
+// ═══════════════════════════════════════════════
+
+const NOTE_TYPE_META = {
+  general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
+  credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
+  privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
+  recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
+  loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
+  exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
+};
+
+let activeNoteFilter = 'all';
+let activeNoteScope  = 'session'; // 'session' | 'unassigned' | 'all'
+
+function noteTabHandler(e) {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const ta    = e.target;
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + '  ' + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + 2;
+  autoSaveNote();
+}
+
+async function initNotes() {
+  try {
+    const r = await fetch('/api/notes');
+    const d = await r.json();
+    // Back-compat: old format was just flat notes obj
+    if (d.notes !== undefined) {
+      notes    = d.notes    || {};
+      sessions = d.sessions || {};
+    } else {
+      notes    = d || {};
+      sessions = {};
+    }
+    localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
+  } catch {
+    try {
+      const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
+      notes    = cached.notes    || {};
+      sessions = cached.sessions || {};
+    } catch { notes = {}; sessions = {}; }
+  }
+  // Restore last active session
+  const savedSid = localStorage.getItem('ops-active-session');
+  if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
+  else if (Object.keys(sessions).length) activeSessionId = Object.keys(sessions)[0];
+
+  renderSessionSidebar();
+  renderNotesList();
+  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+
+  // Sync topbar IP/domain from active session on load
+  if (activeSessionId && sessions[activeSessionId]) {
+    const sess = sessions[activeSessionId];
+    const ipEl  = document.getElementById('targetIP');
+    const domEl = document.getElementById('targetDomain');
+    if (sess.target_ip     && !ipEl.value)  { ipEl.value  = sess.target_ip;     localStorage.setItem('ops-ip',     sess.target_ip); }
+    if (sess.target_domain && !domEl.value) { domEl.value = sess.target_domain; localStorage.setItem('ops-domain', sess.target_domain); }
+    updateTargetDots();
+  }
+}
+
+function saveNotes() {
+  const payload = { notes, sessions };
+  localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
+  fetch('/api/notes/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+// ─── Session management ───
+function renderSessionSidebar() {
+  const dot    = document.getElementById('sessionDot');
+  const name   = document.getElementById('sessionName');
+  const target = document.getElementById('sessionTarget');
+  const sess   = activeSessionId && sessions[activeSessionId];
+  if (sess) {
+    dot.classList.add('live');
+    name.textContent   = sess.codename;
+    target.textContent = [sess.target_ip, sess.target_domain].filter(Boolean).join(' · ') || 'no target set';
+  } else {
+    dot.classList.remove('live');
+    name.textContent   = 'No session';
+    target.textContent = 'click to set';
+  }
+}
+
+function openSessionModal() {
+  // Pre-fill IP/domain from topbar
+  document.getElementById('newSessionIP').value     = document.getElementById('targetIP').value.trim();
+  document.getElementById('newSessionDomain').value = document.getElementById('targetDomain').value.trim();
+  document.getElementById('newSessionName').value   = '';
+  document.getElementById('exportFeedback').style.display = 'none';
+  renderSessionList();
+  document.getElementById('sessionOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newSessionName').focus(), 60);
+}
+function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
+function closeSessionModalIfOutside(e) { if (e.target === document.getElementById('sessionOverlay')) closeSessionModal(); }
+
+function renderSessionList() {
+  const list    = document.getElementById('sessionList');
+  const entries = Object.values(sessions).sort((a,b) => (b.created||0) - (a.created||0));
+  if (!entries.length) {
+    list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
+    return;
+  }
+  const noteCount = id => Object.values(notes).filter(n => n.session_id === id).length;
+  list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
+    entries.map(s => `
+    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
+      <div class="session-list-item-name">${esc(s.codename)}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <button class="session-export-btn" onclick="event.stopPropagation();exportSession('${s.id}')" title="Export to markdown">⬇ export</button>
+      <button class="session-delete-btn" onclick="event.stopPropagation();deleteSession('${s.id}')" title="Delete session">🗑</button>
+    </div>`).join('');
+}
+
+function createSession() {
+  const name = document.getElementById('newSessionName').value.trim();
+  if (!name) { document.getElementById('newSessionName').focus(); return; }
+  const id = 'sess_' + Date.now();
+  sessions[id] = {
+    id,
+    codename:      name,
+    target_ip:     document.getElementById('newSessionIP').value.trim()     || null,
+    target_domain: document.getElementById('newSessionDomain').value.trim() || null,
+    created:       Date.now(),
+  };
+  switchSession(id);
+  saveNotes();
+  renderSessionList();
+  document.getElementById('newSessionName').value = '';
+}
+
+function switchSession(id) {
+  activeSessionId = id;
+  localStorage.setItem('ops-active-session', id);
+  // Reset scope to session view when switching
+  activeNoteScope = 'session';
+  document.querySelectorAll('.note-scope-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.scope === 'session'));
+  renderSessionSidebar();
+  renderSessionList();
+  renderNotesList();
+  // Sync topbar target with session target
+  const sess = sessions[id];
+  if (sess) {
+    if (sess.target_ip)     { document.getElementById('targetIP').value     = sess.target_ip;     localStorage.setItem('ops-ip', sess.target_ip); }
+    if (sess.target_domain) { document.getElementById('targetDomain').value = sess.target_domain; localStorage.setItem('ops-domain', sess.target_domain); }
+    updateTargetDots();
+    refreshCodeBlocks();
+  }
+}
+
+function deleteSession(id) {
+  const sess  = sessions[id];
+  const count = Object.values(notes).filter(n => n.session_id === id).length;
+  const msg   = count
+    ? `Delete session "${sess?.codename}"?\n\n${count} note${count>1?'s':''} will become unassigned.`
+    : `Delete session "${sess?.codename}"?`;
+  if (!confirm(msg)) return;
+
+  // Unassign notes rather than delete them
+  Object.values(notes).forEach(n => {
+    if (n.session_id === id) n.session_id = null;
+  });
+
+  delete sessions[id];
+  if (activeSessionId === id) {
+    activeSessionId = Object.keys(sessions)[0] || null;
+    if (activeSessionId) localStorage.setItem('ops-active-session', activeSessionId);
+    else localStorage.removeItem('ops-active-session');
+  }
+  saveNotes();
+  renderSessionSidebar();
+  renderSessionList();
+  renderNotesList();
+}
+
+async function exportSession(id) {
+  const fb = document.getElementById('exportFeedback');
+  fb.style.display = 'block';
+  fb.className = 'export-feedback';
+  fb.textContent = '⏳ Exporting…';
+  try {
+    const r = await fetch('/api/notes/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: id }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      fb.className = 'export-feedback ok';
+      fb.textContent = `✓ Exported ${d.files?.length || 0} file${(d.files?.length||0)!==1?'s':''} → notes/${d.session}/`;
+    } else {
+      fb.className = 'export-feedback err';
+      fb.textContent = `✗ ${d.error || 'Export failed'}`;
+    }
+  } catch(e) {
+    fb.className = 'export-feedback err';
+    fb.textContent = `✗ ${e.message}`;
+  }
+}
+
+function setNoteFilter(type, btn) {
+  activeNoteFilter = type;
+  document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotesList();
+}
+
+function setNoteScope(scope, btn) {
+  activeNoteScope = scope;
+  document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotesList();
+}
+
+function renderNotesList() {
+  const list = document.getElementById('notesList');
+  let items = Object.values(notes).sort((a,b) => (b.updated||0) - (a.updated||0));
+
+  // Scope filter
+  if (activeNoteScope === 'session') {
+    items = activeSessionId
+      ? items.filter(n => n.session_id === activeSessionId)
+      : items.filter(n => !n.session_id);
+  } else if (activeNoteScope === 'unassigned') {
+    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
+  }
+  // activeNoteScope === 'all' → no filter
+
+  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
+
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
+      font-family:'IBM Plex Mono',monospace;text-align:center">
+      ${activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(n => {
+    const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+    const sess = n.session_id && sessions[n.session_id];
+    const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
+    return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
+      <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+      <div class="note-item-title">${esc(n.title||'Untitled')}</div>
+      <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
+      ${sessLabel}
+      <div class="note-item-date">${formatDate(n.updated)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + ' ' +
+         d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+
+// New note type picker modal
+function openNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.add('open');
+}
+function closeNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.remove('open');
+}
+function closeNewNoteModalIfOutside(e) {
+  if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal();
+}
+
+function newNote(type = 'general') {
+  closeNewNoteModal();
+  const id  = 'note_' + Date.now();
+  notes[id] = {
+    id,
+    session_id:    activeSessionId || null,
+    type,
+    title:         '',
+    body:          '',
+    target_ip:     document.getElementById('targetIP').value.trim()     || null,
+    target_domain: document.getElementById('targetDomain').value.trim() || null,
+    created:       Date.now(),
+    updated:       Date.now(),
+  };
+  saveNotes();
+  renderNotesList();
+  openNote(id);
+  setTimeout(() => document.getElementById('noteTitleInput').focus(), 50);
+}
+
+function openNote(id) {
+  activeNoteId = id;
+  const n = notes[id];
+  if (!n) return;
+
+  document.getElementById('notesEmpty').style.display     = 'none';
+  const area = document.getElementById('noteEditArea');
+  area.style.display = 'flex';
+
+  // Show type badge in editor header
+  const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+  let badge = document.getElementById('noteTypeBadge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'noteTypeBadge';
+    badge.className = 'note-item-type';
+    document.querySelector('.notes-editor-hdr').prepend(badge);
+  }
+  badge.textContent = meta.icon + ' ' + meta.label;
+  badge.className = 'note-item-type ' + meta.cssClass;
+
+  document.getElementById('noteTitleInput').value = n.title || '';
+  document.getElementById('noteBody').value       = n.body  || '';
+  document.getElementById('noteSaveStatus').textContent  = 'saved';
+  document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
+
+  renderNotesList();
+
+  // Wire up auto-save
+  document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
+  document.getElementById('noteBody').oninput       = () => autoSaveNote();
+}
+
+function autoSaveNote() {
+  if (!activeNoteId) return;
+  document.getElementById('noteSaveStatus').textContent = '…saving';
+  document.getElementById('noteSaveStatus').className   = 'note-save-status';
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => {
+    notes[activeNoteId].title   = document.getElementById('noteTitleInput').value;
+    notes[activeNoteId].body    = document.getElementById('noteBody').value;
+    notes[activeNoteId].updated = Date.now();
+    saveNotes();
+    renderNotesList();
+    document.getElementById('noteSaveStatus').textContent = 'saved';
+    document.getElementById('noteSaveStatus').className   = 'note-save-status saved';
+  }, 600);
+}
+
+function deleteCurrentNote() {
+  if (!activeNoteId) return;
+  if (!confirm('Delete this note?')) return;
+  delete notes[activeNoteId];
+  activeNoteId = null;
+  saveNotes();
+  renderNotesList();
+  document.getElementById('notesEmpty').style.display     = 'flex';
+  document.getElementById('noteEditArea').style.display   = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key === 'k') {
+    e.preventDefault(); openCmd(); return;
+  }
+  if (e.key === 'Escape') {
+    if (document.getElementById('cmdOverlay').classList.contains('open')) { closeCmd(); return; }
+    if (!document.getElementById('contentPanel').classList.contains('hidden-panel')) { closeContent(); return; }
+  }
+});
+
+// ═══════════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════════
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+
+// ═══════════════════════════════════════════════
+// RESIZABLE PANELS
+// ═══════════════════════════════════════════════
+(function() {
+  const NOTES_MIN  = 160, NOTES_MAX  = 400, NOTES_DEFAULT  = 200;
+  const PANEL_MIN  = 320, PANEL_MAX  = 820, PANEL_DEFAULT  = 520;
+
+  // Restore saved widths
+  const savedNotesW = parseInt(localStorage.getItem('ops-notes-w'))  || NOTES_DEFAULT;
+  const savedPanelW = parseInt(localStorage.getItem('ops-panel-w'))  || PANEL_DEFAULT;
+
+  const notesList    = document.querySelector('.notes-list');
+  const contentPanel = document.getElementById('contentPanel');
+
+  notesList.style.width    = savedNotesW + 'px';
+  contentPanel.style.width = savedPanelW + 'px';
+
+  function makeDraggable(handle, getEl, getStartW, onDrag, storageKey) {
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = getStartW();
+      handle.classList.add('dragging');
+      document.body.classList.add('is-resizing');
+
+      function onMove(e) {
+        const delta = onDrag(e.clientX - startX);
+        const newW  = Math.min(Math.max(startW + delta, getEl().minW), getEl().maxW);
+        getEl().el.style.width = newW + 'px';
+        localStorage.setItem(storageKey, newW);
+      }
+
+      function onUp() {
+        handle.classList.remove('dragging');
+        document.body.classList.remove('is-resizing');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+  }
+
+  // Notes list — dragging right edge expands list to the right
+  const notesHandle = document.getElementById('notesListHandle');
+  if (notesHandle) {
+    makeDraggable(
+      notesHandle,
+      () => ({ el: notesList, minW: NOTES_MIN, maxW: NOTES_MAX }),
+      () => notesList.offsetWidth,
+      delta => delta,
+      'ops-notes-w'
+    );
+    notesHandle.addEventListener('dblclick', () => {
+      notesList.style.width = NOTES_DEFAULT + 'px';
+      localStorage.setItem('ops-notes-w', NOTES_DEFAULT);
+    });
+  }
+
+  // Content panel — dragging left edge: drag left = wider, drag right = narrower
+  const panelHandle = document.getElementById('contentPanelHandle');
+  if (panelHandle) {
+    makeDraggable(
+      panelHandle,
+      () => ({ el: contentPanel, minW: PANEL_MIN, maxW: PANEL_MAX }),
+      () => contentPanel.offsetWidth,
+      delta => -delta,
+      'ops-panel-w'
+    );
+    panelHandle.addEventListener('dblclick', () => {
+      contentPanel.style.width = PANEL_DEFAULT + 'px';
+      localStorage.setItem('ops-panel-w', PANEL_DEFAULT);
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
