@@ -530,6 +530,37 @@ app.get('/api/methodology/:id', (req, res) => {
 });
 
 /**
+ * POST /api/kb/save
+ * Saves edited markdown back to disk for a service or methodology file.
+ * Body: { id, view }  where view = 'services' | 'methodologies'
+ * Security: only allows writing to files that exist in the index (no path traversal).
+ */
+app.post('/api/kb/save', (req, res) => {
+  try {
+    const { id, view, content } = req.body;
+    if (!id || !view || typeof content !== 'string') {
+      return res.status(400).json({ error: 'id, view, and content are required' });
+    }
+
+    // Resolve from index — never trust a client-supplied path
+    const index = view === 'services' ? serviceIndex : methodologyIndex;
+    const entry = index.find(e => e.id === id);
+    if (!entry) return res.status(404).json({ error: 'File not found in index' });
+
+    fs.writeFileSync(entry.filepath, content, 'utf8');
+
+    // Update in-memory content immediately so next read is fresh
+    entry.content = content;
+
+    console.log(`[PRAGMA] Saved edit: ${entry.filepath}`);
+    res.json({ ok: true, file: entry.file });
+  } catch (err) {
+    console.error(`[PRAGMA] Save error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/search-proxy
  * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3001).
  * Returns top 5 results by relevance score.

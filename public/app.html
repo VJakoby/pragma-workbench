@@ -19,8 +19,8 @@
   --text:     #c9d8ec;
   --text2:    #8fa3bc;
   --muted:    #4e6278;
-  --accent:   #38bdf8;
-  --accent2:  #0ea5e9;
+  --accent:   #7c3aed;
+  --accent2:  #6d28d9;
   --green:    #34d399;
   --purple:   #a78bfa;
   --red:      #f87171;
@@ -40,8 +40,8 @@
   --text:     #1a2535;
   --text2:    #3a5068;
   --muted:    #7a90a8;
-  --accent:   #0369a1;
-  --accent2:  #0284c7;
+  --accent:   #5b21b6;
+  --accent2:  #6d28d9;
   --green:    #059669;
   --purple:   #7c3aed;
   --red:      #dc2626;
@@ -78,7 +78,7 @@ body{
   flex-shrink:0;
   margin-right:8px;
   position:relative;
-  cursor:help;
+  cursor:default;
 }
 .topbar-logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
 .topbar-logo-tip{
@@ -190,7 +190,7 @@ body{
 }
 .nav-item:hover{background:var(--bg3);color:var(--text)}
 .nav-item.active{
-  background:rgba(56,189,248,0.06);
+  background:rgba(124,58,237,0.06);
   border-left-color:var(--accent);
   color:var(--accent);
 }
@@ -238,7 +238,7 @@ body{
   border-radius:3px;padding:1px 5px;
   color:var(--muted);
 }
-.panel-tab.active .panel-tab-badge{background:rgba(56,189,248,0.12);color:var(--accent)}
+.panel-tab.active .panel-tab-badge{background:rgba(124,58,237,0.12);color:var(--accent)}
 
 /* panel views */
 .panel-view{display:none;flex:1;overflow:hidden;flex-direction:column}
@@ -300,7 +300,7 @@ body{
 }
 .card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
 .card:hover::before{opacity:1}
-.card.active-card{border-color:var(--accent);background:rgba(56,189,248,0.04)}
+.card.active-card{border-color:var(--accent);background:rgba(124,58,237,0.04)}
 .card.active-card::before{opacity:1}
 
 .card-icon{font-size:26px;margin-bottom:10px;display:block}
@@ -471,7 +471,7 @@ body{
   transition:background 0.1s;border-left:2px solid transparent;
 }
 .note-item:hover{background:var(--bg3)}
-.note-item.active{background:rgba(56,189,248,0.05);border-left-color:var(--accent)}
+.note-item.active{background:rgba(124,58,237,0.05);border-left-color:var(--accent)}
 .note-item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
 .note-item-preview{
   font-size:12px;color:var(--text2);font-weight:500;
@@ -544,7 +544,7 @@ body{
   font-size:13px;font-family:'IBM Plex Mono',monospace;
   outline:none;transition:border-color 0.15s;
 }
-.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(56,189,248,0.1)}
+.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,58,237,0.1)}
 .search-big input::placeholder{color:var(--muted)}
 .search-big-icon{
   position:absolute;left:11px;top:50%;transform:translateY(-50%);
@@ -682,7 +682,7 @@ body{
   display:flex;align-items:center;gap:10px;
   padding:9px 16px;cursor:pointer;transition:background 0.1s;
 }
-.cmd-item:hover,.cmd-item.selected{background:rgba(56,189,248,0.07)}
+.cmd-item:hover,.cmd-item.selected{background:rgba(124,58,237,0.07)}
 .cmd-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .cmd-item-main{flex:1;overflow:hidden}
 .cmd-item-title{font-size:14px;color:var(--text);font-weight:500}
@@ -753,7 +753,7 @@ body{
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
     .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
-    .note-type-btn.active { color: var(--accent); background: rgba(56,189,248,0.08); }
+    .note-type-btn.active { color: var(--accent); background: rgba(124,58,237,0.08); }
 
     /* Note type badge on list items */
     .note-item-type {
@@ -765,7 +765,7 @@ body{
     .note-type-general     { color: var(--muted);   background: var(--bg4); }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.2); }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
-    .note-type-recon       { color: var(--accent);  background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.15); }
+    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.15); }
     .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
 
@@ -890,7 +890,7 @@ body.is-resizing *{cursor:col-resize!important}
   transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
-.session-list-item.active-session { border-color: var(--accent); background: rgba(56,189,248,0.06); }
+.session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.06); }
 .session-list-item-name {
   flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   font-weight: 700; color: var(--text);
@@ -979,8 +979,8 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-sel-label {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-  color: var(--accent); background: rgba(56,189,248,0.1);
-  border: 1px solid rgba(56,189,248,0.2); border-radius: 3px;
+  color: var(--accent); background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
 }
 .target-sel-arrow { color: var(--muted); font-size: 13px; flex-shrink: 0; }
@@ -1013,8 +1013,8 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item-label {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-  color: var(--accent); background: rgba(56,189,248,0.1);
-  border: 1px solid rgba(56,189,248,0.2); border-radius: 3px; padding: 1px 6px;
+  color: var(--accent); background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
 .target-item-del {
   background: none; border: none; color: var(--muted); cursor: pointer;
@@ -1025,6 +1025,31 @@ body.is-resizing *{cursor:col-resize!important}
   font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   color: var(--muted); text-align: center; padding: 14px 0;
 }
+
+/* ── Content panel edit mode ── */
+.content-panel-edit {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.cp-edit-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; background: var(--bg2);
+}
+.cp-edit-status {
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--muted);
+}
+.cp-edit-status.saved  { color: var(--green); }
+.cp-edit-status.unsaved { color: var(--yellow); }
+.cp-edit-textarea {
+  flex: 1; background: var(--bg); border: none; outline: none; resize: none;
+  color: var(--text2); font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; line-height: 1.75; padding: 16px 20px;
+  tab-size: 2;
+}
+.cp-edit-textarea::placeholder { color: var(--muted); }
+/* Edit button active state */
+#cpEditBtn.editing { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -1033,8 +1058,8 @@ body.is-resizing *{cursor:col-resize!important}
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <div class="topbar-logo">PRAGMA<span>// Workspace</span>
-      <div class="topbar-logo-tip"><strong style="color:var(--text)">PRAGMA</strong> — Engagement note workspace. Track findings and pull KB context via ENGRAM.</div>
+    <div class="topbar-logo">PRAGMA<span>// workspace</span>
+      <div class="topbar-logo-tip"><strong style="color:var(--text)">PRAGMA</strong> — Engagement note workspace. Track findings and pull KB context via ENGRAM (search indexer).</div>
     </div>
 
     <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
@@ -1237,10 +1262,25 @@ body.is-resizing *{cursor:col-resize!important}
         <span class="content-panel-icon" id="cpIcon">📄</span>
         <span class="content-panel-title" id="cpTitle">—</span>
         <span class="content-panel-meta" id="cpMeta"></span>
+        <button class="icon-btn" id="cpEditBtn" onclick="toggleEditMode()" title="Edit file" style="display:none">✎</button>
         <button class="content-panel-close" onclick="closeContent()">✕</button>
       </div>
-      <div class="content-panel-body">
+      <!-- Read mode -->
+      <div class="content-panel-body" id="cpReadBody">
         <div class="md-content" id="cpContent"></div>
+      </div>
+      <!-- Edit mode -->
+      <div class="content-panel-edit" id="cpEditBody" style="display:none">
+        <div class="cp-edit-toolbar">
+          <span class="cp-edit-status" id="cpEditStatus"></span>
+          <button class="session-btn secondary" onclick="cancelEdit()" style="padding:5px 12px;font-size:11px">Cancel</button>
+          <button class="session-btn primary"   onclick="saveEdit()"   style="padding:5px 12px;font-size:11px">💾 Save</button>
+        </div>
+        <div class="note-md-hint">
+          <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
+          <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+        </div>
+        <textarea class="cp-edit-textarea" id="cpEditTextarea" onkeydown="cpEditTabHandler(event)" spellcheck="false"></textarea>
       </div>
     </div>
 
@@ -1377,7 +1417,7 @@ let activeNoteId  = null;
 let noteSaveTimer;
 
 const ACCENT_COLORS = [
-  '#38bdf8','#34d399','#a78bfa','#fb923c',
+  '#7c3aed','#34d399','#a78bfa','#fb923c',
   '#f87171','#fbbf24','#22d3ee','#6ee7b7',
 ];
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
@@ -1766,8 +1806,9 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
-    activeDoc = { html: d.html, icon: d.icon || '📄', title: d.name, meta };
+    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || '📄', title: d.name, meta, id, view, isLocal: true };
     renderContent(d.html, d.icon || '📄', d.name, meta);
+    document.getElementById('cpEditBtn').style.display = '';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
@@ -1783,8 +1824,9 @@ async function openPreviewByPath(title, filePath) {
     const r = await fetch(`/api/preview?file=${encodeURIComponent(filePath)}`);
     const d = await r.json();
     if (d.error) throw new Error(d.error);
-    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop() };
+    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop(), isLocal: false };
     renderContent(d.html, '🔍', title, filePath.split('/').pop());
+    document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
@@ -1805,6 +1847,8 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  exitEditMode();
+  document.getElementById('cpEditBtn').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════
@@ -2105,6 +2149,164 @@ const NOTE_TYPE_META = {
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
 };
 
+const NOTE_TEMPLATES = {
+  general: {
+    title: '',
+    body: `## Overview
+
+
+## Notes
+
+
+## References
+
+`
+  },
+
+  credentials: {
+    title: 'Credentials',
+    body: `## Credentials
+
+| Username | Password | Hash | Service | Notes |
+|----------|----------|------|---------|-------|
+|          |          |      |         |       |
+
+## Password Spray / Stuffing Notes
+
+
+## Valid Sessions / Tokens
+
+`
+  },
+
+  privesc: {
+    title: 'Privilege Escalation',
+    body: `## System Info
+
+| Field     | Value |
+|-----------|-------|
+| OS        |       |
+| Kernel    |       |
+| Hostname  |       |
+| Current User |    |
+| Groups    |       |
+
+## Enumeration
+
+### SUID / SGID Binaries
+
+
+### Sudo Rights
+
+
+### Cron Jobs
+
+
+### Writable Paths / Misconfigs
+
+
+### Interesting Files
+
+
+## Vectors Attempted
+
+| Vector | Result | Notes |
+|--------|--------|-------|
+|        |        |       |
+
+## Escalation Path
+
+
+`
+  },
+
+  recon: {
+    title: 'Recon',
+    body: `## Target Overview
+
+| Field   | Value |
+|---------|-------|
+| IP      |       |
+| Domain  |       |
+| OS      |       |
+| In Scope|       |
+
+## Open Ports & Services
+
+| Port | Proto | Service | Version | Notes |
+|------|-------|---------|---------|-------|
+|      |       |         |         |       |
+
+## Web Endpoints
+
+
+## DNS / Hostnames
+
+
+## Users / Groups Discovered
+
+
+## Findings
+
+`
+  },
+
+  loot: {
+    title: 'Loot',
+    body: `## Files & Data
+
+| Path | Description | Hash / Value | Exfil Method |
+|------|-------------|--------------|--------------|
+|      |             |              |              |
+
+## Credentials Found
+
+
+## Flags / Proofs
+
+\`\`\`
+# root.txt / user.txt / proof.txt
+
+\`\`\`
+
+## Notes
+
+`
+  },
+
+  exploit: {
+    title: 'Exploit',
+    body: `## Vulnerability
+
+| Field       | Value |
+|-------------|-------|
+| Name        |       |
+| CVE         |       |
+| CVSS        |       |
+| Affected    |       |
+| Auth Required|      |
+
+## Payload
+
+\`\`\`bash
+
+\`\`\`
+
+## Steps
+
+1. 
+2. 
+3. 
+
+## Outcome
+
+
+## Cleanup / Artifacts to Remove
+
+`
+  },
+};
+
 let activeNoteFilter = 'all';
 let activeNoteScope  = 'session'; // 'session' | 'unassigned' | 'all'
 
@@ -2393,13 +2595,14 @@ function closeNewNoteModalIfOutside(e) {
 
 function newNote(type = 'general') {
   closeNewNoteModal();
-  const id  = 'note_' + Date.now();
-  notes[id] = {
+  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.general;
+  const id   = 'note_' + Date.now();
+  notes[id]  = {
     id,
     session_id:    activeSessionId || null,
     type,
-    title:         '',
-    body:          '',
+    title:         tmpl.title || '',
+    body:          tmpl.body  || '',
     target_ip:     getIP()     !== '<IP>'     ? getIP()     : null,
     target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
     created:       Date.now(),
@@ -2408,7 +2611,17 @@ function newNote(type = 'general') {
   saveNotes();
   renderNotesList();
   openNote(id);
-  setTimeout(() => document.getElementById('noteTitleInput').focus(), 50);
+  // Focus title if blank, body if title pre-filled
+  setTimeout(() => {
+    const el = tmpl.title
+      ? document.getElementById('noteBody')
+      : document.getElementById('noteTitleInput');
+    el.focus();
+    if (el === document.getElementById('noteBody')) {
+      el.setSelectionRange(0, 0);
+      el.scrollTop = 0;
+    }
+  }, 50);
 }
 
 function openNote(id) {
@@ -2471,6 +2684,107 @@ function deleteCurrentNote() {
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display     = 'flex';
   document.getElementById('noteEditArea').style.display   = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// CONTENT PANEL EDIT MODE
+// ═══════════════════════════════════════════════
+let cpEditDirty = false;
+
+function cpEditTabHandler(e) {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const ta = e.target;
+  const s  = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = s + 2;
+  setCpEditStatus('unsaved', '● unsaved');
+  cpEditDirty = true;
+}
+
+function setCpEditStatus(cls, msg) {
+  const el = document.getElementById('cpEditStatus');
+  el.className = 'cp-edit-status ' + cls;
+  el.textContent = msg;
+}
+
+function toggleEditMode() {
+  const editBody = document.getElementById('cpEditBody');
+  const isEditing = editBody.style.display !== 'none';
+  if (isEditing) {
+    if (cpEditDirty && !confirm('Discard unsaved changes?')) return;
+    exitEditMode();
+  } else {
+    enterEditMode();
+  }
+}
+
+function enterEditMode() {
+  if (!activeDoc || !activeDoc.raw) return;
+  document.getElementById('cpReadBody').style.display  = 'none';
+  document.getElementById('cpEditBody').style.display  = 'flex';
+  document.getElementById('cpEditBtn').classList.add('editing');
+  document.getElementById('cpEditBtn').title = 'Exit edit mode';
+  const ta = document.getElementById('cpEditTextarea');
+  ta.value = activeDoc.raw;
+  cpEditDirty = false;
+  setCpEditStatus('', activeDoc.meta || '');
+  ta.focus();
+
+  // Mark dirty on any input
+  ta.oninput = () => {
+    if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
+  };
+}
+
+function exitEditMode() {
+  document.getElementById('cpReadBody').style.display  = '';
+  document.getElementById('cpEditBody').style.display  = 'none';
+  document.getElementById('cpEditBtn').classList.remove('editing');
+  document.getElementById('cpEditBtn').title = 'Edit file';
+  cpEditDirty = false;
+}
+
+function cancelEdit() {
+  if (cpEditDirty && !confirm('Discard unsaved changes?')) return;
+  exitEditMode();
+}
+
+async function saveEdit() {
+  if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
+  const raw = document.getElementById('cpEditTextarea').value;
+  setCpEditStatus('', '⏳ Saving…');
+  try {
+    const r = await fetch('/api/kb/save', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: activeDoc.id, view: activeDoc.view, content: raw }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Save failed');
+
+    // Update activeDoc raw + re-render preview in background
+    activeDoc.raw = raw;
+    cpEditDirty   = false;
+    setCpEditStatus('saved', '✓ saved');
+
+    // Re-render the read view with updated content so it's fresh when you exit
+    try {
+      const endpoint = activeDoc.view === 'services'
+        ? `/api/service/${encodeURIComponent(activeDoc.id)}`
+        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
+      const r2 = await fetch(endpoint);
+      const d2 = await r2.json();
+      activeDoc.html = d2.html;
+      activeDoc.raw  = d2.raw;
+      document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
+      wrapCodeBlocks(document.getElementById('cpContent'));
+    } catch(_) {}
+
+    setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
+  } catch(e) {
+    setCpEditStatus('unsaved', '✗ ' + e.message);
+  }
 }
 
 // ═══════════════════════════════════════════════
