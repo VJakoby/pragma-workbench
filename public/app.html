@@ -1150,6 +1150,14 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 4px 2px;
 }
 .export-unassigned-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+
+/* ── .session file import feedback ── */
+.import-feedback {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  padding: 8px 10px; border-radius: 6px; margin-top: 2px;
+}
+.import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
+.import-feedback.err { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
 </style>
 </head>
 <body>
@@ -1428,12 +1436,15 @@ body.is-resizing *{cursor:col-resize!important}
       </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">＋ Create Session</button>
+        <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">⬆ Import .session</button>
+        <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
       </div>
       <div class="export-unassigned-row">
         <input type="checkbox" id="exportIncludeUnassigned">
         <label for="exportIncludeUnassigned" style="cursor:pointer">Include unassigned notes</label>
       </div>
       <div id="exportFeedback" style="display:none"></div>
+      <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>
     </div>
@@ -2580,7 +2591,8 @@ function renderSessionList() {
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
       <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <button class="session-export-btn" onclick="event.stopPropagation();exportSession('${s.id}')" title="Export to markdown">⬇ export</button>
+      <button class="session-export-btn" onclick="event.stopPropagation();exportSessionFile('${s.id}')" title="Export .session file">⬇ .session</button>
+      <button class="session-export-btn" onclick="event.stopPropagation();exportSession('${s.id}')" title="Export notes as markdown" style="color:var(--muted)">⬇ .md</button>
       <button class="session-delete-btn" onclick="event.stopPropagation();deleteSession('${s.id}')" title="Delete session">🗑</button>
     </div>`).join('');
 }
@@ -3017,6 +3029,101 @@ function renderTagFilterSidebar() {
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SESSION FILE EXPORT / IMPORT
+// ═══════════════════════════════════════════════
+async function exportSessionFile(id) {
+  const sess = sessions[id];
+  if (!sess) return;
+
+  const sessNotes = Object.values(notes).filter(n => n.session_id === id);
+  const payload = {
+    pragma_version: 1,
+    exported:       Date.now(),
+    session:        sess,
+    notes:          sessNotes,
+  };
+
+  // Also hit server to write the file to disk
+  try {
+    const r = await fetch('/api/notes/export-session', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ session_id: id }),
+    });
+    const d = await r.json();
+    const fb = document.getElementById('exportFeedback');
+    if (d.ok) {
+      fb.style.display = 'block';
+      fb.className = 'export-feedback ok';
+      fb.textContent = '✓ Saved → ' + d.path;
+      setTimeout(() => { fb.style.display = 'none'; }, 4000);
+    }
+  } catch(_) {}
+
+  // Also trigger browser download as fallback
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = sess.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase() + '.session';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importSession(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const fb = document.getElementById('importFeedback');
+  fb.style.display = 'block';
+  fb.className = 'import-feedback';
+  fb.textContent = '⏳ Importing…';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.session || !data.notes) throw new Error('Invalid .session file');
+
+      // Create new session with new ID to avoid collisions
+      const newSessId = 'sess_' + Date.now();
+      const importedSess = {
+        ...data.session,
+        id:      newSessId,
+        created: data.session.created || Date.now(),
+        imported_from: data.session.codename,
+      };
+
+      sessions[newSessId] = importedSess;
+
+      // Re-attach notes with new session ID and new note IDs
+      let noteCount = 0;
+      data.notes.forEach(n => {
+        const newNoteId = 'note_' + Date.now() + '_' + (noteCount++);
+        notes[newNoteId] = {
+          ...n,
+          id:         newNoteId,
+          session_id: newSessId,
+        };
+      });
+
+      saveNotes();
+      switchSession(newSessId);
+      renderSessionList();
+
+      fb.className = 'import-feedback ok';
+      fb.textContent = '✓ Imported "' + importedSess.codename + '" — ' + noteCount + ' note' + (noteCount !== 1 ? 's' : '');
+      setTimeout(() => { fb.style.display = 'none'; }, 4000);
+    } catch(err) {
+      fb.className = 'import-feedback err';
+      fb.textContent = '✗ ' + err.message;
+    }
+    // Reset file input so same file can be re-imported
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 // ═══════════════════════════════════════════════

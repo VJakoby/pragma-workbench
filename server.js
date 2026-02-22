@@ -771,6 +771,41 @@ app.post('/api/notes/export', (req, res) => {
 
 
 /**
+ * POST /api/notes/export-session
+ * Writes a .session file to notes/<codename>.session containing
+ * full session metadata + all its notes as portable JSON.
+ */
+app.post('/api/notes/export-session', (req, res) => {
+  try {
+    const { session_id } = req.body;
+    const { sessions, notes } = loadNotesFile();
+
+    const session = sessions[session_id];
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const sessNotes = Object.values(notes).filter(n => n.session_id === session_id);
+
+    const payload = {
+      pragma_version: 1,
+      exported:       Date.now(),
+      session:        session,
+      notes:          sessNotes,
+    };
+
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    const slug     = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const filePath = path.join(NOTES_DIR, slug + '.session');
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+
+    console.log(`[PRAGMA] Exported session: ${filePath}`);
+    res.json({ ok: true, path: filePath, notes: sessNotes.length });
+  } catch (err) {
+    console.error(`[PRAGMA] Session export error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/notes/debug
  * Returns a summary of what's in notes.json — session IDs, note IDs and their session_id.
  * Useful for diagnosing export mismatches.
@@ -793,8 +828,8 @@ function noteFilename(note) {
   const titleSlug = (note.title || '')
     .replace(/[^a-zA-Z0-9 _-]/g, '')
     .trim().replace(/\s+/g, '-').toLowerCase()
-    .slice(0, 40);
-  return titleSlug ? `${note.type}-${titleSlug}.md` : `${note.type}.md`;
+    .slice(0, 60);
+  return titleSlug ? `${titleSlug}.md` : `${note.type}.md`;
 }
 
 if (chokidar) {
