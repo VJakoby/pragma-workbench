@@ -1,4 +1,4 @@
-# PRAGMA // Workbench
+# PRAGMA Workbench
 
 > Engagement note workbench for penetration testers. Track findings, manage sessions, and pull knowledge base context — all from within the same place, locally.
 
@@ -8,16 +8,16 @@
 
 - **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
-- **Not a scanner or exploit framework** — it does not touch your targets or automate any scanning
+- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning
 - **Not cloud-dependent** — everything runs on locally on the machine(safest in a VM), nothing leaves it
 
 ---
 
 ## What it is
 
-PRAGMA is a local web application that combines structured note-taking with a searchable knowledge base. It is designed to support the natural flow of a penetration testing engagement — from initial recon through to loot — without breaking your concentration.
+PRAGMA is a local web application that combines structured note-taking with a searchable knowledge base(online sources). It is designed to support the natural flow of a penetration testing engagement — from initial recon through to loot — without breaking your concentration.
 
-It pairs with **PKBI/ENGRAM**, a local search indexer that enables full-text KB lookups from within the interface.
+It pairs with **PKBI/ENGRAM**, a local search indexer(needs to run on localhost:3002) that enables full-text KB lookups from within the interface.
 
 ---
 
@@ -65,6 +65,14 @@ It pairs with **PKBI/ENGRAM**, a local search indexer that enables full-text KB 
 | Search | PKBI/ENGRAM (separate service, port 3001) |
 | Storage | `notes.json` (flat file), `knowledge_base/` (markdown files) |
 
+## Requirements
+### PKBI/ENGRAM — required for search
+PRAGMA's search functionality depends on the PKBI/ENGRAM indexer running as a separate service on the same machine, on port 3002. Without it, the KB search view will show as offline — all other features work independently.
+
+> Repo: [PKBI](https://github.com/VJakoby/pkbi)
+
+Start the indexer before launching PRAGMA, then point it at your knowledge_base/ directory as described in its own setup guide.
+
 ---
 
 ## Getting Started
@@ -74,13 +82,13 @@ It pairs with **PKBI/ENGRAM**, a local search indexer that enables full-text KB 
 npm install
 
 # Start the server
-node server.js
+npm start
 
 # Open in browser
 http://localhost:3000
 ```
 
-Place your markdown files in:
+Place your personal methodology markdown files in:
 ```
 knowledge_base/          ← Services (e.g. ftp.md, smb.md)
 knowledge_base/methodologies/   ← Tactical guides
