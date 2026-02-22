@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRAGMA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
@@ -52,7 +52,7 @@
 html,body{height:100%;overflow:hidden}
 
 body{
-  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  font-family:'Inter',system-ui,sans-serif;
   background:var(--bg); color:var(--text);
   -webkit-font-smoothing:antialiased;
 }
@@ -71,7 +71,7 @@ body{
 }
 
 .topbar-logo{
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-weight:700; font-size:15px;
   color:var(--accent);
   letter-spacing:0.05em;
@@ -86,7 +86,7 @@ body{
   position:absolute;top:calc(100% + 8px);left:0;
   background:var(--bg4);border:1px solid var(--border2);
   border-radius:8px;padding:10px 13px;
-  font-family:'IBM Plex Sans',sans-serif;font-size:12px;
+  font-family:'Inter',sans-serif;font-size:12px;
   color:var(--text2);line-height:1.6;
   width:280px;z-index:200;
   box-shadow:0 8px 24px rgba(0,0,0,0.4);
@@ -106,7 +106,7 @@ body{
 }
 .target-seg+.target-seg{border-left:1px solid var(--border)}
 .target-seg-label{
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-size:9px;font-weight:600;
   letter-spacing:0.1em;text-transform:uppercase;
   color:var(--muted);
@@ -119,7 +119,7 @@ body{
 .target-seg-dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
 .target-input{
   background:none;border:none;outline:none;
-  color:var(--text);font-family:'IBM Plex Mono',monospace;
+  color:var(--text);font-family:'Inter',sans-serif;
   font-size:12px;width:130px;
 }
 .target-input::placeholder{color:var(--muted)}
@@ -131,7 +131,7 @@ body{
   border-radius:6px;padding:5px 12px;
   cursor:pointer;transition:all 0.15s;
   color:var(--muted);font-size:12px;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   flex:1;max-width:380px;
 }
 .cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
@@ -151,7 +151,7 @@ body{
   border-radius:6px;padding:5px 10px;
   cursor:pointer;transition:all 0.15s;
   color:var(--muted);font-size:12px;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   white-space:nowrap;
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
@@ -174,7 +174,7 @@ body{
 .sidebar-section{flex-shrink:0}
 .sidebar-section-hdr{
   padding:10px 14px 6px;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-size:9px;font-weight:700;
   letter-spacing:0.14em;text-transform:uppercase;
   color:var(--text2);
@@ -197,7 +197,7 @@ body{
 .nav-item-icon{font-size:17px;flex-shrink:0;width:20px;text-align:center}
 .nav-item-label{flex:1;font-size:13px}
 .nav-item-count{
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-size:10px;color:var(--text2);font-weight:600;
   background:var(--bg4);
   border-radius:4px;padding:1px 5px;
@@ -228,7 +228,7 @@ body{
   font-size:12px;font-weight:500;color:var(--muted);
   cursor:pointer;border-bottom:2px solid transparent;
   transition:all 0.15s;white-space:nowrap;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .panel-tab:hover{color:var(--text2)}
 .panel-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -259,7 +259,7 @@ body{
   background:var(--bg3);border:1px solid var(--border);
   border-radius:6px;color:var(--text);
   padding:6px 10px 6px 30px;
-  font-size:12px;font-family:'IBM Plex Mono',monospace;
+  font-size:12px;font-family:'Inter',sans-serif;
   outline:none;transition:border-color 0.15s;
 }
 .local-search input:focus{border-color:var(--accent)}
@@ -270,7 +270,7 @@ body{
 }
 
 .toolbar-count{
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-size:11px;color:var(--muted);
   margin-left:auto;
 }
@@ -305,7 +305,7 @@ body{
 
 .card-icon{font-size:26px;margin-bottom:10px;display:block}
 .card-port{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
   color:var(--text2);margin-bottom:4px;letter-spacing:0.06em;
 }
 .card-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
@@ -313,7 +313,7 @@ body{
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-cat{
   position:absolute;top:10px;right:10px;
-  font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;
+  font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
   background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);
   border-radius:3px;padding:2px 6px;
@@ -331,7 +331,7 @@ body{
 }
 .empty-state-icon{font-size:40px;opacity:0.4}
 .empty-state-title{font-size:14px;font-weight:500}
-.empty-state-hint{font-size:12px;font-family:'IBM Plex Mono',monospace}
+.empty-state-hint{font-size:12px;font-family:'Inter',sans-serif}
 
 /* ── CONTENT PANEL (right side, reader) ── */
 .content-panel{
@@ -356,7 +356,7 @@ body{
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .content-panel-meta{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500;
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
   flex-shrink:0;
 }
 .content-panel-close{
@@ -375,20 +375,20 @@ body{
 .content-panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 /* ── MARKDOWN RENDERING ── */
-.md-content{font-family:'IBM Plex Sans',sans-serif;font-size:15px;line-height:1.85}
+.md-content{font-family:'Inter',sans-serif;font-size:15px;line-height:1.85}
 .md-content h1{
   font-size:1.4em;font-weight:700;color:var(--accent);
   margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);
-  font-family:'IBM Plex Mono',monospace;letter-spacing:-0.01em;
+  font-family:'Inter',sans-serif;letter-spacing:-0.01em;
 }
 .md-content h2{
   font-size:1.1em;font-weight:600;color:var(--text);
-  margin:22px 0 8px;font-family:'IBM Plex Sans',sans-serif;
+  margin:22px 0 8px;font-family:'Inter',sans-serif;
   padding-left:10px;border-left:2px solid var(--accent2);
 }
 .md-content h3{
   font-size:1em;font-weight:600;color:var(--text2);
-  margin:16px 0 6px;font-family:'IBM Plex Sans',sans-serif;
+  margin:16px 0 6px;font-family:'Inter',sans-serif;
 }
 .md-content h4{font-size:0.95em;font-weight:600;color:var(--muted);margin:12px 0 4px}
 .md-content p{margin-bottom:10px;color:var(--text2)}
@@ -409,7 +409,7 @@ body{
   background:var(--bg3);color:var(--accent);
   padding:7px 12px;border:1px solid var(--border);
   text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .md-content td{padding:7px 12px;border:1px solid var(--border);color:var(--text2)}
 .md-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
@@ -421,7 +421,7 @@ body{
   border-radius:7px;padding:14px 16px;overflow-x:auto;
 }
 .code-block-wrap pre code{
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   font-size:13px;line-height:1.65;color:var(--green);
   background:none;border:none;padding:0;
 }
@@ -429,7 +429,7 @@ body{
   position:absolute;top:8px;right:8px;
   background:var(--bg3);border:1px solid var(--border2);
   border-radius:5px;padding:3px 9px;
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  font-family:'Inter',sans-serif;font-size:10px;
   color:var(--muted);cursor:pointer;transition:all 0.15s;
   opacity:0.35;
 }
@@ -448,7 +448,7 @@ body{
 .code-line-copy{
   display:none;
   position:absolute;right:4px;top:50%;transform:translateY(-50%);
-  font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;
+  font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   color:var(--accent);background:var(--bg4);
   border:1px solid rgba(124,58,237,0.3);
   border-radius:3px;padding:1px 6px;
@@ -459,7 +459,7 @@ body{
 
 /* Inline code */
 .md-content code:not(pre code){
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
   background:var(--bg3);border:1px solid var(--border);
   border-radius:4px;padding:1px 5px;
   font-size:0.88em;color:var(--green);
@@ -482,7 +482,7 @@ body{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 12px;border-bottom:1px solid var(--border);
   font-size:11px;font-weight:600;color:var(--muted);
-  font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.1em;
+  font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.1em;
 }
 .notes-list-items{flex:1;overflow-y:auto}
 .notes-list-items::-webkit-scrollbar{width:3px}
@@ -499,14 +499,14 @@ body{
 .note-item-preview{
   font-size:12px;color:var(--text2);font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .note-item-date{
   font-size:10px;color:var(--text2);font-weight:500;
-  font-family:'IBM Plex Mono',monospace;margin-top:3px;
+  font-family:'Inter',sans-serif;margin-top:3px;
 }
 .note-item-session{
-  font-size:9px;color:var(--purple);font-family:'IBM Plex Mono',monospace;
+  font-size:9px;color:var(--purple);font-family:'Inter',sans-serif;
   margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
@@ -518,18 +518,18 @@ body{
 .note-title-input{
   flex:1;background:none;border:none;outline:none;
   font-size:15px;font-weight:600;color:var(--text);
-  font-family:'IBM Plex Sans',sans-serif;
+  font-family:'Inter',sans-serif;
 }
 .note-title-input::placeholder{color:var(--muted)}
 .note-save-status{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500;
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
   flex-shrink:0;
 }
 .note-save-status.saved{color:var(--green)}
 .note-textarea{
   flex:1;background:none;border:none;outline:none;resize:none;
   padding:16px;color:var(--text2);font-size:14px;line-height:1.8;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .note-textarea::placeholder{color:var(--muted)}
 .notes-empty{
@@ -539,7 +539,7 @@ body{
 }
 .notes-empty-icon{font-size:28px;opacity:0.3}
 .notes-empty-text{font-size:13px}
-.notes-empty-hint{font-size:11px;font-family:'IBM Plex Mono',monospace}
+.notes-empty-hint{font-size:11px;font-family:'Inter',sans-serif}
 
 .icon-btn{
   background:none;border:none;cursor:pointer;
@@ -564,7 +564,7 @@ body{
 .search-big input{
   width:100%;background:var(--bg3);border:1px solid var(--border);
   border-radius:7px;color:var(--text);padding:9px 12px 9px 36px;
-  font-size:13px;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-family:'Inter',sans-serif;
   outline:none;transition:border-color 0.15s;
 }
 .search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,58,237,0.1)}
@@ -576,13 +576,13 @@ body{
 .search-clear-btn{
   background:var(--bg3);border:1px solid var(--border);border-radius:6px;
   color:var(--muted);padding:6px 12px;cursor:pointer;transition:all 0.15s;
-  font-size:11px;font-family:'IBM Plex Mono',monospace;white-space:nowrap;
+  font-size:11px;font-family:'Inter',sans-serif;white-space:nowrap;
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
 
 .search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ctrl-label{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  font-family:'Inter',sans-serif;font-size:10px;
   color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
 }
 .btn-group{
@@ -593,7 +593,7 @@ body{
   background:var(--bg3);border:none;color:var(--muted);
   padding:3px 10px;font-size:10px;font-weight:600;
   cursor:pointer;transition:all 0.12s;
-  font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;
+  font-family:'Inter',sans-serif;letter-spacing:0.04em;
   white-space:nowrap;
 }
 .btn-group-item:not(:last-child){border-right:1px solid var(--border)}
@@ -602,7 +602,7 @@ body{
 .btn-group-item:not(.active):not(.fuzzy-active):hover{background:var(--bg4);color:var(--text)}
 
 .search-status{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
   color:var(--text2);margin-left:auto;
 }
 
@@ -630,7 +630,7 @@ body{
 }
 .result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
 .result-score{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
   background:rgba(52,211,153,0.15);color:var(--green);
   border:1px solid rgba(52,211,153,0.3);
   padding:2px 8px;border-radius:4px;flex-shrink:0;
@@ -640,13 +640,13 @@ body{
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
 .result-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
 .result-badge{
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
 }
 .result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
 .result-badge.local{color:var(--green);background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)}
 .result-snippet{
-  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);font-weight:500;
+  font-family:'Inter',sans-serif;font-size:12px;color:var(--text);font-weight:500;
   line-height:1.6;white-space:pre-wrap;word-break:break-word;
   overflow:hidden;max-height:5.4em;/* ~4 lines */
 }
@@ -657,7 +657,7 @@ body{
 }
 .results-offline-icon{font-size:28px;opacity:0.4}
 .results-offline-text{font-size:13px}
-.results-offline-hint{font-size:11px;font-family:'IBM Plex Mono',monospace}
+.results-offline-hint{font-size:11px;font-family:'Inter',sans-serif}
 
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
@@ -682,11 +682,11 @@ body{
 .cmd-input{
   flex:1;background:none;border:none;outline:none;
   font-size:16px;color:var(--text);
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .cmd-input::placeholder{color:var(--muted)}
 .cmd-esc{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  font-family:'Inter',sans-serif;font-size:10px;
   background:var(--bg4);border:1px solid var(--border2);
   border-radius:4px;padding:2px 7px;color:var(--muted);
 }
@@ -697,7 +697,7 @@ body{
 
 .cmd-group-hdr{
   padding:8px 16px 4px;
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  font-family:'Inter',sans-serif;font-size:9px;
   font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
   color:var(--muted);
 }
@@ -710,18 +710,18 @@ body{
 .cmd-item-main{flex:1;overflow:hidden}
 .cmd-item-title{font-size:14px;color:var(--text);font-weight:500}
 .cmd-item-sub{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .cmd-item-tag{
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  font-family:'Inter',sans-serif;font-size:9px;
   background:var(--bg4);border:1px solid var(--border);
   border-radius:3px;padding:1px 6px;color:var(--muted);flex-shrink:0;
 }
 .cmd-footer{
   padding:8px 16px;border-top:1px solid var(--border);
   display:flex;gap:14px;
-  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
 }
 .cmd-footer-key{
   display:flex;align-items:center;gap:5px;
@@ -960,7 +960,7 @@ body.is-resizing *{cursor:col-resize!important}
   border:1px solid var(--border2);
   font-size:9px;font-weight:700;color:var(--muted);
   cursor:help;position:relative;flex-shrink:0;
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'Inter',sans-serif;
 }
 .score-help:hover{border-color:var(--accent);color:var(--accent)}
 .score-help-tip{
@@ -968,7 +968,7 @@ body.is-resizing *{cursor:col-resize!important}
   position:absolute;top:calc(100% + 8px);right:0;
   background:var(--bg4);border:1px solid var(--border2);
   border-radius:8px;padding:10px 13px;
-  font-family:'IBM Plex Sans',sans-serif;font-size:12px;
+  font-family:'Inter',sans-serif;font-size:12px;
   color:var(--text2);line-height:1.6;
   width:240px;z-index:200;
   box-shadow:0 8px 24px rgba(0,0,0,0.4);
@@ -1158,6 +1158,33 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
 .import-feedback.err { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+
+/* ── Shortcuts modal ── */
+.shortcuts-group { display: flex; flex-direction: column; gap: 6px; }
+.shortcuts-group-hdr {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.shortcuts-table { display: flex; flex-direction: column; gap: 2px; }
+.shortcut-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 6px; border-radius: 5px; transition: background 0.1s;
+}
+.shortcut-row:hover { background: var(--bg3); }
+.shortcut-desc {
+  font-size: 13px; color: var(--text2); font-family: 'Inter', sans-serif;
+}
+.shortcut-keys {
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+}
+kbd {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  color: var(--text); background: var(--bg4);
+  border: 1px solid var(--border2); border-bottom-width: 2px;
+  border-radius: 4px; padding: 2px 7px; line-height: 1.6;
+}
 </style>
 </head>
 <body>
@@ -1187,6 +1214,7 @@ body.is-resizing *{cursor:col-resize!important}
     </button>
 
     <div class="topbar-actions">
+      <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
       <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
     </div>
   </div>
@@ -1410,12 +1438,69 @@ body.is-resizing *{cursor:col-resize!important}
   </div><!-- end body-split -->
 </div>
 
+
+<!-- ── SHORTCUTS MODAL ── -->
+<div class="cmd-overlay" id="shortcutsOverlay" onclick="if(event.target===this)closeShortcutsModal()">
+  <div class="cmd-box" style="max-width:680px;width:95vw">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">⌨</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Keyboard Shortcuts</span>
+      <span class="cmd-esc" onclick="closeShortcutsModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px">
+
+        <div class="shortcuts-group">
+          <div class="shortcuts-group-hdr">Navigation</div>
+          <div class="shortcuts-table">
+            <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Notes</span>             <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Search</span>            <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Notes</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">New note</span>        <span class="shortcut-keys"><kbd>⌘</kbd><kbd>N</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Save note</span>        <span class="shortcut-keys"><kbd>⌘</kbd><kbd>S</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Add tag</span>          <span class="shortcut-keys"><kbd>Enter</kbd></span></div>
+            </div>
+          </div>
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Knowledge Base</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Edit open file</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>E</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Save file edit</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>S</kbd></span></div>
+            </div>
+          </div>
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">General</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Close / dismiss</span> <span class="shortcut-keys"><kbd>ESC</kbd></span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;padding-top:6px;border-top:1px solid var(--border)">
+        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- ── SESSION MODAL ── -->
 <div class="cmd-overlay" id="sessionOverlay" onclick="closeSessionModalIfOutside(event)">
   <div class="cmd-box" style="max-width:420px">
     <div class="cmd-input-row">
       <span class="cmd-input-icon">🎯</span>
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
       <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
     </div>
     <div class="session-modal-body">
@@ -1457,7 +1542,7 @@ body.is-resizing *{cursor:col-resize!important}
   <div class="cmd-box" style="max-width:440px">
     <div class="cmd-input-row">
       <span class="cmd-input-icon">🖥</span>
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);font-weight:700;flex:1" id="targetsPanelTitle">Targets</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1" id="targetsPanelTitle">Targets</span>
       <span class="cmd-esc" onclick="closeTargetsPanel()" style="cursor:pointer">ESC</span>
     </div>
     <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px">
@@ -1491,11 +1576,11 @@ body.is-resizing *{cursor:col-resize!important}
   <div class="cmd-box" style="max-width:380px">
     <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
       <span class="cmd-input-icon">📝</span>
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);font-weight:600">New Note</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
       <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
     </div>
     <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
+      <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
         <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
         <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
@@ -2242,7 +2327,7 @@ function buildCmdResults(q) {
   }
 
   if (!html) {
-    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'IBM Plex Mono',monospace">
+    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
       Type to search services, guides and notes…
     </div>`;
   }
@@ -2723,7 +2808,7 @@ function renderNotesList() {
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
-      font-family:'IBM Plex Mono',monospace;text-align:center">
+      font-family:'Inter',sans-serif;text-align:center">
       ${activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
     return;
@@ -3196,17 +3281,126 @@ function updateReassignBtn(note) {
   }
 }
 
+function openShortcutsModal() {
+  document.getElementById('shortcutsOverlay').classList.add('open');
+}
+function closeShortcutsModal() {
+  document.getElementById('shortcutsOverlay').classList.remove('open');
+}
+
 // ═══════════════════════════════════════════════
 // KEYBOARD SHORTCUTS
 // ═══════════════════════════════════════════════
+// Full shortcut reference:
+//   ⌘/Ctrl + K        — Command palette
+//   ⌘/Ctrl + N        — New note
+//   ⌘/Ctrl + S        — Save current note (force)
+//   ⌘/Ctrl + F        — Jump to search view
+//   ⌘/Ctrl + 1-5      — Switch views (services/guides/notes/search)
+//   ⌘/Ctrl + E        — Edit current KB file (if content panel open)
+//   ESC               — Close topmost modal / panel / dropdown
+
 document.addEventListener('keydown', e => {
-  if ((e.metaKey||e.ctrlKey) && e.key === 'k') {
+  const ctrl = e.metaKey || e.ctrlKey;
+
+  // ── ⌘K — Command palette ──
+  if (ctrl && e.key === 'k') {
     e.preventDefault(); openCmd(); return;
   }
-  if (e.key === 'Escape') {
-    if (document.getElementById('cmdOverlay').classList.contains('open')) { closeCmd(); return; }
-    if (!document.getElementById('contentPanel').classList.contains('hidden-panel')) { closeContent(); return; }
+
+  // ── ⌘N — New note ──
+  if (ctrl && e.key === 'n') {
+    e.preventDefault();
+    switchView('notes', document.getElementById('nav-notes'));
+    openNewNoteModal();
+    return;
   }
+
+  // ── ⌘S — Save current note ──
+  if (ctrl && e.key === 's') {
+    if (activeNoteId) {
+      e.preventDefault();
+      autoSaveNote();
+      const status = document.getElementById('noteSaveStatus');
+      if (status) { status.textContent = '✓ saved'; setTimeout(() => status.textContent = 'saved', 1500); }
+    }
+    return;
+  }
+
+  // ── ⌘F — Search ──
+  if (ctrl && e.key === 'f') {
+    // Only intercept if not in a text input already
+    if (document.activeElement.tagName !== 'TEXTAREA' &&
+        document.activeElement.id     !== 'noteBody' &&
+        document.activeElement.id     !== 'noteTitleInput') {
+      e.preventDefault();
+      switchView('search', document.getElementById('nav-search'));
+      setTimeout(() => document.getElementById('searchInput')?.focus(), 50);
+      return;
+    }
+  }
+
+  // ── ⌘1-5 — Switch views ──
+  if (ctrl && ['1','2','3','4','5'].includes(e.key)) {
+    e.preventDefault();
+    const viewMap = {
+      '1': ['services',      'nav-services'],
+      '2': ['methodologies', 'nav-methodologies'],
+      '3': ['notes',         'nav-notes'],
+      '4': ['search',        'nav-search'],
+    };
+    const v = viewMap[e.key];
+    if (v) switchView(v[0], document.getElementById(v[1]));
+    return;
+  }
+
+  // ── ⌘E — Toggle edit mode on open KB file ──
+  if (ctrl && e.key === 'e') {
+    const cp = document.getElementById('contentPanel');
+    if (cp && !cp.classList.contains('hidden-panel') && activeDoc?.isLocal) {
+      e.preventDefault();
+      toggleEditMode();
+      return;
+    }
+  }
+
+  // ── ESC — Close topmost modal / overlay / panel / dropdown ──
+  if (e.key === 'Escape') {
+    // Shortcuts modal
+    if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
+    // Reassign dropdown
+    const rd = document.getElementById('noteReassignDropdown');
+    if (rd?.classList.contains('open')) { rd.classList.remove('open'); return; }
+    // Targets panel
+    if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
+    // Session modal
+    if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
+    // New note modal
+    if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }
+    // Command palette
+    if (document.getElementById('cmdOverlay')?.classList.contains('open')) { closeCmd(); return; }
+    // KB edit mode
+    if (document.getElementById('cpEditBody')?.style.display !== 'none') {
+      if (cpEditDirty && !confirm('Discard unsaved changes?')) return;
+      exitEditMode(); return;
+    }
+    // Content panel
+    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); return; }
+  }
+});
+
+// ── Show shortcut hints in tooltips ──
+document.addEventListener('DOMContentLoaded', () => {
+  const hints = [
+    ['nav-services',      '⌘1'],
+    ['nav-methodologies', '⌘2'],
+    ['nav-notes',         '⌘3'],
+    ['nav-search',        '⌘4'],
+  ];
+  hints.forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.title = key;
+  });
 });
 
 // ═══════════════════════════════════════════════
