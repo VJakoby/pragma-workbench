@@ -312,9 +312,12 @@ body{
 .card-desc{font-size:12px;color:var(--text2);line-height:1.5;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-cat{
-  display:inline-block;margin-top:8px;
-  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  position:absolute;top:10px;right:10px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;
   color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
+  background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);
+  border-radius:3px;padding:2px 6px;
+  white-space:nowrap;
 }
 
 .card.hidden{display:none}
@@ -428,11 +431,31 @@ body{
   border-radius:5px;padding:3px 9px;
   font-family:'IBM Plex Mono',monospace;font-size:10px;
   color:var(--muted);cursor:pointer;transition:all 0.15s;
-  opacity:0;
+  opacity:0.35;
 }
 .code-block-wrap:hover .copy-btn{opacity:1}
 .copy-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--accent)}
-.copy-btn.copied{color:var(--green);border-color:var(--green)}
+.copy-btn.copied{color:var(--green);border-color:var(--green);opacity:1}
+
+/* ── Line-level copy ── */
+.code-line{
+  display:block;border-radius:3px;
+  padding:0 4px;margin:0 -4px;
+  position:relative;cursor:pointer;
+  transition:background 0.1s;
+}
+.code-line:hover{background:rgba(124,58,237,0.12)}
+.code-line-copy{
+  display:none;
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;
+  color:var(--accent);background:var(--bg4);
+  border:1px solid rgba(124,58,237,0.3);
+  border-radius:3px;padding:1px 6px;
+  pointer-events:none;white-space:nowrap;
+}
+.code-line:hover .code-line-copy{display:block}
+.code-line.flash{background:rgba(52,211,153,0.18);transition:background 0s}
 
 /* Inline code */
 .md-content code:not(pre code){
@@ -574,7 +597,7 @@ body{
   white-space:nowrap;
 }
 .btn-group-item:not(:last-child){border-right:1px solid var(--border)}
-.btn-group-item.active{background:var(--accent);color:#000}
+.btn-group-item.active{background:var(--accent);color:#fff}
 .btn-group-item.fuzzy-active{background:var(--purple);color:#fff}
 .btn-group-item:not(.active):not(.fuzzy-active):hover{background:var(--bg4);color:var(--text)}
 
@@ -872,7 +895,7 @@ body.is-resizing *{cursor:col-resize!important}
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .session-btn.primary {
-  background: var(--accent); color: #000; border-color: var(--accent);
+  background: var(--accent); color: #fff; border-color: var(--accent);
 }
 .session-btn.primary:hover { background: var(--accent2); }
 .session-btn.secondary { background: var(--bg3); color: var(--text2); }
@@ -1050,6 +1073,83 @@ body.is-resizing *{cursor:col-resize!important}
 .cp-edit-textarea::placeholder { color: var(--muted); }
 /* Edit button active state */
 #cpEditBtn.editing { color: var(--accent); }
+
+/* ── Note tags ── */
+.note-tags-row {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+  padding: 6px 14px 0; flex-shrink: 0;
+}
+.note-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  color: var(--accent); background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
+  padding: 2px 7px; cursor: pointer; transition: all 0.12s;
+  user-select: none;
+}
+.note-tag:hover { background: rgba(124,58,237,0.2); }
+.note-tag-del { opacity: 0.5; margin-left: 3px; }
+.note-tag-del:hover { opacity: 1; }
+.note-tag-input {
+  background: none; border: none; outline: none;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  color: var(--text2); min-width: 80px; flex: 1;
+}
+.note-tag-input::placeholder { color: var(--muted); }
+
+/* Tags in note list items */
+.note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.note-item-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
+  color: var(--accent); background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
+}
+
+/* Tag filter in sidebar */
+.tag-filter-scroll {
+  padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
+}
+.tag-filter-chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+  color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
+  letter-spacing: 0.03em;
+}
+.tag-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.35); }
+
+/* ── Note reassign dropdown ── */
+.note-reassign-wrap { position: relative; flex-shrink: 0; }
+.note-reassign-btn {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
+}
+.note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
+.note-reassign-btn.assigned { color: var(--green); border-color: rgba(52,211,153,0.3); }
+.note-reassign-dropdown {
+  display: none; position: absolute; top: calc(100% + 5px); right: 0;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px; min-width: 180px;
+  z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  flex-direction: column; gap: 3px;
+}
+.note-reassign-dropdown.open { display: flex; }
+.note-reassign-option {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+  color: var(--text2); padding: 6px 10px; border-radius: 5px; cursor: pointer;
+  transition: background 0.1s; white-space: nowrap;
+}
+.note-reassign-option:hover { background: var(--bg3); color: var(--text); }
+.note-reassign-option.current { color: var(--accent); }
+.note-reassign-option.unassign { color: var(--muted); font-weight: 400; }
+
+/* ── Export unassigned toggle ── */
+.export-unassigned-row {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text2);
+  padding: 4px 2px;
+}
+.export-unassigned-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1058,8 +1158,8 @@ body.is-resizing *{cursor:col-resize!important}
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <div class="topbar-logo">PRAGMA<span>// workspace</span>
-      <div class="topbar-logo-tip"><strong style="color:var(--text)">PRAGMA</strong> — Engagement note workspace. Track findings and pull KB context via ENGRAM (search indexer).</div>
+    <div class="topbar-logo">PRAGMA<span>// Workbench</span>
+      <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via PKBI/ENGRAM.</div>
     </div>
 
     <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
@@ -1110,7 +1210,7 @@ body.is-resizing *{cursor:col-resize!important}
         </div>
         <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies">
           <span class="nav-item-icon">📋</span>
-          <span class="nav-item-label">Guides</span>
+          <span class="nav-item-label">Tactical Guides</span>
           <span class="nav-item-count" id="meth-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('notes',this)" id="nav-notes">
@@ -1131,6 +1231,13 @@ body.is-resizing *{cursor:col-resize!important}
         <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
       </div>
       <div class="cat-scroll" id="catList"></div>
+
+      <!-- Tag filter (notes view) -->
+      <div class="sidebar-section" id="tagFilterSection" style="display:none">
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-hdr">Tags</div>
+        <div class="tag-filter-scroll" id="tagFilterList"></div>
+      </div>
     </div>
 
     <!-- ── MAIN PANEL ── -->
@@ -1239,11 +1346,19 @@ body.is-resizing *{cursor:col-resize!important}
               <div class="notes-editor-hdr">
                 <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title…">
                 <span class="note-save-status" id="noteSaveStatus">saved</span>
+                <div class="note-reassign-wrap">
+                  <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
+                  <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                </div>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
                 <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+              </div>
+              <div class="note-tags-row" id="noteTagsRow">
+                <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
+                  onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
               <textarea class="note-textarea" id="noteBody"
                 placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
@@ -1313,6 +1428,10 @@ body.is-resizing *{cursor:col-resize!important}
       </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">＋ Create Session</button>
+      </div>
+      <div class="export-unassigned-row">
+        <input type="checkbox" id="exportIncludeUnassigned">
+        <label for="exportIncludeUnassigned" style="cursor:pointer">Include unassigned notes</label>
       </div>
       <div id="exportFeedback" style="display:none"></div>
       <!-- Existing sessions -->
@@ -1615,27 +1734,60 @@ function injectTargets(rawHtml) {
 }
 
 function wrapCodeBlocks(container) {
-  // Wrap every pre > code in a copy-button wrapper
   container.querySelectorAll('pre').forEach(pre => {
     if (pre.parentElement.classList.contains('code-block-wrap')) return;
+
     const wrap = document.createElement('div');
     wrap.className = 'code-block-wrap';
     pre.parentNode.insertBefore(wrap, pre);
     wrap.appendChild(pre);
+
+    // ── Block copy button ──
     const btn = document.createElement('button');
     btn.className = 'copy-btn';
     btn.textContent = 'copy';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Get plain text (strip injected spans)
-      const raw = pre.innerText;
-      navigator.clipboard.writeText(raw).then(() => {
+      navigator.clipboard.writeText(pre.innerText).then(() => {
         btn.textContent = '✓ copied';
         btn.classList.add('copied');
         setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
       });
     });
-    wrap.appendChild(btn);
+    // ── Line-level copy (multi-line blocks only) ──
+    const codeEl = pre.querySelector('code') || pre;
+    const rawText = codeEl.innerText || '';
+    const lines   = rawText.split('\n');
+    const nonEmpty = lines.filter(l => l.trim()).length;
+
+    wrap.appendChild(btn); // always add copy button, regardless of line count
+    if (nonEmpty < 2) return;
+
+    codeEl.innerHTML = lines.map((line) => {
+      if (!line.trim()) return '<span class="code-line-blank">\n</span>';
+      const injected = injectTargets(esc(line));
+      return '<span class="code-line">' +
+             injected +
+             '<span class="code-line-copy">\u2398 copy line</span>' +
+             '</span>\n';
+    }).join('');
+
+    codeEl.querySelectorAll('.code-line').forEach(lineEl => {
+      lineEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nodes = [...lineEl.childNodes].filter(n => !n.classList?.contains('code-line-copy'));
+        const plain = nodes.map(n => n.textContent).join('').trimEnd();
+        navigator.clipboard.writeText(plain).then(() => {
+          lineEl.classList.add('flash');
+          const hint = lineEl.querySelector('.code-line-copy');
+          if (hint) hint.textContent = '✓ copied';
+          setTimeout(() => {
+            lineEl.classList.remove('flash');
+            if (hint) hint.textContent = '\u2398 copy line';
+          }, 1200);
+        });
+      });
+    });
   });
 }
 
@@ -1745,11 +1897,11 @@ function renderCards(view) {
     card.dataset.cat = item.category || '';
     card.style.setProperty('--card-accent', accentFor(idx));
     card.innerHTML = `
+      <span class="card-cat">${esc(item.category || '')}</span>
       <span class="card-icon">${item.icon || '📄'}</span>
       ${item.port ? `<div class="card-port">${esc(item.port)}</div>` : ''}
       <div class="card-name">${esc(item.name)}</div>
-      <div class="card-desc">${esc(item.description || '')}</div>
-      <span class="card-cat">${esc(item.category || '')}</span>`;
+      <div class="card-desc">${esc(item.description || '')}</div>`;
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
@@ -2030,7 +2182,7 @@ function buildCmdResults(q) {
   ).slice(0, 5);
 
   if (meths.length) {
-    html += `<div class="cmd-group-hdr">Guides</div>`;
+    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
     meths.forEach(m => {
       cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
@@ -2046,7 +2198,8 @@ function buildCmdResults(q) {
 
   // Notes
   const noteList = Object.values(notes).filter(n =>
-    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql)
+    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql) ||
+    (n.tags||[]).some(t => t.toLowerCase().includes(ql))
   ).slice(0, 3);
 
   if (noteList.length) {
@@ -2116,6 +2269,9 @@ function execCmd(idx) {
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
+  } else if (item.type === 'tag') {
+    switchView('notes', document.getElementById('nav-notes'));
+    setTimeout(() => setTagFilter(item.tag), 50);
   } else if (item.type === 'search') {
     switchView('search', document.getElementById('nav-search'));
     document.getElementById('searchInput').value = item.query;
@@ -2308,7 +2464,8 @@ const NOTE_TEMPLATES = {
 };
 
 let activeNoteFilter = 'all';
-let activeNoteScope  = 'session'; // 'session' | 'unassigned' | 'all'
+let activeNoteScope  = 'session';
+let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
 
 function noteTabHandler(e) {
   if (e.key !== 'Tab') return;
@@ -2498,6 +2655,7 @@ function deleteSession(id) {
 
 async function exportSession(id) {
   const fb = document.getElementById('exportFeedback');
+  const includeUnassigned = document.getElementById('exportIncludeUnassigned')?.checked || false;
   fb.style.display = 'block';
   fb.className = 'export-feedback';
   fb.textContent = '⏳ Exporting…';
@@ -2505,7 +2663,7 @@ async function exportSession(id) {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: id }),
+      body: JSON.stringify({ session_id: id, include_unassigned: includeUnassigned }),
     });
     const d = await r.json();
     if (d.ok) {
@@ -2547,9 +2705,9 @@ function renderNotesList() {
   } else if (activeNoteScope === 'unassigned') {
     items = items.filter(n => !n.session_id || !sessions[n.session_id]);
   }
-  // activeNoteScope === 'all' → no filter
 
   if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
+  if (activeTagFilter) items = items.filter(n => (n.tags||[]).includes(activeTagFilter));
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
@@ -2563,10 +2721,14 @@ function renderNotesList() {
     const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
     const sess = n.session_id && sessions[n.session_id];
     const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
+    const tagsHtml = (n.tags||[]).length
+      ? `<div class="note-item-tags">${(n.tags).map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
+      : '';
     return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
       <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
       <div class="note-item-title">${esc(n.title||'Untitled')}</div>
       <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
+      ${tagsHtml}
       ${sessLabel}
       <div class="note-item-date">${formatDate(n.updated)}</div>
     </div>`;
@@ -2647,6 +2809,8 @@ function openNote(id) {
 
   document.getElementById('noteTitleInput').value = n.title || '';
   document.getElementById('noteBody').value       = n.body  || '';
+  renderNoteTags(n);
+  updateReassignBtn(n);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
@@ -2665,6 +2829,7 @@ function autoSaveNote() {
   noteSaveTimer = setTimeout(() => {
     notes[activeNoteId].title   = document.getElementById('noteTitleInput').value;
     notes[activeNoteId].body    = document.getElementById('noteBody').value;
+    // tags are saved directly in addNoteTag/removeNoteTag
     notes[activeNoteId].updated = Date.now();
     saveNotes();
     renderNotesList();
@@ -2784,6 +2949,143 @@ async function saveEdit() {
     setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
   } catch(e) {
     setCpEditStatus('unsaved', '✗ ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TAGS
+// ═══════════════════════════════════════════════
+function getAllTags() {
+  const set = new Set();
+  Object.values(notes).forEach(n => (n.tags||[]).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+function renderNoteTags(n) {
+  const row   = document.getElementById('noteTagsRow');
+  const input = document.getElementById('noteTagInput');
+  // Remove existing tag pills (keep the input)
+  row.querySelectorAll('.note-tag').forEach(el => el.remove());
+  (n.tags || []).forEach(tag => {
+    const pill = document.createElement('span');
+    pill.className = 'note-tag';
+    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + esc(tag) + '\')">×</span>';
+    row.insertBefore(pill, input);
+  });
+}
+
+function noteTagKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const raw = e.target.value.trim().replace(/^#/, '').replace(/[,\s]+/g, '-').toLowerCase();
+  if (!raw || !activeNoteId) return;
+  const n = notes[activeNoteId];
+  if (!n.tags) n.tags = [];
+  if (!n.tags.includes(raw)) {
+    n.tags.push(raw);
+    notes[activeNoteId].updated = Date.now();
+    saveNotes();
+    renderNoteTags(n);
+    renderNotesList();
+    renderTagFilterSidebar();
+  }
+  e.target.value = '';
+}
+
+function removeNoteTag(tag) {
+  if (!activeNoteId) return;
+  const n = notes[activeNoteId];
+  n.tags = (n.tags||[]).filter(t => t !== tag);
+  n.updated = Date.now();
+  saveNotes();
+  renderNoteTags(n);
+  renderNotesList();
+  renderTagFilterSidebar();
+  if (activeTagFilter === tag) { activeTagFilter = null; renderNotesList(); }
+}
+
+function setTagFilter(tag) {
+  activeTagFilter = activeTagFilter === tag ? null : tag;
+  renderTagFilterSidebar();
+  renderNotesList();
+}
+
+function renderTagFilterSidebar() {
+  const list = document.getElementById('tagFilterList');
+  const tags = getAllTags();
+  if (!tags.length) { list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  list.innerHTML = tags.map(t =>
+    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════
+// NOTE REASSIGN
+// ═══════════════════════════════════════════════
+function toggleReassignDropdown() {
+  const dd = document.getElementById('noteReassignDropdown');
+  if (dd.classList.contains('open')) {
+    dd.classList.remove('open');
+    return;
+  }
+  renderReassignDropdown();
+  dd.classList.add('open');
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeReassignOnOutside, { once: true });
+  }, 0);
+}
+
+function closeReassignOnOutside(e) {
+  const dd = document.getElementById('noteReassignDropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+}
+
+function renderReassignDropdown() {
+  const dd   = document.getElementById('noteReassignDropdown');
+  const note = activeNoteId && notes[activeNoteId];
+  if (!note) return;
+
+  const sessList = Object.values(sessions).sort((a,b) => (b.created||0) - (a.created||0));
+  let html = '';
+
+  // Unassign option
+  if (note.session_id) {
+    html += `<div class="note-reassign-option unassign" onclick="reassignNote(null)">— Unassign</div>`;
+  }
+
+  sessList.forEach(s => {
+    const isCurrent = s.id === note.session_id;
+    html += `<div class="note-reassign-option${isCurrent ? ' current' : ''}" onclick="reassignNote('${s.id}')">
+      ${isCurrent ? '✓ ' : ''}${esc(s.codename)}
+    </div>`;
+  });
+
+  if (!sessList.length) html = '<div class="note-reassign-option unassign">No sessions yet</div>';
+  dd.innerHTML = html;
+}
+
+function reassignNote(sessionId) {
+  if (!activeNoteId) return;
+  const note = notes[activeNoteId];
+  note.session_id = sessionId || null;
+  note.updated    = Date.now();
+  saveNotes();
+  updateReassignBtn(note);
+  document.getElementById('noteReassignDropdown').classList.remove('open');
+  renderNotesList();
+}
+
+function updateReassignBtn(note) {
+  const btn  = document.getElementById('noteReassignBtn');
+  if (!btn) return;
+  const sess = note.session_id && sessions[note.session_id];
+  if (sess) {
+    btn.textContent = '⎘ ' + sess.codename;
+    btn.classList.add('assigned');
+  } else {
+    btn.textContent = '⎘ unassigned';
+    btn.classList.remove('assigned');
   }
 }
 

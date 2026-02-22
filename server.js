@@ -701,7 +701,7 @@ app.post('/api/notes/save', (req, res) => {
  */
 app.post('/api/notes/export', (req, res) => {
   try {
-    const { session_id } = req.body;
+    const { session_id, include_unassigned = false } = req.body;
     const { sessions, notes } = loadNotesFile();
 
     const session = sessions[session_id];
@@ -712,7 +712,10 @@ app.post('/api/notes/export', (req, res) => {
     const outDir = path.join(NOTES_DIR, slug);
     fs.mkdirSync(outDir, { recursive: true });
 
-    const sessionNotes = Object.values(notes).filter(n => n.session_id === session_id);
+    const sessionNotes = Object.values(notes).filter(n =>
+      n.session_id === session_id ||
+      (include_unassigned && (!n.session_id || !sessions[n.session_id]))
+    );
     if (!sessionNotes.length) return res.json({ ok: true, path: outDir, files: [], message: 'No notes in this session.' });
 
     const written = [];
@@ -721,8 +724,8 @@ app.post('/api/notes/export', (req, res) => {
     const indexLines = [
       `# ${session.codename}`,
       ``,
-      `**Target IP:** ${session.target_ip || '—'}  `,
-      `**Domain:** ${session.target_domain || '—'}  `,
+      `**Target IP:** ${(session.targets && session.targets.map(t => (t.label ? t.label+': ' : '') + t.ip).join(', ')) || session.target_ip || '—'}  `,
+      `**Domain:** ${(session.targets && session.targets.map(t => t.domain).filter(Boolean).join(', ')) || session.target_domain || '—'}  `,
       `**Created:** ${new Date(session.created).toISOString().slice(0,10)}  `,
       `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
       ``,
@@ -735,7 +738,7 @@ app.post('/api/notes/export', (req, res) => {
       .sort((a,b) => (a.updated||0) - (b.updated||0))
       .forEach(n => {
         const fname = noteFilename(n);
-        indexLines.push(`- [${n.title || 'Untitled'}](./${fname}) — *${n.type}*`);
+        indexLines.push(`- [${n.title || fname.replace('.md','')}](./${fname}) — *${n.type}*`);
       });
 
     const indexPath = path.join(outDir, 'README.md');
@@ -746,11 +749,11 @@ app.post('/api/notes/export', (req, res) => {
     sessionNotes.forEach(n => {
       const fname   = noteFilename(n);
       const header  = [
-        `# ${n.title || 'Untitled'}`,
+        `# ${n.title || noteFilename(n).replace('.md','')}`,
         ``,
         `> **Type:** ${n.type}  `,
         `> **Session:** ${session.codename}  `,
-        `> **Target:** ${n.target_ip || session.target_ip || '—'}  `,
+        `> **Target:** ${n.target_ip || (session.targets && session.targets[0] && session.targets[0].ip) || session.target_ip || '—'}  `,
         `> **Updated:** ${new Date(n.updated||n.created).toISOString().replace('T',' ').slice(0,19)}`,
         ``,
         `---`,
@@ -766,12 +769,32 @@ app.post('/api/notes/export', (req, res) => {
   }
 });
 
+
+/**
+ * GET /api/notes/debug
+ * Returns a summary of what's in notes.json — session IDs, note IDs and their session_id.
+ * Useful for diagnosing export mismatches.
+ */
+app.get('/api/notes/debug', (req, res) => {
+  const { sessions, notes } = loadNotesFile();
+  res.json({
+    sessions: Object.values(sessions).map(s => ({
+      id: s.id, codename: s.codename,
+      targets: (s.targets||[]).map(t => t.ip + (t.label ? ' ('+t.label+')' : '')),
+      noteCount: Object.values(notes).filter(n => n.session_id === s.id).length,
+    })),
+    notes: Object.values(notes).map(n => ({
+      id: n.id, type: n.type, title: n.title||'', session_id: n.session_id||null,
+    })),
+  });
+});
+
 function noteFilename(note) {
-  const titleSlug = (note.title || 'untitled')
+  const titleSlug = (note.title || '')
     .replace(/[^a-zA-Z0-9 _-]/g, '')
     .trim().replace(/\s+/g, '-').toLowerCase()
     .slice(0, 40);
-  return `${note.type}-${titleSlug || note.id.slice(-6)}.md`;
+  return titleSlug ? `${note.type}-${titleSlug}.md` : `${note.type}.md`;
 }
 
 if (chokidar) {
