@@ -4,18 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRAGMA</title>
+  <link rel="icon" type="image/png" href="favicon.PNG">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-  --bg:       #0a0d12;
-  --bg2:      #0f1319;
-  --bg3:      #141c26;
-  --bg4:      #1a2435;
-  --border:   #1f2e40;
-  --border2:  #2a3f58;
+  --bg:       #1a1a1f;
+  --bg2:      #1f1f26;
+  --bg3:      #26262f;
+  --bg4:      #2e2e38;
+  --border:   #35353f;
+  --border2:  #46464f;
   --text:     #c9d8ec;
   --text2:    #8fa3bc;
   --muted:    #4e6278;
@@ -53,6 +54,7 @@ html,body{height:100%;overflow:hidden}
 
 body{
   font-family:'Inter',system-ui,sans-serif;
+  font-weight:500;
   background:var(--bg); color:var(--text);
   -webkit-font-smoothing:antialiased;
 }
@@ -171,7 +173,14 @@ body{
   flex-shrink:0;overflow:hidden;
 }
 
-.sidebar-section{flex-shrink:0}
+.sidebar-version {
+  margin-top: auto; padding: 10px 14px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.08em;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 .sidebar-section-hdr{
   padding:10px 14px 6px;
   font-family:'Inter',sans-serif;
@@ -190,7 +199,7 @@ body{
 }
 .nav-item:hover{background:var(--bg3);color:var(--text)}
 .nav-item.active{
-  background:rgba(124,58,237,0.06);
+  background:rgba(124,58,237,0.15);
   border-left-color:var(--accent);
   color:var(--accent);
 }
@@ -238,7 +247,7 @@ body{
   border-radius:3px;padding:1px 5px;
   color:var(--muted);
 }
-.panel-tab.active .panel-tab-badge{background:rgba(124,58,237,0.12);color:var(--accent)}
+.panel-tab.active .panel-tab-badge{background:rgba(124,58,237,0.20);color:var(--accent)}
 
 /* panel views */
 .panel-view{display:none;flex:1;overflow:hidden;flex-direction:column}
@@ -300,7 +309,7 @@ body{
 }
 .card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
 .card:hover::before{opacity:1}
-.card.active-card{border-color:var(--accent);background:rgba(124,58,237,0.04)}
+.card.active-card{border-color:var(--accent);background:rgba(124,58,237,0.11)}
 .card.active-card::before{opacity:1}
 
 .card-icon{font-size:26px;margin-bottom:10px;display:block}
@@ -315,7 +324,7 @@ body{
   position:absolute;top:10px;right:10px;
   font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
-  background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);
+  background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);
   border-radius:3px;padding:2px 6px;
   white-space:nowrap;
 }
@@ -444,7 +453,7 @@ body{
   position:relative;cursor:pointer;
   transition:background 0.1s;
 }
-.code-line:hover{background:rgba(124,58,237,0.12)}
+.code-line:hover{background:rgba(124,58,237,0.20)}
 .code-line-copy{
   display:none;
   position:absolute;right:4px;top:50%;transform:translateY(-50%);
@@ -494,8 +503,8 @@ body{
   transition:background 0.1s;border-left:2px solid transparent;
 }
 .note-item:hover{background:var(--bg3)}
-.note-item.active{background:rgba(124,58,237,0.05);border-left-color:var(--accent)}
-.note-item-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.note-item.active{background:rgba(124,58,237,0.13);border-left-color:var(--accent)}
+.note-item-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
 .note-item-preview{
   font-size:12px;color:var(--text2);font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -567,7 +576,7 @@ body{
   font-size:13px;font-family:'Inter',sans-serif;
   outline:none;transition:border-color 0.15s;
 }
-.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,58,237,0.1)}
+.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,58,237,0.18)}
 .search-big input::placeholder{color:var(--muted)}
 .search-big-icon{
   position:absolute;left:11px;top:50%;transform:translateY(-50%);
@@ -636,7 +645,7 @@ body{
   padding:2px 8px;border-radius:4px;flex-shrink:0;
   display:flex;align-items:center;gap:4px;
 }
-.result-score-label{color:var(--muted);font-weight:400}
+.result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
 .result-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
 .result-badge{
@@ -705,10 +714,10 @@ body{
   display:flex;align-items:center;gap:10px;
   padding:9px 16px;cursor:pointer;transition:background 0.1s;
 }
-.cmd-item:hover,.cmd-item.selected{background:rgba(124,58,237,0.07)}
+.cmd-item:hover,.cmd-item.selected{background:rgba(124,58,237,0.14)}
 .cmd-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .cmd-item-main{flex:1;overflow:hidden}
-.cmd-item-title{font-size:14px;color:var(--text);font-weight:500}
+.cmd-item-title{font-size:14px;color:var(--text);font-weight:600}
 .cmd-item-sub{
   font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -776,7 +785,7 @@ body{
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
     .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
-    .note-type-btn.active { color: var(--accent); background: rgba(124,58,237,0.08); }
+    .note-type-btn.active { color: var(--accent); background: rgba(124,58,237,0.16); }
 
     /* Note type badge on list items */
     .note-item-type {
@@ -788,7 +797,7 @@ body{
     .note-type-general     { color: var(--muted);   background: var(--bg4); }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.2); }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
-    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.15); }
+    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); border: 1px solid rgba(124,58,237,0.15); }
     .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
 
@@ -913,7 +922,7 @@ body.is-resizing *{cursor:col-resize!important}
   transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
-.session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.06); }
+.session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
   flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   font-weight: 700; color: var(--text);
@@ -1002,7 +1011,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-sel-label {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-  color: var(--accent); background: rgba(124,58,237,0.1);
+  color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
 }
@@ -1036,7 +1045,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item-label {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-  color: var(--accent); background: rgba(124,58,237,0.1);
+  color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
 .target-item-del {
@@ -1081,7 +1090,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-tag {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
-  color: var(--accent); background: rgba(124,58,237,0.1);
+  color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
   padding: 2px 7px; cursor: pointer; transition: all 0.12s;
   user-select: none;
@@ -1100,7 +1109,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .note-item-tag {
   font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
-  color: var(--accent); background: rgba(124,58,237,0.08);
+  color: var(--accent); background: rgba(124,58,237,0.16);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
 }
 
@@ -1115,7 +1124,7 @@ body.is-resizing *{cursor:col-resize!important}
   letter-spacing: 0.03em;
 }
 .tag-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
-.tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.35); }
+.tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.18); border-color: rgba(124,58,237,0.35); }
 
 /* ── Note reassign dropdown ── */
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
@@ -1185,6 +1194,18 @@ kbd {
   border: 1px solid var(--border2); border-bottom-width: 2px;
   border-radius: 4px; padding: 2px 7px; line-height: 1.6;
 }
+
+/* ── Logo image (future) — uncomment when logo is added
+.topbar-logo-wrap { display: flex; align-items: center; flex-shrink: 0; margin-right: 8px; }
+.topbar-logo-img  { height: 28px; width: auto; object-fit: contain; }
+── */
+
+/* ── Result card right column: score + badges stacked ── */
+.result-card-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 4px; flex-shrink: 0; margin-left: 10px;
+}
+.result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 </style>
 </head>
 <body>
@@ -1193,6 +1214,11 @@ kbd {
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
+    <!-- ── LOGO IMAGE placeholder — uncomment and set src when ready
+    <div class="topbar-logo-wrap">
+      <img src="logo.png" alt="PRAGMA" class="topbar-logo-img">
+    </div>
+    ── -->
     <div class="topbar-logo">PRAGMA<span>// Workbench</span>
       <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via PKBI/ENGRAM.</div>
     </div>
@@ -1251,7 +1277,7 @@ kbd {
         </div>
         <div class="nav-item" onclick="switchView('notes',this)" id="nav-notes">
           <span class="nav-item-icon">📝</span>
-          <span class="nav-item-label">Notes</span>
+          <span class="nav-item-label">Session Notes</span>
           <span class="nav-item-count" id="notes-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
@@ -1274,6 +1300,9 @@ kbd {
         <div class="sidebar-section-hdr">Tags</div>
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
+
+      <!-- Version -->
+      <div class="sidebar-version">v1.0</div>
     </div>
 
     <!-- ── MAIN PANEL ── -->
@@ -2206,12 +2235,16 @@ function renderResults(query, results, offline) {
          onclick="handleResultClick(this)">
       <div class="result-card-top">
         <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
-        ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+        <div class="result-card-right">
+          ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+          <div class="result-card-badges">
+            ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+            ${isLocal ? `<span class="result-badge local">local</span>` : ''}
+          </div>
+        </div>
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
-        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-        ${isLocal ? `<span class="result-badge local">local</span>` : ''}
       </div>
       ${trimmed ? `<div class="result-snippet">${esc(trimmed)}</div>` : ''}
     </div>`;
@@ -2299,7 +2332,7 @@ function buildCmdResults(q) {
   ).slice(0, 3);
 
   if (noteList.length) {
-    html += `<div class="cmd-group-hdr">Notes</div>`;
+    html += `<div class="cmd-group-hdr">Session Notes</div>`;
     noteList.forEach(n => {
       cmdItems.push({ type:'note', id:n.id, label:n.title });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">

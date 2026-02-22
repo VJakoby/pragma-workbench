@@ -562,13 +562,13 @@ app.post('/api/kb/save', (req, res) => {
 
 /**
  * POST /api/search-proxy
- * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3001).
+ * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3002).
  * Returns top 5 results by relevance score.
  *
  * The external server is the search indexer project — it exposes POST /api/search
  * and accepts { query, fuzzy, fuzzy_prefer }.
  */
-const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3001';
+const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3002';
 
 app.post('/api/search-proxy', async (req, res) => {
   const { query = '', fuzzyMode = 'normal' } = req.body;
@@ -598,7 +598,7 @@ app.post('/api/search-proxy', async (req, res) => {
         const body    = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const options = {
           hostname: url.hostname,
-          port:     url.port || 3001,
+          port:     url.port || 3002,
           path:     url.pathname,
           method:   'POST',
           headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
