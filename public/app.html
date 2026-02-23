@@ -535,12 +535,7 @@ body{
   flex-shrink:0;
 }
 .note-save-status.saved{color:var(--green)}
-.note-textarea{
-  flex:1;background:none;border:none;outline:none;resize:none;
-  padding:16px;color:var(--text2);font-size:14px;line-height:1.8;
-  font-family:'Inter',sans-serif;
-}
-.note-textarea::placeholder{color:var(--muted)}
+/* note-textarea defined in overlay CSS below */
 .notes-empty{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -1074,10 +1069,12 @@ body.is-resizing *{cursor:col-resize!important}
 .cp-edit-status.saved  { color: var(--green); }
 .cp-edit-status.unsaved { color: var(--yellow); }
 .cp-edit-textarea {
-  flex: 1; background: var(--bg); border: none; outline: none; resize: none;
-  color: var(--text2); font-family: 'IBM Plex Mono', monospace;
+  flex: 1; background: transparent; border: none; outline: none; resize: none;
+  color: transparent; caret-color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 13px; line-height: 1.75; padding: 16px 20px;
-  tab-size: 2;
+  tab-size: 2; position: relative; z-index: 1;
+  white-space: pre-wrap; word-wrap: break-word; overflow-y: auto;
 }
 .cp-edit-textarea::placeholder { color: var(--muted); }
 /* Edit button active state */
@@ -1206,6 +1203,46 @@ kbd {
   gap: 4px; flex-shrink: 0; margin-left: 10px;
 }
 .result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+/* ── Markdown syntax highlight overlay ── */
+.cp-edit-highlight { padding: 16px 20px !important; font-size: 13px !important; line-height: 1.75 !important; }
+.editor-wrap {
+  flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
+}
+.editor-highlight {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  padding: 16px; font-size: 14px; line-height: 1.8;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text2); white-space: pre-wrap; word-wrap: break-word;
+  overflow: hidden; pointer-events: none;
+  tab-size: 2; z-index: 0;
+}
+.note-textarea {
+  flex: 1; background: transparent; border: none; outline: none; resize: none;
+  padding: 16px; font-size: 14px; line-height: 1.8;
+  font-family: 'IBM Plex Mono', monospace;
+  color: transparent; caret-color: var(--text);
+  position: relative; z-index: 1;
+  white-space: pre-wrap; word-wrap: break-word;
+  tab-size: 2; overflow-y: auto;
+}
+.note-textarea::placeholder { color: var(--muted); }
+
+/* Highlight token colours — Monokai-inspired */
+.hl-h1     { color: #f92672; font-weight: 700; }   /* pink  — # heading  */
+.hl-h2     { color: #f92672; font-weight: 600; }   /* pink  — ## heading */
+.hl-h3     { color: #fd971f; font-weight: 600; }   /* orange — ### heading */
+.hl-bold   { color: #1d4ed8; font-weight: 700; }   /* blue   — **bold**  */
+.hl-italic { color: #0891b2; font-style: italic; } /* teal   — *italic*  */
+.hl-code   { color: #ae81ff; }                     /* purple — `code`    */
+.hl-fence  { color: #ae81ff; }                     /* purple — ```block  */
+.hl-fence-body { color: #ae81ff; opacity: 0.75; }  /* purple dimmed — inside fence */
+.hl-link   { color: #66d9e8; }                     /* cyan   — [link]    */
+.hl-quote  { color: #75715e; font-style: italic; } /* gray   — > quote   */
+.hl-list   { color: #f92672; }                     /* pink   — - / 1.    */
+.hl-hr     { color: #75715e; }                     /* gray   — ---       */
+.hl-table  { color: #66d9e8; }                     /* cyan   — | table | */
+.hl-plain  { color: var(--text2); }
 </style>
 </head>
 <body>
@@ -1425,9 +1462,14 @@ kbd {
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
-              <textarea class="note-textarea" id="noteBody"
-                placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
-                onkeydown="noteTabHandler(event)"></textarea>
+              <div class="editor-wrap">
+                <div class="editor-highlight" id="noteHighlight" aria-hidden="true"></div>
+                <textarea class="note-textarea" id="noteBody"
+                  placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
+                  onkeydown="noteTabHandler(event)"
+                  oninput="syncHighlight(this,'noteHighlight')"
+                  onscroll="syncScroll(this,'noteHighlight')"></textarea>
+              </div>
             </div>
           </div>
         </div>
@@ -1460,7 +1502,13 @@ kbd {
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
           <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
         </div>
-        <textarea class="cp-edit-textarea" id="cpEditTextarea" onkeydown="cpEditTabHandler(event)" spellcheck="false"></textarea>
+        <div class="editor-wrap">
+          <div class="editor-highlight" id="cpEditHighlight" aria-hidden="true"></div>
+          <textarea class="cp-edit-textarea" id="cpEditTextarea"
+            onkeydown="cpEditTabHandler(event)" spellcheck="false"
+            oninput="syncHighlight(this,'cpEditHighlight')"
+            onscroll="syncScroll(this,'cpEditHighlight')"></textarea>
+        </div>
       </div>
     </div>
 
@@ -2941,6 +2989,7 @@ function openNote(id) {
   document.getElementById('noteBody').value       = n.body  || '';
   renderNoteTags(n);
   updateReassignBtn(n);
+  setTimeout(() => initHighlight('noteBody', 'noteHighlight'), 0);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
@@ -2948,7 +2997,7 @@ function openNote(id) {
 
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
-  document.getElementById('noteBody').oninput       = () => autoSaveNote();
+  document.getElementById('noteBody').oninput       = () => { autoSaveNote(); syncHighlight(document.getElementById('noteBody'), 'noteHighlight'); };
 }
 
 function autoSaveNote() {
@@ -3022,6 +3071,7 @@ function enterEditMode() {
   document.getElementById('cpEditBtn').title = 'Exit edit mode';
   const ta = document.getElementById('cpEditTextarea');
   ta.value = activeDoc.raw;
+  setTimeout(() => initHighlight('cpEditTextarea', 'cpEditHighlight'), 0);
   cpEditDirty = false;
   setCpEditStatus('', activeDoc.meta || '');
   ta.focus();
@@ -3029,6 +3079,7 @@ function enterEditMode() {
   // Mark dirty on any input
   ta.oninput = () => {
     if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
+    syncHighlight(ta, 'cpEditHighlight');
   };
 }
 
@@ -3147,6 +3198,89 @@ function renderTagFilterSidebar() {
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MARKDOWN SYNTAX HIGHLIGHTING (overlay)
+// ═══════════════════════════════════════════════
+function mdHighlight(text) {
+  const lines  = text.split('\n');
+  let inFence  = false;
+  const out    = lines.map(line => {
+    // Fence delimiter — toggle state
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      return `<span class="hl-fence">${escHl(line)}</span>`;
+    }
+    // Inside a fenced block — render as code, no inline parsing
+    if (inFence) return `<span class="hl-fence-body">${escHl(line)}</span>`;
+    // Headings
+    if (/^# /.test(line))   return spanLine('hl-h1',   line);
+    if (/^## /.test(line))  return spanLine('hl-h2',   line);
+    if (/^### /.test(line)) return spanLine('hl-h3',   line);
+    // Blockquote
+    if (/^>/.test(line))    return spanLine('hl-quote', line);
+    // HR
+    if (/^[-*_]{3,}\s*$/.test(line)) return spanLine('hl-hr', line);
+    // Table row
+    if (/^\|/.test(line))   return spanLine('hl-table', line);
+    // Unordered list
+    if (/^(\s*[-*+] )/.test(line)) {
+      const m = line.match(/^(\s*[-*+] )(.*)/);
+      return `<span class="hl-list">${escHl(m[1])}</span>${inlineHL(m[2])}`;
+    }
+    // Ordered list
+    if (/^(\s*\d+\. )/.test(line)) {
+      const m = line.match(/^(\s*\d+\. )(.*)/);
+      return `<span class="hl-list">${escHl(m[1])}</span>${inlineHL(m[2])}`;
+    }
+    // Plain line — run inline highlights
+    return inlineHL(line);
+  });
+  return out.join('\n');
+}
+
+function inlineHL(line) {
+  // Process inline tokens: code first (to avoid re-processing its contents)
+  return escHl(line)
+    // Inline code `...`
+    .replace(/`([^`]+)`/g, '<span class="hl-code">`$1`</span>')
+    // Bold **...**
+    .replace(/\*\*([^*]+)\*\*/g, '<span class="hl-bold">**$1**</span>')
+    // Italic *...*  (single, not double)
+    .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<span class="hl-italic">*$1*</span>')
+    // Link [text](url)
+    .replace(/(\[[^\]]*\]\([^)]*\))/g, '<span class="hl-link">$1</span>');
+}
+
+function spanLine(cls, line) {
+  return `<span class="${cls}">${escHl(line)}</span>`;
+}
+
+function escHl(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function syncHighlight(ta, hlId) {
+  const hl = document.getElementById(hlId);
+  if (!hl) return;
+  // Append a trailing space to prevent last-line collapse
+  hl.innerHTML = mdHighlight(ta.value) + '\n ';
+  // Keep scroll in sync
+  hl.scrollTop = ta.scrollTop;
+}
+
+function syncScroll(ta, hlId) {
+  const hl = document.getElementById(hlId);
+  if (hl) hl.scrollTop = ta.scrollTop;
+}
+
+function initHighlight(taId, hlId) {
+  const ta = document.getElementById(taId);
+  const hl = document.getElementById(hlId);
+  if (!ta || !hl) return;
+  hl.innerHTML = mdHighlight(ta.value) + '\n ';
+  hl.scrollTop = ta.scrollTop;
 }
 
 // ═══════════════════════════════════════════════
