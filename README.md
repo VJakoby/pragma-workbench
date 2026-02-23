@@ -100,5 +100,6 @@ knowledge_base/methodologies/   ← Tactical guides
 Export a session from the Sessions modal (`⬇ .session`). The file contains all session metadata, targets, and notes. Import it on any PRAGMA instance to resume.
 
 ---
+*v1.0*
 
-*PRAGMA v1.0*
+Created by VJakoby + 🤖
