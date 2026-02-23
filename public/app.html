@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRAGMA</title>
   <link rel="icon" type="image/png" href="favicon.PNG">
+  <script src="codemirror-bundle.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -175,7 +176,7 @@ body{
 
 .sidebar-version {
   margin-top: auto; padding: 10px 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); letter-spacing: 0.08em;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -535,7 +536,7 @@ body{
   flex-shrink:0;
 }
 .note-save-status.saved{color:var(--green)}
-/* note-textarea defined in overlay CSS below */
+
 .notes-empty{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -642,7 +643,7 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
@@ -775,7 +776,7 @@ body{
 
     .note-type-btn {
       background: none; border: none; cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
       color: var(--muted); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
@@ -785,7 +786,7 @@ body{
     /* Note type badge on list items */
     .note-item-type {
       display: inline-block;
-      font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
       padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
       text-transform: uppercase; letter-spacing: 0.08em;
     }
@@ -865,13 +866,13 @@ body.is-resizing *{cursor:col-resize!important}
 .session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .session-active-info { flex: 1; overflow: hidden; }
 .session-active-name {
-  font-size: 12px; font-weight: 700; color: var(--text);
+  font-size: 13px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
 }
 .session-active-target {
-  font-size: 10px; color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--text2);
+  font-family: 'Inter', sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
@@ -880,7 +881,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 .session-field input {
@@ -906,7 +907,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
 .session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .session-list-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
 }
@@ -922,7 +923,7 @@ body.is-resizing *{cursor:col-resize!important}
   flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   font-weight: 700; color: var(--text);
 }
-.session-list-item-meta { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-list-item-meta { font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
 .session-export-btn {
   background: none; border: 1px solid var(--border); border-radius: 5px;
   color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
@@ -949,7 +950,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); padding: 6px 4px;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
@@ -997,15 +998,15 @@ body.is-resizing *{cursor:col-resize!important}
 .target-sel-info { display: flex; align-items: baseline; gap: 7px; flex: 1; min-width: 0; overflow: hidden; }
 .target-sel-domain { max-width: 100px; }
 .target-sel-ip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); white-space: nowrap;
 }
 .target-sel-domain {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
   color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .target-sel-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
@@ -1039,7 +1040,7 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--text2); flex: 1;
 }
 .target-item-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
@@ -1086,7 +1087,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 6px 14px 0; flex-shrink: 0;
 }
 .note-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
   padding: 2px 7px; cursor: pointer; transition: all 0.12s;
@@ -1097,7 +1098,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-tag-del:hover { opacity: 1; }
 .note-tag-input {
   background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); min-width: 80px; flex: 1;
 }
 .note-tag-input::placeholder { color: var(--muted); }
@@ -1105,7 +1106,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Tags in note list items */
 .note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .note-item-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.16);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
 }
@@ -1115,7 +1116,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
 }
 .tag-filter-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
   letter-spacing: 0.03em;
@@ -1127,7 +1128,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
   background: none; border: 1px solid var(--border); border-radius: 5px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -1186,7 +1187,7 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
 kbd {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--text); background: var(--bg4);
   border: 1px solid var(--border2); border-bottom-width: 2px;
   border-radius: 4px; padding: 2px 7px; line-height: 1.6;
@@ -1204,45 +1205,20 @@ kbd {
 }
 .result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 
-/* ── Markdown syntax highlight overlay ── */
-.cp-edit-highlight { padding: 16px 20px !important; font-size: 13px !important; line-height: 1.75 !important; }
-.editor-wrap {
-  flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
-}
-.editor-highlight {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  padding: 16px; font-size: 14px; line-height: 1.8;
-  font-family: 'IBM Plex Mono', monospace;
-  color: var(--text2); white-space: pre-wrap; word-wrap: break-word;
-  overflow: hidden; pointer-events: none;
-  tab-size: 2; z-index: 0;
-}
-.note-textarea {
-  flex: 1; background: transparent; border: none; outline: none; resize: none;
-  padding: 16px; font-size: 14px; line-height: 1.8;
-  font-family: 'IBM Plex Mono', monospace;
-  color: transparent; caret-color: var(--text);
-  position: relative; z-index: 1;
-  white-space: pre-wrap; word-wrap: break-word;
-  tab-size: 2; overflow-y: auto;
-}
-.note-textarea::placeholder { color: var(--muted); }
+/* note-textarea and cp-edit-textarea styled via CodeMirror */
 
-/* Highlight token colours — Monokai-inspired */
-.hl-h1     { color: #f92672; font-weight: 700; }   /* pink  — # heading  */
-.hl-h2     { color: #f92672; font-weight: 600; }   /* pink  — ## heading */
-.hl-h3     { color: #fd971f; font-weight: 600; }   /* orange — ### heading */
-.hl-bold   { color: #1d4ed8; font-weight: 700; }   /* blue   — **bold**  */
-.hl-italic { color: #0891b2; font-style: italic; } /* teal   — *italic*  */
-.hl-code   { color: #ae81ff; }                     /* purple — `code`    */
-.hl-fence  { color: #ae81ff; }                     /* purple — ```block  */
-.hl-fence-body { color: #ae81ff; opacity: 0.75; }  /* purple dimmed — inside fence */
-.hl-link   { color: #66d9e8; }                     /* cyan   — [link]    */
-.hl-quote  { color: #75715e; font-style: italic; } /* gray   — > quote   */
-.hl-list   { color: #f92672; }                     /* pink   — - / 1.    */
-.hl-hr     { color: #75715e; }                     /* gray   — ---       */
-.hl-table  { color: #66d9e8; }                     /* cyan   — | table | */
-.hl-plain  { color: var(--text2); }
+/* ── CodeMirror 6 editor integration ── */
+.cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.cm-wrap .cm-editor {
+  flex: 1; height: 100%; font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  background: transparent !important;
+}
+.cm-wrap.kb-editor .cm-editor { font-size: 13px; }
+.cm-editor.cm-focused { outline: none !important; }
+.cm-editor .cm-scroller { padding: 16px; line-height: 1.8; overflow-y: auto; }
+.cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }
+/* Override CM6 default background to match PRAGMA theme */
+.cm-editor .cm-content { caret-color: var(--text); }
 </style>
 </head>
 <body>
@@ -1302,7 +1278,12 @@ kbd {
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Navigate</div>
-        <div class="nav-item active" onclick="switchView('services',this)" id="nav-services">
+        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes">
+          <span class="nav-item-icon">📝</span>
+          <span class="nav-item-label">Session Notes</span>
+          <span class="nav-item-count" id="notes-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('services',this)" id="nav-services">
           <span class="nav-item-icon">🔌</span>
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
@@ -1311,11 +1292,6 @@ kbd {
           <span class="nav-item-icon">📋</span>
           <span class="nav-item-label">Tactical Guides</span>
           <span class="nav-item-count" id="meth-count">—</span>
-        </div>
-        <div class="nav-item" onclick="switchView('notes',this)" id="nav-notes">
-          <span class="nav-item-icon">📝</span>
-          <span class="nav-item-label">Session Notes</span>
-          <span class="nav-item-count" id="notes-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
           <span class="nav-item-icon">🔍</span>
@@ -1346,7 +1322,7 @@ kbd {
     <div class="main-panel">
 
       <!-- ── SERVICES VIEW ── -->
-      <div class="panel-view active" id="view-services">
+      <div class="panel-view" id="view-services">
         <div class="cards-toolbar">
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
@@ -1415,7 +1391,7 @@ kbd {
       </div>
 
       <!-- ── NOTES VIEW ── -->
-      <div class="panel-view" id="view-notes">
+      <div class="panel-view active" id="view-notes">
         <div class="notes-layout">
           <div class="notes-list">
             <div class="notes-list-hdr">
@@ -1462,14 +1438,7 @@ kbd {
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
-              <div class="editor-wrap">
-                <div class="editor-highlight" id="noteHighlight" aria-hidden="true"></div>
-                <textarea class="note-textarea" id="noteBody"
-                  placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
-                  onkeydown="noteTabHandler(event)"
-                  oninput="syncHighlight(this,'noteHighlight')"
-                  onscroll="syncScroll(this,'noteHighlight')"></textarea>
-              </div>
+              <div class="cm-wrap" id="noteBodyWrap"></div>
             </div>
           </div>
         </div>
@@ -1502,13 +1471,7 @@ kbd {
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
           <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
         </div>
-        <div class="editor-wrap">
-          <div class="editor-highlight" id="cpEditHighlight" aria-hidden="true"></div>
-          <textarea class="cp-edit-textarea" id="cpEditTextarea"
-            onkeydown="cpEditTabHandler(event)" spellcheck="false"
-            oninput="syncHighlight(this,'cpEditHighlight')"
-            onscroll="syncScroll(this,'cpEditHighlight')"></textarea>
-        </div>
+        <div class="cm-wrap kb-editor" id="cpEditWrap"></div>
       </div>
     </div>
 
@@ -1532,9 +1495,9 @@ kbd {
           <div class="shortcuts-group-hdr">Navigation</div>
           <div class="shortcuts-table">
             <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Notes</span>             <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search</span>            <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
           </div>
@@ -1727,6 +1690,19 @@ function applyTheme(t) {
   }
 }
 function toggleTheme() {
+  // Reinit CM editors after theme change so colours update
+  setTimeout(() => {
+    if (noteEditor) {
+      const val = cmGetValue(noteEditor);
+      cmInitNote();
+      cmSetValue(noteEditor, val);
+    }
+    if (kbEditor) {
+      const val = cmGetValue(kbEditor);
+      cmInitKb();
+      cmSetValue(kbEditor, val);
+    }
+  }, 50);
   const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   localStorage.setItem('ops-theme', cur);
   applyTheme(cur);
@@ -1769,7 +1745,7 @@ function updateTargetSelector() {
     lbl.style.display = t.label ? '' : 'none';
   } else {
     dot.classList.remove('active');
-    ip.textContent  = activeSessionId ? 'No targets' : 'No session';
+    ip.textContent  = activeSessionId ? '— no targets' : '— no session';
     dom.textContent = '';
     lbl.textContent = '';
     lbl.style.display = 'none';
@@ -2728,7 +2704,7 @@ function renderSessionSidebar() {
   } else {
     dot.classList.remove('live');
     name.textContent   = 'No session';
-    target.textContent = 'click to set';
+    target.textContent = '— click to set';
   }
 }
 
@@ -2986,10 +2962,9 @@ function openNote(id) {
   badge.className = 'note-item-type ' + meta.cssClass;
 
   document.getElementById('noteTitleInput').value = n.title || '';
-  document.getElementById('noteBody').value       = n.body  || '';
+  cmSetValue(noteEditor, n.body || '');
   renderNoteTags(n);
   updateReassignBtn(n);
-  setTimeout(() => initHighlight('noteBody', 'noteHighlight'), 0);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
@@ -2997,7 +2972,7 @@ function openNote(id) {
 
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
-  document.getElementById('noteBody').oninput       = () => { autoSaveNote(); syncHighlight(document.getElementById('noteBody'), 'noteHighlight'); };
+  // noteEditor onChange wired in cmInit
 }
 
 function autoSaveNote() {
@@ -3007,7 +2982,7 @@ function autoSaveNote() {
   clearTimeout(noteSaveTimer);
   noteSaveTimer = setTimeout(() => {
     notes[activeNoteId].title   = document.getElementById('noteTitleInput').value;
-    notes[activeNoteId].body    = document.getElementById('noteBody').value;
+    notes[activeNoteId].body    = cmGetValue(noteEditor);
     // tags are saved directly in addNoteTag/removeNoteTag
     notes[activeNoteId].updated = Date.now();
     saveNotes();
@@ -3069,18 +3044,13 @@ function enterEditMode() {
   document.getElementById('cpEditBody').style.display  = 'flex';
   document.getElementById('cpEditBtn').classList.add('editing');
   document.getElementById('cpEditBtn').title = 'Exit edit mode';
-  const ta = document.getElementById('cpEditTextarea');
-  ta.value = activeDoc.raw;
-  setTimeout(() => initHighlight('cpEditTextarea', 'cpEditHighlight'), 0);
+  cmSetValue(kbEditor, activeDoc.raw);
   cpEditDirty = false;
   setCpEditStatus('', activeDoc.meta || '');
   ta.focus();
 
   // Mark dirty on any input
-  ta.oninput = () => {
-    if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
-    syncHighlight(ta, 'cpEditHighlight');
-  };
+  // KB dirty tracking wired in cmInitKb
 }
 
 function exitEditMode() {
@@ -3194,94 +3164,130 @@ function setTagFilter(tag) {
 function renderTagFilterSidebar() {
   const list = document.getElementById('tagFilterList');
   const tags = getAllTags();
-  if (!tags.length) { list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  if (!tags.length) { list.innerHTML = '<span style="font-size:12px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
 }
 
+
 // ═══════════════════════════════════════════════
-// MARKDOWN SYNTAX HIGHLIGHTING (overlay)
+// CODEMIRROR 6 EDITORS
 // ═══════════════════════════════════════════════
-function mdHighlight(text) {
-  const lines  = text.split('\n');
-  let inFence  = false;
-  const out    = lines.map(line => {
-    // Fence delimiter — toggle state
-    if (/^```/.test(line)) {
-      inFence = !inFence;
-      return `<span class="hl-fence">${escHl(line)}</span>`;
-    }
-    // Inside a fenced block — render as code, no inline parsing
-    if (inFence) return `<span class="hl-fence-body">${escHl(line)}</span>`;
-    // Headings
-    if (/^# /.test(line))   return spanLine('hl-h1',   line);
-    if (/^## /.test(line))  return spanLine('hl-h2',   line);
-    if (/^### /.test(line)) return spanLine('hl-h3',   line);
-    // Blockquote
-    if (/^>/.test(line))    return spanLine('hl-quote', line);
-    // HR
-    if (/^[-*_]{3,}\s*$/.test(line)) return spanLine('hl-hr', line);
-    // Table row
-    if (/^\|/.test(line))   return spanLine('hl-table', line);
-    // Unordered list
-    if (/^(\s*[-*+] )/.test(line)) {
-      const m = line.match(/^(\s*[-*+] )(.*)/);
-      return `<span class="hl-list">${escHl(m[1])}</span>${inlineHL(m[2])}`;
-    }
-    // Ordered list
-    if (/^(\s*\d+\. )/.test(line)) {
-      const m = line.match(/^(\s*\d+\. )(.*)/);
-      return `<span class="hl-list">${escHl(m[1])}</span>${inlineHL(m[2])}`;
-    }
-    // Plain line — run inline highlights
-    return inlineHL(line);
+let noteEditor = null;
+let kbEditor   = null;
+
+function cmGetValue(editor) {
+  return editor ? editor.state.doc.toString() : '';
+}
+
+function cmSetValue(editor, value) {
+  if (!editor) return;
+  editor.dispatch({
+    changes: { from: 0, to: editor.state.doc.length, insert: value || '' }
   });
-  return out.join('\n');
 }
 
-function inlineHL(line) {
-  // Process inline tokens: code first (to avoid re-processing its contents)
-  return escHl(line)
-    // Inline code `...`
-    .replace(/`([^`]+)`/g, '<span class="hl-code">`$1`</span>')
-    // Bold **...**
-    .replace(/\*\*([^*]+)\*\*/g, '<span class="hl-bold">**$1**</span>')
-    // Italic *...*  (single, not double)
-    .replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<span class="hl-italic">*$1*</span>')
-    // Link [text](url)
-    .replace(/(\[[^\]]*\]\([^)]*\))/g, '<span class="hl-link">$1</span>');
+function cmThemeVars() {
+  // Read CSS vars at runtime so theme matches dark/light mode
+  const s = getComputedStyle(document.documentElement);
+  const bg    = s.getPropertyValue('--bg').trim()    || '#1a1a1f';
+  const text  = s.getPropertyValue('--text').trim()  || '#e2e8f0';
+  const text2 = s.getPropertyValue('--text2').trim() || '#94a3b8';
+  const muted = s.getPropertyValue('--muted').trim() || '#4a5568';
+  const bg3   = s.getPropertyValue('--bg3').trim()   || '#26262f';
+  return { bg, text, text2, muted, bg3 };
 }
 
-function spanLine(cls, line) {
-  return `<span class="${cls}">${escHl(line)}</span>`;
+function buildCmTheme() {
+  const v    = cmThemeVars();
+  const dark = !document.documentElement.classList.contains('light');
+
+  const editorTheme = CM.EditorView.theme({
+    '&':                          { background: 'transparent', height: '100%' },
+    '.cm-content':                { color: v.text2, caretColor: v.text, padding: '0' },
+    '.cm-cursor':                 { borderLeftColor: v.text },
+    '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },
+    '.cm-activeLine':             { background: 'rgba(124,58,237,0.06)' },
+    '.cm-gutters':                { display: 'none' },
+    '.cm-placeholder':            { color: v.muted },
+    '.cm-line':                   { padding: '0' },
+  }, { dark });
+
+  const highlightStyle = CM.HighlightStyle.define([
+    { tag: CM.tags.heading1,          color: '#f92672', fontWeight: '700' },
+    { tag: CM.tags.heading2,          color: '#f92672', fontWeight: '600' },
+    { tag: CM.tags.heading3,          color: '#fd971f', fontWeight: '600' },
+    { tag: CM.tags.heading4,          color: '#fd971f' },
+    { tag: CM.tags.heading5,          color: '#fd971f' },
+    { tag: CM.tags.heading6,          color: '#fd971f' },
+    { tag: CM.tags.strong,            color: '#1d4ed8', fontWeight: '700' },
+    { tag: CM.tags.emphasis,          color: '#0891b2', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,     color: '#75715e', textDecoration: 'line-through' },
+    { tag: CM.tags.link,              color: '#66d9e8' },
+    { tag: CM.tags.url,               color: '#66d9e8', opacity: '0.7' },
+    { tag: CM.tags.monospace,         color: '#ae81ff' },
+    { tag: CM.tags.quote,             color: '#75715e', fontStyle: 'italic' },
+    { tag: CM.tags.comment,           color: '#75715e' },
+    { tag: CM.tags.meta,              color: '#75715e' },
+    { tag: CM.tags.punctuation,       color: dark ? '#555566' : '#aaaacc' },
+    { tag: CM.tags.processingInstruction, color: '#ae81ff' },
+    { tag: CM.tags.atom,              color: '#ae81ff' },
+    { tag: CM.tags.keyword,           color: '#f92672' },
+    { tag: CM.tags.operator,          color: '#f92672' },
+    { tag: CM.tags.string,            color: '#e6db74' },
+    { tag: CM.tags.number,            color: '#ae81ff' },
+    { tag: CM.tags.bool,              color: '#ae81ff' },
+    { tag: CM.tags.null,              color: '#ae81ff' },
+  ]);
+
+  return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
 }
 
-function escHl(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function cmInitNote() {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) { noteEditor.destroy(); }
+
+  noteEditor = new CM.EditorView({
+    doc: '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged && activeNoteId) autoSaveNote();
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
 }
 
-function syncHighlight(ta, hlId) {
-  const hl = document.getElementById(hlId);
-  if (!hl) return;
-  // Append a trailing space to prevent last-line collapse
-  hl.innerHTML = mdHighlight(ta.value) + '\n ';
-  // Keep scroll in sync
-  hl.scrollTop = ta.scrollTop;
+function cmInitKb() {
+  const wrap = document.getElementById('cpEditWrap');
+  if (!wrap || !CM) return;
+  if (kbEditor) { kbEditor.destroy(); }
+
+  kbEditor = new CM.EditorView({
+    doc: '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged) {
+          if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
+        }
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
 }
 
-function syncScroll(ta, hlId) {
-  const hl = document.getElementById(hlId);
-  if (hl) hl.scrollTop = ta.scrollTop;
-}
-
-function initHighlight(taId, hlId) {
-  const ta = document.getElementById(taId);
-  const hl = document.getElementById(hlId);
-  if (!ta || !hl) return;
-  hl.innerHTML = mdHighlight(ta.value) + '\n ';
-  hl.scrollTop = ta.scrollTop;
-}
+// Reinit editors on theme toggle to pick up new CSS vars
+const _origToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
 
 // ═══════════════════════════════════════════════
 // SESSION FILE EXPORT / IMPORT
@@ -3511,9 +3517,9 @@ document.addEventListener('keydown', e => {
   if (ctrl && ['1','2','3','4','5'].includes(e.key)) {
     e.preventDefault();
     const viewMap = {
-      '1': ['services',      'nav-services'],
-      '2': ['methodologies', 'nav-methodologies'],
-      '3': ['notes',         'nav-notes'],
+      '1': ['notes',         'nav-notes'],
+      '2': ['services',      'nav-services'],
+      '3': ['methodologies', 'nav-methodologies'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -3580,6 +3586,7 @@ function esc(s) {
 }
 
 init();
+cmInitNote();
 
 // ═══════════════════════════════════════════════
 // RESIZABLE PANELS

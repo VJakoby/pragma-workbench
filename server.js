@@ -46,7 +46,7 @@ try { chokidar = require('chokidar'); } catch (_) { /* optional */ }
 // ─────────────────────────────────────────────
 // Config
 // ─────────────────────────────────────────────
-const PORT           = process.env.PORT || 3000;
+const PORT           = process.env.PORT || 3003;
 const KB_DIR         = path.join(__dirname, 'knowledge_base');
 const METH_DIR       = path.join(__dirname, 'knowledge_base', 'methodologies');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
