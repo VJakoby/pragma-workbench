@@ -1,7 +1,7 @@
 {
-  "name": "cinder-trace",
+  "name": "pragma",
   "version": "1.0.0",
-  "description": "Tactical Methodology",
+  "description": "Tactical methodology workbench",
   "main": "server.js",
   "bin": {
     "cinder-trace": "./server.js"
