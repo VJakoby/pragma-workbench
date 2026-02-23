@@ -1,4 +1,4 @@
-# PRAGMA Workbench
+# PRAGMA
 
 > Engagement note workbench for penetration testers. Track findings, manage sessions, and pull knowledge base context — all from within the same place, locally.
 
