@@ -46,7 +46,7 @@ try { chokidar = require('chokidar'); } catch (_) { /* optional */ }
 // ─────────────────────────────────────────────
 // Config
 // ─────────────────────────────────────────────
-const PORT           = process.env.PORT || 3003;
+const PORT           = process.env.PORT || 3000;
 const KB_DIR         = path.join(__dirname, 'knowledge_base');
 const METH_DIR       = path.join(__dirname, 'knowledge_base', 'methodologies');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
@@ -562,7 +562,7 @@ app.post('/api/kb/save', (req, res) => {
 
 /**
  * POST /api/search-proxy
- * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3002).
+ * Proxies a query to the external search indexer (runs on SEARCH_URL, default port 3001).
  * Returns top 5 results by relevance score.
  *
  * The external server is the search indexer project — it exposes POST /api/search
@@ -598,7 +598,7 @@ app.post('/api/search-proxy', async (req, res) => {
         const body    = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const options = {
           hostname: url.hostname,
-          port:     url.port || 3002,
+          port:     url.port || 3001,
           path:     url.pathname,
           method:   'POST',
           headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
@@ -629,7 +629,13 @@ app.post('/api/search-proxy', async (req, res) => {
         file_path:       r.file_path,
       }));
 
-    res.json({ results, query, total: responseData.total_matches || results.length });
+    res.json({
+      results,
+      query,
+      total:        responseData.total_matches || results.length,
+      docs_searched: responseData.docs_searched || responseData.total_searched || null,
+      search_time_ms: responseData.search_time_ms || responseData.elapsed_ms || null,
+    });
   } catch (err) {
     console.warn(`[PRAGMA] Search proxy error: ${err.message}`);
     res.json({ results: [], query, offline: true, error: err.message });

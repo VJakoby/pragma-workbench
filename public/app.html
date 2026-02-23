@@ -649,7 +649,7 @@ body{
   padding:1px 6px;border-radius:3px;
 }
 .result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
-.result-badge.local{color:var(--green);background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)}
+.result-badge.local{color:#3b82f6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)}
 .result-snippet{
   font-family:'Inter',sans-serif;font-size:12px;color:var(--text);font-weight:500;
   line-height:1.6;white-space:pre-wrap;word-break:break-word;
@@ -667,7 +667,7 @@ body{
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
   display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);
+  background:rgba(0,0,0,0.55);
 }
 .cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
 
@@ -675,9 +675,9 @@ body{
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:12px;width:90%;max-width:580px;
   box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
-  animation:cmdSlide 0.15s ease;
+  animation:cmdSlide 0.04s ease;
 }
-@keyframes cmdSlide{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
 .cmd-input-row{
   display:flex;align-items:center;gap:10px;
@@ -1219,6 +1219,13 @@ kbd {
 .cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }
 /* Override CM6 default background to match PRAGMA theme */
 .cm-editor .cm-content { caret-color: var(--text); }
+
+.result-badge.online{color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
+.result-snippet mark{background:rgba(34,197,94,0.18);color:var(--text);border-radius:2px;padding:0 2px;font-style:normal}
+.search-meta{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+  margin-top:1px;
+}
 </style>
 </head>
 <body>
@@ -1379,6 +1386,7 @@ kbd {
               <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
             </div>
             <span class="search-status" id="searchStatus"></span>
+            <span class="search-meta" id="searchMeta"></span>
           </div>
         </div>
         <div class="results-list" id="resultsList">
@@ -2211,17 +2219,29 @@ async function runSearch(query) {
     if (searchScope === 'local')  results = results.filter(r => r.is_local);
     if (searchScope === 'online') results = results.filter(r => !r.is_local);
 
-    renderResults(query, results, d.offline || false);
+    renderResults(query, results, d.offline || false, d.docs_searched, d.search_time_ms);
   } catch(e) {
     console.error('[Search] Fetch failed:', e.message);
-    renderResults(query, [], true);
+    renderResults(query, [], true, null, null);
   }
 }
 
-function renderResults(query, results, offline) {
+function highlightSnippet(text, query) {
+  if (!query || !text) return esc(text);
+  const escaped = esc(text);
+  const terms = query.trim().split(/\s+/).filter(t => t.length > 2)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return escaped;
+  const re = new RegExp('(' + terms.join('|') + ')', 'gi');
+  return escaped.replace(re, '<mark>$1</mark>');
+}
+
+function renderResults(query, results, offline, docsSearched, timeMs) {
   const list = document.getElementById('resultsList');
   const stat = document.getElementById('searchStatus');
+  const meta = document.getElementById('searchMeta');
 
+  if (meta) meta.textContent = '';
   if (offline) {
     stat.textContent = '⚠ offline';
     list.innerHTML = `<div class="results-offline">
@@ -2233,6 +2253,11 @@ function renderResults(query, results, offline) {
   }
 
   stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+  if (meta) {
+    meta.textContent = (docsSearched != null && timeMs != null)
+      ? `${docsSearched} pages · ${Math.round(timeMs)}ms`
+      : (docsSearched != null ? `${docsSearched} pages searched` : '');
+  }
 
   if (!results.length) {
     list.innerHTML = `<div class="results-offline">
@@ -2263,14 +2288,14 @@ function renderResults(query, results, offline) {
           ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
           <div class="result-card-badges">
             ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-            ${isLocal ? `<span class="result-badge local">local</span>` : ''}
+            ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
           </div>
         </div>
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
       </div>
-      ${trimmed ? `<div class="result-snippet">${esc(trimmed)}</div>` : ''}
+      ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -3592,7 +3617,7 @@ cmInitNote();
 // RESIZABLE PANELS
 // ═══════════════════════════════════════════════
 (function() {
-  const NOTES_MIN  = 160, NOTES_MAX  = 400, NOTES_DEFAULT  = 200;
+  const NOTES_MIN  = 80,  NOTES_MAX  = 320, NOTES_DEFAULT  = 290;
   const PANEL_MIN  = 320, PANEL_MAX  = 820, PANEL_DEFAULT  = 520;
 
   // Restore saved widths
