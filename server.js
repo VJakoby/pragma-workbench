@@ -854,7 +854,7 @@ if (chokidar) {
 buildIndex();
 buildMethodologyIndex();
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`\n  📖 PRAGMA running at http://localhost:${PORT}`);
   console.log(`  🗂️  PRAGMA          → http://localhost:${PORT}/`);
   console.log(`  📂 public/          → ${PUBLIC_DIR}`);
