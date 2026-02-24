@@ -1,7 +1,9 @@
 
 
 # Notes
-notes/*
+# notes/*
+# *.notes.json.encrypted
+*.session
 
 *.json
 

@@ -877,6 +877,30 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
 
+.session-encrypt-row{
+  padding: 6px 14px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.session-encrypt-btn{
+  width:100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align:center;
+}
+.session-encrypt-btn:hover{ border-color: var(--border2); color: var(--text2); background: var(--bg4); }
+.session-encrypt-btn.on{ border-color: rgba(52,211,153,0.25); color: var(--green); background: rgba(52,211,153,0.06); }
+.session-encrypt-btn.locked{ border-color: rgba(248,113,113,0.25); color: var(--red); background: rgba(248,113,113,0.06); }
+
 /* Session modal */
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
@@ -1281,6 +1305,9 @@ kbd {
           </div>
           <span class="session-active-arrow">›</span>
         </div>
+        <div class="session-encrypt-row">
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Session</button>
+        </div>
       </div>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
@@ -1678,6 +1705,9 @@ let activeSessionId = null;
 let activeTargetId  = null;
 let activeNoteId  = null;
 let noteSaveTimer;
+
+let encryptedStorageEnabled = false;
+let encryptedStoragePassword = null; // in-memory only; never persisted
 
 const ACCENT_COLORS = [
   '#7c3aed','#34d399','#a78bfa','#fb923c',
@@ -2660,22 +2690,73 @@ async function initNotes() {
   try {
     const r = await fetch('/api/notes');
     const d = await r.json();
+    // If the workspace is stored encrypted on disk, prompt for password and decrypt client-side.
+    if (d && d.encrypted_storage === true) {
+      encryptedStorageEnabled = true;
+      updateEncryptedStorageUI();
+      const encRes = await fetch('/api/notes/encrypted');
+      const encObj = await encRes.json();
+      const pw = window.prompt('This workspace is encrypted.\n\nEnter password to unlock:', '');
+      if (!pw) throw new Error('Password required to unlock encrypted workspace');
+      encryptedStoragePassword = pw;
+      const plain = await decryptPayload(encObj, pw);
+      const parsed = JSON.parse(plain);
+      if (parsed && parsed.notes !== undefined) {
+        notes    = parsed.notes    || {};
+        sessions = parsed.sessions || {};
+      } else {
+        notes    = parsed || {};
+        sessions = {};
+      }
+      // Keep local cache encrypted as well.
+      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
+      localStorage.removeItem('ops-notes-v2');
+    } else
     // Back-compat: old format was just flat notes obj
-    if (d.notes !== undefined) {
-      notes    = d.notes    || {};
-      sessions = d.sessions || {};
-    } else {
-      notes    = d || {};
-      sessions = {};
+    {
+      if (d.notes !== undefined) {
+        notes    = d.notes    || {};
+        sessions = d.sessions || {};
+      } else {
+        notes    = d || {};
+        sessions = {};
+      }
+      localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
+      localStorage.removeItem('ops-notes-v2-encrypted');
+      encryptedStorageEnabled = false;
+      encryptedStoragePassword = null;
+      updateEncryptedStorageUI();
     }
-    localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
   } catch {
     try {
-      const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
-      notes    = cached.notes    || {};
-      sessions = cached.sessions || {};
+      const encCachedRaw = localStorage.getItem('ops-notes-v2-encrypted');
+      if (encCachedRaw) {
+        const encObj = JSON.parse(encCachedRaw);
+        if (encObj && encObj.encrypted === true) {
+          encryptedStorageEnabled = true;
+          updateEncryptedStorageUI();
+          const pw = window.prompt('This workspace is encrypted.\n\nEnter password to unlock:', '');
+          if (!pw) throw new Error('Password required to unlock encrypted workspace');
+          encryptedStoragePassword = pw;
+          const plain = await decryptPayload(encObj, pw);
+          const parsed = JSON.parse(plain);
+          if (parsed && parsed.notes !== undefined) {
+            notes    = parsed.notes    || {};
+            sessions = parsed.sessions || {};
+          } else {
+            notes    = parsed || {};
+            sessions = {};
+          }
+        }
+      }
+      if (!encryptedStorageEnabled) {
+        const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
+        notes    = cached.notes    || {};
+        sessions = cached.sessions || {};
+      }
     } catch { notes = {}; sessions = {}; }
   }
+  updateEncryptedStorageUI();
   // Restore last active session
   const savedSid = localStorage.getItem('ops-active-session');
   if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
@@ -2706,14 +2787,70 @@ async function initNotes() {
   updateTargetSelector();
 }
 
+function updateEncryptedStorageUI() {
+  const btn = document.getElementById('encStorageBtn');
+  if (!btn) return;
+  const locked = encryptedStorageEnabled && !encryptedStoragePassword;
+  btn.classList.toggle('on', encryptedStorageEnabled && !locked);
+  btn.classList.toggle('locked', locked);
+  if (!encryptedStorageEnabled) btn.textContent = '🔒 Encrypted Session';
+  else if (locked) btn.textContent = '🔒 Encrypted Session (locked)';
+  else btn.textContent = '🔒 Encrypted Session (on)';
+}
+
+async function toggleEncryptedStorage(e) {
+  try { e?.stopPropagation?.(); } catch(_) {}
+  if (!encryptedStorageEnabled) {
+    const pw1 = window.prompt('Enable encrypted storage?\n\nSet a password (required):', '');
+    if (!pw1) return;
+    const pw2 = window.prompt('Confirm password:', '');
+    if (pw1 !== pw2) { alert('Passwords do not match'); return; }
+    encryptedStorageEnabled = true;
+    encryptedStoragePassword = pw1;
+    updateEncryptedStorageUI();
+    saveNotes(); // triggers first encrypted write + deletes plaintext on server
+  } else {
+    const ok = confirm('Disable encrypted storage?\n\nThis will re-enable plaintext notes.json on next save.');
+    if (!ok) return;
+    encryptedStorageEnabled = false;
+    encryptedStoragePassword = null;
+    updateEncryptedStorageUI();
+    // Remove encrypted file on disk; plaintext will be re-created on next save.
+    try { await fetch('/api/notes/storage/disable-encrypted', { method: 'POST' }); } catch(_) {}
+    saveNotes();
+  }
+}
+
 function saveNotes() {
   const payload = { notes, sessions };
-  localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
-  fetch('/api/notes/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(() => {});
+  if (encryptedStorageEnabled) {
+    (async () => {
+      try {
+        if (!encryptedStoragePassword) {
+          const pw = window.prompt('Encrypted storage is enabled.\n\nEnter password to save:', '');
+          if (!pw) return;
+          encryptedStoragePassword = pw;
+          updateEncryptedStorageUI();
+        }
+        const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+        localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
+        localStorage.removeItem('ops-notes-v2');
+        await fetch('/api/notes/save-encrypted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blob })
+        });
+      } catch(_) {}
+    })();
+  } else {
+    localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
+    localStorage.removeItem('ops-notes-v2-encrypted');
+    fetch('/api/notes/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  }
 }
 
 // ─── Session management ───
@@ -2839,10 +2976,13 @@ async function exportSession(id) {
   fb.className = 'export-feedback';
   fb.textContent = '⏳ Exporting…';
   try {
+    const body = encryptedStorageEnabled
+      ? { session_id: id, include_unassigned: includeUnassigned, sessions, notes }
+      : { session_id: id, include_unassigned: includeUnassigned };
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: id, include_unassigned: includeUnassigned }),
+      body: JSON.stringify(body),
     });
     const d = await r.json();
     if (d.ok) {
@@ -3400,10 +3540,13 @@ async function exportSessionFile(id) {
   // Hit server to write to disk (unencrypted only — server never sees passwords)
   if (!encrypted) {
     try {
+      const body = encryptedStorageEnabled
+        ? { session_id: id, sessions, notes }
+        : { session_id: id };
       const r = await fetch('/api/notes/export-session', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ session_id: id }),
+        body:    JSON.stringify(body),
       });
       const d = await r.json();
       if (d.ok) {

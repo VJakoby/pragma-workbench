@@ -674,8 +674,10 @@ app.get('/api/search-ping', async (req, res) => {
 //   { sessions: { <id>: { id, codename, target_ip, target_domain, created } },
 //     notes:    { <id>: { id, session_id, type, title, body, ... } } }
 // ─────────────────────────────────────────────
-const NOTES_FILE = path.join(__dirname, 'notes.json');
-const NOTES_DIR  = path.join(__dirname, 'notes');
+const NOTES_DIR       = path.join(__dirname, 'notes');
+const NOTES_FILE      = path.join(NOTES_DIR, 'notes.json');
+const NOTES_ENC_FILE  = path.join(NOTES_DIR, 'notes.json.encrypted');
+const SESSIONS_DIR    = path.join(__dirname, 'session');
 
 function loadNotesFile() {
   if (!fs.existsSync(NOTES_FILE)) return { sessions: {}, notes: {} };
@@ -688,16 +690,73 @@ function loadNotesFile() {
 }
 
 app.get('/api/notes', (req, res) => {
-  try { res.json(loadNotesFile()); }
+  try {
+    // If encrypted storage exists, client must unlock/decrypt locally.
+    if (fs.existsSync(NOTES_ENC_FILE)) return res.json({ encrypted_storage: true });
+    res.json(loadNotesFile());
+  }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/notes/save', (req, res) => {
   try {
+    if (fs.existsSync(NOTES_ENC_FILE)) {
+      return res.status(423).json({ error: 'Encrypted storage enabled. Use /api/notes/save-encrypted.' });
+    }
     const { sessions = {}, notes = {} } = req.body;
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
     fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/notes/storage-info', (req, res) => {
+  res.json({
+    encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
+    plain_storage:     fs.existsSync(NOTES_FILE),
+    encrypted_file:    path.basename(NOTES_ENC_FILE),
+    plain_file:        path.basename(NOTES_FILE),
+  });
+});
+
+app.get('/api/notes/encrypted', (req, res) => {
+  try {
+    if (!fs.existsSync(NOTES_ENC_FILE)) return res.status(404).json({ error: 'Encrypted notes file not found' });
+    const raw = fs.readFileSync(NOTES_ENC_FILE, 'utf8');
+    const obj = JSON.parse(raw);
+    res.json(obj);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notes/save-encrypted', (req, res) => {
+  try {
+    const { blob } = req.body || {};
+    if (!blob || blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data) {
+      return res.status(400).json({ error: 'Invalid encrypted payload' });
+    }
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.writeFileSync(NOTES_ENC_FILE, JSON.stringify(blob, null, 2), 'utf8');
+    // Ensure plaintext is not left behind once encrypted storage is active.
+    if (fs.existsSync(NOTES_FILE)) {
+      try { fs.unlinkSync(NOTES_FILE); } catch (_) {}
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notes/storage/disable-encrypted', (req, res) => {
+  try {
+    if (fs.existsSync(NOTES_ENC_FILE)) {
+      try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {}
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
@@ -708,7 +767,11 @@ app.post('/api/notes/save', (req, res) => {
 app.post('/api/notes/export', (req, res) => {
   try {
     const { session_id, include_unassigned = false } = req.body;
-    const { sessions, notes } = loadNotesFile();
+    const source = fs.existsSync(NOTES_ENC_FILE)
+      ? (req.body && req.body.sessions && req.body.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
+      : loadNotesFile();
+    if (!source) return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes for export.' });
+    const { sessions, notes } = source;
 
     const session = sessions[session_id];
     if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -784,7 +847,11 @@ app.post('/api/notes/export', (req, res) => {
 app.post('/api/notes/export-session', (req, res) => {
   try {
     const { session_id } = req.body;
-    const { sessions, notes } = loadNotesFile();
+    const source = fs.existsSync(NOTES_ENC_FILE)
+      ? (req.body && req.body.sessions && req.body.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
+      : loadNotesFile();
+    if (!source) return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes for export.' });
+    const { sessions, notes } = source;
 
     const session = sessions[session_id];
     if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -798,9 +865,9 @@ app.post('/api/notes/export-session', (req, res) => {
       notes:          sessNotes,
     };
 
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
     const slug     = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const filePath = path.join(NOTES_DIR, slug + '.session');
+    const filePath = path.join(SESSIONS_DIR, slug + '.session');
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
 
     console.log(`[PRAGMA] Exported session: ${filePath}`);
