@@ -1,14 +1,11 @@
-
-
 # Notes
 notes/*
+notes.json
 
-*.json
-
-
+# NodeJS modules
 node_modules/*
 
-
+# VSCode specific
 .vscode
 *.code-workspace
 
