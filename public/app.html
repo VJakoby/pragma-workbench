@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PRAGMA</title>
   <link rel="icon" type="image/png" href="favicon.PNG">
+  <script src="codemirror-bundle.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -171,11 +172,13 @@ body{
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;
   flex-shrink:0;overflow:hidden;
+  position:relative;
+  transition:border-color 0.4s,box-shadow 0.4s;
 }
 
 .sidebar-version {
   margin-top: auto; padding: 10px 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); letter-spacing: 0.08em;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -535,12 +538,7 @@ body{
   flex-shrink:0;
 }
 .note-save-status.saved{color:var(--green)}
-.note-textarea{
-  flex:1;background:none;border:none;outline:none;resize:none;
-  padding:16px;color:var(--text2);font-size:14px;line-height:1.8;
-  font-family:'Inter',sans-serif;
-}
-.note-textarea::placeholder{color:var(--muted)}
+
 .notes-empty{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -647,13 +645,13 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
 }
 .result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
-.result-badge.local{color:var(--green);background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2)}
+.result-badge.local{color:#3b82f6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)}
 .result-snippet{
   font-family:'Inter',sans-serif;font-size:12px;color:var(--text);font-weight:500;
   line-height:1.6;white-space:pre-wrap;word-break:break-word;
@@ -671,7 +669,7 @@ body{
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
   display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);
+  background:rgba(0,0,0,0.55);
 }
 .cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
 
@@ -679,9 +677,9 @@ body{
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:12px;width:90%;max-width:580px;
   box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
-  animation:cmdSlide 0.15s ease;
+  animation:cmdSlide 0.04s ease;
 }
-@keyframes cmdSlide{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
 .cmd-input-row{
   display:flex;align-items:center;gap:10px;
@@ -780,7 +778,7 @@ body{
 
     .note-type-btn {
       background: none; border: none; cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
       color: var(--muted); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
@@ -790,7 +788,7 @@ body{
     /* Note type badge on list items */
     .note-item-type {
       display: inline-block;
-      font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
       padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
       text-transform: uppercase; letter-spacing: 0.08em;
     }
@@ -870,22 +868,46 @@ body.is-resizing *{cursor:col-resize!important}
 .session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
 .session-active-info { flex: 1; overflow: hidden; }
 .session-active-name {
-  font-size: 12px; font-weight: 700; color: var(--text);
+  font-size: 13px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
 }
 .session-active-target {
-  font-size: 10px; color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--text2);
+  font-family: 'Inter', sans-serif;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+.session-encrypt-row{
+  padding: 6px 14px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.session-encrypt-btn{
+  width:100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align:center;
+}
+.session-encrypt-btn:hover{ border-color: var(--border2); color: var(--text2); background: var(--bg4); }
+.session-encrypt-btn.on{ border-color: rgba(52,211,153,0.25); color: var(--green); background: rgba(52,211,153,0.06); }
+.session-encrypt-btn.locked{ border-color: rgba(248,113,113,0.25); color: var(--red); background: rgba(248,113,113,0.06); }
 
 /* Session modal */
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 .session-field input {
@@ -911,7 +933,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
 .session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .session-list-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
 }
@@ -927,7 +949,7 @@ body.is-resizing *{cursor:col-resize!important}
   flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   font-weight: 700; color: var(--text);
 }
-.session-list-item-meta { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-list-item-meta { font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
 .session-export-btn {
   background: none; border: 1px solid var(--border); border-radius: 5px;
   color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
@@ -954,7 +976,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); padding: 6px 4px;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
@@ -1002,15 +1024,15 @@ body.is-resizing *{cursor:col-resize!important}
 .target-sel-info { display: flex; align-items: baseline; gap: 7px; flex: 1; min-width: 0; overflow: hidden; }
 .target-sel-domain { max-width: 100px; }
 .target-sel-ip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); white-space: nowrap;
 }
 .target-sel-domain {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
   color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .target-sel-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
@@ -1044,7 +1066,7 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--text2); flex: 1;
 }
 .target-item-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
@@ -1074,10 +1096,12 @@ body.is-resizing *{cursor:col-resize!important}
 .cp-edit-status.saved  { color: var(--green); }
 .cp-edit-status.unsaved { color: var(--yellow); }
 .cp-edit-textarea {
-  flex: 1; background: var(--bg); border: none; outline: none; resize: none;
-  color: var(--text2); font-family: 'IBM Plex Mono', monospace;
+  flex: 1; background: transparent; border: none; outline: none; resize: none;
+  color: transparent; caret-color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 13px; line-height: 1.75; padding: 16px 20px;
-  tab-size: 2;
+  tab-size: 2; position: relative; z-index: 1;
+  white-space: pre-wrap; word-wrap: break-word; overflow-y: auto;
 }
 .cp-edit-textarea::placeholder { color: var(--muted); }
 /* Edit button active state */
@@ -1089,7 +1113,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 6px 14px 0; flex-shrink: 0;
 }
 .note-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
   padding: 2px 7px; cursor: pointer; transition: all 0.12s;
@@ -1100,7 +1124,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-tag-del:hover { opacity: 1; }
 .note-tag-input {
   background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); min-width: 80px; flex: 1;
 }
 .note-tag-input::placeholder { color: var(--muted); }
@@ -1108,7 +1132,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Tags in note list items */
 .note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .note-item-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.16);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
 }
@@ -1118,7 +1142,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
 }
 .tag-filter-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
   letter-spacing: 0.03em;
@@ -1130,7 +1154,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
   background: none; border: 1px solid var(--border); border-radius: 5px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -1189,7 +1213,7 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
 kbd {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--text); background: var(--bg4);
   border: 1px solid var(--border2); border-bottom-width: 2px;
   border-radius: 4px; padding: 2px 7px; line-height: 1.6;
@@ -1206,6 +1230,71 @@ kbd {
   gap: 4px; flex-shrink: 0; margin-left: 10px;
 }
 .result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+/* note-textarea and cp-edit-textarea styled via CodeMirror */
+
+/* ── CodeMirror 6 editor integration ── */
+.cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.cm-wrap .cm-editor {
+  flex: 1; height: 100%; font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  background: transparent !important;
+}
+.cm-wrap.kb-editor .cm-editor { font-size: 13px; }
+.cm-editor.cm-focused { outline: none !important; }
+.cm-editor .cm-scroller { padding: 16px; line-height: 1.8; overflow-y: auto; }
+.cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }
+/* Override CM6 default background to match PRAGMA theme */
+.cm-editor .cm-content { caret-color: var(--text); }
+
+.result-badge.online{color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
+.result-snippet mark{background:rgba(34,197,94,0.18);color:var(--text);border-radius:2px;padding:0 2px;font-style:normal}
+.search-meta{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+  margin-top:1px;
+}
+
+/* ── Encrypted session indicator ── */
+/* Green left border + subtle sweep animation when encrypted session active */
+.sidebar.enc-active {
+  border-right-color: rgba(52,211,153,0.35);
+  box-shadow: inset -2px 0 18px rgba(52,211,153,0.07);
+}
+
+/* Pulsing green bar down the left edge of sidebar */
+.sidebar.enc-active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--green) 15%,
+    var(--green) 85%,
+    transparent 100%
+  );
+  animation: encPulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes encPulse {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1;   }
+  100% { opacity: 0.4; }
+}
+
+/* Session block gets subtle green tint */
+.sidebar.enc-active #sessionSection {
+  background: rgba(52,211,153,0.04);
+  border-bottom: 1px solid rgba(52,211,153,0.15);
+}
+
+/* Topbar gets a hairline green glow at the bottom when enc active */
+body.enc-active-body .topbar {
+  border-bottom-color: rgba(52,211,153,0.3);
+  box-shadow: 0 1px 0 rgba(52,211,153,0.15);
+}
 </style>
 </head>
 <body>
@@ -1261,11 +1350,19 @@ kbd {
           </div>
           <span class="session-active-arrow">›</span>
         </div>
+        <div class="session-encrypt-row">
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Session</button>
+        </div>
       </div>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Navigate</div>
-        <div class="nav-item active" onclick="switchView('services',this)" id="nav-services">
+        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes">
+          <span class="nav-item-icon">📝</span>
+          <span class="nav-item-label">Session Notes</span>
+          <span class="nav-item-count" id="notes-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('services',this)" id="nav-services">
           <span class="nav-item-icon">🔌</span>
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
@@ -1274,11 +1371,6 @@ kbd {
           <span class="nav-item-icon">📋</span>
           <span class="nav-item-label">Tactical Guides</span>
           <span class="nav-item-count" id="meth-count">—</span>
-        </div>
-        <div class="nav-item" onclick="switchView('notes',this)" id="nav-notes">
-          <span class="nav-item-icon">📝</span>
-          <span class="nav-item-label">Session Notes</span>
-          <span class="nav-item-count" id="notes-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
           <span class="nav-item-icon">🔍</span>
@@ -1309,7 +1401,7 @@ kbd {
     <div class="main-panel">
 
       <!-- ── SERVICES VIEW ── -->
-      <div class="panel-view active" id="view-services">
+      <div class="panel-view" id="view-services">
         <div class="cards-toolbar">
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
@@ -1366,6 +1458,7 @@ kbd {
               <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
             </div>
             <span class="search-status" id="searchStatus"></span>
+            <span class="search-meta" id="searchMeta"></span>
           </div>
         </div>
         <div class="results-list" id="resultsList">
@@ -1378,7 +1471,7 @@ kbd {
       </div>
 
       <!-- ── NOTES VIEW ── -->
-      <div class="panel-view" id="view-notes">
+      <div class="panel-view active" id="view-notes">
         <div class="notes-layout">
           <div class="notes-list">
             <div class="notes-list-hdr">
@@ -1425,9 +1518,7 @@ kbd {
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
-              <textarea class="note-textarea" id="noteBody"
-                placeholder="# Note title&#10;&#10;Write in markdown…&#10;&#10;\`\`\`bash&#10;nmap -sV TARGET_IP&#10;\`\`\`"
-                onkeydown="noteTabHandler(event)"></textarea>
+              <div class="cm-wrap" id="noteBodyWrap"></div>
             </div>
           </div>
         </div>
@@ -1460,7 +1551,7 @@ kbd {
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
           <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
         </div>
-        <textarea class="cp-edit-textarea" id="cpEditTextarea" onkeydown="cpEditTabHandler(event)" spellcheck="false"></textarea>
+        <div class="cm-wrap kb-editor" id="cpEditWrap"></div>
       </div>
     </div>
 
@@ -1484,9 +1575,9 @@ kbd {
           <div class="shortcuts-group-hdr">Navigation</div>
           <div class="shortcuts-table">
             <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Notes</span>             <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search</span>            <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
           </div>
@@ -1679,6 +1770,19 @@ function applyTheme(t) {
   }
 }
 function toggleTheme() {
+  // Reinit CM editors after theme change so colours update
+  setTimeout(() => {
+    if (noteEditor) {
+      const val = cmGetValue(noteEditor);
+      cmInitNote();
+      cmSetValue(noteEditor, val);
+    }
+    if (kbEditor) {
+      const val = cmGetValue(kbEditor);
+      cmInitKb();
+      cmSetValue(kbEditor, val);
+    }
+  }, 50);
   const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   localStorage.setItem('ops-theme', cur);
   applyTheme(cur);
@@ -1721,7 +1825,7 @@ function updateTargetSelector() {
     lbl.style.display = t.label ? '' : 'none';
   } else {
     dot.classList.remove('active');
-    ip.textContent  = activeSessionId ? 'No targets' : 'No session';
+    ip.textContent  = activeSessionId ? '— no targets' : '— no session';
     dom.textContent = '';
     lbl.textContent = '';
     lbl.style.display = 'none';
@@ -2187,17 +2291,29 @@ async function runSearch(query) {
     if (searchScope === 'local')  results = results.filter(r => r.is_local);
     if (searchScope === 'online') results = results.filter(r => !r.is_local);
 
-    renderResults(query, results, d.offline || false);
+    renderResults(query, results, d.offline || false, d.docs_searched, d.search_time_ms);
   } catch(e) {
     console.error('[Search] Fetch failed:', e.message);
-    renderResults(query, [], true);
+    renderResults(query, [], true, null, null);
   }
 }
 
-function renderResults(query, results, offline) {
+function highlightSnippet(text, query) {
+  if (!query || !text) return esc(text);
+  const escaped = esc(text);
+  const terms = query.trim().split(/\s+/).filter(t => t.length > 2)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return escaped;
+  const re = new RegExp('(' + terms.join('|') + ')', 'gi');
+  return escaped.replace(re, '<mark>$1</mark>');
+}
+
+function renderResults(query, results, offline, docsSearched, timeMs) {
   const list = document.getElementById('resultsList');
   const stat = document.getElementById('searchStatus');
+  const meta = document.getElementById('searchMeta');
 
+  if (meta) meta.textContent = '';
   if (offline) {
     stat.textContent = '⚠ offline';
     list.innerHTML = `<div class="results-offline">
@@ -2209,6 +2325,11 @@ function renderResults(query, results, offline) {
   }
 
   stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+  if (meta) {
+    meta.textContent = (docsSearched != null && timeMs != null)
+      ? `${docsSearched} pages · ${Math.round(timeMs)}ms`
+      : (docsSearched != null ? `${docsSearched} pages searched` : '');
+  }
 
   if (!results.length) {
     list.innerHTML = `<div class="results-offline">
@@ -2239,14 +2360,14 @@ function renderResults(query, results, offline) {
           ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
           <div class="result-card-badges">
             ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-            ${isLocal ? `<span class="result-badge local">local</span>` : ''}
+            ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
           </div>
         </div>
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
       </div>
-      ${trimmed ? `<div class="result-snippet">${esc(trimmed)}</div>` : ''}
+      ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -2596,35 +2717,97 @@ let activeNoteFilter = 'all';
 let activeNoteScope  = 'session';
 let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
 
-function noteTabHandler(e) {
-  if (e.key !== 'Tab') return;
-  e.preventDefault();
-  const ta    = e.target;
-  const start = ta.selectionStart;
-  const end   = ta.selectionEnd;
-  ta.value = ta.value.slice(0, start) + '  ' + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = start + 2;
-  autoSaveNote();
+let encryptedStorageEnabled  = false;
+let encryptedStoragePassword = null; // in-memory only; never persisted
+
+// Tab handling is native in CodeMirror 6
+
+function updateEncryptedStorageUI() {
+  const btn     = document.getElementById('encStorageBtn');
+  const sidebar = document.querySelector('.sidebar');
+  if (!btn) return;
+  const locked = encryptedStorageEnabled && !encryptedStoragePassword;
+  const active = encryptedStorageEnabled && !locked;
+  btn.classList.toggle('on',     active);
+  btn.classList.toggle('locked', locked);
+  if (sidebar) sidebar.classList.toggle('enc-active', active);
+  document.body.classList.toggle('enc-active-body', active);
+  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Session';
+  else if (locked)               btn.textContent = '🔒 Encrypted Session (locked)';
+  else                           btn.textContent = '🔒 Encrypted Session (on)';
+}
+
+async function toggleEncryptedStorage(e) {
+  try { e?.stopPropagation?.(); } catch(_) {}
+  if (!encryptedStorageEnabled) {
+    const pw1 = window.prompt('Enable encrypted storage?\n\nSet a password (required):', '');
+    if (!pw1) return;
+    const pw2 = window.prompt('Confirm password:', '');
+    if (pw1 !== pw2) { alert('Passwords do not match'); return; }
+    encryptedStorageEnabled  = true;
+    encryptedStoragePassword = pw1;
+    updateEncryptedStorageUI();
+    saveNotes();
+  } else {
+    const ok = confirm('Disable encrypted storage?\n\nThis will re-enable plaintext notes.json on next save.');
+    if (!ok) return;
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    updateEncryptedStorageUI();
+    try { await fetch('/api/notes/storage/disable-encrypted', { method: 'POST' }); } catch(_) {}
+    saveNotes();
+  }
 }
 
 async function initNotes() {
   try {
     const r = await fetch('/api/notes');
     const d = await r.json();
-    // Back-compat: old format was just flat notes obj
-    if (d.notes !== undefined) {
-      notes    = d.notes    || {};
-      sessions = d.sessions || {};
+    if (d && d.encrypted_storage === true) {
+      encryptedStorageEnabled = true;
+      updateEncryptedStorageUI();
+      const encRes = await fetch('/api/notes/encrypted');
+      const encObj = await encRes.json();
+      const pw = window.prompt('This workspace is encrypted.\n\nEnter password to unlock:', '');
+      if (!pw) throw new Error('Password required to unlock encrypted workspace');
+      encryptedStoragePassword = pw;
+      const plain  = await decryptPayload(encObj, pw);
+      const parsed = JSON.parse(plain);
+      notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
+      sessions = parsed.sessions || {};
+      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
+      localStorage.removeItem('ops-notes-v2');
     } else {
-      notes    = d || {};
-      sessions = {};
+      notes    = (d.notes    !== undefined ? d.notes    : d) || {};
+      sessions = d.sessions || {};
+      localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
+      localStorage.removeItem('ops-notes-v2-encrypted');
+      encryptedStorageEnabled  = false;
+      encryptedStoragePassword = null;
+      updateEncryptedStorageUI();
     }
-    localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
   } catch {
     try {
-      const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
-      notes    = cached.notes    || {};
-      sessions = cached.sessions || {};
+      const encCached = localStorage.getItem('ops-notes-v2-encrypted');
+      if (encCached) {
+        const encObj = JSON.parse(encCached);
+        if (encObj && encObj.encrypted === true) {
+          encryptedStorageEnabled = true;
+          updateEncryptedStorageUI();
+          const pw = window.prompt('This workspace is encrypted.\n\nEnter password to unlock:', '');
+          if (!pw) throw new Error('Password required');
+          encryptedStoragePassword = pw;
+          const plain  = await decryptPayload(encObj, pw);
+          const parsed = JSON.parse(plain);
+          notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
+          sessions = parsed.sessions || {};
+        }
+      }
+      if (!encryptedStorageEnabled) {
+        const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
+        notes    = cached.notes    || {};
+        sessions = cached.sessions || {};
+      }
     } catch { notes = {}; sessions = {}; }
   }
   // Restore last active session
@@ -2680,7 +2863,7 @@ function renderSessionSidebar() {
   } else {
     dot.classList.remove('live');
     name.textContent   = 'No session';
-    target.textContent = 'click to set';
+    target.textContent = '— click to set';
   }
 }
 
@@ -2903,15 +3086,12 @@ function newNote(type = 'general') {
   saveNotes();
   renderNotesList();
   openNote(id);
-  // Focus title if blank, body if title pre-filled
+  // Focus title if blank, editor body if title pre-filled
   setTimeout(() => {
-    const el = tmpl.title
-      ? document.getElementById('noteBody')
-      : document.getElementById('noteTitleInput');
-    el.focus();
-    if (el === document.getElementById('noteBody')) {
-      el.setSelectionRange(0, 0);
-      el.scrollTop = 0;
+    if (tmpl.title) {
+      if (noteEditor) noteEditor.focus();
+    } else {
+      document.getElementById('noteTitleInput').focus();
     }
   }, 50);
 }
@@ -2938,7 +3118,7 @@ function openNote(id) {
   badge.className = 'note-item-type ' + meta.cssClass;
 
   document.getElementById('noteTitleInput').value = n.title || '';
-  document.getElementById('noteBody').value       = n.body  || '';
+  cmSetValue(noteEditor, n.body || '');
   renderNoteTags(n);
   updateReassignBtn(n);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
@@ -2948,7 +3128,7 @@ function openNote(id) {
 
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
-  document.getElementById('noteBody').oninput       = () => autoSaveNote();
+  // noteEditor onChange wired in cmInit
 }
 
 function autoSaveNote() {
@@ -2958,7 +3138,7 @@ function autoSaveNote() {
   clearTimeout(noteSaveTimer);
   noteSaveTimer = setTimeout(() => {
     notes[activeNoteId].title   = document.getElementById('noteTitleInput').value;
-    notes[activeNoteId].body    = document.getElementById('noteBody').value;
+    notes[activeNoteId].body    = cmGetValue(noteEditor);
     // tags are saved directly in addNoteTag/removeNoteTag
     notes[activeNoteId].updated = Date.now();
     saveNotes();
@@ -3020,16 +3200,12 @@ function enterEditMode() {
   document.getElementById('cpEditBody').style.display  = 'flex';
   document.getElementById('cpEditBtn').classList.add('editing');
   document.getElementById('cpEditBtn').title = 'Exit edit mode';
-  const ta = document.getElementById('cpEditTextarea');
-  ta.value = activeDoc.raw;
+  cmInitKb();
+  cmSetValue(kbEditor, activeDoc.raw);
   cpEditDirty = false;
   setCpEditStatus('', activeDoc.meta || '');
-  ta.focus();
-
-  // Mark dirty on any input
-  ta.oninput = () => {
-    if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
-  };
+  setTimeout(() => kbEditor && kbEditor.focus(), 30);
+  // KB dirty tracking wired in cmInitKb
 }
 
 function exitEditMode() {
@@ -3047,7 +3223,7 @@ function cancelEdit() {
 
 async function saveEdit() {
   if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
-  const raw = document.getElementById('cpEditTextarea').value;
+  const raw = cmGetValue(kbEditor);
   setCpEditStatus('', '⏳ Saving…');
   try {
     const r = await fetch('/api/kb/save', {
@@ -3143,10 +3319,169 @@ function setTagFilter(tag) {
 function renderTagFilterSidebar() {
   const list = document.getElementById('tagFilterList');
   const tags = getAllTags();
-  if (!tags.length) { list.innerHTML = '<span style="font-size:10px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  if (!tags.length) { list.innerHTML = '<span style="font-size:12px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
+}
+
+
+// ═══════════════════════════════════════════════
+// CODEMIRROR 6 EDITORS
+// ═══════════════════════════════════════════════
+let noteEditor = null;
+let kbEditor   = null;
+
+function cmGetValue(editor) {
+  return editor ? editor.state.doc.toString() : '';
+}
+
+function cmSetValue(editor, value) {
+  if (!editor) return;
+  editor.dispatch({
+    changes: { from: 0, to: editor.state.doc.length, insert: value || '' }
+  });
+}
+
+function cmThemeVars() {
+  // Read CSS vars at runtime so theme matches dark/light mode
+  const s = getComputedStyle(document.documentElement);
+  const bg    = s.getPropertyValue('--bg').trim()    || '#1a1a1f';
+  const text  = s.getPropertyValue('--text').trim()  || '#e2e8f0';
+  const text2 = s.getPropertyValue('--text2').trim() || '#94a3b8';
+  const muted = s.getPropertyValue('--muted').trim() || '#4a5568';
+  const bg3   = s.getPropertyValue('--bg3').trim()   || '#26262f';
+  return { bg, text, text2, muted, bg3 };
+}
+
+function buildCmTheme() {
+  const v    = cmThemeVars();
+  const dark = !document.documentElement.classList.contains('light');
+
+  const editorTheme = CM.EditorView.theme({
+    '&':                          { background: 'transparent', height: '100%' },
+    '.cm-content':                { color: v.text2, caretColor: v.text, padding: '0' },
+    '.cm-cursor':                 { borderLeftColor: v.text },
+    '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },
+    '.cm-activeLine':             { background: 'rgba(124,58,237,0.06)' },
+    '.cm-gutters':                { display: 'none' },
+    '.cm-placeholder':            { color: v.muted },
+    '.cm-line':                   { padding: '0' },
+  }, { dark });
+
+  const highlightStyle = CM.HighlightStyle.define([
+    { tag: CM.tags.heading1,          color: '#f92672', fontWeight: '700' },
+    { tag: CM.tags.heading2,          color: '#f92672', fontWeight: '600' },
+    { tag: CM.tags.heading3,          color: '#fd971f', fontWeight: '600' },
+    { tag: CM.tags.heading4,          color: '#fd971f' },
+    { tag: CM.tags.heading5,          color: '#fd971f' },
+    { tag: CM.tags.heading6,          color: '#fd971f' },
+    { tag: CM.tags.strong,            color: '#1d4ed8', fontWeight: '700' },
+    { tag: CM.tags.emphasis,          color: '#0891b2', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,     color: '#75715e', textDecoration: 'line-through' },
+    { tag: CM.tags.link,              color: '#66d9e8' },
+    { tag: CM.tags.url,               color: '#66d9e8', opacity: '0.7' },
+    { tag: CM.tags.monospace,         color: '#ae81ff' },
+    { tag: CM.tags.quote,             color: '#75715e', fontStyle: 'italic' },
+    { tag: CM.tags.comment,           color: '#75715e' },
+    { tag: CM.tags.meta,              color: '#75715e' },
+    { tag: CM.tags.punctuation,       color: dark ? '#555566' : '#aaaacc' },
+    { tag: CM.tags.processingInstruction, color: '#ae81ff' },
+    { tag: CM.tags.atom,              color: '#ae81ff' },
+    { tag: CM.tags.keyword,           color: '#f92672' },
+    { tag: CM.tags.operator,          color: '#f92672' },
+    { tag: CM.tags.string,            color: '#e6db74' },
+    { tag: CM.tags.number,            color: '#ae81ff' },
+    { tag: CM.tags.bool,              color: '#ae81ff' },
+    { tag: CM.tags.null,              color: '#ae81ff' },
+  ]);
+
+  return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
+}
+
+function cmInitNote() {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) { noteEditor.destroy(); }
+
+  noteEditor = new CM.EditorView({
+    doc: '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged && activeNoteId) autoSaveNote();
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
+}
+
+function cmInitKb() {
+  const wrap = document.getElementById('cpEditWrap');
+  if (!wrap || !CM) return;
+  if (kbEditor) { kbEditor.destroy(); }
+
+  kbEditor = new CM.EditorView({
+    doc: '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged) {
+          if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
+        }
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
+}
+
+// Reinit editors on theme toggle to pick up new CSS vars
+const _origToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
+
+// ═══════════════════════════════════════════════
+// SESSION ENCRYPTION (AES-256-GCM + PBKDF2)
+// ═══════════════════════════════════════════════
+async function deriveKey(password, salt) {
+  const enc      = new TextEncoder();
+  const keyMat   = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    keyMat,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptPayload(plaintext, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt);
+  const enc  = new TextEncoder();
+  const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
+  return { pragma_version: 1, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
+}
+
+async function decryptPayload(obj, password) {
+  const b64d  = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const salt  = b64d(obj.salt);
+  const iv    = b64d(obj.iv);
+  const ct    = b64d(obj.data);
+  const key   = await deriveKey(password, salt);
+  const dec   = new TextDecoder();
+  try {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return dec.decode(plain);
+  } catch {
+    throw new Error('Wrong password or corrupted file');
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -3157,41 +3492,75 @@ async function exportSessionFile(id) {
   if (!sess) return;
 
   const sessNotes = Object.values(notes).filter(n => n.session_id === id);
-  const payload = {
+  const plainPayload = {
     pragma_version: 1,
     exported:       Date.now(),
     session:        sess,
     notes:          sessNotes,
   };
 
-  // Also hit server to write the file to disk
-  try {
-    const r = await fetch('/api/notes/export-session', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ session_id: id }),
-    });
-    const d = await r.json();
-    const fb = document.getElementById('exportFeedback');
-    if (d.ok) {
-      fb.style.display = 'block';
-      fb.className = 'export-feedback ok';
-      fb.textContent = '✓ Saved → ' + d.path;
-      setTimeout(() => { fb.style.display = 'none'; }, 4000);
-    }
-  } catch(_) {}
+  const filename = sess.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase() + '.session';
+  const fb       = document.getElementById('exportFeedback');
 
-  // Also trigger browser download as fallback
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  // ── Ask for optional password ──
+  const password = window.prompt(
+    'Encrypt this session?\n\nEnter a password to encrypt, or leave blank for unencrypted export.',
+    ''
+  );
+  // null = user cancelled
+  if (password === null) return;
+
+  let finalPayload;
+  let encrypted = false;
+
+  if (password.trim() !== '') {
+    try {
+      finalPayload = await encryptPayload(JSON.stringify(plainPayload), password);
+      encrypted    = true;
+    } catch(err) {
+      fb.style.display = 'block';
+      fb.className = 'export-feedback err';
+      fb.textContent = '✗ Encryption failed: ' + err.message;
+      return;
+    }
+  } else {
+    finalPayload = plainPayload;
+  }
+
+  // Hit server to write to disk (unencrypted only — server never sees passwords)
+  if (!encrypted) {
+    try {
+      const r = await fetch('/api/notes/export-session', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ session_id: id }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        fb.style.display = 'block';
+        fb.className = 'export-feedback ok';
+        fb.textContent = '✓ Saved → ' + d.path;
+        setTimeout(() => { fb.style.display = 'none'; }, 4000);
+      }
+    } catch(_) {}
+  } else {
+    fb.style.display = 'block';
+    fb.className = 'export-feedback ok';
+    fb.textContent = '✓ Encrypted export ready';
+    setTimeout(() => { fb.style.display = 'none'; }, 4000);
+  }
+
+  // Browser download
+  const blob = new Blob([JSON.stringify(finalPayload, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = sess.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase() + '.session';
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function importSession(event) {
+async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
   const fb = document.getElementById('importFeedback');
@@ -3200,9 +3569,31 @@ function importSession(event) {
   fb.textContent = '⏳ Importing…';
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
-      const data = JSON.parse(e.target.result);
+      let parsed = JSON.parse(e.target.result);
+
+      // ── Decrypt if needed ──
+      if (parsed.encrypted === true) {
+        const password = window.prompt('This session is encrypted.\nEnter the password to import:');
+        if (!password) {
+          fb.className = 'import-feedback err';
+          fb.textContent = '✗ Password required for encrypted session';
+          event.target.value = '';
+          return;
+        }
+        try {
+          const plain = await decryptPayload(parsed, password);
+          parsed = JSON.parse(plain);
+        } catch(decErr) {
+          fb.className = 'import-feedback err';
+          fb.textContent = '✗ ' + decErr.message;
+          event.target.value = '';
+          return;
+        }
+      }
+
+      const data = parsed;
       if (!data.session || !data.notes) throw new Error('Invalid .session file');
 
       // Create new session with new ID to avoid collisions
@@ -3377,9 +3768,9 @@ document.addEventListener('keydown', e => {
   if (ctrl && ['1','2','3','4','5'].includes(e.key)) {
     e.preventDefault();
     const viewMap = {
-      '1': ['services',      'nav-services'],
-      '2': ['methodologies', 'nav-methodologies'],
-      '3': ['notes',         'nav-notes'],
+      '1': ['notes',         'nav-notes'],
+      '2': ['services',      'nav-services'],
+      '3': ['methodologies', 'nav-methodologies'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -3446,12 +3837,13 @@ function esc(s) {
 }
 
 init();
+cmInitNote();
 
 // ═══════════════════════════════════════════════
 // RESIZABLE PANELS
 // ═══════════════════════════════════════════════
 (function() {
-  const NOTES_MIN  = 160, NOTES_MAX  = 400, NOTES_DEFAULT  = 200;
+  const NOTES_MIN  = 80,  NOTES_MAX  = 320, NOTES_DEFAULT  = 290;
   const PANEL_MIN  = 320, PANEL_MAX  = 820, PANEL_DEFAULT  = 520;
 
   // Restore saved widths

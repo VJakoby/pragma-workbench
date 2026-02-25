@@ -1,6 +1,7 @@
 # 🚀 Docker Usage Workflow
-## NOT FINISHED YET
-### 1. Add more service, attacks or methodologies cards
+
+### Add more service, attacks or methodologies cards
+> Make sure your KB directories match the folder structure
 ```
 # Add more service, attacks or methodologies cards
  pragma/
@@ -25,18 +26,43 @@
         └── ...          (any .md file becomes a service card)
 ```
 
+--- 
+
+### 1. First time build (only when code changes)
+```bash
+docker compose up -d --build
+```
+
 ---
 
-### 2. Build the image (only when code changes)
+### 2. Start existing container
+
 ```bash
-docker compose build
+# Either
+docker start pragma
+# Or
+docker compose up
+
+# You can now access it on https://localhost:3000
 ```
 
 ---
 
 ### 3. Start the webserver
 ```bash
-docker compose up -d
----- OR ----
-npm run docker:up
+docker start pragma
+# ---- OR ----
+docker compose up
+```
+
+### Stop existing container
+```bash
+docker stop pragma
+```
+
+---
+
+### View logs
+```bash
+docker logs -f pragma
 ```

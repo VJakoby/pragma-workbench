@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: pragma
+    ports:
+      - "127.0.0.1:3000:3000" # App is only accessible from local machine
+    restart: unless-stopped
