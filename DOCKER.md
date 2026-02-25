@@ -1,9 +1,11 @@
 # 🚀 Docker Usage Workflow
 
-### Add more service, attacks or methodologies cards
-> Make sure your KB directories match the folder structure
+### Set enviroment variables
+Use default locations for the knowledge base or change the environemnt variables `docker-compose.yml` file.
+
 ```
-# Add more service, attacks or methodologies cards
+EXAMPLE PROJECT STRUCTURE
+--------------------------------
  pragma/
  ├── public/
  │   └── app.html        

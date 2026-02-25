@@ -56,7 +56,7 @@
 - Code blocks with per-line copy — IP placeholders replaced on copy
 
 **Search**
-- Full-text search via PKBI/ENGRAM indexer (port 3001)
+- Full-text search via PKBI/ENGRAM indexer (port 3002)
 - Relevance scoring, fuzzy matching, local/online scope filter
 - Search results open inline in the content panel
 
@@ -66,37 +66,18 @@
 - Resizable panels, dark/light mode
 - Drag-and-drop resizable notes list and content panel
 
----
 
-## Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Single-file HTML/CSS/JS (`app.html`) |
-| Backend | Node.js + Express (`server.js`) |
-| Search | PKBI/ENGRAM (separate service, port 3001) |
-| Storage | `notes.json` (flat file), `knowledge_base/` (markdown files) |
-
-## Requirements
-### PKBI/ENGRAM — required for search
-> [PKBI/ENGRAM](https://github.com/VJakoby/pkbi)
-- PRAGMA's search functionality for online sources depends on the PKBI/ENGRAM indexer running as a separate service on the same machine, on port 3002. Without it, the KB online search view will seen as offline.
+## 🛠️ Requirements
+### [ENGRAM](https://github.com/VJakoby/engram) — Required for search function of indexed sources
+- PRAGMA's search functionality for online sources depends on the ENGRAM indexer running as a separate service on the same machine, on port 3002. Without it, the KB online search view will seen as offline.
 
 - This could also be improved by setting them up in the same Docker-compose.yml file in the future.
 
-## Usage
-### Quickest way.
-
-- Place YOUR personal methodology markdown files in the following directory structure example: 
-```
-knowledge_base/      ← Knowledge-base base directory
-├── services/        ← Services (e.g. ftp.md, 22.md, smb.md)
-├── attacks/         ← Attacks (e.g. lfi.md, sqli.md, ssrf.md)
-└── methodologies/   ← Tactical guides (e.g, active-directory.md, linux-priv-esc.md)
-```
+## 🚀 Quick Usage
+Read [DOCKER](./DOCKER.md)
 
 ```bash
-#  Build the image and access https://localhost:3000
+# Build the image and access https://localhost:3000
 docker compose up --build
 ```
 
@@ -113,6 +94,4 @@ http://localhost:3000
 ```
 
 ---
-*v1.0*
-
-Created by VJakoby + 🤖
+Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)

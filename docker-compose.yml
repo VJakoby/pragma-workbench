@@ -5,7 +5,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"                       # App is only accessible from local machine
     volumes:
-      - ~/data/knowledge_base:/app/knowledge_base   # Default is in project folder. Point towards your own custom KB location
+      - ~/data/knowledge_base:/app/knowledge_base   
       - ~/data/notes:/app/notes
     enviroment:
       - KB_DIR=/app/knowledge_base                  # Use default or point towards your personal KB directory
