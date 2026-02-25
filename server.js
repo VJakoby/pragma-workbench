@@ -17,8 +17,8 @@ try { chokidar = require('chokidar'); } catch (_) {}
 // Config
 // ─────────────────────────────────────────────
 const PORT           = process.env.PORT || 3000;
-const KB_DIR         = path.join(__dirname, 'knowledge_base');
-const METH_DIR       = path.join(__dirname, 'knowledge_base', 'methodologies');
+const KB_DIR         = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
+const METH_DIR       = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 

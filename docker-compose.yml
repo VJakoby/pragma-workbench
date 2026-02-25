@@ -1,9 +1,14 @@
-version: "3.9"
-
 services:
   app:
     build: .
     container_name: pragma
     ports:
-      - "127.0.0.1:3000:3000" # App is only accessible from local machine
+      - "127.0.0.1:3000:3000"                       # App is only accessible from local machine
+    volumes:
+      - ~/data/knowledge_base:/app/knowledge_base   # Default is in project folder. Point towards your own custom KB location
+      - ~/data/notes:/app/notes
+    enviroment:
+      - KB_DIR=/app/knowledge_base                  # Use default or point towards your personal KB directory
+      - METH_DIR=/app/knowledge_base/methodologies  # Use default or point towards your personal KB/methodologies directory
     restart: unless-stopped
+    enviroment:
