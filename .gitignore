@@ -1,16 +1,12 @@
-
-
 # Notes
 # notes/*
 # *.notes.json.encrypted
 *.session
 
-*.json
-
-
+# NodeJS modules
 node_modules/*
 
-
+# VSCode specific
 .vscode
 *.code-workspace
 
