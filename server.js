@@ -1,33 +1,15 @@
 /**
- * PRAGMA Server
+ * PRAGMA
  * -----------
- * Express server that:
- *  - Serves PRAGMA (app.html)
- *  - Serves the app UI (app.html)
  *  - Auto-discovers services from knowledge_base/
  *  - Provides /api/services  — list all discovered services
  *  - Provides /api/preview   — render a .md file to HTML
  *  - Provides /api/search    — full-text + fuzzy search across all .md files
  *  - Provides /api/sources   — (compat) same as /api/services for old UI
  *
- * Directory layout expected:
- *
- *  project/
- *  ├── server.js
- *  ├── app.html
- *  ├── app.html            (main UI)
- *  ├── package.json
- *  └── knowledge_base/
- *      ├── 22.md           (SSH)
- *      ├── 80.md           (HTTP)
- *      ├── 445.md          (SMB)
- *      └── ...             (any .md file becomes a service card)
- *
- * Install dependencies:
- *   npm install express marked fuse.js chokidar
- *
  * Run:
  *   node server.js
+ *   npm start
  *   PORT=3000 node server.js
  */
 
