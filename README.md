@@ -13,22 +13,34 @@
 
 ---
 
-## What it is
+## What it IS
 
-PRAGMA is a local web application that combines structured note-taking with a searchable knowledge base(online sources). It is designed to support the natural flow of a penetration testing engagement — from initial recon through to loot — without breaking your concentration.
+- **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 
-It pairs with **PKBI/ENGRAM**, a local search indexer(needs to run on localhost:3002) that enables full-text KB lookups from within the interface.
+- **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
+
+- **A knowledge-integrated interface** — pairs with PKBI/ENGRAM (local indexer on localhost:3002) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
 ---
 
 ## Features
 
 **Sessions**
+
 - Create named engagement sessions (e.g. `OP-BLACKSITE`, `CLIENT-XYZ`)
 - Each session tracks its own targets (IP, domain, label)
 - Active target IP/domain auto-injects into KB code blocks
-- Export sessions as `.session` files for portability between instances
+- Export sessions as `.session` files (JSON) for portability between instances
 - Import `.session` files to resume work on another machine
+
+**Encrypted Session (optional, per-session)**
+
+- Enabled via the 🔒 **Encrypted Session** button in the sidebar. 
+- When active, all workspace data (notes + sessions) is encrypted **client-side** using AES-256-GCM before being written to disk — the server stores only the ciphertext and never sees the plaintext
+- The encryption key is derived from your password using PBKDF2 (310,000 iterations, SHA-256)
+- Your password exists **in memory only** for the duration of the session — it is never written to disk, localStorage, or sent to the server
+- On reload, you are prompted for your password to decrypt and load the workspace
+- `.session` export files can optionally be encrypted with a separate password for secure portability — the server is not involved in this process
 
 **Session Notes**
 - Six structured note types with pre-filled markdown templates: `General`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`
@@ -67,37 +79,38 @@ It pairs with **PKBI/ENGRAM**, a local search indexer(needs to run on localhost:
 
 ## Requirements
 ### PKBI/ENGRAM — required for search
-PRAGMA's search functionality depends on the PKBI/ENGRAM indexer running as a separate service on the same machine, on port 3002. Without it, the KB search view will show as offline — all other features work independently.
+> [PKBI/ENGRAM](https://github.com/VJakoby/pkbi)
+- PRAGMA's search functionality for online sources depends on the PKBI/ENGRAM indexer running as a separate service on the same machine, on port 3002. Without it, the KB online search view will seen as offline.
 
-> Repo: [PKBI](https://github.com/VJakoby/pkbi)
+- This could also be improved by setting them up in the same Docker-compose.yml file in the future.
 
-Start the indexer before launching PRAGMA, then point it at your knowledge_base/ directory as described in its own setup guide.
+## Usage
+### Quickest way.
 
----
-
-## Getting Started
+- Place YOUR personal methodology markdown files in the following directory structure example: 
+```
+knowledge_base/      ← Knowledge-base base directory
+├── services/        ← Services (e.g. ftp.md, 22.md, smb.md)
+├── attacks/         ← Attacks (e.g. lfi.md, sqli.md, ssrf.md)
+└── methodologies/   ← Tactical guides (e.g, active-directory.md, linux-priv-esc.md)
+```
 
 ```bash
-# Install dependencies
+#  Build the image and access https://localhost:3000
+docker compose up --build
+```
+
+### Manually with NPM
+```bash
+# 1. Install dependencies
 npm install
 
-# Start the server
+# 2. Start the server
 npm start
 
-# Open in browser
+# 3. Open in browser
 http://localhost:3000
 ```
-
-Place your personal methodology markdown files in:
-```
-knowledge_base/          ← Services (e.g. ftp.md, smb.md)
-knowledge_base/methodologies/   ← Tactical guides
-```
----
-
-## Session Portability
-
-Export a session from the Sessions modal (`⬇ .session`). The file contains all session metadata, targets, and notes. Import it on any PRAGMA instance to resume.
 
 ---
 *v1.0*
