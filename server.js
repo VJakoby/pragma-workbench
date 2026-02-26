@@ -150,24 +150,6 @@ function extractDescription(content) {
 }
 
 // ─────────────────────────────────────────────
-// Recursive .md file walker
-// Descends into subdirectories, skipping named dirs (e.g. 'methodologies')
-// Returns full absolute paths
-// ─────────────────────────────────────────────
-function walkMdFiles(dir, skipDirs = []) {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (skipDirs.includes(entry.name)) return [];
-      return walkMdFiles(full, skipDirs);
-    }
-    if (entry.isFile() && entry.name.endsWith('.md')) return [full];
-    return [];
-  });
-}
-
-// ─────────────────────────────────────────────
 // In-memory service index
 // ─────────────────────────────────────────────
 let serviceIndex = [];
@@ -274,7 +256,7 @@ function buildMethodologyIndex() {
     console.log('[PRAGMA] knowledge_base/methodologies/ not found — skipping.');
     return;
   }
-  const files = walkMdFiles(METH, ['methodologies']);
+  const files = fs.readdirSync(METH_DIR).filter(f => f.toLowerCase().endsWith('.md'));
   methodologyIndex = files.map(filename => {
     const filepath = path.join(METH_DIR, filename);
     const content = fs.readFileSync(filepath, 'utf8');
