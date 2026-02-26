@@ -19,22 +19,22 @@
 `
 'use strict';
 
-const express  = require('express');
-const fs       = require('fs');
-const path     = require('path');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const { marked } = require('marked');
-const Fuse     = require('fuse.js');
+const Fuse = require('fuse.js');
 
 let chokidar;
-try { chokidar = require('chokidar'); } catch (_) {}
+try { chokidar = require('chokidar'); } catch (_) { }
 
 // ─────────────────────────────────────────────
 // Config
 // ─────────────────────────────────────────────
-const PORT           = process.env.PORT || 3000;
-const KB_DIR         = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
-const METH_DIR       = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
-const PUBLIC_DIR     = path.join(__dirname, 'public');
+const PORT = process.env.PORT || 3000;
+const KB_DIR = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
+const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
+const PUBLIC_DIR = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
 // ─────────────────────────────────────────────
@@ -51,83 +51,83 @@ const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 //     <session-slug>.session  ← portable session export files
 //
 // ─────────────────────────────────────────────
-const NOTES_DIR      = path.join(__dirname, 'notes');
-const SESSIONS_DIR   = path.join(__dirname, 'sessions');
-const NOTES_FILE     = path.join(NOTES_DIR, 'notes.json');
+const NOTES_DIR = path.join(__dirname, 'notes');
+const SESSIONS_DIR = path.join(__dirname, 'sessions');
+const NOTES_FILE = path.join(NOTES_DIR, 'notes.json');
 const NOTES_ENC_FILE = path.join(NOTES_DIR, 'notes.json.encrypted');
 
 // ─────────────────────────────────────────────
 // Port / slug metadata maps
 // ─────────────────────────────────────────────
 const PORT_MAP = {
-  '21':   { name: 'FTP',         port: '21/tcp',      category: 'File Transfer',        icon: '📤' },
-  '22':   { name: 'SSH',         port: '22/tcp',      category: 'Remote Access',        icon: '🔒' },
-  '23':   { name: 'Telnet',      port: '23/tcp',      category: 'Remote Access',        icon: '📺' },
-  '25':   { name: 'SMTP',        port: '25/tcp',      category: 'Mail',                 icon: '✉️'  },
-  '53':   { name: 'DNS',         port: '53/udp+tcp',  category: 'Network',              icon: '🗺️' },
-  '80':   { name: 'HTTP',        port: '80/tcp',      category: 'Web',                  icon: '🌐' },
-  '88':   { name: 'Kerberos',    port: '88/tcp',      category: 'Directory',            icon: '🐕' },
-  '110':  { name: 'POP3',        port: '110/tcp',     category: 'Mail',                 icon: '📬' },
-  '111':  { name: 'RPC',         port: '111/tcp',     category: 'Network',              icon: '🔌' },
-  '135':  { name: 'MSRPC',       port: '135/tcp',     category: 'Windows',              icon: '🪟' },
-  '139':  { name: 'NetBIOS',     port: '139/tcp',     category: 'File Sharing',         icon: '🖧'  },
-  '143':  { name: 'IMAP',        port: '143/tcp',     category: 'Mail',                 icon: '📥' },
-  '161':  { name: 'SNMP',        port: '161/udp',     category: 'Network',              icon: '📡' },
-  '389':  { name: 'LDAP',        port: '389/tcp',     category: 'Directory',            icon: '🗂️' },
-  '443':  { name: 'HTTPS',       port: '443/tcp',     category: 'Web',                  icon: '🔐' },
-  '445':  { name: 'SMB',         port: '445/tcp',     category: 'File Sharing',         icon: '📂' },
-  '636':  { name: 'LDAPS',       port: '636/tcp',     category: 'Directory',            icon: '🗂️' },
-  '873':  { name: 'rsync',       port: '873/tcp',     category: 'File Transfer',        icon: '🔄' },
-  '1433': { name: 'MSSQL',       port: '1433/tcp',    category: 'Database',             icon: '🗃️' },
-  '1521': { name: 'Oracle DB',   port: '1521/tcp',    category: 'Database',             icon: '🛢️' },
-  '2049': { name: 'NFS',         port: '2049/tcp',    category: 'File Sharing',         icon: '📁' },
-  '2375': { name: 'Docker',      port: '2375/tcp',    category: 'Container',            icon: '🐳' },
-  '3306': { name: 'MySQL',       port: '3306/tcp',    category: 'Database',             icon: '🛢️' },
-  '3389': { name: 'RDP',         port: '3389/tcp',    category: 'Remote Access',        icon: '🖥️' },
-  '5432': { name: 'PostgreSQL',  port: '5432/tcp',    category: 'Database',             icon: '🐘' },
-  '5900': { name: 'VNC',         port: '5900/tcp',    category: 'Remote Access',        icon: '👁️' },
-  '5985': { name: 'WinRM',       port: '5985/tcp',    category: 'Remote Access',        icon: '⚡' },
-  '6379': { name: 'Redis',       port: '6379/tcp',    category: 'Database',             icon: '⚙️' },
-  '8080': { name: 'HTTP-alt',    port: '8080/tcp',    category: 'Web',                  icon: '🌐' },
-  '8443': { name: 'HTTPS-alt',   port: '8443/tcp',    category: 'Web',                  icon: '🔐' },
-  '9200': { name: 'Elasticsearch',port: '9200/tcp',   category: 'Database',             icon: '🔍' },
-  '27017':{ name: 'MongoDB',     port: '27017/tcp',   category: 'Database',             icon: '🍃' },
+  '21': { name: 'FTP', port: '21/tcp', category: 'File Transfer', icon: '📤' },
+  '22': { name: 'SSH', port: '22/tcp', category: 'Remote Access', icon: '🔒' },
+  '23': { name: 'Telnet', port: '23/tcp', category: 'Remote Access', icon: '📺' },
+  '25': { name: 'SMTP', port: '25/tcp', category: 'Mail', icon: '✉️' },
+  '53': { name: 'DNS', port: '53/udp+tcp', category: 'Network', icon: '🗺️' },
+  '80': { name: 'HTTP', port: '80/tcp', category: 'Web', icon: '🌐' },
+  '88': { name: 'Kerberos', port: '88/tcp', category: 'Directory', icon: '🐕' },
+  '110': { name: 'POP3', port: '110/tcp', category: 'Mail', icon: '📬' },
+  '111': { name: 'RPC', port: '111/tcp', category: 'Network', icon: '🔌' },
+  '135': { name: 'MSRPC', port: '135/tcp', category: 'Windows', icon: '🪟' },
+  '139': { name: 'NetBIOS', port: '139/tcp', category: 'File Sharing', icon: '🖧' },
+  '143': { name: 'IMAP', port: '143/tcp', category: 'Mail', icon: '📥' },
+  '161': { name: 'SNMP', port: '161/udp', category: 'Network', icon: '📡' },
+  '389': { name: 'LDAP', port: '389/tcp', category: 'Directory', icon: '🗂️' },
+  '443': { name: 'HTTPS', port: '443/tcp', category: 'Web', icon: '🔐' },
+  '445': { name: 'SMB', port: '445/tcp', category: 'File Sharing', icon: '📂' },
+  '636': { name: 'LDAPS', port: '636/tcp', category: 'Directory', icon: '🗂️' },
+  '873': { name: 'rsync', port: '873/tcp', category: 'File Transfer', icon: '🔄' },
+  '1433': { name: 'MSSQL', port: '1433/tcp', category: 'Database', icon: '🗃️' },
+  '1521': { name: 'Oracle DB', port: '1521/tcp', category: 'Database', icon: '🛢️' },
+  '2049': { name: 'NFS', port: '2049/tcp', category: 'File Sharing', icon: '📁' },
+  '2375': { name: 'Docker', port: '2375/tcp', category: 'Container', icon: '🐳' },
+  '3306': { name: 'MySQL', port: '3306/tcp', category: 'Database', icon: '🛢️' },
+  '3389': { name: 'RDP', port: '3389/tcp', category: 'Remote Access', icon: '🖥️' },
+  '5432': { name: 'PostgreSQL', port: '5432/tcp', category: 'Database', icon: '🐘' },
+  '5900': { name: 'VNC', port: '5900/tcp', category: 'Remote Access', icon: '👁️' },
+  '5985': { name: 'WinRM', port: '5985/tcp', category: 'Remote Access', icon: '⚡' },
+  '6379': { name: 'Redis', port: '6379/tcp', category: 'Database', icon: '⚙️' },
+  '8080': { name: 'HTTP-alt', port: '8080/tcp', category: 'Web', icon: '🌐' },
+  '8443': { name: 'HTTPS-alt', port: '8443/tcp', category: 'Web', icon: '🔐' },
+  '9200': { name: 'Elasticsearch', port: '9200/tcp', category: 'Database', icon: '🔍' },
+  '27017': { name: 'MongoDB', port: '27017/tcp', category: 'Database', icon: '🍃' },
 };
 
 const SLUG_MAP = {
-  'ssh':            { name: 'SSH',               port: '22/tcp',   category: 'Remote Access',        icon: '🔒' },
-  'ftp':            { name: 'FTP',               port: '21/tcp',   category: 'File Transfer',        icon: '📤' },
-  'http':           { name: 'HTTP',              port: '80/tcp',   category: 'Web',                  icon: '🌐' },
-  'https':          { name: 'HTTPS',             port: '443/tcp',  category: 'Web',                  icon: '🔐' },
-  'smb':            { name: 'SMB',               port: '445/tcp',  category: 'File Sharing',         icon: '📂' },
-  'rdp':            { name: 'RDP',               port: '3389/tcp', category: 'Remote Access',        icon: '🖥️' },
-  'dns':            { name: 'DNS',               port: '53/udp',   category: 'Network',              icon: '🗺️' },
-  'ldap':           { name: 'LDAP',              port: '389/tcp',  category: 'Directory',            icon: '🗂️' },
-  'mysql':          { name: 'MySQL',             port: '3306/tcp', category: 'Database',             icon: '🛢️' },
-  'mssql':          { name: 'MSSQL',             port: '1433/tcp', category: 'Database',             icon: '🗃️' },
-  'postgres':       { name: 'PostgreSQL',        port: '5432/tcp', category: 'Database',             icon: '🐘' },
-  'postgresql':     { name: 'PostgreSQL',        port: '5432/tcp', category: 'Database',             icon: '🐘' },
-  'redis':          { name: 'Redis',             port: '6379/tcp', category: 'Database',             icon: '⚙️' },
-  'mongodb':        { name: 'MongoDB',           port: '27017/tcp',category: 'Database',             icon: '🍃' },
-  'smtp':           { name: 'SMTP',              port: '25/tcp',   category: 'Mail',                 icon: '✉️'  },
-  'imap':           { name: 'IMAP',              port: '143/tcp',  category: 'Mail',                 icon: '📥' },
-  'snmp':           { name: 'SNMP',              port: '161/udp',  category: 'Network',              icon: '📡' },
-  'nfs':            { name: 'NFS',               port: '2049/tcp', category: 'File Sharing',         icon: '📁' },
-  'kerberos':       { name: 'Kerberos',          port: '88/tcp',   category: 'Directory',            icon: '🐕' },
-  'winrm':          { name: 'WinRM',             port: '5985/tcp', category: 'Remote Access',        icon: '⚡' },
-  'docker':         { name: 'Docker',            port: '2375/tcp', category: 'Container',            icon: '🐳' },
-  'vnc':            { name: 'VNC',               port: '5900/tcp', category: 'Remote Access',        icon: '👁️' },
-  'rsync':          { name: 'rsync',             port: '873/tcp',  category: 'File Transfer',        icon: '🔄' },
-  'linux_privesc':  { name: 'Linux PrivEsc',     port: 'Local',    category: 'Privilege Escalation', icon: '🐧' },
-  'windows_privesc':{ name: 'Windows PrivEsc',   port: 'Local',    category: 'Privilege Escalation', icon: '🪟' },
-  'sqli':           { name: 'SQL Injection',     port: 'Web',      category: 'Web',                  icon: '💉' },
-  'xss':            { name: 'XSS',               port: 'Web',      category: 'Web',                  icon: '🖊️' },
-  'csrf':           { name: 'CSRF',              port: 'Web',      category: 'Web',                  icon: '🎭' },
-  'ssrf':           { name: 'SSRF',              port: 'Web',      category: 'Web',                  icon: '🔁' },
-  'xxe':            { name: 'XXE',               port: 'Web',      category: 'Web',                  icon: '📎' },
-  'lfi':            { name: 'LFI/RFI',           port: 'Web',      category: 'Web',                  icon: '📂' },
-  'lateral':        { name: 'Lateral Movement',  port: 'Post-Ex',  category: 'Post Exploitation',    icon: '↔️'  },
-  'pivoting':       { name: 'Pivoting',          port: 'Post-Ex',  category: 'Post Exploitation',    icon: '🌀' },
+  'ssh': { name: 'SSH', port: '22/tcp', category: 'Remote Access', icon: '🔒' },
+  'ftp': { name: 'FTP', port: '21/tcp', category: 'File Transfer', icon: '📤' },
+  'http': { name: 'HTTP', port: '80/tcp', category: 'Web', icon: '🌐' },
+  'https': { name: 'HTTPS', port: '443/tcp', category: 'Web', icon: '🔐' },
+  'smb': { name: 'SMB', port: '445/tcp', category: 'File Sharing', icon: '📂' },
+  'rdp': { name: 'RDP', port: '3389/tcp', category: 'Remote Access', icon: '🖥️' },
+  'dns': { name: 'DNS', port: '53/udp', category: 'Network', icon: '🗺️' },
+  'ldap': { name: 'LDAP', port: '389/tcp', category: 'Directory', icon: '🗂️' },
+  'mysql': { name: 'MySQL', port: '3306/tcp', category: 'Database', icon: '🛢️' },
+  'mssql': { name: 'MSSQL', port: '1433/tcp', category: 'Database', icon: '🗃️' },
+  'postgres': { name: 'PostgreSQL', port: '5432/tcp', category: 'Database', icon: '🐘' },
+  'postgresql': { name: 'PostgreSQL', port: '5432/tcp', category: 'Database', icon: '🐘' },
+  'redis': { name: 'Redis', port: '6379/tcp', category: 'Database', icon: '⚙️' },
+  'mongodb': { name: 'MongoDB', port: '27017/tcp', category: 'Database', icon: '🍃' },
+  'smtp': { name: 'SMTP', port: '25/tcp', category: 'Mail', icon: '✉️' },
+  'imap': { name: 'IMAP', port: '143/tcp', category: 'Mail', icon: '📥' },
+  'snmp': { name: 'SNMP', port: '161/udp', category: 'Network', icon: '📡' },
+  'nfs': { name: 'NFS', port: '2049/tcp', category: 'File Sharing', icon: '📁' },
+  'kerberos': { name: 'Kerberos', port: '88/tcp', category: 'Directory', icon: '🐕' },
+  'winrm': { name: 'WinRM', port: '5985/tcp', category: 'Remote Access', icon: '⚡' },
+  'docker': { name: 'Docker', port: '2375/tcp', category: 'Container', icon: '🐳' },
+  'vnc': { name: 'VNC', port: '5900/tcp', category: 'Remote Access', icon: '👁️' },
+  'rsync': { name: 'rsync', port: '873/tcp', category: 'File Transfer', icon: '🔄' },
+  'linux_privesc': { name: 'Linux PrivEsc', port: 'Local', category: 'Privilege Escalation', icon: '🐧' },
+  'windows_privesc': { name: 'Windows PrivEsc', port: 'Local', category: 'Privilege Escalation', icon: '🪟' },
+  'sqli': { name: 'SQL Injection', port: 'Web', category: 'Web', icon: '💉' },
+  'xss': { name: 'XSS', port: 'Web', category: 'Web', icon: '🖊️' },
+  'csrf': { name: 'CSRF', port: 'Web', category: 'Web', icon: '🎭' },
+  'ssrf': { name: 'SSRF', port: 'Web', category: 'Web', icon: '🔁' },
+  'xxe': { name: 'XXE', port: 'Web', category: 'Web', icon: '📎' },
+  'lfi': { name: 'LFI/RFI', port: 'Web', category: 'Web', icon: '📂' },
+  'lateral': { name: 'Lateral Movement', port: 'Post-Ex', category: 'Post Exploitation', icon: '↔️' },
+  'pivoting': { name: 'Pivoting', port: 'Post-Ex', category: 'Post Exploitation', icon: '🌀' },
 };
 
 function metaFromFilename(filename) {
@@ -153,7 +153,27 @@ function extractDescription(content) {
 // In-memory service index
 // ─────────────────────────────────────────────
 let serviceIndex = [];
-let searchIndex  = null;
+let searchIndex = null;
+
+// Recursively collect all .md files under rootDir.
+// Returns array of { filename, filepath, subdir } where subdir is the
+// top-level child-directory name relative to rootDir ('' for root-level files).
+function walkMdFiles(dir, rootDir) {
+  let results = [];
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return results; }
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results = results.concat(walkMdFiles(fullPath, rootDir));
+    } else if (entry.name.toLowerCase().endsWith('.md')) {
+      const rel = path.relative(rootDir, dir);
+      const subdir = rel ? rel.split(path.sep)[0] : '';
+      results.push({ filename: entry.name, filepath: fullPath, subdir });
+    }
+  }
+  return results;
+}
 
 function buildIndex() {
   if (!fs.existsSync(KB_DIR)) {
@@ -162,13 +182,17 @@ function buildIndex() {
     serviceIndex = []; searchIndex = null; return;
   }
 
-  const files = fs.readdirSync(KB_DIR).filter(f => f.endsWith('.md'));
-  serviceIndex = files.map(filename => {
-    const filepath = path.join(KB_DIR, filename);
-    const content  = fs.readFileSync(filepath, 'utf8');
-    const meta     = metaFromFilename(filename);
+  const entries = walkMdFiles(KB_DIR, KB_DIR);
+  serviceIndex = entries.map(({ filename, filepath, subdir }) => {
+    const content = fs.readFileSync(filepath, 'utf8');
+    const meta = metaFromFilename(filename);
+    // Use the subdirectory name as the category (title-cased), falling back to
+    // the filename-derived category for files placed directly in KB_DIR root.
+    const category = subdir
+      ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : meta.category;
     return {
-      id: meta.id, name: meta.name, port: meta.port, category: meta.category,
+      id: meta.id, name: meta.name, port: meta.port, category,
       icon: meta.icon, description: extractDescription(content),
       file: filename, filepath, content, wordCount: content.split(/\s+/).length,
     };
@@ -183,7 +207,7 @@ function buildIndex() {
     ],
   });
 
-  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from knowledge_base/`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR} (recursive)`);
 }
 
 // ─────────────────────────────────────────────
@@ -202,15 +226,15 @@ function extractCategory(content, filename) {
   if (match) return match[1].trim();
   const slug = path.basename(filename, '.md').toLowerCase();
   if (/active.?directory|ad\b|kerberos|ldap/.test(slug)) return 'Active Directory';
-  if (/linux|privesc/.test(slug))   return 'Linux';
-  if (/windows/.test(slug))         return 'Windows';
+  if (/linux|privesc/.test(slug)) return 'Linux';
+  if (/windows/.test(slug)) return 'Windows';
   if (/web|http|burp|owasp/.test(slug)) return 'Web';
   if (/network|pivot|tunnel/.test(slug)) return 'Network';
   if (/mobile|android|ios/.test(slug)) return 'Mobile';
   if (/cloud|aws|azure|gcp/.test(slug)) return 'Cloud';
-  if (/crypto|cipher/.test(slug))   return 'Cryptography';
-  if (/recon|osint/.test(slug))     return 'Recon';
-  if (/forensic|dfir/.test(slug))   return 'Forensics';
+  if (/crypto|cipher/.test(slug)) return 'Cryptography';
+  if (/recon|osint/.test(slug)) return 'Recon';
+  if (/forensic|dfir/.test(slug)) return 'Forensics';
   return 'General';
 }
 
@@ -229,9 +253,9 @@ function buildMethodologyIndex() {
   const files = fs.readdirSync(METH_DIR).filter(f => f.endsWith('.md'));
   methodologyIndex = files.map(filename => {
     const filepath = path.join(METH_DIR, filename);
-    const content  = fs.readFileSync(filepath, 'utf8');
-    const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const name     = extractTitle(content, filename);
+    const content = fs.readFileSync(filepath, 'utf8');
+    const id = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const name = extractTitle(content, filename);
     const category = extractCategory(content, filename);
     return {
       id, name, category, icon: METH_ICONS[category] || '📋',
@@ -404,7 +428,7 @@ app.post('/api/search-proxy', async (req, res) => {
     } else {
       responseData = await new Promise((resolve, reject) => {
         const http = require('http');
-        const url  = new URL(`${SEARCH_URL}/api/search`);
+        const url = new URL(`${SEARCH_URL}/api/search`);
         const body = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const opts = {
           hostname: url.hostname, port: url.port || 3002, path: url.pathname,
@@ -489,9 +513,9 @@ app.post('/api/notes/save', (req, res) => {
 app.get('/api/notes/storage-info', (req, res) => {
   res.json({
     encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
-    plain_storage:     fs.existsSync(NOTES_FILE),
-    notes_dir:         NOTES_DIR,
-    sessions_dir:      SESSIONS_DIR,
+    plain_storage: fs.existsSync(NOTES_FILE),
+    notes_dir: NOTES_DIR,
+    sessions_dir: SESSIONS_DIR,
   });
 });
 
@@ -512,7 +536,7 @@ app.post('/api/notes/save-encrypted', (req, res) => {
     fs.mkdirSync(NOTES_DIR, { recursive: true });
     fs.writeFileSync(NOTES_ENC_FILE, JSON.stringify(blob, null, 2), 'utf8');
     // Remove plaintext once encrypted storage is active
-    if (fs.existsSync(NOTES_FILE)) { try { fs.unlinkSync(NOTES_FILE); } catch (_) {} }
+    if (fs.existsSync(NOTES_FILE)) { try { fs.unlinkSync(NOTES_FILE); } catch (_) { } }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -520,7 +544,7 @@ app.post('/api/notes/save-encrypted', (req, res) => {
 // POST /api/notes/storage/disable-encrypted
 app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
+    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) { } }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -542,7 +566,7 @@ app.post('/api/notes/export', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     // Export to notes/<session-slug>/
-    const slug   = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const slug = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     const outDir = path.join(NOTES_DIR, slug);
     fs.mkdirSync(outDir, { recursive: true });
 
@@ -557,21 +581,21 @@ app.post('/api/notes/export', (req, res) => {
 
     // Session index (README.md)
     const targets = session.targets || [];
-    const ipList  = targets.map(t => (t.label ? `${t.label}: ` : '') + t.ip).join(', ') || session.target_ip || '—';
+    const ipList = targets.map(t => (t.label ? `${t.label}: ` : '') + t.ip).join(', ') || session.target_ip || '—';
     const domList = targets.map(t => t.domain).filter(Boolean).join(', ') || session.target_domain || '—';
 
     const indexLines = [
       `# ${session.codename}`, '',
       `**Target IP:** ${ipList}  `, `**Domain:** ${domList}  `,
-      `**Created:** ${new Date(session.created).toISOString().slice(0,10)}  `,
-      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
+      `**Created:** ${new Date(session.created).toISOString().slice(0, 10)}  `,
+      `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
       '', '---', '', `## Notes (${sessionNotes.length})`, '',
     ];
     sessionNotes
-      .sort((a,b) => (a.updated||0) - (b.updated||0))
+      .sort((a, b) => (a.updated || 0) - (b.updated || 0))
       .forEach(n => {
         const fname = noteFilename(n);
-        indexLines.push(`- [${n.title || fname.replace('.md','')}](./${fname}) — *${n.type}*`);
+        indexLines.push(`- [${n.title || fname.replace('.md', '')}](./${fname}) — *${n.type}*`);
       });
 
     fs.writeFileSync(path.join(outDir, 'README.md'), indexLines.join('\n'), 'utf8');
@@ -579,13 +603,13 @@ app.post('/api/notes/export', (req, res) => {
 
     // Individual note files
     sessionNotes.forEach(n => {
-      const fname  = noteFilename(n);
+      const fname = noteFilename(n);
       const header = [
-        `# ${n.title || fname.replace('.md','')}`, '',
+        `# ${n.title || fname.replace('.md', '')}`, '',
         `> **Type:** ${n.type}  `,
         `> **Session:** ${session.codename}  `,
         `> **Target:** ${n.target_ip || (targets[0] && targets[0].ip) || '—'}  `,
-        `> **Updated:** ${new Date(n.updated||n.created).toISOString().replace('T',' ').slice(0,19)}`,
+        `> **Updated:** ${new Date(n.updated || n.created).toISOString().replace('T', ' ').slice(0, 19)}`,
         '', '---', '',
       ].join('\n');
       fs.writeFileSync(path.join(outDir, fname), header + (n.body || ''), 'utf8');
@@ -616,11 +640,11 @@ app.post('/api/notes/export-session', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const sessNotes = Object.values(notes).filter(n => n.session_id === session_id);
-    const payload   = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
+    const payload = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
 
     // Write to sessions/<slug>.session
     fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-    const slug     = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const slug = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     const filePath = path.join(SESSIONS_DIR, slug + '.session');
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -638,11 +662,11 @@ app.get('/api/notes/debug', (req, res) => {
     dirs: { notes: NOTES_DIR, sessions: SESSIONS_DIR },
     sessions: Object.values(sessions).map(s => ({
       id: s.id, codename: s.codename,
-      targets: (s.targets||[]).map(t => t.ip + (t.label ? ` (${t.label})` : '')),
+      targets: (s.targets || []).map(t => t.ip + (t.label ? ` (${t.label})` : '')),
       noteCount: Object.values(notes).filter(n => n.session_id === s.id).length,
     })),
     notes: Object.values(notes).map(n => ({
-      id: n.id, type: n.type, title: n.title||'', session_id: n.session_id||null,
+      id: n.id, type: n.type, title: n.title || '', session_id: n.session_id || null,
     })),
   });
 });

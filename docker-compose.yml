@@ -3,12 +3,12 @@ services:
     build: .
     container_name: pragma
     ports:
-      - "127.0.0.1:3000:3000"                       # App is only accessible from local machine
-    volumes:
-      - ~/data/knowledge_base:/app/knowledge_base   
-      - ~/data/notes:/app/notes
-    enviroment:
-      - KB_DIR=/app/knowledge_base                  # Use default or point towards your personal KB directory
-      - METH_DIR=/app/knowledge_base/methodologies  # Use default or point towards your personal KB/methodologies directory
+      - "127.0.0.1:3000:3000"                               # App is only accessible from local machine
+    #volumes:                                               # Overwrite default KB path
+    #  - /path/to/custom/kb:/usr/src/app/knowledge_base
+    environment:
+      - KB_DIR=/usr/src/app/knowledge_base                  # Default; Or pick custom location to your personal KB directory
+      - METH_DIR=/usr/src/app/knowledge_base/methodologies  # Default; Or pick custom location to your personal KB directory
+      - NOTES_DIR=/usr/src/app/notes                        # Default; Or pick custom location 
+      - SESSIONS_DIR=/usr/src/app/sessions                  # Default; Or pick custom location 
     restart: unless-stopped
-    enviroment:
