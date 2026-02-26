@@ -40,22 +40,23 @@ const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 // ─────────────────────────────────────────────
 // Directory layout:
 //
-//   notes/
-//     notes.json              ← plaintext workspace store
-//     notes.json.encrypted    ← encrypted workspace store (mutually exclusive)
-//     <session-slug>/         ← per-session markdown export folders
+//   notes/   
+//     workspace.json             ← plaintext workspace store
+//     workspace.enc              ← encrypted workspace store (mutually exclusive)
+//     <session-slug>/            ← per-session markdown export folders
 //       README.md
 //       <note-title>.md
 //
 //   sessions/
-//     <session-slug>.session  ← portable session export files
+//     <session-slug>.session     ← portable session export file
+//     <session-slug.session.enc  ← encrypted portable session export file
+//     
 //
 // ─────────────────────────────────────────────
 const NOTES_DIR = path.join(__dirname, 'notes');
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
-const NOTES_FILE = path.join(NOTES_DIR, 'notes.json');
-const NOTES_ENC_FILE = path.join(NOTES_DIR, 'notes.json.encrypted');
-
+const NOTES_FILE = path.join(NOTES_DIR, 'workspace.json');
+const NOTES_ENC_FILE = path.join(NOTES_DIR, 'workspace.enc');
 // ─────────────────────────────────────────────
 // Port / slug metadata maps
 // ─────────────────────────────────────────────

@@ -77,11 +77,13 @@
 Read [DOCKER](./DOCKER.md)
 
 ```bash
-# Build the image and access https://localhost:3000
+# Build the image
 docker compose up --build
+
+# Access it on  https://localhost:3000
 ```
 
-### Manually with NPM
+### 1. Manually with NPM
 ```bash
 # 1. Install dependencies
 npm install
