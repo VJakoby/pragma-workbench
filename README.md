@@ -19,7 +19,7 @@
 
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 
-- **A knowledge-integrated interface** — pairs with PKBI/ENGRAM (local indexer on localhost:3002) to enable full-text knowledge base lookups from defined online sources directly inside the app
+- **A knowledge-integrated interface** — pairs with ENGRAM (local knowledge base indexer on `http://localhost:3002`) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
 ---
 
