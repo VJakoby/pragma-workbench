@@ -22,8 +22,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>PRAGMA</title>
-<link rel="icon"
+  <link rel="icon"
     href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><text x="50" y="90" font-size="90" text-anchor="middle">🧭</text></svg>'>
   <script src="codemirror-bundle.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -686,6 +687,14 @@ body{
 .results-offline-icon{font-size:28px;opacity:0.4}
 .results-offline-text{font-size:13px}
 .results-offline-hint{font-size:11px;font-family:'Inter',sans-serif}
+.results-offline.error{
+  background:rgba(248,113,113,0.05);
+  border:1px solid rgba(248,113,113,0.2);
+  border-radius:8px;margin:16px;padding:40px 20px;
+}
+.results-offline.error .results-offline-icon{opacity:1}
+.results-offline.error .results-offline-text{color:var(--red);font-weight:600}
+.results-offline.error .results-offline-hint{color:var(--text2)}
 
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
@@ -842,6 +851,60 @@ body{
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
     }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
+
+
+/* ── Pin button ── */
+.note-pin-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; padding: 3px 6px; border-radius: 4px;
+  color: var(--muted); transition: all 0.12s; line-height: 1;
+  flex-shrink: 0;
+}
+.note-pin-btn:hover { color: var(--yellow); background: rgba(251,191,36,0.1); }
+.note-pin-btn.pinned { color: var(--yellow); }
+.note-item-pin { display: inline-block; font-size: 10px; margin-left: 3px; color: var(--yellow); vertical-align: middle; }
+
+/* ── Note timestamps bar ── */
+.note-timestamps {
+  display: flex; gap: 14px; align-items: center;
+  padding: 3px 14px 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.note-ts {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--muted); white-space: nowrap;
+}
+.note-ts strong { color: var(--text2); font-weight: 600; }
+
+/* ── Note wiki links [[...]] ── */
+.note-wikilink {
+  color: var(--accent); cursor: pointer;
+  background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 3px; padding: 0 4px; font-size: 0.9em;
+  transition: all 0.12s; display: inline;
+}
+.note-wikilink:hover { background: rgba(124,58,237,0.22); border-color: var(--accent); }
+.note-wikilink.broken { color: var(--muted); border-color: var(--border); background: var(--bg3); cursor: default; }
+
+/* ── Backlinks panel ── */
+.note-backlinks {
+  padding: 8px 14px 12px; border-top: 1px solid var(--border);
+  flex-shrink: 0; background: var(--bg);
+}
+.note-backlinks-hdr {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.note-backlinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.note-backlink-chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+  color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 8px; cursor: pointer; transition: all 0.12s;
+}
+.note-backlink-chip:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Resize drag handles ── */
 .drag-handle{
@@ -1663,17 +1726,27 @@ body.enc-active-body .topbar {
                   <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
                   <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
                 </div>
+                <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
                 <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+                <span title="Wiki link to another note">[[link]]</span>
+              </div>
+              <div class="note-timestamps" id="noteTimestamps">
+                <span class="note-ts">Created: <strong id="noteCreatedAt">—</strong></span>
+                <span class="note-ts">Modified: <strong id="noteModifiedAt">—</strong></span>
               </div>
               <div class="note-tags-row" id="noteTagsRow">
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
               <div class="cm-wrap" id="noteBodyWrap"></div>
+              <div class="note-backlinks" id="noteBacklinks" style="display:none">
+                <div class="note-backlinks-hdr">🔗 Linked from</div>
+                <div class="note-backlinks-list" id="noteBacklinksList"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2492,7 +2565,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   if (meta) meta.textContent = '';
   if (offline) {
     stat.textContent = '⚠ offline';
-    list.innerHTML = `<div class="results-offline">
+    list.innerHTML = `<div class="results-offline error">
       <div class="results-offline-icon">⚠</div>
       <div class="results-offline-text">Search indexer not reachable</div>
       <div class="results-offline-hint">Check console · <a href="/api/search-ping" target="_blank" style="color:var(--accent)">ping indexer</a></div>
@@ -3238,7 +3311,11 @@ function setNoteScope(scope, btn) {
 
 function renderNotesList() {
   const list = document.getElementById('notesList');
-  let items = Object.values(notes).sort((a,b) => (b.updated||0) - (a.updated||0));
+  let items = Object.values(notes).sort((a,b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated||0) - (a.updated||0);
+  });
 
   // Scope filter
   if (activeNoteScope === 'session') {
@@ -3269,7 +3346,7 @@ function renderNotesList() {
       : '';
     return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
       <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
-      <div class="note-item-title">${esc(n.title||'Untitled')}</div>
+      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">📌</span>' : ''}</div>
       <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       ${tagsHtml}
       ${sessLabel}
@@ -3348,9 +3425,20 @@ function openNote(id) {
   badge.className = 'note-item-type ' + meta.cssClass;
 
   document.getElementById('noteTitleInput').value = n.title || '';
+  // ── Timestamps ──
+  const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+  const elCr = document.getElementById('noteCreatedAt');
+  const elMo = document.getElementById('noteModifiedAt');
+  if (elCr) elCr.textContent = fmtTs(n.created);
+  if (elMo) elMo.textContent = fmtTs(n.updated);
+  // ── Pin button state ──
+  const pinBtn = document.getElementById('notePinBtn');
+  if (pinBtn) { pinBtn.classList.toggle('pinned', !!n.pinned); pinBtn.title = n.pinned ? 'Unpin note' : 'Pin note'; }
   cmSetValue(noteEditor, n.body || '');
   renderNoteTags(n);
   updateReassignBtn(n);
+  renderBacklinks(id);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
@@ -3359,6 +3447,63 @@ function openNote(id) {
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   // noteEditor onChange wired in cmInit
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// PIN NOTES
+// ═══════════════════════════════════════════════════════════
+function togglePinNote() {
+  if (!activeNoteId) return;
+  notes[activeNoteId].pinned  = !notes[activeNoteId].pinned;
+  notes[activeNoteId].updated = Date.now();
+  const pinBtn = document.getElementById('notePinBtn');
+  if (pinBtn) {
+    pinBtn.classList.toggle('pinned', !!notes[activeNoteId].pinned);
+    pinBtn.title = notes[activeNoteId].pinned ? 'Unpin note' : 'Pin note';
+  }
+  saveNotes();
+  renderNotesList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTE LINKING  [[Note Title]]
+// ═══════════════════════════════════════════════════════════
+
+// Resolve [[Title]] → note id (exact match first, then partial)
+function resolveNoteLink(rawTitle) {
+  const q = rawTitle.trim().toLowerCase();
+  let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
+  if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
+  return hit ? hit.id : null;
+}
+
+// Find all notes that contain [[...]] links pointing to noteId
+function getBacklinks(noteId) {
+  return Object.values(notes).filter(n => {
+    if (n.id === noteId) return false;
+    const body = n.body || '';
+    const re = /\[\[([^\]]+)\]\]/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+      if (resolveNoteLink(m[1]) === noteId) return true;
+    }
+    return false;
+  });
+}
+
+// Render backlinks panel under the editor
+function renderBacklinks(noteId) {
+  const panel = document.getElementById('noteBacklinks');
+  const list  = document.getElementById('noteBacklinksList');
+  if (!panel || !list) return;
+  const links = getBacklinks(noteId);
+  if (!links.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  list.innerHTML = links.map(n => {
+    const safeTitle = (n.title || 'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return '<span class="note-backlink-chip" onclick="openNote(\'' + n.id + '\')" title="' + safeTitle + '">' + safeTitle + '</span>';
+  }).join('');
 }
 
 function autoSaveNote() {
@@ -3373,8 +3518,13 @@ function autoSaveNote() {
     notes[activeNoteId].updated = Date.now();
     saveNotes();
     renderNotesList();
+    if (activeNoteId) renderBacklinks(activeNoteId);
     document.getElementById('noteSaveStatus').textContent = 'saved';
     document.getElementById('noteSaveStatus').className   = 'note-save-status saved';
+    // Update modified timestamp live
+    const moEl = document.getElementById('noteModifiedAt');
+    if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
+      day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
   }, 600);
 }
 
