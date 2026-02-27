@@ -1,15 +1,18 @@
 # 🧭 PRAGMA
 
-> Engagement note workbench for penetration testers. Track findings, manage sessions, and pull knowledge base context — all from within the same place, locally.
+> A local workbench for pentest flow, notes, and knowledge — no cloud, no clutter.
 
 ---
+## The Problem
+
+Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
 
 ## What it is NOT
 
 - **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
-- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning
-- **Not cloud-dependent** — everything runs on locally on the machine(safest in a VM), nothing leaves it
+- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation.
+- **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
 
 ---
 
@@ -35,12 +38,12 @@
 
 **Encrypted Session (optional, per-session)**
 
-- Enabled via the 🔒 **Encrypted Session** button in the sidebar. 
-- When active, all workspace data (notes + sessions) is encrypted **client-side** using AES-256-GCM before being written to disk — the server stores only the ciphertext and never sees the plaintext
-- The encryption key is derived from your password using PBKDF2 (310,000 iterations, SHA-256)
-- Your password exists **in memory only** for the duration of the session — it is never written to disk, localStorage, or sent to the server
-- On reload, you are prompted for your password to decrypt and load the workspace
-- `.session` export files can optionally be encrypted with a separate password for secure portability — the server is not involved in this process
+- Toggle via 🔒 **Encrypted Session** in the sidebar 
+- Workspace data (notes + sessions) is encrypted client-side with AES-256-GCM before disk write — the server stores ciphertext only
+- Key derived from your password using PBKDF2 (SHA-256, 310k iterations)
+- Password is held in memory only for the session — never written to disk, localStorage, or sent to the server
+- Reload requires password to decrypt the workspace
+- `.session` exports can be encrypted with a separate password for secure portability (server not involved)
 
 **Session Notes**
 - Six structured note types with pre-filled markdown templates: `General`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`
@@ -50,10 +53,10 @@
 - Export notes to markdown files (`notes/<session>/`)
 
 **Knowledge Base**
-- Local KB files served from `knowledge_base/` (services) and `knowledge_base/methodologies/` (tactical guides)
-- Edit KB files directly in the UI — changes write back to disk
-- File watcher auto-reindexes on change
-- Code blocks with per-line copy — IP placeholders replaced on copy
+- Recursively indexes all Markdown files under `knowledge_base/` (even in sub-directories)
+- Files are served locally and can be edited directly in the UI — changes write back to disk
+- File watcher triggers automatic re-indexing on modification
+- Code blocks support per-line copy with IP placeholders replaced on copy
 
 **Search**
 - Full-text search via PKBI/ENGRAM indexer (port 3002)
