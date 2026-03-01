@@ -1,13 +1,13 @@
-# 🧭 PRAGMA
+# #️ PRAGMA / Workbench
 
 > A local workbench for pentest flow, notes, and knowledge — no cloud, no clutter.
 
 ---
-## The Problem
+## 🚩 The Problem
 
 Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
 
-## What it is NOT
+## ❌ What it is NOT
 
 - **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
@@ -16,7 +16,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 ---
 
-## What it IS
+## ✅ What it IS
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 
@@ -26,7 +26,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 ---
 
-## Features
+## 🏷️ Features
 
 **Sessions**
 

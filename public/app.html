@@ -22,10 +22,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>PRAGMA</title>
-  <link rel="icon"
-    href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><text x="50" y="90" font-size="90" text-anchor="middle">🧭</text></svg>'>
+<title>PRAGMA // Workbench</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="codemirror-bundle.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -51,6 +49,8 @@
   --yellow:   #fbbf24;
   --sidebar-w: 220px;
   --topbar-h:  48px;
+  --logo-icon-color: #7c3aed;
+  --logo-icon-size: 18px;
 }
 
 [data-theme="light"]{
@@ -839,6 +839,7 @@ body{
     .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); border: 1px solid rgba(124,58,237,0.15); }
     .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
+    .note-type-scratch     { color: var(--muted);   background: var(--bg3); border: 1px solid var(--border); }
 
     /* New note type picker grid */
     .new-note-type-grid {
@@ -1333,8 +1334,9 @@ kbd {
 }
 
 /* ── Logo image (future) — uncomment when logo is added
-.topbar-logo-wrap { display: flex; align-items: center; flex-shrink: 0; margin-right: 8px; }
+.topbar-logo-wrap { display: flex; align-items: center; flex-shrink: 0; margin-right: 8px; color: var(--logo-icon-color); }
 .topbar-logo-img  { height: 28px; width: auto; object-fit: contain; }
+.topbar-logo-icon { width: var(--logo-icon-size); height: var(--logo-icon-size); display: block; }
 ── */
 
 /* ── Result card right column: score + badges stacked ── */
@@ -1520,14 +1522,14 @@ body.enc-active-body .topbar {
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <!-- ── LOGO IMAGE placeholder — uncomment and set src when ready
-    <div class="topbar-logo-wrap">
-      <img src="logo.png" alt="PRAGMA" class="topbar-logo-img">
-    </div>
-    ── -->
     <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)">☰</button>
+    <div class="topbar-logo-wrap">
+      <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
+      </svg>
+    </div>
     <div class="topbar-logo">PRAGMA<span>// Workbench</span>
-      <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via PKBI/ENGRAM.</div>
+      <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
     </div>
 
     <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
@@ -1611,8 +1613,8 @@ body.enc-active-body .topbar {
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
 
-      <!-- Version -->
-      <div class="sidebar-version">v1.0</div>
+      <!-- Version (NOT YET ADDED) --> 
+      <!--<div class="sidebar-version"></d>-->
     </div>
 
     <!-- ── MAIN PANEL ── -->
@@ -1708,6 +1710,8 @@ body.enc-active-body .topbar {
               <button class="note-type-btn" data-type="privesc" onclick="setNoteFilter('privesc',this)">PrivEsc</button>
               <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
               <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
+              <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
+              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Scratch</button>
             </div>
             <div class="notes-list-items" id="notesList"></div>
           <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
@@ -1930,6 +1934,7 @@ body.enc-active-body .topbar {
     <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
       <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
+        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >✏️ Scratch</button>
         <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
         <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
         <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
@@ -2802,6 +2807,7 @@ const NOTE_TYPE_META = {
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
+  scratch:     { label: 'Scratch',     icon: '✏️',  cssClass: 'note-type-scratch'     },
 };
 
 const NOTE_TEMPLATES = {
@@ -2959,6 +2965,11 @@ const NOTE_TEMPLATES = {
 ## Cleanup / Artifacts to Remove
 
 `
+  },
+
+  scratch: {
+    title: '',
+    body:  '',
   },
 };
 
@@ -3395,7 +3406,9 @@ function newNote(type = 'general') {
   openNote(id);
   // Focus title if blank, editor body if title pre-filled
   setTimeout(() => {
-    if (tmpl.title) {
+    if (type === 'scratch') {
+      if (noteEditor) noteEditor.focus();
+    } else if (tmpl.title) {
       if (noteEditor) noteEditor.focus();
     } else {
       document.getElementById('noteTitleInput').focus();
