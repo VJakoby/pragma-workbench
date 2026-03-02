@@ -41,8 +41,8 @@ const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 // Directory layout:
 //
 //   notes/   
-//     workspace.json             ← plaintext workspace store
-//     workspace.enc              ← encrypted workspace store (mutually exclusive)
+//     workbench.json             ← plaintext workbench store
+//     workbench.enc              ← encrypted workbench store (mutually exclusive)
 //     <session-slug>/            ← per-session markdown export folders
 //       README.md
 //       <note-title>.md
@@ -55,8 +55,8 @@ const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 // ─────────────────────────────────────────────
 const NOTES_DIR = path.join(__dirname, 'notes');
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
-const NOTES_FILE = path.join(NOTES_DIR, 'workspace.json');
-const NOTES_ENC_FILE = path.join(NOTES_DIR, 'workspace.enc');
+const NOTES_FILE = path.join(NOTES_DIR, 'workbench.json');
+const NOTES_ENC_FILE = path.join(NOTES_DIR, 'workbench.enc');
 // ─────────────────────────────────────────────
 // Port / slug metadata maps
 // ─────────────────────────────────────────────
@@ -719,6 +719,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App         → http://localhost:${PORT}/`);
   console.log(`  KB          → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  notes/      → ${NOTES_DIR}  (workspace + per-session exports)`);
+  console.log(`  notes/      → ${NOTES_DIR}  (workbench + per-session exports)`);
   console.log(`  sessions/   → ${SESSIONS_DIR}  (.session file exports)\n`);
 });
