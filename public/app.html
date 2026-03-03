@@ -1119,15 +1119,25 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 8px;
   padding: 7px 10px; border-radius: 6px; cursor: pointer;
   background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s;
+  transition: all 0.12s; flex-wrap: wrap;
 }
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
   flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; color: var(--text);
+  font-weight: 700; color: var(--text); min-width: 0;
 }
 .session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-item-actions {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto;
+}
+.session-item-export-btn {
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--muted); cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
+}
+.session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .session-delete-btn {
   background: none; border: none; color: var(--muted); cursor: pointer;
@@ -2015,7 +2025,7 @@ body.enc-active-body .topbar {
               <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
               <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
               <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
-              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Scratch</button>
+              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
             </div>
             <div class="notes-list-items" id="notesList"></div>
             <div class="timeline-list" id="timelineList"></div>
@@ -2239,7 +2249,7 @@ body.enc-active-body .topbar {
     <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
       <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
-        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >✏️ Scratch</button>
+        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >📄 Blank</button>
         <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
         <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
         <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
@@ -3117,7 +3127,7 @@ const NOTE_TYPE_META = {
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
-  scratch:     { label: 'Scratch',     icon: '✏️',  cssClass: 'note-type-scratch'     },
+  scratch:     { label: 'Blank',     icon: '📄',  cssClass: 'note-type-scratch'     },
 };
 
 const NOTE_TEMPLATES = {
@@ -3510,7 +3520,11 @@ function renderSessionList() {
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
       <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <button class="session-delete-btn" onclick="event.stopPropagation();deleteSession('${s.id}')" title="Delete session">🗑</button>
+      <div class="session-item-actions" onclick="event.stopPropagation()">
+        <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
+        <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
+        <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+      </div>
     </div>`).join('');
 }
 
@@ -5020,6 +5034,144 @@ function setTargetFilter(targetId) {
   activeTargetFilter = activeTargetFilter === targetId ? null : targetId;
   renderTargetFilterBar();
   renderNotesList();
+}
+
+// ═══════════════════════════════════════════════
+// SESSION + NOTES EXPORT
+// ═══════════════════════════════════════════════
+
+async function exportSessionFile(sessionId) {
+  const sess = sessions[sessionId];
+  if (!sess) return;
+  const sessNotes = Object.values(notes).filter(n => n.session_id === sessionId);
+  const payload   = { pragma_version: 1, exported: Date.now(), session: sess, notes: sessNotes };
+
+  if (encryptedStorageEnabled && encryptedStoragePassword) {
+    // Encrypt the session file with the same workspace password
+    try {
+      const blob     = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+      const filename = slugify(sess.codename) + '.session.enc';
+      downloadJSON(blob, filename);
+    } catch (e) {
+      alert('Encryption failed: ' + e.message);
+    }
+  } else {
+    const filename = slugify(sess.codename) + '.session';
+    downloadJSON(payload, filename);
+  }
+
+  // Also tell server to save a copy in sessions/
+  try {
+    await fetch('/api/notes/export-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+    });
+  } catch (_) {}
+}
+
+async function exportNotesMarkdown(sessionId) {
+  const sess = sessions[sessionId];
+  if (!sess) return;
+  const sessNotes = Object.values(notes)
+    .filter(n => n.session_id === sessionId)
+    .sort((a, b) => (a.created || 0) - (b.created || 0));
+
+  if (!sessNotes.length) { alert('No notes in this session to export.'); return; }
+
+  const targets = sess.targets || [];
+
+  // Build a single markdown document
+  const lines = [];
+  lines.push(`# ${sess.codename}`);
+  lines.push('');
+  if (targets.length) {
+    lines.push('**Targets:**');
+    targets.forEach(t => {
+      const parts = [t.ip, t.domain, t.label].filter(Boolean);
+      lines.push(`- ${parts.join(' · ')}`);
+    });
+    lines.push('');
+  }
+  lines.push(`**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`);
+  lines.push(`**Notes:** ${sessNotes.length}`);
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+
+  sessNotes.forEach((n, i) => {
+    const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+    const ts  = new Date(n.created || 0).toISOString().replace('T',' ').slice(0,16);
+    lines.push(`## ${i + 1}. ${n.title || 'Untitled'}`);
+    lines.push('');
+    lines.push(`> **Type:** \`${n.type}\`  `);
+    if (tgt) lines.push(`> **Target:** \`${tgt.ip || tgt.domain || tgt.label}\`  `);
+    lines.push(`> **Created:** ${ts}`);
+    lines.push('');
+    if (n.body && n.body.trim()) {
+      lines.push(n.body.trim());
+      lines.push('');
+    }
+    lines.push('---');
+    lines.push('');
+  });
+
+  // Write to project directory via server (per-target subdirs under notes/<session>/)
+  try {
+    const r = await fetch('/api/notes/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      const count = d.files?.length || 0;
+      showToast(`Exported ${count} files → notes/${slugify(sess.codename)}/`);
+    } else {
+      showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
+    }
+  } catch (e) {
+    showToast('Export failed: ' + e.message, 'err');
+  }
+}
+
+function slugify(str) {
+  return (str || 'session').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase().slice(0, 60);
+}
+
+function showToast(msg, type = 'ok') {
+  const existing = document.getElementById('pragmaToast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'pragmaToast';
+  t.textContent = msg;
+  t.style.cssText = `
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:${type === 'err' ? 'var(--red)' : 'var(--accent)'};
+    color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;
+    padding:9px 18px; border-radius:8px; z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:toastIn 0.15s ease;
+    white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function downloadJSON(obj, filename) {
+  downloadText(JSON.stringify(obj, null, 2), filename, 'application/json');
+}
+
+function downloadText(content, filename, mimeType = 'text/plain') {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 init();

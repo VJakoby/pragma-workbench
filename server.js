@@ -1,4 +1,4 @@
-` 
+
 /**
  * PRAGMA
  * Copyright (C) 2026 VJakoby
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-`
+
 'use strict';
 
 const express = require('express');
@@ -28,38 +28,18 @@ const Fuse = require('fuse.js');
 let chokidar;
 try { chokidar = require('chokidar'); } catch (_) { }
 
-// ─────────────────────────────────────────────
-// Config
-// ─────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-const KB_DIR = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
+const PORT     = process.env.PORT || 3000;
+const KB_DIR   = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
 const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-// ─────────────────────────────────────────────
-// Directory layout:
-//
-//   notes/   
-//     workbench.json             ← plaintext workbench store
-//     workbench.enc              ← encrypted workbench store (mutually exclusive)
-//     <session-slug>/            ← per-session markdown export folders
-//       README.md
-//       <note-title>.md
-//
-//   sessions/
-//     <session-slug>.session     ← portable session export file
-//     <session-slug.session.enc  ← encrypted portable session export file
-//     
-//
-// ─────────────────────────────────────────────
-const NOTES_DIR = path.join(__dirname, 'notes');
-const SESSIONS_DIR = path.join(__dirname, 'sessions');
-const NOTES_FILE = path.join(NOTES_DIR, 'workbench.json');
-const NOTES_ENC_FILE = path.join(NOTES_DIR, 'workbench.enc');
-// ─────────────────────────────────────────────
-// Port / slug metadata maps
-// ─────────────────────────────────────────────
+const NOTES_DIR     = path.join(__dirname, 'notes');
+const SESSIONS_DIR  = path.join(__dirname, 'sessions');
+const NOTES_FILE    = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
+const NOTES_ENC_FILE = path.join(NOTES_DIR, 'pragma.workbench.enc'); // encrypted
+
+// ── Port / slug metadata maps (unchanged) ──
 const PORT_MAP = {
   '21': { name: 'FTP', port: '21/tcp', category: 'File Transfer', icon: '📤' },
   '22': { name: 'SSH', port: '22/tcp', category: 'Remote Access', icon: '🔒' },
@@ -131,6 +111,10 @@ const SLUG_MAP = {
   'pivoting': { name: 'Pivoting', port: 'Post-Ex', category: 'Post Exploitation', icon: '🌀' },
 };
 
+function slugify(str) {
+  return (str || 'export').replace(/[^a-zA-Z0-9_.-]/g, '_').toLowerCase().slice(0, 60);
+}
+
 function metaFromFilename(filename) {
   const base = path.basename(filename, '.md').toLowerCase();
   if (/^\d+$/.test(base) && PORT_MAP[base]) return { ...PORT_MAP[base], id: base };
@@ -150,15 +134,17 @@ function extractDescription(content) {
   return 'No description available.';
 }
 
-// ─────────────────────────────────────────────
-// In-memory service index
-// ─────────────────────────────────────────────
-let serviceIndex = [];
-let searchIndex = null;
+function noteFilename(note) {
+  const slug = (note.title || '')
+    .replace(/[^a-zA-Z0-9 _-]/g, '').trim()
+    .replace(/\s+/g, '-').toLowerCase().slice(0, 60);
+  return slug ? `${slug}.md` : `${note.type}.md`;
+}
 
-// Recursively collect all .md files under rootDir.
-// Returns array of { filename, filepath, subdir } where subdir is the
-// top-level child-directory name relative to rootDir ('' for root-level files).
+// ── Service index ──
+let serviceIndex = [];
+let searchIndex  = null;
+
 function walkMdFiles(dir, rootDir) {
   let results = [];
   let entries;
@@ -168,7 +154,7 @@ function walkMdFiles(dir, rootDir) {
     if (entry.isDirectory()) {
       results = results.concat(walkMdFiles(fullPath, rootDir));
     } else if (entry.name.toLowerCase().endsWith('.md')) {
-      const rel = path.relative(rootDir, dir);
+      const rel    = path.relative(rootDir, dir);
       const subdir = rel ? rel.split(path.sep)[0] : '';
       results.push({ filename: entry.name, filepath: fullPath, subdir });
     }
@@ -180,17 +166,12 @@ function buildIndex() {
   if (!fs.existsSync(KB_DIR)) {
     console.warn(`[PRAGMA] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
     fs.mkdirSync(KB_DIR, { recursive: true });
-    serviceIndex = [];
-    searchIndex = null;
-    return;
+    serviceIndex = []; searchIndex = null; return;
   }
-
   const entries = walkMdFiles(KB_DIR, KB_DIR);
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
-    const content = fs.readFileSync(filepath, 'utf8');
-    const meta = metaFromFilename(filename);
-    // Use the subdirectory name as the category (title-cased), falling back to
-    // the filename-derived category for files placed directly in KB_DIR root.
+    const content  = fs.readFileSync(filepath, 'utf8');
+    const meta     = metaFromFilename(filename);
     const category = subdir
       ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       : meta.category;
@@ -202,24 +183,17 @@ function buildIndex() {
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   searchIndex = new Fuse(serviceIndex, {
-    includeScore: true,
-    threshold: 0.4,
-    ignoreLocation: true,
+    includeScore: true, threshold: 0.4, ignoreLocation: true,
     keys: [
-      { name: 'name', weight: 3 },
-      { name: 'port', weight: 2 },
-      { name: 'category', weight: 1.5 },
-      { name: 'description', weight: 1 },
+      { name: 'name', weight: 3 }, { name: 'port', weight: 2 },
+      { name: 'category', weight: 1.5 }, { name: 'description', weight: 1 },
       { name: 'content', weight: 0.5 },
     ],
   });
-
-  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR} (recursive)`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR}`);
 }
 
-// ─────────────────────────────────────────────
-// Methodology index
-// ─────────────────────────────────────────────
+// ── Methodology index ──
 let methodologyIndex = [];
 
 function extractTitle(content, filename) {
@@ -260,9 +234,9 @@ function buildMethodologyIndex() {
   const files = fs.readdirSync(METH_DIR).filter(f => f.toLowerCase().endsWith('.md'));
   methodologyIndex = files.map(filename => {
     const filepath = path.join(METH_DIR, filename);
-    const content = fs.readFileSync(filepath, 'utf8');
-    const id = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const name = extractTitle(content, filename);
+    const content  = fs.readFileSync(filepath, 'utf8');
+    const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const name     = extractTitle(content, filename);
     const category = extractCategory(content, filename);
     return {
       id, name, category, icon: METH_ICONS[category] || '📋',
@@ -270,18 +244,11 @@ function buildMethodologyIndex() {
       file: filename, filepath, content, wordCount: content.split(/\s+/).length,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
-
-  console.log(`[PRAGMA] Indexed ${methodologyIndex.length} methodology guide(s) from knowledge_base/methodologies/`);
+  console.log(`[PRAGMA] Indexed ${methodologyIndex.length} methodology guide(s)`);
 }
 
-// ─────────────────────────────────────────────
-// Configure marked
-// ─────────────────────────────────────────────
 marked.setOptions({ gfm: true, breaks: false });
 
-// ─────────────────────────────────────────────
-// Express app
-// ─────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
@@ -314,31 +281,24 @@ app.get('/api/cache-status', (req, res) => res.json({ sources: [] }));
 app.get('/api/preview', (req, res) => {
   const fileParam = req.query.file;
   if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
-
   let resolved;
-  if (path.isAbsolute(fileParam)) {
-    resolved = fileParam;
-  } else {
+  if (path.isAbsolute(fileParam)) { resolved = fileParam; }
+  else {
     resolved = path.resolve(KB_DIR, path.basename(fileParam));
     if (!resolved.startsWith(KB_DIR)) return res.status(403).json({ error: 'Access denied' });
   }
   if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
-
   try {
     const content = fs.readFileSync(resolved, 'utf8');
     res.json({ html: marked.parse(content), raw: content });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/search', (req, res) => {
   const { query = '', fuzzyMode = 'normal' } = req.body;
   const q = query.trim();
   const startTime = Date.now();
-
   if (!q) return res.json({ count: 0, results: [], total_searched: serviceIndex.length, search_time_ms: 0 });
-
   let results = [];
   if (fuzzyMode === 'off') {
     const ql = q.toLowerCase();
@@ -352,7 +312,6 @@ app.post('/api/search', (req, res) => {
     searchIndex.options.threshold = fuzzyMode === 'prefer' ? 0.6 : 0.4;
     results = searchIndex.search(q).map(r => ({ svc: r.item, score: r.score }));
   }
-
   res.json({
     count: results.length,
     results: results.map(({ svc, score }) => ({
@@ -408,26 +367,20 @@ app.post('/api/kb/save', (req, res) => {
     entry.content = content;
     console.log(`[PRAGMA] Saved edit: ${entry.filepath}`);
     res.json({ ok: true, file: entry.file });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ─────────────────────────────────────────────
-// Search proxy
-// ─────────────────────────────────────────────
+// ── Search proxy ──
 const SEARCH_URL = process.env.SEARCH_URL || 'http://localhost:3002';
 
 app.post('/api/search-proxy', async (req, res) => {
   const { query = '', fuzzyMode = 'normal' } = req.body;
   if (!query.trim()) return res.json({ results: [], query });
-
   try {
     let responseData;
     if (typeof fetch !== 'undefined') {
       const r = await fetch(`${SEARCH_URL}/api/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' }),
         signal: AbortSignal.timeout(4000),
       });
@@ -435,7 +388,7 @@ app.post('/api/search-proxy', async (req, res) => {
     } else {
       responseData = await new Promise((resolve, reject) => {
         const http = require('http');
-        const url = new URL(`${SEARCH_URL}/api/search`);
+        const url  = new URL(`${SEARCH_URL}/api/search`);
         const body = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const opts = {
           hostname: url.hostname, port: url.port || 3002, path: url.pathname,
@@ -452,13 +405,11 @@ app.post('/api/search-proxy', async (req, res) => {
         req2.write(body); req2.end();
       });
     }
-
     const results = (responseData.results || []).slice(0, 15).map(r => ({
       title: r.title, source_name: r.source_name, url: r.url,
       relevance_score: r.relevance_score, match_type: r.match_type,
       snippet: r.snippet, is_local: r.is_local, file_path: r.file_path,
     }));
-
     res.json({
       results, query,
       total: responseData.total_matches || results.length,
@@ -483,10 +434,7 @@ app.get('/api/search-ping', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// Notes + Sessions persistence
-// ─────────────────────────────────────────────
-
+// ── Notes persistence ──
 function loadNotesFile() {
   if (!fs.existsSync(NOTES_FILE)) return { sessions: {}, notes: {} };
   try {
@@ -496,7 +444,6 @@ function loadNotesFile() {
   } catch { return { sessions: {}, notes: {} }; }
 }
 
-// GET /api/notes
 app.get('/api/notes', (req, res) => {
   try {
     if (fs.existsSync(NOTES_ENC_FILE)) return res.json({ encrypted_storage: true });
@@ -504,7 +451,6 @@ app.get('/api/notes', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/notes/save  — plaintext save
 app.post('/api/notes/save', (req, res) => {
   try {
     if (fs.existsSync(NOTES_ENC_FILE))
@@ -516,17 +462,15 @@ app.post('/api/notes/save', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/notes/storage-info
 app.get('/api/notes/storage-info', (req, res) => {
   res.json({
     encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
-    plain_storage: fs.existsSync(NOTES_FILE),
-    notes_dir: NOTES_DIR,
-    sessions_dir: SESSIONS_DIR,
+    plain_storage:     fs.existsSync(NOTES_FILE),
+    notes_dir:         NOTES_DIR,
+    sessions_dir:      SESSIONS_DIR,
   });
 });
 
-// GET /api/notes/encrypted  — return encrypted blob for client to decrypt
 app.get('/api/notes/encrypted', (req, res) => {
   try {
     if (!fs.existsSync(NOTES_ENC_FILE)) return res.status(404).json({ error: 'Encrypted notes file not found' });
@@ -534,7 +478,6 @@ app.get('/api/notes/encrypted', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/notes/save-encrypted  — store AES-256-GCM blob (server never sees plaintext)
 app.post('/api/notes/save-encrypted', (req, res) => {
   try {
     const { blob } = req.body || {};
@@ -542,13 +485,11 @@ app.post('/api/notes/save-encrypted', (req, res) => {
       return res.status(400).json({ error: 'Invalid encrypted payload' });
     fs.mkdirSync(NOTES_DIR, { recursive: true });
     fs.writeFileSync(NOTES_ENC_FILE, JSON.stringify(blob, null, 2), 'utf8');
-    // Remove plaintext once encrypted storage is active
     if (fs.existsSync(NOTES_FILE)) { try { fs.unlinkSync(NOTES_FILE); } catch (_) { } }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/notes/storage/disable-encrypted
 app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   try {
     if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) { } }
@@ -556,13 +497,15 @@ app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ─────────────────────────────────────────────
-// POST /api/notes/export
-// Exports notes as markdown into notes/<session-slug>/
-// ─────────────────────────────────────────────
+// ── POST /api/notes/export ──
+// Writes per-target directory structure:
+//   notes/<session-slug>/README.md
+//   notes/<session-slug>/<target-ip>/README.md
+//   notes/<session-slug>/<target-ip>/<note-title>.md
+//   notes/<session-slug>/session/<note-title>.md  ← unassigned notes
 app.post('/api/notes/export', (req, res) => {
   try {
-    const { session_id, include_unassigned = false } = req.body;
+    const { session_id, include_unassigned = true } = req.body;
     const source = fs.existsSync(NOTES_ENC_FILE)
       ? (req.body?.sessions && req.body?.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
       : loadNotesFile();
@@ -572,68 +515,134 @@ app.post('/api/notes/export', (req, res) => {
     const session = sessions[session_id];
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
-    // Export to notes/<session-slug>/
-    const slug = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const outDir = path.join(NOTES_DIR, slug);
+    const sessSlug = slugify(session.codename);
+    const outDir   = path.join(NOTES_DIR, sessSlug);
     fs.mkdirSync(outDir, { recursive: true });
 
+    const targets = session.targets || [];
     const sessionNotes = Object.values(notes).filter(n =>
       n.session_id === session_id ||
       (include_unassigned && (!n.session_id || !sessions[n.session_id]))
     );
 
-    if (!sessionNotes.length) return res.json({ ok: true, path: outDir, files: [], message: 'No notes in this session.' });
+    if (!sessionNotes.length)
+      return res.json({ ok: true, path: outDir, files: [], message: 'No notes in this session.' });
 
-    const written = [];
+    const written    = [];
+    const byTarget   = {};
+    const unassigned = [];
 
-    // Session index (README.md)
-    const targets = session.targets || [];
-    const ipList = targets.map(t => (t.label ? `${t.label}: ` : '') + t.ip).join(', ') || session.target_ip || '—';
-    const domList = targets.map(t => t.domain).filter(Boolean).join(', ') || session.target_domain || '—';
-
-    const indexLines = [
-      `# ${session.codename}`, '',
-      `**Target IP:** ${ipList}  `, `**Domain:** ${domList}  `,
-      `**Created:** ${new Date(session.created).toISOString().slice(0, 10)}  `,
-      `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
-      '', '---', '', `## Notes (${sessionNotes.length})`, '',
-    ];
-    sessionNotes
-      .sort((a, b) => (a.updated || 0) - (b.updated || 0))
-      .forEach(n => {
-        const fname = noteFilename(n);
-        indexLines.push(`- [${n.title || fname.replace('.md', '')}](./${fname}) — *${n.type}*`);
-      });
-
-    fs.writeFileSync(path.join(outDir, 'README.md'), indexLines.join('\n'), 'utf8');
-    written.push('README.md');
-
-    // Individual note files
     sessionNotes.forEach(n => {
-      const fname = noteFilename(n);
-      const header = [
-        `# ${n.title || fname.replace('.md', '')}`, '',
-        `> **Type:** ${n.type}  `,
-        `> **Session:** ${session.codename}  `,
-        `> **Target:** ${n.target_ip || (targets[0] && targets[0].ip) || '—'}  `,
-        `> **Updated:** ${new Date(n.updated || n.created).toISOString().replace('T', ' ').slice(0, 19)}`,
-        '', '---', '',
-      ].join('\n');
-      fs.writeFileSync(path.join(outDir, fname), header + (n.body || ''), 'utf8');
-      written.push(fname);
+      if (n.target_id && targets.find(t => t.id === n.target_id)) {
+        if (!byTarget[n.target_id]) byTarget[n.target_id] = [];
+        byTarget[n.target_id].push(n);
+      } else {
+        unassigned.push(n);
+      }
     });
 
+    // ── Per-target directories ──
+    targets.forEach(tgt => {
+      const tNotes = byTarget[tgt.id];
+      if (!tNotes || !tNotes.length) return;
+
+      const dirName = slugify(tgt.ip || tgt.domain || tgt.label || tgt.id);
+      const tgtDir  = path.join(outDir, dirName);
+      fs.mkdirSync(tgtDir, { recursive: true });
+
+      const label = [tgt.ip, tgt.domain, tgt.label].filter(Boolean).join(' · ');
+
+      // Target README
+      const tReadme = [
+        `# ${label}`,
+        '',
+        `**Session:** ${session.codename}`,
+        `**Notes:** ${tNotes.length}`,
+        `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
+        '',
+        '## Notes',
+        '',
+        ...tNotes
+          .sort((a, b) => (a.created || 0) - (b.created || 0))
+          .map(n => `- [${n.title || noteFilename(n).replace('.md','')}](./${noteFilename(n)}) — \`${n.type}\``),
+      ].join('\n');
+      fs.writeFileSync(path.join(tgtDir, 'README.md'), tReadme, 'utf8');
+      written.push(`${dirName}/README.md`);
+
+      // Individual note files
+      tNotes.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(n => {
+        const fname  = noteFilename(n);
+        const ts     = new Date(n.updated || n.created || 0).toISOString().replace('T',' ').slice(0,19);
+        const body   = [
+          `# ${n.title || fname.replace('.md','')}`,
+          '',
+          `> **Type:** \`${n.type}\``,
+          `> **Target:** \`${label}\``,
+          `> **Session:** ${session.codename}`,
+          `> **Created:** ${ts}`,
+          '',
+          '---',
+          '',
+          n.body || '',
+        ].join('\n');
+        fs.writeFileSync(path.join(tgtDir, fname), body, 'utf8');
+        written.push(`${dirName}/${fname}`);
+      });
+    });
+
+    // ── Session-wide / unassigned notes ──
+    if (unassigned.length) {
+      const sessDir = path.join(outDir, 'session');
+      fs.mkdirSync(sessDir, { recursive: true });
+      unassigned.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(n => {
+        const fname = noteFilename(n);
+        const ts    = new Date(n.updated || n.created || 0).toISOString().replace('T',' ').slice(0,19);
+        const body  = [
+          `# ${n.title || fname.replace('.md','')}`,
+          '',
+          `> **Type:** \`${n.type}\``,
+          `> **Session:** ${session.codename}`,
+          `> **Created:** ${ts}`,
+          '',
+          '---',
+          '',
+          n.body || '',
+        ].join('\n');
+        fs.writeFileSync(path.join(sessDir, fname), body, 'utf8');
+        written.push(`session/${fname}`);
+      });
+    }
+
+    // ── Top-level session README ──
+    const index = [
+      `# ${session.codename}`,
+      '',
+      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
+      `**Total notes:** ${sessionNotes.length}`,
+      '',
+      '## Targets',
+      '',
+      ...targets
+        .filter(t => byTarget[t.id]?.length)
+        .map(t => {
+          const dir   = slugify(t.ip || t.domain || t.label || t.id);
+          const label = [t.ip, t.domain, t.label].filter(Boolean).join(' · ');
+          return `- [${label}](./${dir}/) — ${byTarget[t.id]?.length || 0} notes`;
+        }),
+      unassigned.length ? `- [Session-wide notes](./session/) — ${unassigned.length} notes` : null,
+    ].filter(l => l !== null).join('\n');
+
+    fs.writeFileSync(path.join(outDir, 'README.md'), index, 'utf8');
+    written.unshift('README.md');
+
+    console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
     res.json({ ok: true, path: outDir, files: written, session: session.codename });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─────────────────────────────────────────────
-// POST /api/notes/export-session
-// Writes unencrypted .session file to sessions/<slug>.session
-// (Encrypted exports are handled client-side; this endpoint is for plaintext only)
-// ─────────────────────────────────────────────
+// ── POST /api/notes/export-session ──
 app.post('/api/notes/export-session', (req, res) => {
   try {
     const { session_id } = req.body;
@@ -647,11 +656,10 @@ app.post('/api/notes/export-session', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const sessNotes = Object.values(notes).filter(n => n.session_id === session_id);
-    const payload = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
+    const payload   = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
 
-    // Write to sessions/<slug>.session
     fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-    const slug = session.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const slug     = slugify(session.codename);
     const filePath = path.join(SESSIONS_DIR, slug + '.session');
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -662,11 +670,11 @@ app.post('/api/notes/export-session', (req, res) => {
   }
 });
 
-// GET /api/notes/debug
 app.get('/api/notes/debug', (req, res) => {
   const { sessions, notes } = loadNotesFile();
   res.json({
     dirs: { notes: NOTES_DIR, sessions: SESSIONS_DIR },
+    files: { workbench: NOTES_FILE, encrypted: NOTES_ENC_FILE },
     sessions: Object.values(sessions).map(s => ({
       id: s.id, codename: s.codename,
       targets: (s.targets || []).map(t => t.ip + (t.label ? ` (${t.label})` : '')),
@@ -678,16 +686,7 @@ app.get('/api/notes/debug', (req, res) => {
   });
 });
 
-function noteFilename(note) {
-  const slug = (note.title || '')
-    .replace(/[^a-zA-Z0-9 _-]/g, '').trim()
-    .replace(/\s+/g, '-').toLowerCase().slice(0, 60);
-  return slug ? `${slug}.md` : `${note.type}.md`;
-}
-
-// ─────────────────────────────────────────────
-// File watcher (chokidar)
-// ─────────────────────────────────────────────
+// ── File watcher ──
 if (chokidar) {
   chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
@@ -701,12 +700,9 @@ if (chokidar) {
       buildMethodologyIndex();
     }
   });
-  console.log('[PRAGMA] Watching knowledge_base/ for changes (chokidar active)');
+  console.log('[PRAGMA] Watching knowledge_base/ for changes');
 }
 
-// ─────────────────────────────────────────────
-// Start
-// ─────────────────────────────────────────────
 buildIndex();
 buildMethodologyIndex();
 
@@ -717,8 +713,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ██╔═══╝ ██╔══██╗██╔══██║██║   ██║██║╚██╔╝██║██╔══██║`);
   console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
-  console.log(`  App         → http://localhost:${PORT}/`);
-  console.log(`  KB          → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  notes/      → ${NOTES_DIR}  (workbench + per-session exports)`);
-  console.log(`  sessions/   → ${SESSIONS_DIR}  (.session file exports)\n`);
+  console.log(`  App      → http://localhost:${PORT}/`);
+  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
+  console.log(`  notes/   → ${NOTES_DIR}`);
+  console.log(`  sessions/→ ${SESSIONS_DIR}\n`);
 });
