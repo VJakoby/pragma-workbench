@@ -1128,24 +1128,13 @@ body.is-resizing *{cursor:col-resize!important}
   font-weight: 700; color: var(--text);
 }
 .session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
-.session-export-btn {
-  background: none; border: 1px solid var(--border); border-radius: 5px;
-  color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  padding: 4px 10px; cursor: pointer; transition: all 0.12s; flex-shrink: 0;
-}
-.session-export-btn:hover { border-color: var(--green); color: var(--green); }
+
 .session-delete-btn {
   background: none; border: none; color: var(--muted); cursor: pointer;
   font-size: 17px; padding: 2px 6px; border-radius: 4px; transition: all 0.12s;
   flex-shrink: 0;
 }
 .session-delete-btn:hover { color: var(--red); }
-.export-feedback {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-  padding: 8px 10px; border-radius: 6px; margin-top: 4px;
-}
-.export-feedback.ok { color: var(--green); background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); }
-.export-feedback.err { color: var(--red); background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
 
 /* ── Notes scope bar (Session / Unassigned / All) ── */
 .notes-scope-bar {
@@ -1328,6 +1317,62 @@ body.is-resizing *{cursor:col-resize!important}
 .tag-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
 .tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.18); border-color: rgba(124,58,237,0.35); }
 
+/* ── Note target assign ── */
+.note-target-assign-wrap { position: relative; flex-shrink: 0; }
+.note-target-assign-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 3px 9px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--muted); transition: all 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
+.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
+.note-target-assign-dropdown {
+  display: none; position: absolute; top: calc(100% + 5px); right: 0;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 8px; min-width: 180px; z-index: 400;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  flex-direction: column; overflow: hidden;
+}
+.note-target-assign-dropdown.open { display: flex; }
+.note-target-assign-option {
+  padding: 8px 14px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: var(--text2); transition: background 0.1s; white-space: nowrap;
+}
+.note-target-assign-option:hover { background: var(--bg4); color: var(--text); }
+.note-target-assign-option.current { color: var(--accent); }
+.note-target-assign-option.unassign { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+/* ── Target filter bar in notes list ── */
+.target-filter-bar {
+  display: none;
+  gap: 5px; padding: 5px 10px 4px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; flex-shrink: 0;
+}
+.target-filter-bar::-webkit-scrollbar { height: 2px; }
+.target-filter-bar::-webkit-scrollbar-thumb { background: var(--border2); }
+.target-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 8px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
+}
+.target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
+.target-filter-chip.active { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+
+/* Target badge on note list items */
+.note-item-target {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  color: var(--green); background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
+  padding: 1px 5px; margin-top: 3px;
+}
+
 /* ── Note reassign dropdown ── */
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
@@ -1353,14 +1398,6 @@ body.is-resizing *{cursor:col-resize!important}
 .note-reassign-option:hover { background: var(--bg3); color: var(--text); }
 .note-reassign-option.current { color: var(--accent); }
 .note-reassign-option.unassign { color: var(--muted); font-weight: 400; }
-
-/* ── Export unassigned toggle ── */
-.export-unassigned-row {
-  display: flex; align-items: center; gap: 8px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2);
-  padding: 4px 2px;
-}
-.export-unassigned-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
 
 /* ── .session file import feedback ── */
 .import-feedback {
@@ -1969,6 +2006,7 @@ body.enc-active-body .topbar {
               <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
               <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
             </div>
+            <div class="target-filter-bar" id="targetFilterBar"></div>
             <div class="notes-type-filter" id="notesTypeFilter">
               <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
               <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
@@ -1996,6 +2034,10 @@ body.enc-active-body .topbar {
                 <div class="note-reassign-wrap">
                   <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
                   <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                </div>
+                <div class="note-target-assign-wrap">
+                  <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">🎯 target</button>
+                  <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
@@ -2143,11 +2185,6 @@ body.enc-active-body .topbar {
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">⬆ Import .session</button>
         <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
       </div>
-      <div class="export-unassigned-row">
-        <input type="checkbox" id="exportIncludeUnassigned">
-        <label for="exportIncludeUnassigned" style="cursor:pointer">Include unassigned notes</label>
-      </div>
-      <div id="exportFeedback" style="display:none"></div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>
@@ -2417,6 +2454,8 @@ function deleteTarget(id) {
     if (activeTargetId) localStorage.setItem('ops-active-target', activeTargetId);
     else localStorage.removeItem('ops-active-target');
   }
+    // Clear target_id from notes assigned to this target
+  Object.values(notes).forEach(n => { if (n.target_id === id) n.target_id = null; });
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
@@ -3247,6 +3286,7 @@ const NOTE_TEMPLATES = {
 let activeNoteFilter = 'all';
 let activeNoteScope  = 'session';
 let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
+let activeTargetFilter = null; // target id or null
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
@@ -3450,7 +3490,6 @@ function openSessionModal() {
   document.getElementById('newSessionName').value   = '';
   document.getElementById('newSessionIP').value     = '';
   document.getElementById('newSessionDomain').value = '';
-  document.getElementById('exportFeedback').style.display = 'none';
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -3471,8 +3510,6 @@ function renderSessionList() {
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
       <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <button class="session-export-btn" onclick="event.stopPropagation();exportSessionFile('${s.id}')" title="Export .session file">⬇ .session</button>
-      <button class="session-export-btn" onclick="event.stopPropagation();exportSession('${s.id}')" title="Export notes as markdown" style="color:var(--muted)">⬇ .md</button>
       <button class="session-delete-btn" onclick="event.stopPropagation();deleteSession('${s.id}')" title="Delete session">🗑</button>
     </div>`).join('');
 }
@@ -3499,6 +3536,7 @@ function switchSession(id) {
   localStorage.setItem('ops-active-session', id);
   // Reset scope to session view when switching
   activeNoteScope = 'session';
+  activeTargetFilter = null;
   document.querySelectorAll('.note-scope-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.scope === 'session'));
   // Restore last active target for this session
@@ -3546,37 +3584,6 @@ async function deleteSession(id) {
   renderNotesList();
 }
 
-async function exportSession(id) {
-  const fb = document.getElementById('exportFeedback');
-  const includeUnassigned = document.getElementById('exportIncludeUnassigned')?.checked || false;
-  fb.style.display = 'block';
-  fb.className = 'export-feedback';
-  fb.textContent = '⏳ Exporting…';
-  try {
-    // When encrypted, pass the decrypted data directly so the server
-    // never needs to read notes.json (which doesn't exist in enc mode)
-    const body = encryptedStorageEnabled
-      ? { session_id: id, include_unassigned: includeUnassigned, sessions, notes }
-      : { session_id: id, include_unassigned: includeUnassigned };
-    const r = await fetch('/api/notes/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const d = await r.json();
-    if (d.ok) {
-      fb.className = 'export-feedback ok';
-      fb.textContent = `✓ Exported ${d.files?.length || 0} file${(d.files?.length||0)!==1?'s':''} → notes/${d.session}/`;
-    } else {
-      fb.className = 'export-feedback err';
-      fb.textContent = `✗ ${d.error || 'Export failed'}`;
-    }
-  } catch(e) {
-    fb.className = 'export-feedback err';
-    fb.textContent = `✗ ${e.message}`;
-  }
-}
-
 function setNoteFilter(type, btn) {
   activeNoteFilter = type;
   document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
@@ -3586,6 +3593,7 @@ function setNoteFilter(type, btn) {
 
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
+  activeTargetFilter = null;
   document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderNotesList();
@@ -3595,6 +3603,7 @@ function renderNotesList() {
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
     document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+    renderTargetFilterBar();
     return;
   }
   const list = document.getElementById('notesList');
@@ -3615,6 +3624,7 @@ function renderNotesList() {
 
   if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
   if (activeTagFilter) items = items.filter(n => (n.tags||[]).includes(activeTagFilter));
+  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
@@ -3628,6 +3638,9 @@ function renderNotesList() {
     const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
     const sess = n.session_id && sessions[n.session_id];
     const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
+    const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
+      ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
+    const tgtLabel = tgt ? `<div class="note-item-target">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</div>` : '';
     const tagsHtml = (n.tags||[]).length
       ? `<div class="note-item-tags">${(n.tags).map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
       : '';
@@ -3637,11 +3650,13 @@ function renderNotesList() {
       <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       ${tagsHtml}
       ${sessLabel}
+      ${tgtLabel}
       <div class="note-item-date">${formatDate(n.updated)}</div>
     </div>`;
   }).join('');
 
   document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  renderTargetFilterBar();
 }
 
 function formatDate(ts) {
@@ -3669,6 +3684,7 @@ function newNote(type = 'general') {
   notes[id]  = {
     id,
     session_id:    activeSessionId || null,
+    target_id:     activeTargetId || null,
     type,
     title:         tmpl.title || '',
     body:          tmpl.body  || '',
@@ -3728,6 +3744,7 @@ function openNote(id) {
   renderNoteTags(n);
   updateReassignBtn(n);
   renderBacklinks(id);
+  if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
@@ -4353,101 +4370,6 @@ async function decryptPayload(obj, password) {
 }
 
 // ═══════════════════════════════════════════════
-// SESSION FILE EXPORT / IMPORT
-// ═══════════════════════════════════════════════
-async function exportSessionFile(id) {
-  const sess = sessions[id];
-  if (!sess) return;
-
-  const sessNotes = Object.values(notes).filter(n => n.session_id === id);
-  const plainPayload = {
-    pragma_version: 1,
-    exported:       Date.now(),
-    session:        sess,
-    notes:          sessNotes,
-  };
-
-  const fb       = document.getElementById('exportFeedback');
-
-  // ── Ask for optional password ──
-  // Ask whether to encrypt the export
-  let password = '';
-  let exportEncrypted = false;
-  try {
-    await showConfirmDialog({
-      icon: '🔒', title: 'Encrypt Export?',
-      bigIcon: '🔒',
-      description: 'Do you want to encrypt this .session file with a password? <br><br>Choose <strong>Encrypt</strong> to add a password, or <strong>Skip</strong> to export as plaintext JSON.',
-      confirmLabel: '🔒 Encrypt', cancelLabel: 'Skip', danger: false,
-    });
-    // User chose to encrypt — ask for password
-    try {
-      password = await showPasswordPrompt({
-        icon: '🔒', title: 'Encrypt Session Export',
-        description: 'Set a password for this .session file. Required to import on another machine.',
-        label: 'Export Password', placeholder: 'Choose a password…',
-        confirm: true, submitLabel: '🔒 Encrypt & Export',
-      });
-      exportEncrypted = true;
-    } catch { return; } // cancelled password entry
-  } catch {
-    // User chose Skip (or cancelled confirm) — export unencrypted
-    exportEncrypted = false;
-  }
-
-  // Filename reflects whether content is encrypted
-  const slug     = sess.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-  const filename = slug + (exportEncrypted ? '.session.enc' : '.session');
-
-  let finalPayload;
-  let encrypted = exportEncrypted;
-
-  if (exportEncrypted) {
-    try {
-      finalPayload = await encryptPayload(JSON.stringify(plainPayload), password);
-    } catch(err) {
-      fb.style.display = 'block';
-      fb.className = 'export-feedback err';
-      fb.textContent = '✗ Encryption failed: ' + err.message;
-      return;
-    }
-  } else {
-    finalPayload = plainPayload;
-  }
-
-  // Hit server to write to disk (unencrypted only — server never sees passwords)
-  if (!encrypted) {
-    try {
-      const r = await fetch('/api/notes/export-session', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ session_id: id }),
-      });
-      const d = await r.json();
-      if (d.ok) {
-        fb.style.display = 'block';
-        fb.className = 'export-feedback ok';
-        fb.textContent = '✓ Saved → ' + d.path;
-        setTimeout(() => { fb.style.display = 'none'; }, 4000);
-      }
-    } catch(_) {}
-  } else {
-    fb.style.display = 'block';
-    fb.className = 'export-feedback ok';
-    fb.textContent = '✓ Encrypted export ready';
-    setTimeout(() => { fb.style.display = 'none'; }, 4000);
-  }
-
-  // Browser download
-  const blob = new Blob([JSON.stringify(finalPayload, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -4884,12 +4806,14 @@ function setNotesListView(mode, btn) {
   const timelineEl = document.getElementById('timelineList');
   const filterBar  = document.getElementById('notesTypeFilter');
   const scopeBar   = document.querySelector('.notes-scope-bar');
+  const tgtBar     = document.getElementById('targetFilterBar');
 
   if (mode === 'timeline') {
     listEl.style.display     = 'none';
     timelineEl.style.display = '';
     if (filterBar) filterBar.style.display = 'none';
     if (scopeBar)  scopeBar.style.display  = 'none';
+    if (tgtBar)    tgtBar.style.display    = 'none';
     renderTimeline();
   } else {
     listEl.style.display     = '';
@@ -4904,8 +4828,11 @@ function renderTimeline() {
   const el = document.getElementById('timelineList');
   if (!el) return;
 
+  // Show all notes in active session, including those with null session_id if no session set
   let items = Object.values(notes);
-  if (activeSessionId) items = items.filter(n => n.session_id === activeSessionId);
+  if (activeSessionId) {
+    items = items.filter(n => n.session_id === activeSessionId || n.session_id === null);
+  }
   items = items.sort((a, b) => (a.created || 0) - (b.created || 0));
 
   if (!items.length) {
@@ -4927,10 +4854,16 @@ function renderTimeline() {
       const meta    = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
       const time    = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
       const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
+      const tgt     = n.target_id && activeSessionId && sessions[activeSessionId]
+        ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
+      const tgtBadge = tgt
+        ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
+        : '';
       html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
         <span class="tl-time">${esc(time)}</span>
         <div class="tl-body">
           <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+          ${tgtBadge}
           <div class="tl-title">${esc(n.title || 'Untitled')}</div>
           ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
         </div>
@@ -4939,6 +4872,118 @@ function renderTimeline() {
     html += '</div>';
   });
   el.innerHTML = html;
+}
+
+
+// ═══════════════════════════════════════════════
+// NOTE TARGET ASSIGNMENT
+// ═══════════════════════════════════════════════
+
+function getSessionTargets() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].targets || [];
+}
+
+function toggleTargetAssignDropdown() {
+  const dd  = document.getElementById('noteTargetAssignDropdown');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  document.getElementById('noteReassignDropdown')?.classList.remove('open');
+  if (isOpen) { dd.classList.remove('open'); return; }
+  renderTargetAssignDropdown();
+  dd.classList.add('open');
+  setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
+}
+
+function _tgtAssignOutside(e) {
+  const wrap = document.querySelector('.note-target-assign-wrap');
+  if (!wrap) return;
+  if (wrap.contains(e.target)) {
+    if (document.getElementById('noteTargetAssignDropdown')?.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
+    }
+  } else {
+    document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
+  }
+}
+
+function renderTargetAssignDropdown() {
+  const dd   = document.getElementById('noteTargetAssignDropdown');
+  const note = activeNoteId && notes[activeNoteId];
+  if (!dd || !note) return;
+  const targets = getSessionTargets();
+  let html = '';
+  if (note.target_id) {
+    html += '<div class="note-target-assign-option unassign" onclick="assignNoteTarget(null)">✕ Remove target</div>';
+  }
+  if (!targets.length) {
+    html += '<div class="note-target-assign-option unassign">No targets in session</div>';
+  } else {
+    targets.forEach(t => {
+      const label = t.ip || t.domain || t.label || 'Unnamed';
+      const sub   = t.label && t.ip ? ` <span style="color:var(--muted);font-weight:400">${esc(t.label)}</span>` : '';
+      const cur   = t.id === note.target_id;
+      html += `<div class="note-target-assign-option${cur ? ' current' : ''}" onclick="assignNoteTarget('${t.id}')">${cur ? '✓ ' : '🎯 '}${esc(label)}${sub}</div>`;
+    });
+  }
+  dd.innerHTML = html;
+}
+
+function assignNoteTarget(targetId) {
+  if (!activeNoteId) return;
+  const note = notes[activeNoteId];
+  note.target_id = targetId || null;
+  note.updated   = Date.now();
+  saveNotes();
+  updateTargetAssignBtn(note);
+  document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
+  renderNotesList();
+  renderTargetFilterBar();
+}
+
+function updateTargetAssignBtn(note) {
+  const btn = document.getElementById('noteTargetAssignBtn');
+  if (!btn || !note) return;
+  const tgt = note.target_id ? getSessionTargets().find(t => t.id === note.target_id) : null;
+  if (tgt) {
+    btn.textContent = '🎯 ' + (tgt.ip || tgt.domain || tgt.label || 'target');
+    btn.classList.add('has-target');
+  } else {
+    btn.textContent = '🎯 target';
+    btn.classList.remove('has-target');
+  }
+}
+
+// ── Target filter bar ──
+function renderTargetFilterBar() {
+  const bar = document.getElementById('targetFilterBar');
+  if (!bar) return;
+  const targets = getSessionTargets();
+  if (!targets.length || activeNoteScope !== 'session') {
+    bar.style.display = 'none';
+    return;
+  }
+  const notesWithTargets = Object.values(notes).filter(n => n.session_id === activeSessionId && n.target_id);
+  if (!notesWithTargets.length) {
+    bar.style.display = 'none';
+    return;
+  }
+  const usedIds = new Set(notesWithTargets.map(n => n.target_id));
+  const chips = targets
+    .filter(t => usedIds.has(t.id))
+    .map(t => {
+      const label  = t.ip || t.domain || t.label || 'target';
+      const active = t.id === activeTargetFilter;
+      return `<span class="target-filter-chip${active ? ' active' : ''}" onclick="setTargetFilter('${t.id}')">${esc(label)}</span>`;
+    }).join('');
+  bar.innerHTML = chips;
+  bar.style.display = chips ? 'flex' : 'none';
+}
+
+function setTargetFilter(targetId) {
+  activeTargetFilter = activeTargetFilter === targetId ? null : targetId;
+  renderTargetFilterBar();
+  renderNotesList();
 }
 
 init();

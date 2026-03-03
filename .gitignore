@@ -2,10 +2,14 @@
 notes/*
 notes.json
 
+# Workbench
+*.workbench
+*.workbench.enc
+
 # NodeJS modules
 node_modules/*
 
 # VSCode specific
-.vscode
+*.vscode
 *.code-workspace
 
