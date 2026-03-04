@@ -106,6 +106,7 @@ body{
   cursor:default;
 }
 .topbar-logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
+.topbar-logo .logo-hash{color:var(--accent);font-weight:700;font-size:15px;margin-left:0}
 .topbar-logo-tip{
   display:none;
   position:fixed;top:calc(var(--topbar-h) + 4px);left:14px;
@@ -362,6 +363,15 @@ body{
 }
 
 .card.hidden{display:none !important}
+
+/* ── Content panel search highlights ── */
+mark.search-highlight {
+  background: rgba(251,191,36,0.35);
+  color: var(--text);
+  border-radius: 2px;
+  padding: 0 1px;
+  outline: 1px solid rgba(251,191,36,0.5);
+}
 
 /* empty state */
 .empty-state{
@@ -1808,7 +1818,7 @@ body.enc-active-body .topbar {
         <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
       </svg>
     </div>
-    <div class="topbar-logo">PRAGMA<span>// Workbench</span>
+    <div class="topbar-logo"><span class="logo-hash">#</span>PRAGMA<span>// Workbench</span>
       <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
     </div>
 
@@ -2286,6 +2296,7 @@ let METHODOLOGIES = [];
 let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
+let lastSearchQuery = ''; // last query used — for content highlighting
 let searchScope   = 'all';
 let fuzzyMode     = 'normal';
 let searchDebounce;
@@ -2706,7 +2717,7 @@ function renderCards(view) {
         <span class="card-name">${esc(item.name)}</span>
       </div>
       <div class="card-desc">${esc(item.description || '')}</div>`;
-    card.onclick = () => openItem(view, item.id);
+    card.onclick = () => { lastSearchQuery = ''; openItem(view, item.id); };
     grid.appendChild(card);
   });
 
@@ -2774,7 +2785,7 @@ function updateToolbarCount(view, n) {
 // ═══════════════════════════════════════════════
 // OPEN ITEM → CONTENT PANEL
 // ═══════════════════════════════════════════════
-async function openItem(view, id) {
+async function openItem(view, id, query = '') {
   // Mark card as active
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   const card = document.querySelector(`.card[data-id="${id}"]`);
@@ -2794,14 +2805,14 @@ async function openItem(view, id) {
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
     activeDoc = { html: d.html, raw: d.raw, icon: d.icon || '📄', title: d.name, meta, id, view, isLocal: true };
-    renderContent(d.html, d.icon || '📄', d.name, meta);
+    renderContent(d.html, d.icon || '📄', d.name, meta, query);
     document.getElementById('cpEditBtn').style.display = '';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
 }
 
-async function openPreviewByPath(title, filePath) {
+async function openPreviewByPath(title, filePath, query = '') {
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -2812,22 +2823,80 @@ async function openPreviewByPath(title, filePath) {
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop(), isLocal: false };
-    renderContent(d.html, '🔍', title, filePath.split('/').pop());
+    renderContent(d.html, '🔍', title, filePath.split('/').pop(), query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
 }
 
-function renderContent(html, icon, title, meta) {
+function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpIcon').textContent  = icon;
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent  = meta || '';
   const el = document.getElementById('cpContent');
   el.innerHTML = injectTargets(html);
   wrapCodeBlocks(el);
-  // Scroll back to top
-  el.parentElement.scrollTop = 0;
+  if (query && query.trim()) {
+    highlightContentMatches(el, query);
+  } else {
+    el.parentElement.scrollTop = 0;
+  }
+}
+
+function highlightContentMatches(container, query) {
+  const terms = query.trim().split(/\s+/)
+    .filter(t => t.length > 1)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) { container.parentElement.scrollTop = 0; return; }
+
+  const re = new RegExp('(' + terms.join('|') + ')', 'gi');
+  let firstMark = null;
+
+  // Walk text nodes only — don't touch code blocks
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        // Skip code/pre elements
+        let p = node.parentElement;
+        while (p && p !== container) {
+          if (p.tagName === 'CODE' || p.tagName === 'PRE') return NodeFilter.FILTER_REJECT;
+          p = p.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+  textNodes.forEach(node => {
+    if (!re.test(node.textContent)) return;
+    const reExec = new RegExp('(' + terms.join('|') + ')', 'gi'); // fresh regex avoids lastIndex issues
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = reExec.exec(node.textContent)) !== null) {
+      if (m.index > last) frag.appendChild(document.createTextNode(node.textContent.slice(last, m.index)));
+      const mark = document.createElement('mark');
+      mark.className = 'search-highlight';
+      mark.textContent = m[0];
+      frag.appendChild(mark);
+      if (!firstMark) firstMark = mark;
+      last = reExec.lastIndex;
+    }
+    if (last < node.textContent.length) frag.appendChild(document.createTextNode(node.textContent.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+
+  // Scroll to first match
+  if (firstMark) {
+    setTimeout(() => firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+  } else {
+    container.parentElement.scrollTop = 0;
+  }
 }
 
 function closeContent() {
@@ -2881,6 +2950,7 @@ function setFuzzy(f, btn) {
 }
 
 async function runSearch(query) {
+  lastSearchQuery = query;
   try {
     const r = await fetch('/api/search-proxy', {
       method: 'POST',
@@ -2959,6 +3029,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
          data-filepath="${esc(r.file_path||'')}"
          data-title="${esc(r.title||'')}"
          data-url="${esc(href)}"
+         data-query="${esc(query)}"
          onclick="handleResultClick(this)">
       <div class="result-card-top">
         <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
@@ -2980,7 +3051,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
 
 function handleResultClick(el) {
   if (el.dataset.local === '1') {
-    openPreviewByPath(el.dataset.title, el.dataset.filepath);
+    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '');
   } else {
     window.open(el.dataset.url, '_blank', 'noopener');
   }
@@ -3118,10 +3189,10 @@ function execCmd(idx) {
   closeCmd();
   if (item.type === 'service') {
     switchView('services', document.getElementById('nav-services'));
-    openItem('services', item.id);
+    openItem('services', item.id, lastSearchQuery);
   } else if (item.type === 'methodology') {
     switchView('methodologies', document.getElementById('nav-methodologies'));
-    openItem('methodologies', item.id);
+    openItem('methodologies', item.id, lastSearchQuery);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
@@ -3561,20 +3632,31 @@ function renderSessionList() {
 }
 
 function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
+  const name   = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
-  const id = 'sess_' + Date.now();
+  const ip     = document.getElementById('newSessionIP').value.trim()     || null;
+  const domain = document.getElementById('newSessionDomain').value.trim() || null;
+  const id     = 'sess_' + Date.now();
+
+  const targets = [];
+  if (ip || domain) {
+    targets.push({ id: 'tgt_' + Date.now(), ip: ip || '', domain: domain || '', label: '' });
+  }
+
   sessions[id] = {
     id,
     codename:      name,
-    target_ip:     document.getElementById('newSessionIP').value.trim()     || null,
-    target_domain: document.getElementById('newSessionDomain').value.trim() || null,
+    target_ip:     ip,
+    target_domain: domain,
+    targets,
     created:       Date.now(),
   };
   switchSession(id);
   saveNotes();
   renderSessionList();
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionIP').value   = '';
+  document.getElementById('newSessionDomain').value = '';
 }
 
 function switchSession(id) {
