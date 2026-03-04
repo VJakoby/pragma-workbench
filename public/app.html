@@ -790,10 +790,10 @@ mark.search-highlight {
 .sidebar-toggle-btn {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; padding: 0 9px; cursor: pointer;
-  color: var(--muted); font-size: 15px; line-height: 1;
+  color: var(--muted); font-size: 15px; line-height: 0;
   transition: all 0.15s; flex-shrink: 0;
   height: 32px; box-sizing: border-box; align-self: center;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: center;
 }
 .sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
@@ -1125,20 +1125,21 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 2px 4px;
 }
 .session-list-item {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; gap: 2px;
   padding: 7px 10px; border-radius: 6px; cursor: pointer;
   background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s; flex-wrap: wrap;
+  transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; color: var(--text); min-width: 0;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-list-item-meta { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
 .session-item-actions {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto;
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
 }
 .session-item-export-btn {
   background: var(--bg4); border: 1px solid var(--border);
