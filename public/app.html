@@ -316,7 +316,7 @@ body{
 .cards-area{
   flex:1;overflow-y:auto;padding:14px 16px;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
   gap:10px;
   align-content:start;
 }
@@ -327,7 +327,7 @@ body{
 .card{
   position:relative;
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:8px;padding:14px 12px;
+  border-radius:8px;padding:18px 14px;
   cursor:pointer;transition:all 0.15s;overflow:hidden;
   user-select:none;min-width:0;word-break:break-word;
 }
@@ -361,7 +361,7 @@ body{
   white-space:nowrap;
 }
 
-.card.hidden{display:none}
+.card.hidden{display:none !important}
 
 /* empty state */
 .empty-state{
@@ -811,47 +811,46 @@ body{
 }
 
 /* ── Responsive card grid ── */
+/* Layout switching is handled by JS ResizeObserver adding .cards-list-mode */
 
-/* 920px–750px: wider minmax so cards don't get too narrow, add desc padding */
-@media(max-width:920px){
-  .cards-area{
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-    padding:12px 12px;
-    gap:8px;
-  }
-  .card{ padding:14px 14px; }
-  .card-desc{ padding-bottom:4px; }
+/* List mode — compact single row per card */
+.cards-area.cards-list-mode {
+  grid-template-columns: repeat(2, 1fr) !important;
+  padding: 6px 8px;
+  gap: 4px;
 }
-
-/* ≤750px: switch to list-style rows — port + name inline, desc below */
-@media(max-width:750px){
-  .cards-area{
-    grid-template-columns:1fr;
-    padding:8px 10px;
-    gap:6px;
-  }
-  .card{
-    padding:10px 14px;
-    display:grid;
-    grid-template-columns:auto 1fr;
-    grid-template-rows:auto auto;
-    column-gap:10px;
-    align-items:center;
-  }
-  .card::before{ height:100%; width:3px; top:0; left:0; right:auto; bottom:0; border-radius:8px 0 0 8px; }
-  .card-icon{ font-size:18px; margin-bottom:0; grid-row:1/3; grid-column:1; align-self:center; }
-  .card-port-name-row{
-    grid-row:1; grid-column:2;
-    display:flex; align-items:baseline; gap:7px; min-width:0; overflow:hidden;
-  }
-  .card-port{ margin-bottom:0; flex-shrink:0; }
-  .card-name{ margin-bottom:0; flex:1; }
-  .card-desc{
-    grid-row:2; grid-column:2;
-    -webkit-line-clamp:1; padding-bottom:0;
-    font-size:11px; margin-top:2px;
-  }
-  .card-cat{ top:6px; right:6px; font-size:8px; padding:1px 4px; }
+.cards-area.cards-list-mode .card {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  transform: none !important;
+}
+.cards-area.cards-list-mode .card::before {
+  top:0; left:0; right:auto; bottom:0;
+  height:100%; width:3px; border-radius:8px 0 0 8px;
+}
+.cards-area.cards-list-mode .card-icon {
+  font-size:17px; flex-shrink:0; margin-bottom:0; line-height:1; width:22px; text-align:center;
+}
+.cards-area.cards-list-mode .card-port-name-row {
+  display:flex; align-items:center; gap:7px;
+  flex:1; min-width:0; overflow:hidden;
+}
+.cards-area.cards-list-mode .card-port {
+  font-size:10px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
+}
+.cards-area.cards-list-mode .card-name {
+  font-size:13px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-bottom:0; flex:1;
+}
+.cards-area.cards-list-mode .card-desc { display:none; }
+.cards-area.cards-list-mode .card-cat {
+  position:static; flex-shrink:0; margin-left:4px;
+  font-size:8px; padding:1px 5px;
 }
 
     /* ── Note markdown hint bar ── */
@@ -2625,6 +2624,8 @@ async function init() {
   renderCards('services');
   renderCards('methodologies');
   buildSidebar('services');
+  // Set initial card layout mode after render
+  setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
 }
 
 // ═══════════════════════════════════════════════
@@ -2711,6 +2712,37 @@ function renderCards(view) {
 
   updateToolbarCount(view, items.length);
 }
+
+
+// ── Cards layout: switch between grid tiles and compact list based on actual container width ──
+(function() {
+  const BREAKPOINT = 1100; // px — below this, switch to list mode
+
+  function applyMode(el) {
+    if (!el) return;
+    const w = el.getBoundingClientRect().width;
+    el.classList.toggle('cards-list-mode', w < BREAKPOINT && w > 0);
+  }
+
+  function observeGrids() {
+    const grids = document.querySelectorAll('.cards-area');
+    if (!grids.length) return;
+    const ro = new ResizeObserver(entries => {
+      entries.forEach(e => applyMode(e.target));
+    });
+    grids.forEach(g => { ro.observe(g); applyMode(g); });
+  }
+
+  // Run after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeGrids);
+  } else {
+    setTimeout(observeGrids, 100);
+  }
+
+  // Expose so init() can call after layout settles
+  window._observeCardGrids = observeGrids;
+})();
 
 function filterCards(view, query) {
   const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
