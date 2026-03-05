@@ -31,17 +31,17 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-  --bg:       #303841;
-  --bg2:      #363f49;
-  --bg3:      #3d4752;
-  --bg4:      #46515d;
-  --border:   #4a5562;
-  --border2:  #5a6878;
-  --text:     #dde6f0;
-  --text2:    #96abbe;
-  --muted:    #5e7385;
-  --accent:   #8b5cf6;
-  --accent2:  #7c3aed;
+  --bg:       #1a1a1f;
+  --bg2:      #1f1f26;
+  --bg3:      #26262f;
+  --bg4:      #2e2e38;
+  --border:   #35353f;
+  --border2:  #46464f;
+  --text:     #c9d8ec;
+  --text2:    #8fa3bc;
+  --muted:    #4e6278;
+  --accent:   #7c3aed;
+  --accent2:  #6d28d9;
   --green:    #34d399;
   --purple:   #a78bfa;
   --red:      #f87171;
@@ -49,7 +49,7 @@
   --yellow:   #fbbf24;
   --sidebar-w: 220px;
   --topbar-h:  48px;
-  --logo-icon-color: #8b5cf6;
+  --logo-icon-color: #7c3aed;
   --logo-icon-size: 18px;
 }
 
@@ -92,7 +92,6 @@ body{
   display:flex;align-items:center;
   padding:0 14px; gap:10px;
   flex-shrink:0; z-index:50;
-  flex-wrap:nowrap; overflow:visible;
 }
 
 .topbar-logo{
@@ -108,12 +107,12 @@ body{
 .topbar-logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
 .topbar-logo-tip{
   display:none;
-  position:fixed;top:calc(var(--topbar-h) + 4px);left:14px;
+  position:absolute;top:calc(100% + 8px);left:0;
   background:var(--bg4);border:1px solid var(--border2);
   border-radius:8px;padding:10px 13px;
   font-family:'Inter',sans-serif;font-size:12px;
   color:var(--text2);line-height:1.6;
-  width:280px;z-index:9999;
+  width:280px;z-index:200;
   box-shadow:0 8px 24px rgba(0,0,0,0.4);
   white-space:normal;
 }
@@ -153,17 +152,15 @@ body{
 .cmd-trigger{
   display:flex;align-items:center;gap:8px;
   background:var(--bg3);border:1px solid var(--border);
-  border-radius:6px;padding:0 12px;
+  border-radius:6px;padding:5px 12px;
   cursor:pointer;transition:all 0.15s;
   color:var(--muted);font-size:12px;
   font-family:'Inter',sans-serif;
-  flex:1;max-width:520px;min-width:0;
-  height:32px;box-sizing:border-box;align-self:center;
-  overflow:hidden;white-space:nowrap;
+  flex:1;max-width:380px;
 }
 .cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
-.cmd-trigger-icon{font-size:16px;flex-shrink:0}
-.cmd-trigger-text{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cmd-trigger-icon{font-size:16px}
+.cmd-trigger-text{flex:1;text-align:left}
 .cmd-trigger-kbd{
   font-size:10px;background:var(--bg4);
   border:1px solid var(--border2);
@@ -175,13 +172,11 @@ body{
 
 .tb-btn{
   background:var(--bg3);border:1px solid var(--border);
-  border-radius:6px;padding:0 10px;
+  border-radius:6px;padding:5px 10px;
   cursor:pointer;transition:all 0.15s;
   color:var(--muted);font-size:12px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
-  height:32px;box-sizing:border-box;align-self:center;
-  display:flex;align-items:center;
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
@@ -204,7 +199,7 @@ body{
 
 .sidebar-version {
   margin-top: auto; padding: 10px 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); letter-spacing: 0.08em;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -316,7 +311,7 @@ body{
 .cards-area{
   flex:1;overflow-y:auto;padding:14px 16px;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
   align-content:start;
 }
@@ -327,7 +322,7 @@ body{
 .card{
   position:relative;
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:8px;padding:18px 14px;
+  border-radius:8px;padding:12px 10px;
   cursor:pointer;transition:all 0.15s;overflow:hidden;
   user-select:none;min-width:0;word-break:break-word;
 }
@@ -343,14 +338,12 @@ body{
 
 .card-icon{font-size:22px;margin-bottom:8px;display:block;line-height:1}
 .card-port{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;
-  color:var(--text2);margin-bottom:3px;letter-spacing:0.06em;
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
+  color:var(--text2);margin-bottom:4px;letter-spacing:0.06em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* wrapper: stacked by default, goes inline at narrow widths */
-.card-port-name-row{ display:block; min-width:0; }
-.card-desc{font-size:12px;color:var(--text2);line-height:1.6;padding-bottom:2px;
+.card-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.5;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-cat{
   position:absolute;top:8px;right:8px;
@@ -361,7 +354,7 @@ body{
   white-space:nowrap;
 }
 
-.card.hidden{display:none !important}
+.card.hidden{display:none}
 
 /* empty state */
 .empty-state{
@@ -616,7 +609,7 @@ body{
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
 
-.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
 .ctrl-label{
   font-family:'Inter',sans-serif;font-size:10px;
   color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
@@ -639,7 +632,11 @@ body{
 
 .search-status{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
-  color:var(--text2);margin-left:auto;
+  color:var(--text2);
+}
+.search-meta-row{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:2px 2px 0;
 }
 
 .results-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
@@ -660,10 +657,7 @@ body{
 .result-card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,0.2)}
 .result-card:hover::before{opacity:1}
 
-.result-card-top{
-  display:flex;align-items:flex-start;
-  justify-content:space-between;gap:10px;margin-bottom:5px;
-}
+
 .result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
 .result-score{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
@@ -674,7 +668,7 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size: 13px;color:var(--text2);font-weight:600}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
@@ -708,12 +702,15 @@ body{
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,0.55);
 }
-.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:clamp(52px,8vh,100px) 16px 16px;}
 
 .cmd-box{
   background:var(--bg2);border:1px solid var(--border2);
-  border-radius:12px;width:90%;max-width:580px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
+  border-radius:12px;width:100%;max-width:780px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - clamp(68px,10vh,120px));
+  overflow:hidden;
   animation:cmdSlide 0.04s ease;
 }
 @keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -735,7 +732,7 @@ body{
   border-radius:4px;padding:2px 7px;color:var(--muted);
 }
 
-.cmd-results{max-height:400px;overflow-y:auto}
+.cmd-results{flex:1 1 auto;overflow-y:auto;min-height:0}
 .cmd-results::-webkit-scrollbar{width:3px}
 .cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
 
@@ -775,15 +772,12 @@ body{
   border-radius:3px;padding:1px 5px;font-size:9px;
 }
 
-
 /* ── Sidebar toggle button ── */
 .sidebar-toggle-btn {
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0 9px; cursor: pointer;
+  border-radius: 6px; padding: 5px 9px; cursor: pointer;
   color: var(--muted); font-size: 15px; line-height: 1;
   transition: all 0.15s; flex-shrink: 0;
-  height: 32px; box-sizing: border-box; align-self: center;
-  display: flex; align-items: center;
 }
 .sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
@@ -797,60 +791,6 @@ body{
 /* ── RESPONSIVE / MEDIA ── */
 @media(max-width:768px){
   .content-panel{display:none}
-}
-
-/* ── Topbar responsive ── */
-/* Below 900px: shrink cmd-trigger, hide placeholder text */
-@media(max-width:900px){
-  .cmd-trigger{ max-width:260px; }
-}
-@media(max-width:700px){
-  .cmd-trigger-text{ display:none; }
-  .cmd-trigger{ min-width:36px; flex:0 0 36px; justify-content:center; padding:0 10px; }
-  .cmd-trigger-kbd{ display:none; }
-}
-
-/* ── Responsive card grid ── */
-/* Layout switching is handled by JS ResizeObserver adding .cards-list-mode */
-
-/* List mode — compact single row per card */
-.cards-area.cards-list-mode {
-  grid-template-columns: repeat(2, 1fr) !important;
-  padding: 6px 8px;
-  gap: 4px;
-}
-.cards-area.cards-list-mode .card {
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  transform: none !important;
-}
-.cards-area.cards-list-mode .card::before {
-  top:0; left:0; right:auto; bottom:0;
-  height:100%; width:3px; border-radius:8px 0 0 8px;
-}
-.cards-area.cards-list-mode .card-icon {
-  font-size:17px; flex-shrink:0; margin-bottom:0; line-height:1; width:22px; text-align:center;
-}
-.cards-area.cards-list-mode .card-port-name-row {
-  display:flex; align-items:center; gap:7px;
-  flex:1; min-width:0; overflow:hidden;
-}
-.cards-area.cards-list-mode .card-port {
-  font-size:10px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
-}
-.cards-area.cards-list-mode .card-name {
-  font-size:13px; font-weight:700;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  margin-bottom:0; flex:1;
-}
-.cards-area.cards-list-mode .card-desc { display:none; }
-.cards-area.cards-list-mode .card-cat {
-  position:static; flex-shrink:0; margin-left:4px;
-  font-size:8px; padding:1px 5px;
 }
 
     /* ── Note markdown hint bar ── */
@@ -882,7 +822,7 @@ body{
 
     .note-type-btn {
       background: none; border: none; cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
       color: var(--muted); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
@@ -892,7 +832,7 @@ body{
     /* Note type badge on list items */
     .note-item-type {
       display: inline-block;
-      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
       padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
       text-transform: uppercase; letter-spacing: 0.08em;
     }
@@ -911,11 +851,10 @@ body{
     .new-note-type-btn {
       background: var(--bg3); border: 1px solid var(--border);
       border-radius: 7px; padding: 10px 8px;
-      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
     }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
-
 
 /* ── Pin button ── */
 .note-pin-btn {
@@ -937,7 +876,7 @@ body{
   flex-shrink: 0;
 }
 .note-ts {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
   color: var(--muted); white-space: nowrap;
 }
 .note-ts strong { color: var(--text2); font-weight: 600; }
@@ -958,13 +897,13 @@ body{
   flex-shrink: 0; background: var(--bg);
 }
 .note-backlinks-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 6px;
 }
 .note-backlinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .note-backlink-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 4px; padding: 3px 8px; cursor: pointer; transition: all 0.12s;
 }
@@ -1050,7 +989,7 @@ body.is-resizing *{cursor:col-resize!important}
   border-radius: 6px;
   padding: 7px 12px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
   cursor: pointer;
@@ -1084,7 +1023,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 .session-field input {
@@ -1099,7 +1038,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-actions { display: flex; gap: 8px; margin-top: 4px; }
 .session-btn {
   flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .session-btn.primary {
@@ -1110,7 +1049,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
 .session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .session-list-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
 }
@@ -1118,32 +1057,33 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 8px;
   padding: 7px 10px; border-radius: 6px; cursor: pointer;
   background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s; flex-wrap: wrap;
+  transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; color: var(--text); min-width: 0;
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-weight: 700; color: var(--text);
 }
-.session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
-.session-item-actions {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto;
+.session-list-item-meta { font-size: 12px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-export-btn {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  padding: 4px 10px; cursor: pointer; transition: all 0.12s; flex-shrink: 0;
 }
-.session-item-export-btn {
-  background: var(--bg4); border: 1px solid var(--border);
-  border-radius: 4px; color: var(--muted); cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
-  padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
-}
-.session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
-
+.session-export-btn:hover { border-color: var(--green); color: var(--green); }
 .session-delete-btn {
   background: none; border: none; color: var(--muted); cursor: pointer;
   font-size: 17px; padding: 2px 6px; border-radius: 4px; transition: all 0.12s;
   flex-shrink: 0;
 }
 .session-delete-btn:hover { color: var(--red); }
+.export-feedback {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  padding: 8px 10px; border-radius: 6px; margin-top: 4px;
+}
+.export-feedback.ok { color: var(--green); background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); }
+.export-feedback.err { color: var(--red); background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
 
 /* ── Notes scope bar (Session / Unassigned / All) ── */
 .notes-scope-bar {
@@ -1152,7 +1092,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); padding: 6px 4px;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
@@ -1208,7 +1148,7 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .target-sel-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
@@ -1234,15 +1174,15 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--green); box-shadow: 0 0 5px var(--green);
 }
 .target-item-ip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--text); min-width: 110px;
 }
 .target-item-domain {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   color: var(--text2); flex: 1;
 }
 .target-item-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
@@ -1252,7 +1192,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item-del:hover { color: var(--red); }
 .targets-empty {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   color: var(--muted); text-align: center; padding: 14px 0;
 }
 
@@ -1266,7 +1206,7 @@ body.is-resizing *{cursor:col-resize!important}
   flex-shrink: 0; background: var(--bg2);
 }
 .cp-edit-status {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   color: var(--muted);
 }
 .cp-edit-status.saved  { color: var(--green); }
@@ -1289,7 +1229,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 6px 14px 0; flex-shrink: 0;
 }
 .note-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
   padding: 2px 7px; cursor: pointer; transition: all 0.12s;
@@ -1300,7 +1240,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-tag-del:hover { opacity: 1; }
 .note-tag-input {
   background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); min-width: 80px; flex: 1;
 }
 .note-tag-input::placeholder { color: var(--muted); }
@@ -1308,7 +1248,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Tags in note list items */
 .note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .note-item-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.16);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
 }
@@ -1318,7 +1258,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
 }
 .tag-filter-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
   letter-spacing: 0.03em;
@@ -1326,67 +1266,11 @@ body.is-resizing *{cursor:col-resize!important}
 .tag-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
 .tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.18); border-color: rgba(124,58,237,0.35); }
 
-/* ── Note target assign ── */
-.note-target-assign-wrap { position: relative; flex-shrink: 0; }
-.note-target-assign-btn {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 5px; padding: 3px 9px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
-  color: var(--muted); transition: all 0.15s; white-space: nowrap;
-  display: flex; align-items: center; gap: 5px;
-}
-.note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
-.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
-.note-target-assign-dropdown {
-  display: none; position: absolute; top: calc(100% + 5px); right: 0;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 8px; min-width: 180px; z-index: 400;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
-  flex-direction: column; overflow: hidden;
-}
-.note-target-assign-dropdown.open { display: flex; }
-.note-target-assign-option {
-  padding: 8px 14px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
-  color: var(--text2); transition: background 0.1s; white-space: nowrap;
-}
-.note-target-assign-option:hover { background: var(--bg4); color: var(--text); }
-.note-target-assign-option.current { color: var(--accent); }
-.note-target-assign-option.unassign { color: var(--muted); font-weight: 400; font-size: 11px; }
-
-/* ── Target filter bar in notes list ── */
-.target-filter-bar {
-  display: none;
-  gap: 5px; padding: 5px 10px 4px;
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto; flex-shrink: 0;
-}
-.target-filter-bar::-webkit-scrollbar { height: 2px; }
-.target-filter-bar::-webkit-scrollbar-thumb { background: var(--border2); }
-.target-filter-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 4px; padding: 2px 8px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
-  color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
-}
-.target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
-.target-filter-chip.active { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
-
-/* Target badge on note list items */
-.note-item-target {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-  color: var(--green); background: rgba(52,211,153,0.08);
-  border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
-  padding: 1px 5px; margin-top: 3px;
-}
-
 /* ── Note reassign dropdown ── */
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
   background: none; border: 1px solid var(--border); border-radius: 5px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -1400,7 +1284,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-reassign-dropdown.open { display: flex; }
 .note-reassign-option {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
   color: var(--text2); padding: 6px 10px; border-radius: 5px; cursor: pointer;
   transition: background 0.1s; white-space: nowrap;
 }
@@ -1408,9 +1292,17 @@ body.is-resizing *{cursor:col-resize!important}
 .note-reassign-option.current { color: var(--accent); }
 .note-reassign-option.unassign { color: var(--muted); font-weight: 400; }
 
+/* ── Export unassigned toggle ── */
+.export-unassigned-row {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text2);
+  padding: 4px 2px;
+}
+.export-unassigned-row input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+
 /* ── .session file import feedback ── */
 .import-feedback {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   padding: 8px 10px; border-radius: 6px; margin-top: 2px;
 }
 .import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
@@ -1437,7 +1329,7 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
 kbd {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--text); background: var(--bg4);
   border: 1px solid var(--border2); border-bottom-width: 2px;
   border-radius: 4px; padding: 2px 7px; line-height: 1.6;
@@ -1474,7 +1366,7 @@ kbd {
 .result-badge.online{color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
 .result-snippet mark{background:rgba(34,197,94,0.18);color:var(--text);border-radius:2px;padding:0 2px;font-style:normal}
 .search-meta{
-  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
   margin-top:1px;
 }
 
@@ -1562,7 +1454,7 @@ body.enc-active-body .topbar {
 .pw-description strong { color: var(--text); }
 .pw-field { display: flex; flex-direction: column; gap: 5px; }
 .pw-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted);
 }
@@ -1596,7 +1488,7 @@ body.enc-active-body .topbar {
 .pw-strength-bar.medium { background: var(--yellow); }
 .pw-strength-bar.strong { background: var(--green); }
 .pw-error-msg {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   color: var(--red); display: none; margin-top: 2px;
 }
 .pw-error-msg.visible { display: block; }
@@ -1605,7 +1497,7 @@ body.enc-active-body .topbar {
 .pw-btn {
   flex: 1; padding: 9px; border-radius: 7px;
   border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
   cursor: pointer; transition: all 0.15s; text-align: center;
   letter-spacing: 0.04em;
 }
@@ -1624,176 +1516,6 @@ body.enc-active-body .topbar {
 
 /* Confirm variant */
 .pw-confirm-icon { font-size: 32px; text-align: center; padding: 4px 0; }
-
-/* ── Port/Service Quick-Log ── */
-/* ── Quick-Log topbar button ── */
-.svc-topbar-wrap { position: relative; flex-shrink: 0; }
-.svc-topbar-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0 10px;
-  cursor: pointer; transition: all 0.15s;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
-  color: var(--muted); white-space: nowrap;
-  height: 32px; box-sizing: border-box; align-self: center;
-}
-.svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
-.svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
-.svc-topbar-btn-count {
-  background: var(--accent); color: #fff;
-  font-size: 9px; font-weight: 700;
-  border-radius: 3px; padding: 1px 5px; min-width: 16px; text-align: center;
-  display: none;
-}
-.svc-topbar-btn-count.has-entries { display: inline-block; }
-
-/* ── Quick-Log popover panel ── */
-.svc-popover {
-  display: none; position: absolute; top: calc(100% + 8px); right: 0;
-  width: 520px; max-width: 95vw;
-  background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
-  z-index: 300; overflow: hidden;
-  animation: cmdSlide 0.06s ease;
-}
-.svc-popover.open { display: block; }
-.svc-popover-hdr {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-bottom: 1px solid var(--border);
-  background: var(--bg3);
-}
-.svc-popover-title {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-}
-.svc-popover-count {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  color: var(--text2); background: var(--bg4);
-  border: 1px solid var(--border); border-radius: 3px; padding: 1px 6px;
-}
-.svc-popover-body { padding: 12px 14px; }
-.svc-popover-table-wrap { max-height: 260px; overflow-y: auto; margin-top: 10px; }
-.svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
-.svc-popover-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
-.svc-log-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
-  margin-bottom: 7px; display: flex; align-items: center; gap: 8px;
-}
-.svc-log-hdr-count {
-  font-size: 10px; background: var(--bg4); border: 1px solid var(--border);
-  border-radius: 3px; padding: 1px 5px; color: var(--text2); font-weight: 600;
-}
-.svc-quick-input-row { display: flex; gap: 6px; margin-bottom: 8px; }
-.svc-quick-input {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text); padding: 7px 10px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  outline: none; transition: border-color 0.15s;
-}
-.svc-quick-input:focus { border-color: var(--accent); }
-.svc-quick-input::placeholder { color: var(--muted); }
-.svc-quick-add-btn {
-  background: var(--accent); border: none; border-radius: 6px;
-  color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
-}
-.svc-quick-add-btn:hover { background: var(--accent2); }
-.svc-hint {
-  font-family: 'Inter', sans-serif; font-size: 12px; color: var(--muted);
-  margin-bottom: 7px; line-height: 1.6;
-}
-.svc-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-.svc-table th {
-  text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-  border-bottom: 1px solid var(--border); background: var(--bg3);
-}
-.svc-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
-.svc-table tr:last-child td { border-bottom: none; }
-.svc-table tr:hover td { background: rgba(124,58,237,0.06); }
-.svc-table td:first-child { color: var(--green); font-weight: 700; white-space: nowrap; }
-.svc-table td:nth-child(2) { color: var(--accent); font-weight: 700; }
-.svc-del-btn {
-  background: none; border: none; cursor: pointer; color: var(--muted);
-  font-size: 13px; padding: 0 4px; border-radius: 3px; transition: color 0.12s;
-}
-.svc-del-btn:hover { color: var(--red); }
-.svc-notes-cell {
-  background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-  color: var(--text2); width: 100%; resize: none; min-width: 80px;
-}
-.svc-notes-cell::placeholder { color: var(--muted); }
-.svc-empty { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
-
-/* ── Timeline View ── */
-.notes-list-view-toggle {
-  display: flex; gap: 0; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
-}
-.notes-view-btn {
-  flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  color: var(--muted); padding: 5px 4px;
-  border-bottom: 2px solid transparent; transition: all 0.12s;
-  letter-spacing: 0.04em; text-transform: uppercase;
-}
-.notes-view-btn:hover { color: var(--text2); }
-.notes-view-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-.timeline-list {
-  flex: 1; overflow-y: auto; position: relative;
-  padding: 12px 0 12px 28px; display: none;
-}
-.timeline-list::-webkit-scrollbar { width: 3px; }
-.timeline-list::-webkit-scrollbar-thumb { background: var(--border2); }
-.timeline-list::before {
-  content: ''; position: absolute; left: 14px; top: 0; bottom: 0;
-  width: 2px; background: var(--border); border-radius: 1px;
-}
-.timeline-day-group { margin-bottom: 4px; }
-.timeline-day-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-  padding: 6px 10px 4px 2px; display: flex; align-items: center; gap: 6px; position: relative;
-}
-.timeline-day-label::before {
-  content: ''; position: absolute; left: -18px; top: 50%; transform: translateY(-50%);
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border2); border: 2px solid var(--bg2); z-index: 1;
-}
-.timeline-entry {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 6px 10px 6px 2px; cursor: pointer;
-  border-radius: 5px; transition: background 0.1s; position: relative; margin-bottom: 2px;
-}
-.timeline-entry:hover { background: rgba(124,58,237,0.1); }
-.timeline-entry.tl-active { background: rgba(124,58,237,0.15); }
-.timeline-entry::before {
-  content: ''; position: absolute; left: -17px; top: 11px;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--border2); border: 1.5px solid var(--bg2);
-  transition: background 0.12s; z-index: 1;
-}
-.timeline-entry:hover::before, .timeline-entry.tl-active::before { background: var(--accent); }
-.tl-time {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-top: 2px; min-width: 38px;
-}
-.tl-body { flex: 1; min-width: 0; }
-.tl-type-badge {
-  display: inline-block; font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
-  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
-}
-.tl-title {
-  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.tl-preview {
-  font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
-}
 </style>
 </head>
 <body>
@@ -1820,34 +1542,6 @@ body.enc-active-body .topbar {
       </div>
       <span class="target-sel-label" id="targetSelLabel"></span>
       <span class="target-sel-arrow">⌄</span>
-    </div>
-
-    <!-- ── Quick-Log button + popover ── -->
-    <div class="svc-topbar-wrap" id="svcTopbarWrap">
-      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log">
-        ⚡ Log
-        <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
-      </button>
-      <div class="svc-popover" id="svcPopover">
-        <div class="svc-popover-hdr">
-          <span class="svc-popover-title">⚡ Port / Service Log</span>
-          <span class="svc-popover-count" id="svcLogCount">0 entries</span>
-          <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">✕</button>
-        </div>
-        <div class="svc-popover-body">
-          <div class="svc-hint">Format: <strong style="color:var(--text2)">port/proto service version notes</strong> — e.g. <code style="color:var(--green);font-size:10px">445/tcp smb</code> &nbsp; <code style="color:var(--green);font-size:10px">8080 http nginx 1.18 login-page</code></div>
-          <div class="svc-quick-input-row">
-            <input class="svc-quick-input" id="svcQuickInput" type="text"
-              placeholder="80/tcp http apache 2.4.49…"
-              autocomplete="off" spellcheck="false"
-              onkeydown="if(event.key==='Enter')addServiceLog()">
-            <button class="svc-quick-add-btn" onclick="addServiceLog()">＋ Add</button>
-          </div>
-          <div class="svc-popover-table-wrap">
-            <div id="svcLogTable"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <button class="cmd-trigger" onclick="openCmd()" title="⌘K">
@@ -1985,6 +1679,8 @@ body.enc-active-body .topbar {
               <button class="btn-group-item fuzzy-active" data-fuzzy="normal" onclick="setFuzzy('normal',this)">On</button>
               <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
             </div>
+          </div>
+          <div class="search-meta-row">
             <span class="search-status" id="searchStatus"></span>
             <span class="search-meta" id="searchMeta"></span>
           </div>
@@ -2006,16 +1702,11 @@ body.enc-active-body .topbar {
               <span>Notes</span>
               <button class="icon-btn" onclick="openNewNoteModal()" title="New note">＋</button>
             </div>
-            <div class="notes-list-view-toggle">
-              <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
-              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)">⏱ Timeline</button>
-            </div>
             <div class="notes-scope-bar">
               <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
               <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
               <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
             </div>
-            <div class="target-filter-bar" id="targetFilterBar"></div>
             <div class="notes-type-filter" id="notesTypeFilter">
               <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
               <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
@@ -2024,10 +1715,9 @@ body.enc-active-body .topbar {
               <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
               <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
               <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
-              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
+              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Scratch</button>
             </div>
             <div class="notes-list-items" id="notesList"></div>
-            <div class="timeline-list" id="timelineList"></div>
           <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
           </div>
           <div class="notes-editor" id="notesEditor">
@@ -2043,10 +1733,6 @@ body.enc-active-body .topbar {
                 <div class="note-reassign-wrap">
                   <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
                   <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
-                </div>
-                <div class="note-target-assign-wrap">
-                  <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">🎯 target</button>
-                  <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
@@ -2107,7 +1793,6 @@ body.enc-active-body .topbar {
 
   </div><!-- end body-split -->
 </div>
-
 
 <!-- ── SHORTCUTS MODAL ── -->
 <div class="cmd-overlay" id="shortcutsOverlay" onclick="if(event.target===this)closeShortcutsModal()">
@@ -2194,13 +1879,17 @@ body.enc-active-body .topbar {
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">⬆ Import .session</button>
         <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
       </div>
+      <div class="export-unassigned-row">
+        <input type="checkbox" id="exportIncludeUnassigned">
+        <label for="exportIncludeUnassigned" style="cursor:pointer">Include unassigned notes</label>
+      </div>
+      <div id="exportFeedback" style="display:none"></div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>
     </div>
   </div>
 </div>
-
 
 <!-- ── TARGETS PANEL ── -->
 <div class="cmd-overlay" id="targetsOverlay" onclick="closeTargetsPanelIfOutside(event)">
@@ -2232,7 +1921,6 @@ body.enc-active-body .topbar {
       <button class="session-btn primary" onclick="addTarget()" style="align-self:flex-start;padding:7px 16px">＋ Add Target</button>
       <!-- Targets list -->
       <div id="targetsList" style="display:flex;flex-direction:column;gap:5px;margin-top:4px"></div>
-
     </div>
   </div>
 </div>
@@ -2248,7 +1936,7 @@ body.enc-active-body .topbar {
     <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
       <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
-        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >📄 Blank</button>
+        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >✏️ Scratch</button>
         <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
         <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
         <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
@@ -2283,7 +1971,6 @@ body.enc-active-body .topbar {
 // ═══════════════════════════════════════════════
 let SERVICES      = [];
 let METHODOLOGIES = [];
-let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
 let searchScope   = 'all';
@@ -2356,8 +2043,6 @@ function getActiveTarget() {
 function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
 function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<DOMAIN>'; }
 
-function updateTargetDots() { updateTargetSelector(); }
-
 function updateTargetSelector() {
   const t   = getActiveTarget();
   const dot = document.getElementById('targetSelDot');
@@ -2388,7 +2073,6 @@ function openTargetsPanel() {
   document.getElementById('newTargetDomain').value = '';
   document.getElementById('newTargetLabel').value  = '';
   renderTargetsList();
-  renderSvcLogTable();
   document.getElementById('targetsOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newTargetIP').focus(), 50);
 }
@@ -2463,8 +2147,6 @@ function deleteTarget(id) {
     if (activeTargetId) localStorage.setItem('ops-active-target', activeTargetId);
     else localStorage.removeItem('ops-active-target');
   }
-    // Clear target_id from notes assigned to this target
-  Object.values(notes).forEach(n => { if (n.target_id === id) n.target_id = null; });
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
@@ -2624,15 +2306,12 @@ async function init() {
   renderCards('services');
   renderCards('methodologies');
   buildSidebar('services');
-  // Set initial card layout mode after render
-  setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
 }
 
 // ═══════════════════════════════════════════════
 // VIEW SWITCHING
 // ═══════════════════════════════════════════════
 function switchView(view, navEl) {
-  activeView = view;
   document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
@@ -2701,10 +2380,8 @@ function renderCards(view) {
     card.innerHTML = `
       <span class="card-cat">${esc(item.category || '')}</span>
       <span class="card-icon">${item.icon || '📄'}</span>
-      <div class="card-port-name-row">
-        ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
-        <span class="card-name">${esc(item.name)}</span>
-      </div>
+      ${item.port ? `<div class="card-port">${esc(item.port)}</div>` : ''}
+      <div class="card-name">${esc(item.name)}</div>
       <div class="card-desc">${esc(item.description || '')}</div>`;
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
@@ -2712,37 +2389,6 @@ function renderCards(view) {
 
   updateToolbarCount(view, items.length);
 }
-
-
-// ── Cards layout: switch between grid tiles and compact list based on actual container width ──
-(function() {
-  const BREAKPOINT = 1100; // px — below this, switch to list mode
-
-  function applyMode(el) {
-    if (!el) return;
-    const w = el.getBoundingClientRect().width;
-    el.classList.toggle('cards-list-mode', w < BREAKPOINT && w > 0);
-  }
-
-  function observeGrids() {
-    const grids = document.querySelectorAll('.cards-area');
-    if (!grids.length) return;
-    const ro = new ResizeObserver(entries => {
-      entries.forEach(e => applyMode(e.target));
-    });
-    grids.forEach(g => { ro.observe(g); applyMode(g); });
-  }
-
-  // Run after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', observeGrids);
-  } else {
-    setTimeout(observeGrids, 100);
-  }
-
-  // Expose so init() can call after layout settles
-  window._observeCardGrids = observeGrids;
-})();
 
 function filterCards(view, query) {
   const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
@@ -2801,25 +2447,55 @@ async function openItem(view, id) {
   }
 }
 
-async function openPreviewByPath(title, filePath) {
+async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
   try {
-    const r = await fetch(`/api/preview?file=${encodeURIComponent(filePath)}`);
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop(), isLocal: false };
-    renderContent(d.html, '🔍', title, filePath.split('/').pop());
+    let d = null;
+
+    // For local results: proxy to ENGRAM's /api/preview via PRAGMA's /api/content-proxy.
+    // ENGRAM indexed the file — it knows the real path and can read it regardless of
+    // whether PRAGMA and ENGRAM share a filesystem/container.
+    // file_path is the exact path stored in ENGRAM's index, used as the lookup key.
+    if (filePath) {
+      try {
+        const r = await fetch('/api/content-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        });
+        const j = await r.json();
+        if (j.ok && j.html) d = j;
+        else console.warn('[PRAGMA] content-proxy:', j.error || j.detail || 'no content');
+      } catch (e) {
+        console.warn('[PRAGMA] content-proxy fetch failed:', e.message);
+      }
+    }
+
+    if (!d) throw new Error('Content unavailable — ENGRAM could not serve this file');
+
+    const meta = filePath.split('/').pop() || sourceName || '';
+    activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContent(d.html, '🔍', title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
-    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    document.getElementById('cpContent').innerHTML = `
+      <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
+        <div style="font-size:22px;margin-bottom:8px">⚠</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px">
+          Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
+          <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
+        </div>
+      </div>`;
   }
 }
 
-function renderContent(html, icon, title, meta) {
+function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpIcon').textContent  = icon;
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent  = meta || '';
@@ -2880,7 +2556,18 @@ function setFuzzy(f, btn) {
   if (q.length >= 2) runSearch(q);
 }
 
+// ── Search history ──
+let searchHistory = JSON.parse(localStorage.getItem('pragma-search-history') || '[]');
+
+function addToSearchHistory(query) {
+  if (!query || query.length < 2) return;
+  searchHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 30);
+  try { localStorage.setItem('pragma-search-history', JSON.stringify(searchHistory)); } catch(e) {}
+}
+
 async function runSearch(query) {
+  lastSearchQuery = query;
+  addToSearchHistory(query);
   try {
     const r = await fetch('/api/search-proxy', {
       method: 'POST',
@@ -2957,21 +2644,18 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
     return `<div class="result-card${isLocal?' local-result':''}"
          data-local="${isLocal?'1':'0'}"
          data-filepath="${esc(r.file_path||'')}"
+         data-sourceid="${esc(r.source_id||'')}"
+         data-sourcename="${esc(r.source_name||'')}"
          data-title="${esc(r.title||'')}"
          data-url="${esc(href)}"
+         data-query="${esc(query)}"
          onclick="handleResultClick(this)">
-      <div class="result-card-top">
-        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
-        <div class="result-card-right">
-          ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
-          <div class="result-card-badges">
-            ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-            ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
-          </div>
-        </div>
-      </div>
+      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
+        ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
       </div>
       ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;
@@ -2980,9 +2664,10 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
 
 function handleResultClick(el) {
   if (el.dataset.local === '1') {
-    openPreviewByPath(el.dataset.title, el.dataset.filepath);
+    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '', el.dataset.sourceid || '', el.dataset.sourcename || '');
   } else {
-    window.open(el.dataset.url, '_blank', 'noopener');
+    const safeUrl = el.dataset.url || '';
+    if (/^https?:\/\//i.test(safeUrl)) window.open(safeUrl, '_blank', 'noopener');
   }
 }
 
@@ -3006,78 +2691,63 @@ function closeCmdIfOutside(e) {
 }
 
 function buildCmdResults(q) {
-  const ql    = q.toLowerCase().trim();
-  const res   = document.getElementById('cmdResults');
-  cmdItems    = [];
-  let html    = '';
+  const ql  = q.toLowerCase().trim();
+  const res = document.getElementById('cmdResults');
+  cmdItems  = [];
+  let html  = '';
 
-  // Services
-  const svcs = SERVICES.filter(s =>
+  // Helper: renders a group of cmd items and appends to html
+  function addGroup(header, items) {
+    if (!items.length) return;
+    html += `<div class="cmd-group-hdr">${header}</div>`;
+    items.forEach(({ item, type, tag, icon, title, sub }) => {
+      const idx = cmdItems.length;
+      cmdItems.push({ type, id: item.id, label: title, query: item.query });
+      html += `<div class="cmd-item" data-idx="${idx}" onclick="execCmd(${idx})">
+        <span class="cmd-item-icon">${icon}</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${title}</div>
+          <div class="cmd-item-sub">${sub}</div>
+        </div>
+        ${tag ? `<span class="cmd-item-tag">${tag}</span>` : ''}
+      </div>`;
+    });
+  }
+
+  addGroup('Services', SERVICES.filter(s =>
     !ql || s.name.toLowerCase().includes(ql) || (s.port||'').includes(ql) ||
     (s.category||'').toLowerCase().includes(ql)
-  ).slice(0, 6);
+  ).slice(0, 6).map(s => ({
+    item: s, type: 'service', tag: 'service',
+    icon: s.icon || '📄',
+    title: esc(s.name),
+    sub: esc(s.port || '') + (s.port && s.category ? ' · ' : '') + esc(s.category || ''),
+  })));
 
-  if (svcs.length) {
-    html += `<div class="cmd-group-hdr">Services</div>`;
-    svcs.forEach(s => {
-      cmdItems.push({ type:'service', id:s.id, label:s.name });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${s.icon||'📄'}</span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(s.name)}</div>
-          <div class="cmd-item-sub">${esc(s.port||'')} · ${esc(s.category||'')}</div>
-        </div>
-        <span class="cmd-item-tag">service</span>
-      </div>`;
-    });
-  }
-
-  // Methodologies
-  const meths = METHODOLOGIES.filter(m =>
+  addGroup('Tactical Guides', METHODOLOGIES.filter(m =>
     !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
-  ).slice(0, 5);
+  ).slice(0, 5).map(m => ({
+    item: m, type: 'methodology', tag: 'guide',
+    icon: m.icon || '📋',
+    title: esc(m.name),
+    sub: esc(m.category || ''),
+  })));
 
-  if (meths.length) {
-    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
-    meths.forEach(m => {
-      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${m.icon||'📋'}</span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(m.name)}</div>
-          <div class="cmd-item-sub">${esc(m.category||'')}</div>
-        </div>
-        <span class="cmd-item-tag">guide</span>
-      </div>`;
-    });
-  }
-
-  // Notes
-  const noteList = Object.values(notes).filter(n =>
+  addGroup('Session Notes', Object.values(notes).filter(n =>
     !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql) ||
     (n.tags||[]).some(t => t.toLowerCase().includes(ql))
-  ).slice(0, 3);
+  ).slice(0, 3).map(n => ({
+    item: n, type: 'note', tag: 'note',
+    icon: '📝',
+    title: esc(n.title || 'Untitled'),
+    sub: esc((n.body || '').slice(0, 60)),
+  })));
 
-  if (noteList.length) {
-    html += `<div class="cmd-group-hdr">Session Notes</div>`;
-    noteList.forEach(n => {
-      cmdItems.push({ type:'note', id:n.id, label:n.title });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">📝</span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(n.title||'Untitled')}</div>
-          <div class="cmd-item-sub">${esc((n.body||'').slice(0,60))}</div>
-        </div>
-        <span class="cmd-item-tag">note</span>
-      </div>`;
-    });
-  }
-
-  // Search action
   if (ql) {
-    cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
+    const idx = cmdItems.length;
+    cmdItems.push({ type: 'search', query: ql, label: `Search "${ql}"` });
     html += `<div class="cmd-group-hdr">Search</div>
-    <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+    <div class="cmd-item" data-idx="${idx}" onclick="execCmd(${idx})">
       <span class="cmd-item-icon">🔍</span>
       <div class="cmd-item-main">
         <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
@@ -3086,13 +2756,9 @@ function buildCmdResults(q) {
     </div>`;
   }
 
-  if (!html) {
-    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, guides and notes…
-    </div>`;
-  }
-
-  res.innerHTML = html;
+  res.innerHTML = html || `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
+    Type to search services, guides and notes…
+  </div>`;
   cmdSelected = 0;
   updateCmdSelection();
 }
@@ -3159,7 +2825,7 @@ const NOTE_TYPE_META = {
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
-  scratch:     { label: 'Blank',     icon: '📄',  cssClass: 'note-type-scratch'     },
+  scratch:     { label: 'Scratch',     icon: '✏️',  cssClass: 'note-type-scratch'     },
 };
 
 const NOTE_TEMPLATES = {
@@ -3167,9 +2833,7 @@ const NOTE_TEMPLATES = {
     title: '',
     body: `## Overview
 
-
 ## Notes
-
 
 ## References
 
@@ -3185,7 +2849,6 @@ const NOTE_TEMPLATES = {
 |          |          |      |         |       |
 
 ## Password Spray / Stuffing Notes
-
 
 ## Valid Sessions / Tokens
 
@@ -3208,18 +2871,13 @@ const NOTE_TEMPLATES = {
 
 ### SUID / SGID Binaries
 
-
 ### Sudo Rights
-
 
 ### Cron Jobs
 
-
 ### Writable Paths / Misconfigs
 
-
 ### Interesting Files
-
 
 ## Vectors Attempted
 
@@ -3228,7 +2886,6 @@ const NOTE_TEMPLATES = {
 |        |        |       |
 
 ## Escalation Path
-
 
 `
   },
@@ -3252,12 +2909,9 @@ const NOTE_TEMPLATES = {
 
 ## Web Endpoints
 
-
 ## DNS / Hostnames
 
-
 ## Users / Groups Discovered
-
 
 ## Findings
 
@@ -3273,7 +2927,6 @@ const NOTE_TEMPLATES = {
 |      |             |              |              |
 
 ## Credentials Found
-
 
 ## Flags / Proofs
 
@@ -3313,7 +2966,6 @@ const NOTE_TEMPLATES = {
 
 ## Outcome
 
-
 ## Cleanup / Artifacts to Remove
 
 `
@@ -3328,7 +2980,6 @@ const NOTE_TEMPLATES = {
 let activeNoteFilter = 'all';
 let activeNoteScope  = 'session';
 let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
-let activeTargetFilter = null; // target id or null
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
@@ -3532,6 +3183,7 @@ function openSessionModal() {
   document.getElementById('newSessionName').value   = '';
   document.getElementById('newSessionIP').value     = '';
   document.getElementById('newSessionDomain').value = '';
+  document.getElementById('exportFeedback').style.display = 'none';
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -3552,11 +3204,9 @@ function renderSessionList() {
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
       <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <div class="session-item-actions" onclick="event.stopPropagation()">
-        <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
-        <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
-        <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
-      </div>
+      <button class="session-export-btn" onclick="event.stopPropagation();exportSessionFile('${s.id}')" title="Export .session file">⬇ .session</button>
+      <button class="session-export-btn" onclick="event.stopPropagation();exportSession('${s.id}')" title="Export notes as markdown" style="color:var(--muted)">⬇ .md</button>
+      <button class="session-delete-btn" onclick="event.stopPropagation();deleteSession('${s.id}')" title="Delete session">🗑</button>
     </div>`).join('');
 }
 
@@ -3582,7 +3232,6 @@ function switchSession(id) {
   localStorage.setItem('ops-active-session', id);
   // Reset scope to session view when switching
   activeNoteScope = 'session';
-  activeTargetFilter = null;
   document.querySelectorAll('.note-scope-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.scope === 'session'));
   // Restore last active target for this session
@@ -3630,6 +3279,37 @@ async function deleteSession(id) {
   renderNotesList();
 }
 
+async function exportSession(id) {
+  const fb = document.getElementById('exportFeedback');
+  const includeUnassigned = document.getElementById('exportIncludeUnassigned')?.checked || false;
+  fb.style.display = 'block';
+  fb.className = 'export-feedback';
+  fb.textContent = '⏳ Exporting…';
+  try {
+    // When encrypted, pass the decrypted data directly so the server
+    // never needs to read notes.json (which doesn't exist in enc mode)
+    const body = encryptedStorageEnabled
+      ? { session_id: id, include_unassigned: includeUnassigned, sessions, notes }
+      : { session_id: id, include_unassigned: includeUnassigned };
+    const r = await fetch('/api/notes/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      fb.className = 'export-feedback ok';
+      fb.textContent = `✓ Exported ${d.files?.length || 0} file${(d.files?.length||0)!==1?'s':''} → notes/${d.session}/`;
+    } else {
+      fb.className = 'export-feedback err';
+      fb.textContent = `✗ ${d.error || 'Export failed'}`;
+    }
+  } catch(e) {
+    fb.className = 'export-feedback err';
+    fb.textContent = `✗ ${e.message}`;
+  }
+}
+
 function setNoteFilter(type, btn) {
   activeNoteFilter = type;
   document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
@@ -3639,19 +3319,12 @@ function setNoteFilter(type, btn) {
 
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
-  activeTargetFilter = null;
   document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderNotesList();
 }
 
 function renderNotesList() {
-  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
-    renderTimeline();
-    document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
-    renderTargetFilterBar();
-    return;
-  }
   const list = document.getElementById('notesList');
   let items = Object.values(notes).sort((a,b) => {
     if (a.pinned && !b.pinned) return -1;
@@ -3670,7 +3343,6 @@ function renderNotesList() {
 
   if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
   if (activeTagFilter) items = items.filter(n => (n.tags||[]).includes(activeTagFilter));
-  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
@@ -3684,9 +3356,6 @@ function renderNotesList() {
     const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
     const sess = n.session_id && sessions[n.session_id];
     const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
-    const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
-      ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
-    const tgtLabel = tgt ? `<div class="note-item-target">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</div>` : '';
     const tagsHtml = (n.tags||[]).length
       ? `<div class="note-item-tags">${(n.tags).map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
       : '';
@@ -3696,13 +3365,11 @@ function renderNotesList() {
       <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       ${tagsHtml}
       ${sessLabel}
-      ${tgtLabel}
       <div class="note-item-date">${formatDate(n.updated)}</div>
     </div>`;
   }).join('');
 
   document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
-  renderTargetFilterBar();
 }
 
 function formatDate(ts) {
@@ -3730,12 +3397,11 @@ function newNote(type = 'general') {
   notes[id]  = {
     id,
     session_id:    activeSessionId || null,
-    target_id:     activeTargetId || null,
     type,
     title:         tmpl.title || '',
     body:          tmpl.body  || '',
-    target_ip:     getIP()     !== '<IP>'     ? getIP()     : null,
-    target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
+    target_ip:     getActiveTarget()?.ip     || null,
+    target_domain: getActiveTarget()?.domain || null,
     created:       Date.now(),
     updated:       Date.now(),
   };
@@ -3790,21 +3456,15 @@ function openNote(id) {
   renderNoteTags(n);
   updateReassignBtn(n);
   renderBacklinks(id);
-  if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
   document.getElementById('noteSaveStatus').textContent  = 'saved';
   document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
 
   renderNotesList();
-  // Keep timeline highlight in sync when a note is opened from timeline
-  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
-    renderTimeline();
-  }
 
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   // noteEditor onChange wired in cmInit
 }
-
 
 // ═══════════════════════════════════════════════════════════
 // PIN NOTES
@@ -3902,17 +3562,6 @@ async function deleteCurrentNote() {
 // CONTENT PANEL EDIT MODE
 // ═══════════════════════════════════════════════
 let cpEditDirty = false;
-
-function cpEditTabHandler(e) {
-  if (e.key !== 'Tab') return;
-  e.preventDefault();
-  const ta = e.target;
-  const s  = ta.selectionStart, end = ta.selectionEnd;
-  ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = s + 2;
-  setCpEditStatus('unsaved', '● unsaved');
-  cpEditDirty = true;
-}
 
 function setCpEditStatus(cls, msg) {
   const el = document.getElementById('cpEditStatus');
@@ -4062,12 +3711,11 @@ function setTagFilter(tag) {
 function renderTagFilterSidebar() {
   const list = document.getElementById('tagFilterList');
   const tags = getAllTags();
-  if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  if (!tags.length) { list.innerHTML = '<span style="font-size:12px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
 }
-
 
 // ═══════════════════════════════════════════════
 // CODEMIRROR 6 EDITORS
@@ -4183,10 +3831,6 @@ function cmInitKb() {
     parent: wrap,
   });
 }
-
-// Reinit editors on theme toggle to pick up new CSS vars
-const _origToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
-
 
 // ═══════════════════════════════════════════════
 // CUSTOM MODAL ENGINE
@@ -4376,31 +4020,13 @@ function _pwCheckStrength() {
 }
 
 // ═══════════════════════════════════════════════
-// SESSION ENCRYPTION (AES-256-GCM + PBKDF2-SHA-512)
+// SESSION ENCRYPTION (AES-256-GCM + PBKDF2)
 // ═══════════════════════════════════════════════
-// Format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
-// Format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
-//
-// Note: AES-GCM provides built-in authenticated encryption via the GHASH tag.
-// Any tampering with ciphertext, IV, or AAD causes decrypt to throw — no
-// separate HMAC is required on top of GCM. The pragma_version field gates
-// which key derivation parameters are used on decrypt.
-
-const PBKDF2_ITERATIONS_V2 = 600000; // NIST SP 800-132 (2023) recommendation
-const PBKDF2_ITERATIONS_V1 = 310000; // legacy — kept for reading old blobs
-
-async function deriveKey(password, salt, version = 2) {
-  const enc    = new TextEncoder();
-  const keyMat = await crypto.subtle.importKey(
-    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
-  );
+async function deriveKey(password, salt) {
+  const enc      = new TextEncoder();
+  const keyMat   = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey(
-    {
-      name:       'PBKDF2',
-      salt,
-      iterations: version >= 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1,
-      hash:       version >= 2 ? 'SHA-512' : 'SHA-256',  // SHA-512 harder on GPUs
-    },
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
     keyMat,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -4409,34 +4035,126 @@ async function deriveKey(password, salt, version = 2) {
 }
 
 async function encryptPayload(plaintext, password) {
-  const salt = crypto.getRandomValues(new Uint8Array(32)); // 32-byte salt (v2)
+  const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv   = crypto.getRandomValues(new Uint8Array(12));
-  const key  = await deriveKey(password, salt, 2);
+  const key  = await deriveKey(password, salt);
   const enc  = new TextEncoder();
   const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
   const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
-  return { pragma_version: 2, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
+  return { pragma_version: 1, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
 }
 
 async function decryptPayload(obj, password) {
-  const b64d   = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const salt   = b64d(obj.salt);
-  const iv     = b64d(obj.iv);
-  const ct     = b64d(obj.data);
-  // Detect format version — v1 blobs have pragma_version: 1 or missing
-  const version = (obj.pragma_version >= 2) ? 2 : 1;
-  const key    = await deriveKey(password, salt, version);
-  const dec    = new TextDecoder();
+  const b64d  = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const salt  = b64d(obj.salt);
+  const iv    = b64d(obj.iv);
+  const ct    = b64d(obj.data);
+  const key   = await deriveKey(password, salt);
+  const dec   = new TextDecoder();
   try {
-    // GCM auth tag mismatch throws here if password wrong or data tampered
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
     return dec.decode(plain);
   } catch {
-    throw new Error('Wrong password or corrupted data');
+    throw new Error('Wrong password or corrupted file');
   }
 }
 
 // ═══════════════════════════════════════════════
+// SESSION FILE EXPORT / IMPORT
+// ═══════════════════════════════════════════════
+async function exportSessionFile(id) {
+  const sess = sessions[id];
+  if (!sess) return;
+
+  const sessNotes = Object.values(notes).filter(n => n.session_id === id);
+  const plainPayload = {
+    pragma_version: 1,
+    exported:       Date.now(),
+    session:        sess,
+    notes:          sessNotes,
+  };
+
+  const fb       = document.getElementById('exportFeedback');
+
+  // ── Ask for optional password ──
+  // Ask whether to encrypt the export
+  let password = '';
+  let exportEncrypted = false;
+  try {
+    await showConfirmDialog({
+      icon: '🔒', title: 'Encrypt Export?',
+      bigIcon: '🔒',
+      description: 'Do you want to encrypt this .session file with a password? <br><br>Choose <strong>Encrypt</strong> to add a password, or <strong>Skip</strong> to export as plaintext JSON.',
+      confirmLabel: '🔒 Encrypt', cancelLabel: 'Skip', danger: false,
+    });
+    // User chose to encrypt — ask for password
+    try {
+      password = await showPasswordPrompt({
+        icon: '🔒', title: 'Encrypt Session Export',
+        description: 'Set a password for this .session file. Required to import on another machine.',
+        label: 'Export Password', placeholder: 'Choose a password…',
+        confirm: true, submitLabel: '🔒 Encrypt & Export',
+      });
+      exportEncrypted = true;
+    } catch { return; } // cancelled password entry
+  } catch {
+    // User chose Skip (or cancelled confirm) — export unencrypted
+    exportEncrypted = false;
+  }
+
+  // Filename reflects whether content is encrypted
+  const slug     = sess.codename.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  const filename = slug + (exportEncrypted ? '.session.enc' : '.session');
+
+  let finalPayload;
+  let encrypted = exportEncrypted;
+
+  if (exportEncrypted) {
+    try {
+      finalPayload = await encryptPayload(JSON.stringify(plainPayload), password);
+    } catch(err) {
+      fb.style.display = 'block';
+      fb.className = 'export-feedback err';
+      fb.textContent = '✗ Encryption failed: ' + err.message;
+      return;
+    }
+  } else {
+    finalPayload = plainPayload;
+  }
+
+  // Hit server to write to disk (unencrypted only — server never sees passwords)
+  if (!encrypted) {
+    try {
+      const r = await fetch('/api/notes/export-session', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ session_id: id }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        fb.style.display = 'block';
+        fb.className = 'export-feedback ok';
+        fb.textContent = '✓ Saved → ' + d.path;
+        setTimeout(() => { fb.style.display = 'none'; }, 4000);
+      }
+    } catch(_) {}
+  } else {
+    fb.style.display = 'block';
+    fb.className = 'export-feedback ok';
+    fb.textContent = '✓ Encrypted export ready';
+    setTimeout(() => { fb.style.display = 'none'; }, 4000);
+  }
+
+  // Browser download
+  const blob = new Blob([JSON.stringify(finalPayload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -4677,8 +4395,6 @@ document.addEventListener('keydown', async e => {
     // Reassign dropdown
     const rd = document.getElementById('noteReassignDropdown');
     if (rd?.classList.contains('open')) { rd.classList.remove('open'); return; }
-    // Svc quick-log popover
-    if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
     // Targets panel
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     // Session modal
@@ -4721,489 +4437,6 @@ function esc(s) {
   return String(s||'')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ═══════════════════════════════════════════════
-// PORT / SERVICE QUICK-LOG
-// Stored per session: sessions[id].services = [{id,target_id,port,proto,service,version,notes,added}]
-// ═══════════════════════════════════════════════
-
-function parseSvcInput(raw) {
-  const str = raw.trim();
-  if (!str) return null;
-  let port = '', proto = 'tcp', service = '', version = '', notes = '';
-  const portProtoMatch = str.match(/^(\d+)(?:\/(tcp|udp|sctp))?/i);
-  if (!portProtoMatch) { service = str; return { port, proto, service, version, notes }; }
-  port  = portProtoMatch[1];
-  proto = (portProtoMatch[2] || 'tcp').toLowerCase();
-  const tokens = str.slice(portProtoMatch[0].length).trim().split(/\s+/).filter(Boolean);
-  if (tokens.length >= 1) service = tokens[0];
-  if (tokens.length >= 2) version = tokens[1];
-  if (tokens.length >= 3) notes   = tokens.slice(2).join(' ');
-  return { port, proto, service, version, notes };
-}
-
-function getSessionServices() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].services || [];
-}
-
-function addServiceLog() {
-  const input = document.getElementById('svcQuickInput');
-  const raw   = (input && input.value) ? input.value.trim() : '';
-  if (!raw || !activeSessionId) { if (input) input.focus(); return; }
-  const parsed = parseSvcInput(raw);
-  if (!parsed) return;
-  if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  sessions[activeSessionId].services.push({
-    id:        'svc_' + Date.now(),
-    target_id: activeTargetId || null,
-    port:      parsed.port,
-    proto:     parsed.proto,
-    service:   parsed.service,
-    version:   parsed.version,
-    notes:     parsed.notes,
-    added:     Date.now(),
-  });
-  input.value = '';
-  input.focus();
-  saveNotes();
-  renderSvcLogTable();
-}
-
-function deleteServiceLog(svcId) {
-  if (!activeSessionId) return;
-  sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
-  saveNotes();
-  renderSvcLogTable();
-}
-
-function updateSvcNotes(svcId, val) {
-  if (!activeSessionId) return;
-  const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
-  if (svc) { svc.notes = val; saveNotes(); }
-}
-
-function renderSvcLogTable() {
-  const tableEl = document.getElementById('svcLogTable');
-  const countEl = document.getElementById('svcLogCount');
-  const btnCount = document.getElementById('svcTopbarCount');
-  if (!tableEl) return;
-
-  const svcs   = getSessionServices();
-  const sorted = [...svcs].sort((a, b) => (parseInt(a.port) || 0) - (parseInt(b.port) || 0));
-  const n      = sorted.length;
-
-  if (countEl)  countEl.textContent  = n + (n === 1 ? ' entry' : ' entries');
-  if (btnCount) {
-    btnCount.textContent = n;
-    btnCount.classList.toggle('has-entries', n > 0);
-  }
-
-  if (!sorted.length) {
-    tableEl.innerHTML = '<div class="svc-empty">No services logged — add one above</div>';
-    return;
-  }
-
-  tableEl.innerHTML = `
-    <table class="svc-table">
-      <thead><tr><th>Port</th><th>Service</th><th>Version</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${sorted.map(s => `
-        <tr>
-          <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? '<span style="color:var(--muted);font-weight:400">/' + esc(s.proto) + '</span>' : ''}</td>
-          <td>${esc(s.service || '—')}</td>
-          <td style="color:var(--text2)">${esc(s.version || '')}</td>
-          <td><input class="svc-notes-cell" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
-            onclick="event.stopPropagation()"
-            onchange="updateSvcNotes('${s.id}',this.value)" onblur="updateSvcNotes('${s.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteServiceLog('${s.id}')" title="Remove">✕</button></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
-
-function toggleSvcPopover() {
-  const popover = document.getElementById('svcPopover');
-  const btn     = document.getElementById('svcTopbarBtn');
-  const isOpen  = popover.classList.contains('open');
-  if (isOpen) {
-    closeSvcPopover();
-  } else {
-    popover.classList.add('open');
-    btn.classList.add('open');
-    renderSvcLogTable();
-    setTimeout(() => {
-      const input = document.getElementById('svcQuickInput');
-      if (input) input.focus();
-    }, 40);
-    // Close on outside click
-    setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
-  }
-}
-
-function closeSvcPopover() {
-  document.getElementById('svcPopover')?.classList.remove('open');
-  document.getElementById('svcTopbarBtn')?.classList.remove('open');
-}
-
-function _svcOutsideClose(e) {
-  const wrap = document.getElementById('svcTopbarWrap');
-  if (!wrap) return;
-  if (wrap.contains(e.target)) {
-    // Click was inside the popover — keep it open, re-register
-    if (document.getElementById('svcPopover')?.classList.contains('open')) {
-      setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
-    }
-  } else {
-    closeSvcPopover();
-  }
-}
-
-// ═══════════════════════════════════════════════
-// TIMELINE VIEW
-// ═══════════════════════════════════════════════
-let notesListViewMode = 'list';
-
-function setNotesListView(mode, btn) {
-  notesListViewMode = mode;
-  document.querySelectorAll('.notes-view-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-
-  const listEl     = document.getElementById('notesList');
-  const timelineEl = document.getElementById('timelineList');
-  const filterBar  = document.getElementById('notesTypeFilter');
-  const scopeBar   = document.querySelector('.notes-scope-bar');
-  const tgtBar     = document.getElementById('targetFilterBar');
-
-  if (mode === 'timeline') {
-    listEl.style.display     = 'none';
-    timelineEl.style.display = 'block';
-    if (filterBar) filterBar.style.display = 'none';
-    if (scopeBar)  scopeBar.style.display  = 'none';
-    if (tgtBar)    tgtBar.style.display    = 'none';
-    renderTimeline();
-  } else {
-    listEl.style.display     = '';
-    timelineEl.style.display = 'none';
-    if (filterBar) filterBar.style.display = '';
-    if (scopeBar)  scopeBar.style.display  = '';
-    renderNotesList();
-  }
-}
-
-function renderTimeline() {
-  const el = document.getElementById('timelineList');
-  if (!el) return;
-
-  const allNotes = Object.values(notes);
-
-  // Build filtered list — show notes belonging to active session,
-  // OR all notes if no session is active
-  let items;
-  if (activeSessionId) {
-    items = allNotes.filter(n =>
-      n.session_id === activeSessionId ||
-      n.session_id === null ||
-      n.session_id === undefined
-    );
-    // If that's empty, fall back to showing everything so the user isn't stuck
-    if (!items.length) items = allNotes;
-  } else {
-    items = allNotes;
-  }
-
-  items = items.sort((a, b) => (a.created || 0) - (b.created || 0));
-
-  if (!items.length) {
-    el.innerHTML = `<div style="padding:20px 12px;font-size:12px;color:var(--muted);font-family:Inter,sans-serif;text-align:center;line-height:1.6">
-      No notes found.<br>
-      <span style="font-size:11px;opacity:0.7">Total notes in workspace: ${allNotes.length} &nbsp;|&nbsp; Active session: ${activeSessionId || 'none'}</span>
-    </div>`;
-    return;
-  }
-
-  const groups = {};
-  items.forEach(n => {
-    const key = new Date(n.created || 0).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(n);
-  });
-
-  let html = '';
-  Object.entries(groups).forEach(([dayLabel, dayNotes]) => {
-    html += `<div class="timeline-day-group"><div class="timeline-day-label">${esc(dayLabel)}</div>`;
-    dayNotes.forEach(n => {
-      const meta    = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
-      const time    = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-      const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
-      const tgt     = n.target_id && activeSessionId && sessions[activeSessionId]
-        ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
-      const tgtBadge = tgt
-        ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
-        : '';
-      html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
-        <span class="tl-time">${esc(time)}</span>
-        <div class="tl-body">
-          <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
-          ${tgtBadge}
-          <div class="tl-title">${esc(n.title || 'Untitled')}</div>
-          ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-  });
-  el.innerHTML = html;
-}
-
-
-// ═══════════════════════════════════════════════
-// NOTE TARGET ASSIGNMENT
-// ═══════════════════════════════════════════════
-
-function getSessionTargets() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].targets || [];
-}
-
-function toggleTargetAssignDropdown() {
-  const dd  = document.getElementById('noteTargetAssignDropdown');
-  if (!dd) return;
-  const isOpen = dd.classList.contains('open');
-  document.getElementById('noteReassignDropdown')?.classList.remove('open');
-  if (isOpen) { dd.classList.remove('open'); return; }
-  renderTargetAssignDropdown();
-  dd.classList.add('open');
-  setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
-}
-
-function _tgtAssignOutside(e) {
-  const wrap = document.querySelector('.note-target-assign-wrap');
-  if (!wrap) return;
-  if (wrap.contains(e.target)) {
-    if (document.getElementById('noteTargetAssignDropdown')?.classList.contains('open')) {
-      setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
-    }
-  } else {
-    document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
-  }
-}
-
-function renderTargetAssignDropdown() {
-  const dd   = document.getElementById('noteTargetAssignDropdown');
-  const note = activeNoteId && notes[activeNoteId];
-  if (!dd || !note) return;
-  const targets = getSessionTargets();
-  let html = '';
-  if (note.target_id) {
-    html += '<div class="note-target-assign-option unassign" onclick="assignNoteTarget(null)">✕ Remove target</div>';
-  }
-  if (!targets.length) {
-    html += '<div class="note-target-assign-option unassign">No targets in session</div>';
-  } else {
-    targets.forEach(t => {
-      const label = t.ip || t.domain || t.label || 'Unnamed';
-      const sub   = t.label && t.ip ? ` <span style="color:var(--muted);font-weight:400">${esc(t.label)}</span>` : '';
-      const cur   = t.id === note.target_id;
-      html += `<div class="note-target-assign-option${cur ? ' current' : ''}" onclick="assignNoteTarget('${t.id}')">${cur ? '✓ ' : '🎯 '}${esc(label)}${sub}</div>`;
-    });
-  }
-  dd.innerHTML = html;
-}
-
-function assignNoteTarget(targetId) {
-  if (!activeNoteId) return;
-  const note = notes[activeNoteId];
-  note.target_id = targetId || null;
-  note.updated   = Date.now();
-  saveNotes();
-  updateTargetAssignBtn(note);
-  document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
-  renderNotesList();
-  renderTargetFilterBar();
-}
-
-function updateTargetAssignBtn(note) {
-  const btn = document.getElementById('noteTargetAssignBtn');
-  if (!btn || !note) return;
-  const tgt = note.target_id ? getSessionTargets().find(t => t.id === note.target_id) : null;
-  if (tgt) {
-    btn.textContent = '🎯 ' + (tgt.ip || tgt.domain || tgt.label || 'target');
-    btn.classList.add('has-target');
-  } else {
-    btn.textContent = '🎯 target';
-    btn.classList.remove('has-target');
-  }
-}
-
-// ── Target filter bar ──
-function renderTargetFilterBar() {
-  const bar = document.getElementById('targetFilterBar');
-  if (!bar) return;
-  const targets = getSessionTargets();
-  if (!targets.length || activeNoteScope !== 'session') {
-    bar.style.display = 'none';
-    return;
-  }
-  const notesWithTargets = Object.values(notes).filter(n => n.session_id === activeSessionId && n.target_id);
-  if (!notesWithTargets.length) {
-    bar.style.display = 'none';
-    return;
-  }
-  const usedIds = new Set(notesWithTargets.map(n => n.target_id));
-  const chips = targets
-    .filter(t => usedIds.has(t.id))
-    .map(t => {
-      const label  = t.ip || t.domain || t.label || 'target';
-      const active = t.id === activeTargetFilter;
-      return `<span class="target-filter-chip${active ? ' active' : ''}" onclick="setTargetFilter('${t.id}')">${esc(label)}</span>`;
-    }).join('');
-  bar.innerHTML = chips;
-  bar.style.display = chips ? 'flex' : 'none';
-}
-
-function setTargetFilter(targetId) {
-  activeTargetFilter = activeTargetFilter === targetId ? null : targetId;
-  renderTargetFilterBar();
-  renderNotesList();
-}
-
-// ═══════════════════════════════════════════════
-// SESSION + NOTES EXPORT
-// ═══════════════════════════════════════════════
-
-async function exportSessionFile(sessionId) {
-  const sess = sessions[sessionId];
-  if (!sess) return;
-  const sessNotes = Object.values(notes).filter(n => n.session_id === sessionId);
-  const payload   = { pragma_version: 1, exported: Date.now(), session: sess, notes: sessNotes };
-
-  if (encryptedStorageEnabled && encryptedStoragePassword) {
-    // Encrypt the session file with the same workspace password
-    try {
-      const blob     = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
-      const filename = slugify(sess.codename) + '.session.enc';
-      downloadJSON(blob, filename);
-    } catch (e) {
-      alert('Encryption failed: ' + e.message);
-    }
-  } else {
-    const filename = slugify(sess.codename) + '.session';
-    downloadJSON(payload, filename);
-  }
-
-  // Also tell server to save a copy in sessions/
-  try {
-    await fetch('/api/notes/export-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
-    });
-  } catch (_) {}
-}
-
-async function exportNotesMarkdown(sessionId) {
-  const sess = sessions[sessionId];
-  if (!sess) return;
-  const sessNotes = Object.values(notes)
-    .filter(n => n.session_id === sessionId)
-    .sort((a, b) => (a.created || 0) - (b.created || 0));
-
-  if (!sessNotes.length) { alert('No notes in this session to export.'); return; }
-
-  const targets = sess.targets || [];
-
-  // Build a single markdown document
-  const lines = [];
-  lines.push(`# ${sess.codename}`);
-  lines.push('');
-  if (targets.length) {
-    lines.push('**Targets:**');
-    targets.forEach(t => {
-      const parts = [t.ip, t.domain, t.label].filter(Boolean);
-      lines.push(`- ${parts.join(' · ')}`);
-    });
-    lines.push('');
-  }
-  lines.push(`**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`);
-  lines.push(`**Notes:** ${sessNotes.length}`);
-  lines.push('');
-  lines.push('---');
-  lines.push('');
-
-  sessNotes.forEach((n, i) => {
-    const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
-    const ts  = new Date(n.created || 0).toISOString().replace('T',' ').slice(0,16);
-    lines.push(`## ${i + 1}. ${n.title || 'Untitled'}`);
-    lines.push('');
-    lines.push(`> **Type:** \`${n.type}\`  `);
-    if (tgt) lines.push(`> **Target:** \`${tgt.ip || tgt.domain || tgt.label}\`  `);
-    lines.push(`> **Created:** ${ts}`);
-    lines.push('');
-    if (n.body && n.body.trim()) {
-      lines.push(n.body.trim());
-      lines.push('');
-    }
-    lines.push('---');
-    lines.push('');
-  });
-
-  // Write to project directory via server (per-target subdirs under notes/<session>/)
-  try {
-    const r = await fetch('/api/notes/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
-    });
-    const d = await r.json();
-    if (d.ok) {
-      const count = d.files?.length || 0;
-      showToast(`Exported ${count} files → notes/${slugify(sess.codename)}/`);
-    } else {
-      showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
-    }
-  } catch (e) {
-    showToast('Export failed: ' + e.message, 'err');
-  }
-}
-
-function slugify(str) {
-  return (str || 'session').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase().slice(0, 60);
-}
-
-function showToast(msg, type = 'ok') {
-  const existing = document.getElementById('pragmaToast');
-  if (existing) existing.remove();
-  const t = document.createElement('div');
-  t.id = 'pragmaToast';
-  t.textContent = msg;
-  t.style.cssText = `
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-    background:${type === 'err' ? 'var(--red)' : 'var(--accent)'};
-    color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;
-    padding:9px 18px; border-radius:8px; z-index:9999;
-    box-shadow:0 4px 20px rgba(0,0,0,0.4);
-    animation:toastIn 0.15s ease;
-    white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
-  `;
-  document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
-}
-
-function downloadJSON(obj, filename) {
-  downloadText(JSON.stringify(obj, null, 2), filename, 'application/json');
-}
-
-function downloadText(content, filename, mimeType = 'text/plain') {
-  const blob = new Blob([content], { type: mimeType });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 init();
