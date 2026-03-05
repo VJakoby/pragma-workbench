@@ -4480,15 +4480,16 @@
             <span class="search-status" id="searchStatus"></span>
             <span class="search-meta" id="searchMeta"></span>
           </div>
-        </div>
-        <div class="results-list" id="resultsList">
-          <div class="results-offline">
-            <div class="results-offline-icon">🔍</div>
-            <div class="results-offline-text">Start typing to search</div>
-            <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+
+          <!-- Move results-list inside search panel so it disappears with other panels -->
+          <div class="results-list" id="resultsList">
+            <div class="results-offline">
+              <div class="results-offline-icon">🔍</div>
+              <div class="results-offline-text">Start typing to search</div>
+              <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+            </div>
           </div>
         </div>
-      </div>
 
       <!-- ── NOTES VIEW ── -->
       <div class="panel-view active" id="view-notes">
@@ -5173,6 +5174,11 @@
 
       if (view === 'search') {
         setTimeout(() => document.getElementById('searchInput').focus(), 50);
+        // ensure results container is visible when searching
+        document.getElementById('resultsList').style.display = 'flex';
+      } else {
+        // hide results when leaving search so notes list can sit by sidebar
+        document.getElementById('resultsList').style.display = 'none';
       }
     }
 
