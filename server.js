@@ -1,7 +1,18 @@
-/**
- * PRAGMA
+/* PRAGMA
  * Copyright (C) 2026 VJakoby
- * GPL-3.0
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PRAGMA is architected by VJakoby + 🤖. This program is distributed in 
+ * the hope that it will be useful, but WITHOUT ANY WARRANTY; without even 
+ * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 'use strict';
 
@@ -14,15 +25,15 @@ const Fuse = require('fuse.js');
 let chokidar;
 try { chokidar = require('chokidar'); } catch (_) { }
 
-const PORT = process.env.PORT || 3000;
-const KB_DIR = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
+const PORT     = process.env.PORT || 3000;
+const KB_DIR   = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
 const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR = path.join(__dirname, 'notes');
-const SESSIONS_DIR = path.join(__dirname, 'sessions');
-const NOTES_FILE = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
+const NOTES_DIR     = path.join(__dirname, 'notes');
+const SESSIONS_DIR  = path.join(__dirname, 'sessions');
+const NOTES_FILE    = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
 const NOTES_ENC_FILE = path.join(NOTES_DIR, 'pragma.workbench.enc'); // encrypted
 
 // ── Port / slug metadata maps (unchanged) ──
@@ -129,7 +140,7 @@ function noteFilename(note) {
 
 // ── Service index ──
 let serviceIndex = [];
-let searchIndex = null;
+let searchIndex  = null;
 
 function walkMdFiles(dir, rootDir) {
   let results = [];
@@ -140,7 +151,7 @@ function walkMdFiles(dir, rootDir) {
     if (entry.isDirectory()) {
       results = results.concat(walkMdFiles(fullPath, rootDir));
     } else if (entry.name.toLowerCase().endsWith('.md')) {
-      const rel = path.relative(rootDir, dir);
+      const rel    = path.relative(rootDir, dir);
       const subdir = rel ? rel.split(path.sep)[0] : '';
       results.push({ filename: entry.name, filepath: fullPath, subdir });
     }
@@ -156,8 +167,8 @@ function buildIndex() {
   }
   const entries = walkMdFiles(KB_DIR, KB_DIR);
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
-    const content = fs.readFileSync(filepath, 'utf8');
-    const meta = metaFromFilename(filename);
+    const content  = fs.readFileSync(filepath, 'utf8');
+    const meta     = metaFromFilename(filename);
     const category = subdir
       ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       : meta.category;
@@ -220,9 +231,9 @@ function buildMethodologyIndex() {
   const files = fs.readdirSync(METH_DIR).filter(f => f.toLowerCase().endsWith('.md'));
   methodologyIndex = files.map(filename => {
     const filepath = path.join(METH_DIR, filename);
-    const content = fs.readFileSync(filepath, 'utf8');
-    const id = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const name = extractTitle(content, filename);
+    const content  = fs.readFileSync(filepath, 'utf8');
+    const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const name     = extractTitle(content, filename);
     const category = extractCategory(content, filename);
     return {
       id, name, category, icon: METH_ICONS[category] || '📋',
@@ -381,7 +392,7 @@ app.post('/api/search-proxy', async (req, res) => {
     } else {
       responseData = await new Promise((resolve, reject) => {
         const http = require('http');
-        const url = new URL(`${SEARCH_URL}/api/search`);
+        const url  = new URL(`${SEARCH_URL}/api/search`);
         const body = JSON.stringify({ query, fuzzy: fuzzyMode !== 'off', fuzzy_prefer: fuzzyMode === 'prefer' });
         const opts = {
           hostname: url.hostname, port: url.port || 3002, path: url.pathname,
@@ -428,132 +439,96 @@ app.get('/api/search-ping', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
-// API: Quick Insert from Knowledge Search
-// ══════════════════════════════════════════════════════════
-app.post('/api/notes/quick-insert', (req, res) => {
-  try {
-    const { content, title, url, source_name, note_id } = req.body;
-
-    if (!content || !title || !note_id) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Load notes file
-    let source;
-    try {
-      const raw = fs.readFileSync(NOTES_FILE, 'utf8');
-      source = JSON.parse(raw);
-    } catch (e) {
-      return res.status(500).json({ error: 'Could not load notes file' });
-    }
-
-    const { notes } = source;
-
-    // Find the note
-    const note = notes[note_id];
-    if (!note) {
-      return res.status(404).json({ error: 'Note not found' });
-    }
-
-    // Format insertion
-    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const insertion = `
-
----
-
-## ${title}
-
-**Source:** ${source_name || 'Knowledge Base'}  
-**URL:** ${url || 'N/A'}  
-**Added:** ${timestamp}
-
-${content}
-`;
-
-    // Append to note
-    note.body += insertion;
-    note.updated = Date.now();
-
-    // Save
-    fs.writeFileSync(NOTES_FILE, JSON.stringify(source, null, 2), 'utf8');
-
-    console.log(`[PRAGMA] Quick-inserted to note: ${note.title}`);
-
-    res.json({
-      ok: true,
-      note_id: note.id,
-      note_title: note.title
-    });
-
-  } catch (error) {
-    console.error('[PRAGMA] Quick insert error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
 // ── Content proxy — fetches rendered content from ENGRAM for local results ──
 // Avoids filesystem path issues when PRAGMA and ENGRAM run in different containers
+// ── Content proxy — delegates local file preview to ENGRAM ──
+// ENGRAM knows where its files live (it indexed them). PRAGMA just proxies
+// the request to ENGRAM's /api/preview?file=<path>, which validates the path
+// against its own index and returns { html, raw, title, page_name }.
+// This works regardless of whether PRAGMA and ENGRAM share a filesystem.
 app.post('/api/content-proxy', async (req, res) => {
-  const { source_id, source_name } = req.body || {};
-  if (!source_id && !source_name) return res.status(400).json({ error: 'source_id or source_name required' });
+  const { file_path, source_id, source_name } = req.body || {};
+
+  if (!file_path && !source_id && !source_name) {
+    return res.status(400).json({ error: 'file_path, source_id, or source_name required' });
+  }
 
   try {
-    // Try ENGRAM's /api/source/:id endpoint first
-    if (source_id) {
-      const r = await fetchWithTimeout(`${SEARCH_URL}/api/source/${encodeURIComponent(source_id)}`);
+    // Strategy 1: Use ENGRAM's /api/preview with the exact file_path from the search result.
+    // ENGRAM validates that the path exists in its index before reading it — safe by design.
+    if (file_path) {
+      const url = `${SEARCH_URL}/api/preview?file=${encodeURIComponent(file_path)}`;
+      const r = await fetchWithTimeout(url);
       if (r.ok) {
         const d = await r.json();
-        // ENGRAM may return { html, raw, content, markdown } — try each
-        const html = d.html || (d.content ? marked.parse(d.content) : null) || (d.raw ? marked.parse(d.raw) : null);
-        const raw = d.raw || d.content || d.markdown || '';
-        if (html) return res.json({ ok: true, html, raw });
+        if (d.html) {
+          // Re-render with marked for consistent styling if ENGRAM returned raw markdown
+          const html = d.html || (d.raw ? marked.parse(d.raw) : null);
+          if (html) return res.json({ ok: true, html, raw: d.raw || '' });
+        }
       }
+      // Log what ENGRAM said to help debugging
+      const errBody = await r.json().catch(() => ({}));
+      console.warn(`[PRAGMA] ENGRAM /api/preview returned ${r.status}: ${errBody.error || '?'} for file: ${file_path}`);
     }
 
-    // Fallback: try /api/document with source_name
-    if (source_name) {
-      const r = await fetchWithTimeout(`${SEARCH_URL}/api/document`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_name }),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const html = d.html || (d.content ? marked.parse(d.content) : null) || (d.raw ? marked.parse(d.raw) : null);
-        const raw = d.raw || d.content || '';
-        if (html) return res.json({ ok: true, html, raw });
-      }
-    }
-
-    res.status(404).json({ error: 'Content not available from ENGRAM' });
+    // Strategy 2: No file_path (online result with source_name only) — nothing to proxy.
+    // Online results open directly in the browser via the result URL.
+    res.status(404).json({
+      error: 'Content not available',
+      detail: file_path
+        ? 'ENGRAM could not serve this file — it may not be in the index or has moved'
+        : 'No file_path provided (online results open in browser)',
+    });
   } catch (err) {
     console.warn(`[PRAGMA] content-proxy error: ${err.message}`);
-    res.status(502).json({ error: 'ENGRAM unreachable' });
+    res.status(502).json({ error: 'ENGRAM unreachable', detail: err.message });
   }
 });
 
 async function fetchWithTimeout(url, opts = {}) {
+  // Node 18+ has native fetch — use it with a timeout signal
   if (typeof fetch !== 'undefined') {
-    return fetch(url, { ...opts, signal: AbortSignal.timeout(4000) });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(url, { ...opts, signal: controller.signal });
+      clearTimeout(timer);
+      // Normalise: attach a .json() that always resolves (never throws on bad status)
+      const text = await r.text();
+      return {
+        ok: r.ok,
+        status: r.status,
+        json: async () => { try { return JSON.parse(text); } catch { return {}; } },
+      };
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
   }
-  // Node http fallback
+  // Older Node fallback via http module
   return new Promise((resolve, reject) => {
     const http = require('http');
-    const u = new URL(url);
+    const u    = new URL(url);
     const body = opts.body || null;
     const req2 = http.request({
-      hostname: u.hostname, port: u.port || 3002,
-      path: u.pathname, method: opts.method || 'GET', timeout: 4000,
-      headers: opts.headers || {},
+      hostname: u.hostname,
+      port:     parseInt(u.port) || 3002,
+      path:     u.pathname + (u.search || ''),
+      method:   opts.method || 'GET',
+      timeout:  5000,
+      headers:  { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     }, (res2) => {
       let data = '';
       res2.on('data', c => { data += c; });
-      res2.on('end', () => resolve({ ok: res2.statusCode < 400, json: () => JSON.parse(data) }));
+      res2.on('end', () => resolve({
+        ok:     res2.statusCode < 400,
+        status: res2.statusCode,
+        json:   async () => { try { return JSON.parse(data); } catch { return {}; } },
+      }));
     });
     req2.on('error', reject);
-    req2.on('timeout', () => { req2.destroy(); reject(new Error('Timeout')); });
+    req2.on('timeout', () => { req2.destroy(); reject(new Error('ENGRAM request timed out')); });
     if (body) req2.write(body);
     req2.end();
   });
@@ -590,9 +565,9 @@ app.post('/api/notes/save', (req, res) => {
 app.get('/api/notes/storage-info', (req, res) => {
   res.json({
     encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
-    plain_storage: fs.existsSync(NOTES_FILE),
-    notes_dir: NOTES_DIR,
-    sessions_dir: SESSIONS_DIR,
+    plain_storage:     fs.existsSync(NOTES_FILE),
+    notes_dir:         NOTES_DIR,
+    sessions_dir:      SESSIONS_DIR,
   });
 });
 
@@ -641,7 +616,7 @@ app.post('/api/notes/export', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const sessSlug = slugify(session.codename);
-    const outDir = path.join(NOTES_DIR, sessSlug);
+    const outDir   = path.join(NOTES_DIR, sessSlug);
     fs.mkdirSync(outDir, { recursive: true });
 
     const targets = session.targets || [];
@@ -653,8 +628,8 @@ app.post('/api/notes/export', (req, res) => {
     if (!sessionNotes.length)
       return res.json({ ok: true, path: outDir, files: [], message: 'No notes in this session.' });
 
-    const written = [];
-    const byTarget = {};
+    const written    = [];
+    const byTarget   = {};
     const unassigned = [];
 
     sessionNotes.forEach(n => {
@@ -672,7 +647,7 @@ app.post('/api/notes/export', (req, res) => {
       if (!tNotes || !tNotes.length) return;
 
       const dirName = slugify(tgt.ip || tgt.domain || tgt.label || tgt.id);
-      const tgtDir = path.join(outDir, dirName);
+      const tgtDir  = path.join(outDir, dirName);
       fs.mkdirSync(tgtDir, { recursive: true });
 
       const label = [tgt.ip, tgt.domain, tgt.label].filter(Boolean).join(' · ');
@@ -683,23 +658,23 @@ app.post('/api/notes/export', (req, res) => {
         '',
         `**Session:** ${session.codename}`,
         `**Notes:** ${tNotes.length}`,
-        `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
+        `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
         '',
         '## Notes',
         '',
         ...tNotes
           .sort((a, b) => (a.created || 0) - (b.created || 0))
-          .map(n => `- [${n.title || noteFilename(n).replace('.md', '')}](./${noteFilename(n)}) — \`${n.type}\``),
+          .map(n => `- [${n.title || noteFilename(n).replace('.md','')}](./${noteFilename(n)}) — \`${n.type}\``),
       ].join('\n');
       fs.writeFileSync(path.join(tgtDir, 'README.md'), tReadme, 'utf8');
       written.push(`${dirName}/README.md`);
 
       // Individual note files
       tNotes.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(n => {
-        const fname = noteFilename(n);
-        const ts = new Date(n.updated || n.created || 0).toISOString().replace('T', ' ').slice(0, 19);
-        const body = [
-          `# ${n.title || fname.replace('.md', '')}`,
+        const fname  = noteFilename(n);
+        const ts     = new Date(n.updated || n.created || 0).toISOString().replace('T',' ').slice(0,19);
+        const body   = [
+          `# ${n.title || fname.replace('.md','')}`,
           '',
           `> **Type:** \`${n.type}\``,
           `> **Target:** \`${label}\``,
@@ -721,9 +696,9 @@ app.post('/api/notes/export', (req, res) => {
       fs.mkdirSync(sessDir, { recursive: true });
       unassigned.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(n => {
         const fname = noteFilename(n);
-        const ts = new Date(n.updated || n.created || 0).toISOString().replace('T', ' ').slice(0, 19);
-        const body = [
-          `# ${n.title || fname.replace('.md', '')}`,
+        const ts    = new Date(n.updated || n.created || 0).toISOString().replace('T',' ').slice(0,19);
+        const body  = [
+          `# ${n.title || fname.replace('.md','')}`,
           '',
           `> **Type:** \`${n.type}\``,
           `> **Session:** ${session.codename}`,
@@ -742,7 +717,7 @@ app.post('/api/notes/export', (req, res) => {
     const index = [
       `# ${session.codename}`,
       '',
-      `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
+      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
       `**Total notes:** ${sessionNotes.length}`,
       '',
       '## Targets',
@@ -750,7 +725,7 @@ app.post('/api/notes/export', (req, res) => {
       ...targets
         .filter(t => byTarget[t.id]?.length)
         .map(t => {
-          const dir = slugify(t.ip || t.domain || t.label || t.id);
+          const dir   = slugify(t.ip || t.domain || t.label || t.id);
           const label = [t.ip, t.domain, t.label].filter(Boolean).join(' · ');
           return `- [${label}](./${dir}/) — ${byTarget[t.id]?.length || 0} notes`;
         }),
@@ -762,9 +737,9 @@ app.post('/api/notes/export', (req, res) => {
 
     // ── SUMMARY.md — chronological timeline of all notes ──
     const TYPE_ICONS = {
-      general: '📋', credentials: '🔑', privesc: '⬆',
-      recon: '🔭', loot: '💰', exploit: '💥',
-      scratch: '📄',
+      general:     '📋', credentials: '🔑', privesc: '⬆',
+      recon:       '🔭', loot:        '💰', exploit: '💥',
+      scratch:     '📄',
     };
 
     const sorted = [...sessionNotes].sort((a, b) => (a.created || 0) - (b.created || 0));
@@ -773,7 +748,7 @@ app.post('/api/notes/export', (req, res) => {
     const byDay = {};
     sorted.forEach(n => {
       const d = new Date(n.created || 0);
-      const dayKey = d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: '2-digit' });
+      const dayKey = d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
       if (!byDay[dayKey]) byDay[dayKey] = [];
       byDay[dayKey].push(n);
     });
@@ -784,15 +759,15 @@ app.post('/api/notes/export', (req, res) => {
     const summaryLines = [
       `# ${session.codename} — Timeline Summary`,
       '',
-      `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
+      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
       `**Total events:** ${sorted.length}`,
       `**Duration:** ${sorted.length > 1
         ? (() => {
-          const ms = (sorted[sorted.length - 1].created || 0) - (sorted[0].created || 0);
-          const hrs = Math.floor(ms / 3600000);
-          const min = Math.floor((ms % 3600000) / 60000);
-          return hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
-        })()
+            const ms  = (sorted[sorted.length-1].created||0) - (sorted[0].created||0);
+            const hrs = Math.floor(ms / 3600000);
+            const min = Math.floor((ms % 3600000) / 60000);
+            return hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
+          })()
         : '—'}`,
       '',
       '**Activity breakdown:**',
@@ -808,11 +783,11 @@ app.post('/api/notes/export', (req, res) => {
       summaryLines.push(`## ${day}`);
       summaryLines.push('');
       dayNotes.forEach(n => {
-        const time = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        const icon = TYPE_ICONS[n.type] || '📄';
-        const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+        const time   = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+        const icon   = TYPE_ICONS[n.type] || '📄';
+        const tgt    = n.target_id ? targets.find(t => t.id === n.target_id) : null;
         const tgtStr = tgt ? ` \`${tgt.ip || tgt.domain || tgt.label}\`` : '';
-        const title = n.title || `(${n.type})`;
+        const title  = n.title || `(${n.type})`;
         // First non-empty, non-heading line of body as a brief preview
         const preview = (n.body || '')
           .split('\n')
@@ -849,10 +824,10 @@ app.post('/api/notes/export-session', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const sessNotes = Object.values(notes).filter(n => n.session_id === session_id);
-    const payload = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
+    const payload   = { pragma_version: 1, exported: Date.now(), session, notes: sessNotes };
 
     fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-    const slug = slugify(session.codename);
+    const slug     = slugify(session.codename);
     const filePath = path.join(SESSIONS_DIR, slug + '.session');
     fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
 
