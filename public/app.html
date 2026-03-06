@@ -616,7 +616,7 @@ body{
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
 
-.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
 .ctrl-label{
   font-family:'Inter',sans-serif;font-size:10px;
   color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
@@ -665,6 +665,10 @@ body{
   justify-content:space-between;gap:10px;margin-bottom:5px;
 }
 .result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.search-meta-row{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:2px 2px 0;
+}
 .result-score{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
   background:rgba(52,211,153,0.15);color:var(--green);
@@ -674,7 +678,7 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size: 13px;color:var(--text2);font-weight:600}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
@@ -708,12 +712,15 @@ body{
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,0.55);
 }
-.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:clamp(52px,8vh,100px) 16px 16px;}
 
 .cmd-box{
   background:var(--bg2);border:1px solid var(--border2);
-  border-radius:12px;width:90%;max-width:580px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
+  border-radius:12px;width:100%;max-width:780px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - clamp(68px,10vh,120px));
+  overflow:hidden;
   animation:cmdSlide 0.04s ease;
 }
 @keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -735,7 +742,7 @@ body{
   border-radius:4px;padding:2px 7px;color:var(--muted);
 }
 
-.cmd-results{max-height:400px;overflow-y:auto}
+.cmd-results{flex:1 1 auto;overflow-y:auto;min-height:0}
 .cmd-results::-webkit-scrollbar{width:3px}
 .cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
 
@@ -1115,20 +1122,23 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 2px 4px;
 }
 .session-list-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
   background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s; flex-wrap: wrap;
+  transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; color: var(--text); min-width: 0;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-list-item-bottom {
+  display: flex; align-items: center; gap: 6px;
+}
+.session-list-item-meta { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; flex: 1; }
 .session-item-actions {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
 }
 .session-item-export-btn {
   background: var(--bg4); border: 1px solid var(--border);
@@ -1902,7 +1912,7 @@ body.enc-active-body .topbar {
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
           <span class="nav-item-icon">🔍</span>
-          <span class="nav-item-label">Search</span>
+          <span class="nav-item-label">Search in KB</span>
         </div>
       </div>
 
@@ -2801,25 +2811,54 @@ async function openItem(view, id) {
   }
 }
 
-async function openPreviewByPath(title, filePath) {
+async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
   try {
-    const r = await fetch(`/api/preview?file=${encodeURIComponent(filePath)}`);
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop(), isLocal: false };
-    renderContent(d.html, '🔍', title, filePath.split('/').pop());
+    let d = null;
+
+    // For local results: proxy to ENGRAM's /api/preview via PRAGMA's /api/content-proxy.
+    // ENGRAM indexed the file — it knows the real path and can read it regardless of
+    // whether PRAGMA and ENGRAM share a filesystem/container.
+    if (filePath) {
+      try {
+        const r = await fetch('/api/content-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        });
+        const j = await r.json();
+        if (j.ok && j.html) d = j;
+        else console.warn('[PRAGMA] content-proxy:', j.error || j.detail || 'no content');
+      } catch (e) {
+        console.warn('[PRAGMA] content-proxy fetch failed:', e.message);
+      }
+    }
+
+    if (!d) throw new Error('Content unavailable — ENGRAM could not serve this file');
+
+    const meta = filePath.split('/').pop() || sourceName || '';
+    activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContent(d.html, '🔍', title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
-    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    document.getElementById('cpContent').innerHTML = `
+      <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
+        <div style="font-size:22px;margin-bottom:8px">⚠</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px">
+          Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
+          <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
+        </div>
+      </div>`;
   }
 }
 
-function renderContent(html, icon, title, meta) {
+function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpIcon').textContent  = icon;
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent  = meta || '';
@@ -2880,7 +2919,17 @@ function setFuzzy(f, btn) {
   if (q.length >= 2) runSearch(q);
 }
 
+// ── Search history ──
+let searchHistory = JSON.parse(localStorage.getItem('pragma-search-history') || '[]');
+
+function addToSearchHistory(query) {
+  if (!query || query.length < 2) return;
+  searchHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 30);
+  try { localStorage.setItem('pragma-search-history', JSON.stringify(searchHistory)); } catch(e) {}
+}
+
 async function runSearch(query) {
+  addToSearchHistory(query);
   try {
     const r = await fetch('/api/search-proxy', {
       method: 'POST',
@@ -2960,15 +3009,11 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
          data-title="${esc(r.title||'')}"
          data-url="${esc(href)}"
          onclick="handleResultClick(this)">
-      <div class="result-card-top">
-        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
-        <div class="result-card-right">
-          ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
-          <div class="result-card-badges">
-            ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-            ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
-          </div>
-        </div>
+      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      <div class="search-meta-row">
+        ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
@@ -2980,7 +3025,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
 
 function handleResultClick(el) {
   if (el.dataset.local === '1') {
-    openPreviewByPath(el.dataset.title, el.dataset.filepath);
+    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '', el.dataset.sourceid || '', el.dataset.sourcename || '');
   } else {
     window.open(el.dataset.url, '_blank', 'noopener');
   }
@@ -3401,15 +3446,21 @@ async function initNotes() {
           submitLabel: '🔓 Unlock',
         });
       } catch { throw new Error('Password required to unlock encrypted workspace'); }
+      // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
+      // localStorage branch (which would prompt for the password a second time).
+      let plain;
+      try {
+        plain = await decryptPayload(encObj, pw);
+      } catch {
+        throw new Error('Incorrect password — decryption failed');
+      }
       encryptedStoragePassword = pw;
-      updateEncryptedStorageUI(); // password accepted — switch from locked → active
-      const plain  = await decryptPayload(encObj, pw);
+      updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
       notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
       sessions = parsed.sessions || {};
-      // Cache ONLY the encrypted blob — never the plaintext
       localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
-      localStorage.removeItem('ops-notes-v2'); // scrub any stale plaintext
+      localStorage.removeItem('ops-notes-v2');
     } else {
       notes    = (d.notes    !== undefined ? d.notes    : d) || {};
       sessions = d.sessions || {};
@@ -3419,7 +3470,12 @@ async function initNotes() {
       encryptedStoragePassword = null;
       updateEncryptedStorageUI();
     }
-  } catch {
+  } catch (outerErr) {
+    // Only use localStorage fallback for genuine fetch/network failures,
+    // not for password/decryption errors (those should bubble up as-is).
+    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect'))) {
+      throw outerErr;
+    }
     try {
       const encCached = localStorage.getItem('ops-notes-v2-encrypted');
       if (encCached) {
@@ -3436,9 +3492,14 @@ async function initNotes() {
               submitLabel: '🔓 Unlock',
             });
           } catch { throw new Error('Password required'); }
+          let plain;
+          try {
+            plain = await decryptPayload(encObj, pw);
+          } catch {
+            throw new Error('Incorrect password — decryption failed');
+          }
           encryptedStoragePassword = pw;
-          updateEncryptedStorageUI(); // password accepted — switch from locked → active
-          const plain  = await decryptPayload(encObj, pw);
+          updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
           notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
           sessions = parsed.sessions || {};
@@ -3551,30 +3612,43 @@ function renderSessionList() {
     entries.map(s => `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <div class="session-item-actions" onclick="event.stopPropagation()">
-        <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
-        <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
-        <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+      <div class="session-list-item-bottom" onclick="event.stopPropagation()">
+        <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="session-item-actions">
+          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
+          <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+        </div>
       </div>
     </div>`).join('');
 }
 
 function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
+  const name   = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
-  const id = 'sess_' + Date.now();
-  sessions[id] = {
+  const ip     = document.getElementById('newSessionIP').value.trim()     || null;
+  const domain = document.getElementById('newSessionDomain').value.trim() || null;
+  const id     = 'sess_' + Date.now();
+  const sess   = {
     id,
     codename:      name,
-    target_ip:     document.getElementById('newSessionIP').value.trim()     || null,
-    target_domain: document.getElementById('newSessionDomain').value.trim() || null,
+    target_ip:     ip,
+    target_domain: domain,
     created:       Date.now(),
+    targets:       [],
   };
+  // Auto-populate targets list if IP or domain was provided
+  if (ip || domain) {
+    const tgtId = 'tgt_' + Date.now();
+    sess.targets.push({ id: tgtId, ip: ip || '', domain: domain || '', label: 'default' });
+  }
+  sessions[id] = sess;
   switchSession(id);
   saveNotes();
   renderSessionList();
-  document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionName').value   = '';
+  document.getElementById('newSessionIP').value     = '';
+  document.getElementById('newSessionDomain').value = '';
 }
 
 function switchSession(id) {

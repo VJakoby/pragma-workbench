@@ -1,4 +1,3 @@
-
 /**
  * PRAGMA
  * Copyright (C) 2026 VJakoby
@@ -409,6 +408,7 @@ app.post('/api/search-proxy', async (req, res) => {
       title: r.title, source_name: r.source_name, url: r.url,
       relevance_score: r.relevance_score, match_type: r.match_type,
       snippet: r.snippet, is_local: r.is_local, file_path: r.file_path,
+      source_id: r.source_id || r.id || null,
     }));
     res.json({
       results, query,
@@ -433,6 +433,94 @@ app.get('/api/search-ping', async (req, res) => {
     res.json({ reachable: false, search_url: SEARCH_URL, error: err.message });
   }
 });
+
+// ── Content proxy — delegates local file preview to ENGRAM ──
+// ENGRAM knows where its files live (it indexed them). PRAGMA just proxies
+// the request to ENGRAM's /api/preview?file=<path>, which validates the path
+// against its own index and returns { html, raw, title, page_name }.
+// This works regardless of whether PRAGMA and ENGRAM share a filesystem.
+app.post('/api/content-proxy', async (req, res) => {
+  const { file_path, source_id, source_name } = req.body || {};
+
+  if (!file_path && !source_id && !source_name) {
+    return res.status(400).json({ error: 'file_path, source_id, or source_name required' });
+  }
+
+  try {
+    // Strategy 1: Use ENGRAM's /api/preview with the exact file_path from the search result.
+    // ENGRAM validates that the path exists in its index before reading it — safe by design.
+    if (file_path) {
+      const url = `${SEARCH_URL}/api/preview?file=${encodeURIComponent(file_path)}`;
+      const r = await fetchWithTimeout(url);
+      if (r.ok) {
+        const d = await r.json();
+        if (d.html) {
+          const html = d.html || (d.raw ? marked.parse(d.raw) : null);
+          if (html) return res.json({ ok: true, html, raw: d.raw || '' });
+        }
+      }
+      const errBody = await r.json().catch(() => ({}));
+      console.warn(`[PRAGMA] ENGRAM /api/preview returned ${r.status}: ${errBody.error || '?'} for file: ${file_path}`);
+    }
+
+    // Strategy 2: No file_path (online result with source_name only) — nothing to proxy.
+    res.status(404).json({
+      error: 'Content not available',
+      detail: file_path
+        ? 'ENGRAM could not serve this file — it may not be in the index or has moved'
+        : 'No file_path provided (online results open in browser)',
+    });
+  } catch (err) {
+    console.warn(`[PRAGMA] content-proxy error: ${err.message}`);
+    res.status(502).json({ error: 'ENGRAM unreachable', detail: err.message });
+  }
+});
+
+async function fetchWithTimeout(url, opts = {}) {
+  if (typeof fetch !== 'undefined') {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(url, { ...opts, signal: controller.signal });
+      clearTimeout(timer);
+      const text = await r.text();
+      return {
+        ok: r.ok,
+        status: r.status,
+        json: async () => { try { return JSON.parse(text); } catch { return {}; } },
+      };
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+  // Older Node fallback via http module
+  return new Promise((resolve, reject) => {
+    const http = require('http');
+    const u    = new URL(url);
+    const body = opts.body || null;
+    const req2 = http.request({
+      hostname: u.hostname,
+      port:     parseInt(u.port) || 3002,
+      path:     u.pathname + (u.search || ''),
+      method:   opts.method || 'GET',
+      timeout:  5000,
+      headers:  { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    }, (res2) => {
+      let data = '';
+      res2.on('data', c => { data += c; });
+      res2.on('end', () => resolve({
+        ok:     res2.statusCode < 400,
+        status: res2.statusCode,
+        json:   async () => { try { return JSON.parse(data); } catch { return {}; } },
+      }));
+    });
+    req2.on('error', reject);
+    req2.on('timeout', () => { req2.destroy(); reject(new Error('ENGRAM request timed out')); });
+    if (body) req2.write(body);
+    req2.end();
+  });
+}
 
 // ── Notes persistence ──
 function loadNotesFile() {
@@ -634,6 +722,72 @@ app.post('/api/notes/export', (req, res) => {
 
     fs.writeFileSync(path.join(outDir, 'README.md'), index, 'utf8');
     written.unshift('README.md');
+
+    // ── SUMMARY.md — chronological timeline of all notes ──
+    const TYPE_ICONS = {
+      general:     '📋', credentials: '🔑', privesc: '⬆',
+      recon:       '🔭', loot:        '💰', exploit: '💥',
+      scratch:     '📄',
+    };
+
+    const sorted = [...sessionNotes].sort((a, b) => (a.created || 0) - (b.created || 0));
+
+    const byDay = {};
+    sorted.forEach(n => {
+      const d = new Date(n.created || 0);
+      const dayKey = d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
+      if (!byDay[dayKey]) byDay[dayKey] = [];
+      byDay[dayKey].push(n);
+    });
+
+    const typeCount = {};
+    sorted.forEach(n => { typeCount[n.type] = (typeCount[n.type] || 0) + 1; });
+
+    const summaryLines = [
+      `# ${session.codename} — Timeline Summary`,
+      '',
+      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
+      `**Total events:** ${sorted.length}`,
+      `**Duration:** ${sorted.length > 1
+        ? (() => {
+            const ms  = (sorted[sorted.length-1].created||0) - (sorted[0].created||0);
+            const hrs = Math.floor(ms / 3600000);
+            const min = Math.floor((ms % 3600000) / 60000);
+            return hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
+          })()
+        : '—'}`,
+      '',
+      '**Activity breakdown:**',
+      ...Object.entries(typeCount).map(([type, count]) =>
+        `- ${TYPE_ICONS[type] || '📄'} ${type.charAt(0).toUpperCase() + type.slice(1)}: ${count}`
+      ),
+      '',
+      '---',
+      '',
+    ];
+
+    Object.entries(byDay).forEach(([day, dayNotes]) => {
+      summaryLines.push(`## ${day}`);
+      summaryLines.push('');
+      dayNotes.forEach(n => {
+        const time   = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+        const icon   = TYPE_ICONS[n.type] || '📄';
+        const tgt    = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+        const tgtStr = tgt ? ` \`${tgt.ip || tgt.domain || tgt.label}\`` : '';
+        const title  = n.title || `(${n.type})`;
+        const preview = (n.body || '')
+          .split('\n')
+          .map(l => l.trim())
+          .find(l => l && !l.startsWith('#') && !l.startsWith('---') && l.length > 3);
+        const previewStr = preview ? `\n  > ${preview.slice(0, 120)}${preview.length > 120 ? '…' : ''}` : '';
+
+        summaryLines.push(`**${time}** ${icon} **${title}**${tgtStr}${previewStr}`);
+        summaryLines.push('');
+      });
+    });
+
+    fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), summaryLines.join('\n'), 'utf8');
+    written.push('SUMMARY.md');
 
     console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
     res.json({ ok: true, path: outDir, files: written, session: session.codename });
