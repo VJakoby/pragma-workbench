@@ -33,7 +33,7 @@ const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR     = path.join(__dirname, 'notes');
+const NOTES_DIR     = path.join(__dirname, 'sessions');
 const SESSIONS_DIR  = path.join(__dirname, 'sessions');
 const NOTES_FILE    = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
 const NOTES_ENC_FILE = path.join(NOTES_DIR, 'pragma.workbench.enc'); // encrypted
@@ -869,6 +869,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  notes/   → ${NOTES_DIR}`);
+  console.log(`  sessions/ → ${NOTES_DIR}`);
   console.log(`  sessions/→ ${SESSIONS_DIR}\n`);
 });

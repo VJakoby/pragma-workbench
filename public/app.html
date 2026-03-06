@@ -22,7 +22,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRAGMA</title>
+<title>#PRAGMA</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="codemirror-bundle.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -177,11 +177,12 @@ body{
   background:var(--bg3);border:1px solid var(--border);
   border-radius:6px;padding:0 10px;
   cursor:pointer;transition:all 0.15s;
-  color:var(--muted);font-size:12px;
+  color:var(--muted);font-size:13px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
   height:32px;box-sizing:border-box;align-self:center;
-  display:flex;align-items:center;
+  display:flex;align-items:center;justify-content:center;
+  line-height:1;
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
@@ -500,10 +501,21 @@ body{
 
 /* Inline code */
 .md-content code:not(pre code){
-  font-family:'Inter',sans-serif;
+  font-family:'IBM Plex Mono',monospace;
   background:var(--bg3);border:1px solid var(--border);
   border-radius:4px;padding:1px 5px;
   font-size:0.88em;color:var(--green);
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.md-content code:not(pre code):hover {
+  background: rgba(124,58,237,0.18);
+  border-color: rgba(124,58,237,0.5);
+  color: var(--text);
+}
+.md-content code:not(pre code).inline-code-copied {
+  background: rgba(124,58,237,0.25);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 /* IP injection highlight */
@@ -786,11 +798,12 @@ body{
 /* ── Sidebar toggle button ── */
 .sidebar-toggle-btn {
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0 9px; cursor: pointer;
-  color: var(--muted); font-size: 15px; line-height: 1;
+  border-radius: 6px; padding: 0 10px; cursor: pointer;
+  color: var(--muted); font-size: 15px;
   transition: all 0.15s; flex-shrink: 0;
   height: 32px; box-sizing: border-box; align-self: center;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
 }
 .sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
@@ -1032,16 +1045,16 @@ body.is-resizing *{cursor:col-resize!important}
   transition: background 0.2s;
 }
 .session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.session-active-info { flex: 1; overflow: hidden; }
+.session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  word-break: break-word;
   font-family: 'Inter', sans-serif;
 }
 .session-active-target {
   font-size: 12px; color: var(--text2);
   font-family: 'Inter', sans-serif;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  word-break: break-word;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
 
@@ -1150,10 +1163,10 @@ body.is-resizing *{cursor:col-resize!important}
 
 .session-delete-btn {
   background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 17px; padding: 2px 6px; border-radius: 4px; transition: all 0.12s;
-  flex-shrink: 0;
+  font-size: 15px; padding: 2px 4px; border-radius: 4px; transition: all 0.12s;
+  flex-shrink: 0; margin-left: 2px; opacity: 0.5;
 }
-.session-delete-btn:hover { color: var(--red); }
+.session-delete-btn:hover { color: var(--red); opacity: 1; }
 
 /* ── Notes scope bar (Session / Unassigned / All) ── */
 .notes-scope-bar {
@@ -1602,9 +1615,10 @@ body.enc-active-body .topbar {
   height: 3px; flex: 1; border-radius: 2px;
   background: var(--border); transition: background 0.2s;
 }
-.pw-strength-bar.weak   { background: var(--red); }
-.pw-strength-bar.medium { background: var(--yellow); }
-.pw-strength-bar.strong { background: var(--green); }
+.pw-strength-bar.weak    { background: var(--red); }
+.pw-strength-bar.medium  { background: var(--yellow); }
+.pw-strength-bar.strong  { background: var(--green); }
+.pw-strength-bar.perfect { background: var(--accent); }
 .pw-error-msg {
   font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   color: var(--red); display: none; margin-top: 2px;
@@ -1812,7 +1826,7 @@ body.enc-active-body .topbar {
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)">☰</button>
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)"><span style="line-height:1;display:block">☰</span></button>
     <div class="topbar-logo-wrap">
       <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
@@ -1834,7 +1848,7 @@ body.enc-active-body .topbar {
 
     <!-- ── Quick-Log button + popover ── -->
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
-      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log">
+      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
         ⚡ Log
         <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
       </button>
@@ -2018,7 +2032,7 @@ body.enc-active-body .topbar {
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
-              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)">⏱ Timeline</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)">⏱ Timeline</button>
             </div>
             <div class="notes-scope-bar">
               <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
@@ -2138,12 +2152,21 @@ body.enc-active-body .topbar {
             <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Search</span>            <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
           </div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Tools</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd></span></div>
+            </div>
+          </div>
           <div class="shortcuts-group">
             <div class="shortcuts-group-hdr">Notes</div>
             <div class="shortcuts-table">
@@ -2170,7 +2193,7 @@ body.enc-active-body .topbar {
       </div>
 
       <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;padding-top:6px;border-top:1px solid var(--border)">
-        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong>
+        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong> — Tools shortcuts use <strong style="color:var(--text2)">Ctrl</strong> on all platforms
       </div>
     </div>
   </div>
@@ -2540,24 +2563,24 @@ function wrapCodeBlocks(container) {
       navigator.clipboard.writeText(pre.innerText).then(() => {
         btn.textContent = '✓ copied';
         btn.classList.add('copied');
+        showToast('✓ Copied to clipboard');
         setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
       });
     });
-    // ── Line-level copy (multi-line blocks only) ──
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.innerText || '';
     const lines   = rawText.split('\n');
-    const nonEmpty = lines.filter(l => l.trim()).length;
 
-    wrap.appendChild(btn); // always add copy button, regardless of line count
-    if (nonEmpty < 2) return;
+    wrap.appendChild(btn);
 
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
     codeEl.innerHTML = lines.map((line) => {
       if (!line.trim()) return '<span class="code-line-blank">\n</span>';
       const injected = injectTargets(esc(line));
       return '<span class="code-line">' +
              injected +
-             '<span class="code-line-copy">\u2398 copy line</span>' +
+             '<span class="code-line-copy">\u2398 copy</span>' +
              '</span>\n';
     }).join('');
 
@@ -2570,11 +2593,39 @@ function wrapCodeBlocks(container) {
           lineEl.classList.add('flash');
           const hint = lineEl.querySelector('.code-line-copy');
           if (hint) hint.textContent = '✓ copied';
+          showToast('✓ Copied to clipboard');
           setTimeout(() => {
             lineEl.classList.remove('flash');
-            if (hint) hint.textContent = '\u2398 copy line';
+            if (hint) hint.textContent = '\u2398 copy';
           }, 1200);
         });
+      });
+    });
+  });
+}
+
+function wrapInlineCodes(container) {
+  container.querySelectorAll('code:not(pre code)').forEach(el => {
+    if (el.dataset.inlineWrapped) return;
+    el.dataset.inlineWrapped = '1';
+
+    // Inject targets into the rendered HTML
+    el.innerHTML = injectTargets(el.innerHTML);
+
+    el.style.cursor = 'pointer';
+    el.title = 'Click to copy';
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = el.innerText.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        el.classList.add('inline-code-copied');
+        el.title = '✓ copied';
+        showToast('✓ Copied to clipboard');
+        setTimeout(() => {
+          el.classList.remove('inline-code-copied');
+          el.title = 'Click to copy';
+        }, 1200);
       });
     });
   });
@@ -2865,7 +2916,7 @@ function renderContent(html, icon, title, meta, query = '') {
   const el = document.getElementById('cpContent');
   el.innerHTML = injectTargets(html);
   wrapCodeBlocks(el);
-  // Scroll back to top
+  wrapInlineCodes(el);  // Scroll back to top
   el.parentElement.scrollTop = 0;
 }
 
@@ -3581,7 +3632,10 @@ function renderSessionSidebar() {
   if (sess) {
     dot.classList.add('live');
     name.textContent   = sess.codename;
-    target.textContent = [sess.target_ip, sess.target_domain].filter(Boolean).join(' · ') || 'no target set';
+    const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
+    target.textContent = activeTgt
+      ? [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set'
+      : 'no target set';
   } else {
     dot.classList.remove('live');
     name.textContent   = 'No session';
@@ -4067,6 +4121,7 @@ async function saveEdit() {
       activeDoc.raw  = d2.raw;
       document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
       wrapCodeBlocks(document.getElementById('cpContent'));
+      wrapInlineCodes(document.getElementById('cpContent'));
     } catch(_) {}
 
     setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
@@ -4438,12 +4493,15 @@ function _pwCheckStrength() {
   if (!bars[0]) return;
 
   let score = 0;
-  if (pw.length >= 8)  score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
+  if (pw.length >= 8)                                        score++; // minimum length
+  if (pw.length >= 14)                                       score++; // good length
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw))                 score++; // mixed case
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw))         score++; // number + symbol
 
-  const cls = score <= 1 ? 'weak' : score <= 2 ? 'medium' : 'strong';
+  // Long passphrases (20+) with any complexity hit perfect directly
+  if (pw.length >= 20 && score >= 2) score = 4;
+
+  const cls = score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'strong' : 'perfect';
   bars.forEach((b, i) => {
     b.className = 'pw-strength-bar' + (i < score ? ' ' + cls : '');
   });
@@ -4742,6 +4800,41 @@ document.addEventListener('keydown', async e => {
       toggleEditMode();
       return;
     }
+  }
+
+  // ── Ctrl+L — Toggle Quick Log popover ──
+  if (ctrl && e.key === 'l') {
+    e.preventDefault();
+    toggleSvcPopover();
+    return;
+  }
+
+  // ── Alt+T — Toggle Timeline view (switches to Notes first if needed) ──
+  if (e.altKey && e.key === 't') {
+    e.preventDefault();
+    if (activeView !== 'notes') {
+      switchView('notes', document.getElementById('nav-notes'));
+      // Small delay to let the view render before toggling timeline
+      setTimeout(() => {
+        const btn = document.getElementById('notesViewTimelineBtn');
+        if (notesListViewMode !== 'timeline') setNotesListView('timeline', btn);
+      }, 30);
+    } else {
+      // Already on notes — toggle between timeline and list
+      if (notesListViewMode === 'timeline') {
+        setNotesListView('list', document.getElementById('notesViewListBtn'));
+      } else {
+        setNotesListView('timeline', document.getElementById('notesViewTimelineBtn'));
+      }
+    }
+    return;
+  }
+
+  // ── Ctrl+. — Open target selector ──
+  if (ctrl && e.key === '.') {
+    e.preventDefault();
+    openTargetsPanel();
+    return;
   }
 
   // ── ESC — Close topmost modal / overlay / panel / dropdown ──
@@ -5222,7 +5315,7 @@ async function exportNotesMarkdown(sessionId) {
     lines.push('');
   });
 
-  // Write to project directory via server (per-target subdirs under notes/<session>/)
+  // Write to project directory via server (per-target subdirs under sessions/<session>/)
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
@@ -5232,7 +5325,7 @@ async function exportNotesMarkdown(sessionId) {
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      showToast(`Exported ${count} files → notes/${slugify(sess.codename)}/`);
+      showToast(`Exported ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }
