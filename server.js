@@ -35,8 +35,15 @@ const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
 const NOTES_DIR     = path.join(__dirname, 'sessions');
 const SESSIONS_DIR  = path.join(__dirname, 'sessions');
-const NOTES_FILE    = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
-const NOTES_ENC_FILE = path.join(NOTES_DIR, 'pragma.workbench.enc'); // encrypted
+
+// ── Active workbench — defaults to "default", switchable at runtime ──
+let activeWorkbenchName = 'default';
+function workbenchFile()    { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench`); }
+function workbenchEncFile() { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench.enc`); }
+
+// Keep legacy constants pointing at active workbench for existing code paths
+Object.defineProperty(global, 'NOTES_FILE',     { get: workbenchFile,    configurable: true });
+Object.defineProperty(global, 'NOTES_ENC_FILE', { get: workbenchEncFile, configurable: true });
 
 // ── Port / slug metadata maps (unchanged) ──
 const PORT_MAP = {
@@ -585,7 +592,77 @@ app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── POST /api/notes/export ──
+// ── Workbench management ──
+
+// GET /api/workbenches — list all workbench names on disk
+app.get('/api/workbenches', (req, res) => {
+  try {
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    const files = fs.readdirSync(NOTES_DIR);
+    const names = new Set();
+    names.add('default'); // always include default even if file doesn't exist yet
+    files.forEach(f => {
+      const m = f.match(/^(.+)\.workbench(\.enc)?$/);
+      if (m) names.add(m[1]);
+    });
+    res.json({
+      workbenches: [...names].sort((a, b) => a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b)),
+      active: activeWorkbenchName,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/switch — switch active workbench
+app.post('/api/workbench/switch', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' });
+    const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
+    if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
+    activeWorkbenchName = safe;
+    const encrypted = fs.existsSync(workbenchEncFile());
+    res.json({
+      ok: true,
+      active: activeWorkbenchName,
+      encrypted_storage: encrypted,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/create — create a new named workbench (empty)
+app.post('/api/workbench/create', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' });
+    const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
+    if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
+    const file = path.join(NOTES_DIR, `${safe}.workbench`);
+    const enc  = path.join(NOTES_DIR, `${safe}.workbench.enc`);
+    if (fs.existsSync(file) || fs.existsSync(enc))
+      return res.status(409).json({ error: `Workbench "${safe}" already exists` });
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ sessions: {}, notes: {} }, null, 2), 'utf8');
+    activeWorkbenchName = safe;
+    res.json({ ok: true, active: activeWorkbenchName });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/delete — delete a workbench (not allowed for active or default)
+app.post('/api/workbench/delete', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'name required' });
+    if (name === 'default') return res.status(403).json({ error: 'Cannot delete the default workbench' });
+    if (name === activeWorkbenchName) return res.status(409).json({ error: 'Cannot delete the active workbench. Switch first.' });
+    const file = path.join(NOTES_DIR, `${name}.workbench`);
+    const enc  = path.join(NOTES_DIR, `${name}.workbench.enc`);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    if (fs.existsSync(enc))  fs.unlinkSync(enc);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
 // Writes per-target directory structure:
 //   notes/<session-slug>/README.md
 //   notes/<session-slug>/<target-ip>/README.md
@@ -869,6 +946,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  sessions/ → ${NOTES_DIR}`);
+  console.log(`  sessions/ → ${NOTES_DIR}  (workbench: ${activeWorkbenchName})`);
   console.log(`  sessions/→ ${SESSIONS_DIR}\n`);
 });

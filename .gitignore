@@ -1,8 +1,7 @@
 # Notes
-notes/*
-notes.json
+sessions/*
 
-# Workbench
+# Workbenches
 *.workbench
 *.workbench.enc
 

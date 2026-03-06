@@ -11,23 +11,23 @@ EXAMPLE PROJECT STRUCTURE
  │   └── app.html        
  ├── server.js            
  ├── package.json
- ├── sessions/                  // only created once a workbench session has been created
-     ├── pragma.workbench       // session file for workbench    
-     └── pragma.workbench.enc   // encrypted session file for workbench
- └── knowledge_base/            // can be set to other folder using the KB_DIR env
+ ├── sessions/                              // only created once a workbench session has been created
+     ├── default.workbench                  // Default file for workbench    
+     └── <workbench-name>.workbench.enc     // encrypted workbenchfile for several workbenches
+ └── knowledge_base/                        // can be set to other folder using the KB_DIR env
       ├── attacks/
       │   ├── lfi.md
       │   ├── sqli.md
-      │   └── ...               // any .md file becomes a attack card
+      │   └── ...                           // any .md file becomes a attack card
       ├── methodologies/
       │   ├── active-directory.md
       │   ├── pivoting.md
-      │   └── ...               // any .md file becomes a methodology card
+      │   └── ...                           // any .md file becomes a methodology card
       └── services/
-          ├── 22.md             // ssh
-          ├── 80.md             // http
-          ├── 445.md            // smb
-          └── ...               // any .md file becomes a service card
+          ├── 22.md                         // ssh
+          ├── 80.md                         // http
+          ├── 445.md                        // smb
+          └── ...                           // any .md file becomes a service card
 ```
 
 --- 
