@@ -257,7 +257,7 @@ body{
 .workbench-switch-btn {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 4px; color: var(--muted); cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   padding: 2px 7px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0;
 }
 .workbench-switch-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -575,7 +575,7 @@ body{
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;
   position:relative;
-  min-width:120px;max-width:520px;
+  min-width:210px;max-width:520px;
 }
 .notes-list-hdr{
   display:flex;align-items:center;justify-content:space-between;
@@ -1090,7 +1090,50 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--muted); flex-shrink: 0;
   transition: background 0.2s;
 }
-.session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.session-active-dot.live     { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.session-active-dot.paused   { background: var(--yellow); }
+.session-active-dot.complete { background: var(--muted);  }
+
+/* ── Session status pill in list ── */
+.session-status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600;
+  letter-spacing: 0.06em; border-radius: 4px; padding: 2px 7px;
+  cursor: pointer; border: 1px solid transparent; flex-shrink: 0;
+  transition: all 0.12s; user-select: none;
+}
+.session-status-pill.active   { color: var(--green);  background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.25); }
+.session-status-pill.paused   { color: var(--yellow); background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.25); }
+.session-status-pill.complete { color: var(--muted);  background: var(--bg4);            border-color: var(--border); }
+.session-status-pill:hover { filter: brightness(1.2); border-color: currentColor; }
+
+/* ── Status dropdown (shared singleton, fixed position) ── */
+.status-dropdown {
+  display: none; position: fixed;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px; z-index: 9000;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5); min-width: 110px;
+  flex-direction: column; gap: 2px;
+}
+.status-dropdown.open { display: flex; }
+.status-dropdown-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 9px; border-radius: 4px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  transition: background 0.1s;
+}
+.status-dropdown-item:hover { background: var(--bg3); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.active   { background: var(--green); }
+.status-dot.paused   { background: var(--yellow); }
+.status-dot.complete { background: var(--muted); }
+
+/* ── Completed session muted look ── */
+.session-list-item.status-complete { opacity: 0.6; }
+.session-list-item.status-complete .session-list-item-name { color: var(--text2); }
+
+/* ── Copy target button (standalone, outside selector) ── */
+.target-copy-btn { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
@@ -1165,7 +1208,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-actions { display: flex; gap: 8px; margin-top: 4px; }
 .session-btn {
   flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .session-btn.primary {
@@ -1202,7 +1245,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-item-export-btn {
   background: var(--bg4); border: 1px solid var(--border);
   border-radius: 4px; color: var(--muted); cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
 }
 .session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -1217,14 +1260,15 @@ body.is-resizing *{cursor:col-resize!important}
 /* ── Notes scope bar (Session / Unassigned / All) ── */
 .notes-scope-bar {
   display: flex; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
+  background: var(--bg2); flex-shrink: 0; overflow: hidden;
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
-  color: var(--muted); padding: 6px 4px;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--muted); padding: 7px 4px; min-width: 0;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .note-scope-btn:hover { color: var(--text2); }
 .note-scope-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -1445,7 +1489,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Target badge on note list items */
 .note-item-target {
   display: inline-flex; align-items: center; gap: 3px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   color: var(--green); background: rgba(52,211,153,0.08);
   border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
   padding: 1px 5px; margin-top: 3px;
@@ -1675,7 +1719,7 @@ body.enc-active-body .topbar {
 .pw-btn {
   flex: 1; padding: 9px; border-radius: 7px;
   border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: all 0.15s; text-align: center;
   letter-spacing: 0.04em;
 }
@@ -1703,7 +1747,7 @@ body.enc-active-body .topbar {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; padding: 0 10px;
   cursor: pointer; transition: all 0.15s;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   color: var(--muted); white-space: nowrap;
   height: 32px; box-sizing: border-box; align-self: center;
 }
@@ -1765,8 +1809,8 @@ body.enc-active-body .topbar {
 .svc-quick-input::placeholder { color: var(--muted); }
 .svc-quick-add-btn {
   background: var(--accent); border: none; border-radius: 6px;
-  color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+  color: #fff; font-family: 'Inter', sans-serif; font-size: 13px;
+  font-weight: 600; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
 }
 .svc-quick-add-btn:hover { background: var(--accent2); }
 .svc-hint {
@@ -1804,7 +1848,7 @@ body.enc-active-body .topbar {
 }
 .notes-view-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
   color: var(--muted); padding: 5px 4px;
   border-bottom: 2px solid transparent; transition: all 0.12s;
   letter-spacing: 0.04em; text-transform: uppercase;
@@ -1891,6 +1935,7 @@ body.enc-active-body .topbar {
       <span class="target-sel-label" id="targetSelLabel"></span>
       <span class="target-sel-arrow">⌄</span>
     </div>
+    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">copy</button>
 
     <!-- ── Quick-Log button + popover ── -->
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
@@ -2325,7 +2370,7 @@ body.enc-active-body .topbar {
 
 <!-- ── NEW NOTE MODAL ── -->
 <div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
-  <div class="cmd-box" style="max-width:380px">
+  <div class="cmd-box" style="max-width:520px">
     <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
       <span class="cmd-input-icon">📝</span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
@@ -2372,6 +2417,13 @@ body.enc-active-body .topbar {
       </div>
     </div>
   </div>
+</div>
+
+<!-- ── Shared status dropdown (fixed position, escapes overflow) ── -->
+<div class="status-dropdown" id="statusDropdown">
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('active')">  <span class="status-dot active"></span>Active</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('paused')">  <span class="status-dot paused"></span>Paused</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('complete')"><span class="status-dot complete"></span>Complete</div>
 </div>
 
 <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
@@ -2472,24 +2524,38 @@ function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<
 function updateTargetDots() { updateTargetSelector(); }
 
 function updateTargetSelector() {
-  const t   = getActiveTarget();
-  const dot = document.getElementById('targetSelDot');
-  const ip  = document.getElementById('targetSelIP');
-  const dom = document.getElementById('targetSelDomain');
-  const lbl = document.getElementById('targetSelLabel');
+  const t      = getActiveTarget();
+  const dot    = document.getElementById('targetSelDot');
+  const ip     = document.getElementById('targetSelIP');
+  const dom    = document.getElementById('targetSelDomain');
+  const lbl    = document.getElementById('targetSelLabel');
+  const cpyBtn = document.getElementById('targetCopyBtn');
   if (t) {
     dot.classList.add('active');
     ip.textContent  = t.ip     || '—';
     dom.textContent = t.domain || '';
     lbl.textContent = t.label  || '';
     lbl.style.display = t.label ? '' : 'none';
+    if (cpyBtn) cpyBtn.style.display = (t.ip || t.domain) ? '' : 'none';
   } else {
     dot.classList.remove('active');
     ip.textContent  = activeSessionId ? '— no targets' : '— no session';
     dom.textContent = '';
     lbl.textContent = '';
     lbl.style.display = 'none';
+    if (cpyBtn) cpyBtn.style.display = 'none';
   }
+}
+
+function copyActiveTarget(e) {
+  const t = getActiveTarget();
+  if (!t) return;
+  // Alt+click copies domain, regular click copies IP (fallback to domain if no IP)
+  const text = (e.altKey && t.domain) ? t.domain : (t.ip || t.domain || '');
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Copied: ${text}`);
+  });
 }
 
 // ── Targets panel ──
@@ -3825,6 +3891,7 @@ async function initNotes() {
     saveNotes();
   }
   updateTargetSelector();
+  renderSvcLogTable();
 }
 
 function saveNotes() {
@@ -3864,14 +3931,15 @@ function renderSessionSidebar() {
   const target = document.getElementById('sessionTarget');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
-    dot.classList.add('live');
+    const status = sess.status || 'active';
+    dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent   = sess.codename;
     const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
     target.textContent = activeTgt
       ? [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set'
       : 'no target set';
   } else {
-    dot.classList.remove('live');
+    dot.className = 'session-active-dot';
     name.textContent   = 'No session';
     target.textContent = '— click to set';
   }
@@ -3896,19 +3964,25 @@ function renderSessionList() {
     return;
   }
   const noteCount = id => Object.values(notes).filter(n => n.session_id === id).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
   list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
-    entries.map(s => `
-    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
+    entries.map(s => {
+      const status = s.status || 'active';
+      return `
+    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
         <div class="session-item-actions">
+          <div class="session-status-pill ${status}" onclick="toggleStatusDropdown(event,'${s.id}')">
+            <span class="status-dot ${status}"></span>${statusLabel[status]}
+          </div>
           <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
           <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
           <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function createSession() {
@@ -3937,6 +4011,56 @@ function createSession() {
   document.getElementById('newSessionName').value   = '';
   document.getElementById('newSessionIP').value     = '';
   document.getElementById('newSessionDomain').value = '';
+}
+
+let _statusDropdownTarget = null;
+
+function toggleStatusDropdown(e, sessId) {
+  e.stopPropagation();
+  const dd = document.getElementById('statusDropdown');
+  const isOpen = dd.classList.contains('open') && _statusDropdownTarget === sessId;
+
+  // Always close first
+  dd.classList.remove('open');
+  _statusDropdownTarget = null;
+
+  if (isOpen) return; // toggle off
+
+  // Position relative to the pill
+  const pill = e.currentTarget;
+  const rect = pill.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  _statusDropdownTarget = sessId;
+  dd.classList.add('open');
+
+  // Close on outside click
+  setTimeout(() => {
+    const handler = (ev) => {
+      if (!ev.target.closest('#statusDropdown') && !ev.target.closest('.session-status-pill')) {
+        dd.classList.remove('open');
+        _statusDropdownTarget = null;
+        document.removeEventListener('click', handler);
+      }
+    };
+    document.addEventListener('click', handler);
+  }, 0);
+}
+
+function applyStatusFromDropdown(status) {
+  if (!_statusDropdownTarget) return;
+  setSessionStatus(null, _statusDropdownTarget, status);
+  document.getElementById('statusDropdown').classList.remove('open');
+  _statusDropdownTarget = null;
+}
+
+function setSessionStatus(e, sessId, status) {
+  if (e) e.stopPropagation();
+  if (!sessions[sessId]) return;
+  sessions[sessId].status = status;
+  saveNotes();
+  renderSessionList();
+  if (sessId === activeSessionId) renderSessionSidebar();
 }
 
 function switchSession(id) {
