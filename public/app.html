@@ -22,9 +22,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PRAGMA</title>
+<title>#PRAGMA</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="codemirror-bundle.js"></script>
+  <script>
+  // Minimal markdown renderer for note preview (no external deps)
+  window.marked = {
+    _opts: { breaks: false, gfm: true },
+    setOptions(o) { Object.assign(this._opts, o); },
+    parse(src) {
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // stash fenced code blocks to protect them from all further processing
+      const stash = [];
+      src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/\n$/,''))}</code></pre>`;
+        stash.push(html);
+        return `\x00STASH${stash.length-1}\x00`;
+      });
+      // inline code
+      src = src.replace(/`([^`\n]+)`/g, (_,c) => `<code>${esc(c)}</code>`);
+      // headings
+      src = src.replace(/^#{6} (.+)$/gm, '<h6>$1</h6>');
+      src = src.replace(/^#{5} (.+)$/gm, '<h5>$1</h5>');
+      src = src.replace(/^#{4} (.+)$/gm, '<h4>$1</h4>');
+      src = src.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      src = src.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      src = src.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      // bold, italic, strikethrough
+      src = src.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      src = src.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      src = src.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
+      // links & images
+      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+      src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      // hr
+      src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
+      // blockquote
+      src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // unordered list
+      src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      });
+      // ordered list
+      src = src.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      });
+      // paragraphs
+      src = src.split(/\n{2,}/).map(block => {
+        block = block.trim();
+        if (!block) return '';
+        if (/^\x00STASH/.test(block)) return block;
+        if (/^<(h[1-6]|ul|ol|hr|blockquote)/.test(block)) return block;
+        return `<p>${block.replace(/\n/g,' ')}</p>`;
+      }).join('\n');
+      // restore stashed code blocks
+      src = src.replace(/\x00STASH(\d+)\x00/g, (_,i) => stash[+i]);
+      return src;
+    }
+  };
+  </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -39,7 +98,8 @@
   --border2:  #5a6878;
   --text:     #dde6f0;
   --text2:    #96abbe;
-  --muted:    #5e7385;
+  --muted:    #7a95aa;
+  --btn-color:#a8bfd0;
   --accent:   #8b5cf6;
   --accent2:  #7c3aed;
   --green:    #34d399;
@@ -48,7 +108,7 @@
   --orange:   #fb923c;
   --yellow:   #fbbf24;
   --sidebar-w: 220px;
-  --topbar-h:  48px;
+  --topbar-h:  42px;
   --logo-icon-color: #8b5cf6;
   --logo-icon-size: 18px;
 }
@@ -63,6 +123,7 @@
   --text:     #1a2535;
   --text2:    #3a5068;
   --muted:    #7a90a8;
+  --btn-color:#4a6580;
   --accent:   #5b21b6;
   --accent2:  #6d28d9;
   --green:    #059669;
@@ -158,7 +219,7 @@ body{
   color:var(--muted);font-size:12px;
   font-family:'Inter',sans-serif;
   flex:1;max-width:520px;min-width:0;
-  height:32px;box-sizing:border-box;align-self:center;
+  height:28px;box-sizing:border-box;align-self:center;
   overflow:hidden;white-space:nowrap;
 }
 .cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
@@ -177,11 +238,12 @@ body{
   background:var(--bg3);border:1px solid var(--border);
   border-radius:6px;padding:0 10px;
   cursor:pointer;transition:all 0.15s;
-  color:var(--muted);font-size:12px;
+  color:var(--btn-color);font-size:11px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
-  height:32px;box-sizing:border-box;align-self:center;
-  display:flex;align-items:center;
+  height:28px;box-sizing:border-box;align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  line-height:1;
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
@@ -242,6 +304,52 @@ body{
 }
 
 .sidebar-divider{height:1px;background:var(--border);margin:4px 0}
+
+/* ── Workbench switcher ── */
+.workbench-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px 6px 14px;
+}
+.workbench-name {
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  font-weight: 700; color: var(--text2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.04em;
+}
+.workbench-switch-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--btn-color); cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  padding: 2px 7px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0;
+}
+.workbench-switch-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Workbench modal list ── */
+.workbench-list { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+.workbench-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  transition: all 0.12s;
+}
+.workbench-item.clickable { cursor: pointer; }
+.workbench-item.clickable:hover { border-color: var(--accent); background: rgba(124,58,237,0.08); }
+.workbench-item.active-wb { border-color: var(--accent); background: rgba(124,58,237,0.12); cursor: default; }
+.workbench-item-name {
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-weight: 700; color: var(--text);
+}
+.workbench-item-badge {
+  font-size: 9px; font-family: 'Inter', sans-serif; font-weight: 700;
+  padding: 1px 6px; border-radius: 3px; letter-spacing: 0.06em;
+}
+.workbench-item-badge.enc { background: rgba(124,58,237,0.2); color: var(--accent); border: 1px solid rgba(124,58,237,0.3); }
+.workbench-item-badge.active { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+.workbench-item-del {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 13px; padding: 2px 4px; border-radius: 3px; opacity: 0.4;
+  transition: all 0.12s;
+}
+.workbench-item-del:hover { color: var(--red); opacity: 1; }
 
 /* category list */
 .cat-scroll{overflow-y:auto;flex:1;padding-bottom:8px}
@@ -381,7 +489,7 @@ body{
   border-left:1px solid var(--border);
   display:flex;flex-direction:column;
   flex-shrink:0;position:relative;
-  min-width:320px;
+  min-width:120px;
 }
 .content-panel.hidden-panel{width:0!important;overflow:hidden;border:none;min-width:0}
 
@@ -479,9 +587,15 @@ body{
 .copy-btn.copied{color:var(--green);border-color:var(--green);opacity:1}
 
 /* ── Line-level copy ── */
-.code-line{
-  display:block;border-radius:3px;
+.code-line, .code-line-blank {
+  display: table;
+  width: 100%;
+  border-radius:3px;
   padding:0 4px;margin:0 -4px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+.code-line {
   position:relative;cursor:pointer;
   transition:background 0.1s;
 }
@@ -500,10 +614,21 @@ body{
 
 /* Inline code */
 .md-content code:not(pre code){
-  font-family:'Inter',sans-serif;
+  font-family:'IBM Plex Mono',monospace;
   background:var(--bg3);border:1px solid var(--border);
   border-radius:4px;padding:1px 5px;
   font-size:0.88em;color:var(--green);
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.md-content code:not(pre code):hover {
+  background: rgba(124,58,237,0.18);
+  border-color: rgba(124,58,237,0.5);
+  color: var(--text);
+}
+.md-content code:not(pre code).inline-code-copied {
+  background: rgba(124,58,237,0.25);
+  border-color: var(--accent);
+  color: #fff;
 }
 
 /* IP injection highlight */
@@ -517,7 +642,7 @@ body{
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;
   position:relative;
-  min-width:120px;max-width:520px;
+  min-width:210px;max-width:520px;
 }
 .notes-list-hdr{
   display:flex;align-items:center;justify-content:space-between;
@@ -552,6 +677,45 @@ body{
 }
 
 .notes-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Note editor split (editor + preview) ── */
+.note-editor-split {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+}
+.note-editor-split .cm-wrap {
+  flex: 1; min-height: 80px;
+}
+.note-editor-split.preview-open .cm-wrap {
+  flex: 0 0 var(--note-editor-h, 50%); min-height: 80px; max-height: calc(100% - 120px);
+}
+.note-preview-handle {
+  height: 6px; flex-shrink: 0; cursor: ns-resize;
+  background: var(--border); transition: background 0.15s;
+  position: relative;
+}
+.note-preview-handle:hover, .note-preview-handle.dragging { background: var(--accent); }
+.note-preview-handle::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 2px; border-radius: 2px;
+  background: var(--border2);
+}
+.note-preview-pane {
+  flex: 1; display: flex; flex-direction: column;
+  border-top: 1px solid var(--border); overflow: hidden; min-height: 80px;
+}
+.note-preview-label {
+  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 5px 16px 4px; flex-shrink: 0; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.note-preview-content {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+}
+.note-preview-content::-webkit-scrollbar { width: 3px; }
+.note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
+#notePreviewBtn.active { color: var(--accent); }
 .notes-editor-hdr{
   display:flex;align-items:center;gap:8px;
   padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
@@ -579,7 +743,7 @@ body{
 
 .icon-btn{
   background:none;border:none;cursor:pointer;
-  color:var(--muted);font-size:17px;padding:3px 7px;
+  color:var(--btn-color);font-size:17px;padding:3px 7px;
   border-radius:4px;transition:all 0.12s;
 }
 .icon-btn:hover{background:var(--bg4);color:var(--text)}
@@ -616,7 +780,7 @@ body{
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
 
-.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
 .ctrl-label{
   font-family:'Inter',sans-serif;font-size:10px;
   color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
@@ -665,6 +829,10 @@ body{
   justify-content:space-between;gap:10px;margin-bottom:5px;
 }
 .result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.search-meta-row{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:2px 2px 0;
+}
 .result-score{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
   background:rgba(52,211,153,0.15);color:var(--green);
@@ -674,7 +842,7 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size: 13px;color:var(--text2);font-weight:600}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
@@ -708,12 +876,15 @@ body{
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,0.55);
 }
-.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}
+.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:clamp(52px,8vh,100px) 16px 16px;}
 
 .cmd-box{
   background:var(--bg2);border:1px solid var(--border2);
-  border-radius:12px;width:90%;max-width:580px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.7);overflow:hidden;
+  border-radius:12px;width:100%;max-width:780px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - clamp(68px,10vh,120px));
+  overflow:hidden;
   animation:cmdSlide 0.04s ease;
 }
 @keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
@@ -735,7 +906,7 @@ body{
   border-radius:4px;padding:2px 7px;color:var(--muted);
 }
 
-.cmd-results{max-height:400px;overflow-y:auto}
+.cmd-results{flex:1 1 auto;overflow-y:auto;min-height:0}
 .cmd-results::-webkit-scrollbar{width:3px}
 .cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
 
@@ -779,11 +950,12 @@ body{
 /* ── Sidebar toggle button ── */
 .sidebar-toggle-btn {
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0 9px; cursor: pointer;
-  color: var(--muted); font-size: 15px; line-height: 1;
+  border-radius: 6px; padding: 0 10px; cursor: pointer;
+  color: var(--muted); font-size: 15px;
   transition: all 0.15s; flex-shrink: 0;
   height: 32px; box-sizing: border-box; align-self: center;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
 }
 .sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
@@ -882,8 +1054,8 @@ body{
 
     .note-type-btn {
       background: none; border: none; cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
-      color: var(--muted); padding: 3px 8px; border-radius: 4px;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--btn-color); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
     .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
@@ -1024,17 +1196,80 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--muted); flex-shrink: 0;
   transition: background 0.2s;
 }
-.session-active-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.session-active-info { flex: 1; overflow: hidden; }
+.session-active-dot.live     { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.session-active-dot.paused   { background: var(--yellow); }
+.session-active-dot.complete { background: var(--muted);  }
+
+/* ── Session status pill in list ── */
+.session-status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600;
+  letter-spacing: 0.06em; border-radius: 4px; padding: 2px 7px;
+  cursor: pointer; border: 1px solid transparent; flex-shrink: 0;
+  transition: all 0.12s; user-select: none;
+}
+.session-status-pill.active   { color: var(--green);  background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.25); }
+.session-status-pill.paused   { color: var(--yellow); background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.25); }
+.session-status-pill.complete { color: var(--muted);  background: var(--bg4);            border-color: var(--border); }
+.session-status-pill:hover { filter: brightness(1.2); border-color: currentColor; }
+
+/* ── Status dropdown (shared singleton, fixed position) ── */
+.status-dropdown {
+  display: none; position: fixed;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px; z-index: 9000;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5); min-width: 110px;
+  flex-direction: column; gap: 2px;
+}
+.status-dropdown.open { display: flex; }
+.status-dropdown-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 9px; border-radius: 4px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  transition: background 0.1s;
+}
+.status-dropdown-item:hover { background: var(--bg3); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.active   { background: var(--green); }
+.status-dot.paused   { background: var(--yellow); }
+.status-dot.complete { background: var(--muted); }
+
+/* ── Completed session muted look ── */
+.session-list-item.status-complete { opacity: 0.6; }
+.session-list-item.status-complete .session-list-item-name { color: var(--text2); }
+
+/* ── Syntax theme picker ── */
+.syntax-theme-picker {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; height: 28px; box-sizing: border-box; align-self: center;
+}
+.syntax-dot {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 5px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s; opacity: 0.45;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); white-space: nowrap;
+}
+.syntax-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dot-color); flex-shrink: 0;
+}
+.syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
+.syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
+.target-copy-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
+.session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  word-break: break-word;
   font-family: 'Inter', sans-serif;
 }
 .session-active-target {
   font-size: 12px; color: var(--text2);
   font-family: 'Inter', sans-serif;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  word-break: break-word;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
 
@@ -1099,7 +1334,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-actions { display: flex; gap: 8px; margin-top: 4px; }
 .session-btn {
   flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .session-btn.primary {
@@ -1115,47 +1350,51 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 2px 4px;
 }
 .session-list-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
   background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s; flex-wrap: wrap;
+  transition: all 0.12s;
 }
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; color: var(--text); min-width: 0;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.session-list-item-meta { font-size: 13px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.session-list-item-bottom {
+  display: flex; align-items: center; gap: 6px;
+}
+.session-list-item-meta { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; flex: 1; }
 .session-item-actions {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
 }
 .session-item-export-btn {
   background: var(--bg4); border: 1px solid var(--border);
-  border-radius: 4px; color: var(--muted); cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  border-radius: 4px; color: var(--btn-color); cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
 }
 .session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .session-delete-btn {
   background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 17px; padding: 2px 6px; border-radius: 4px; transition: all 0.12s;
-  flex-shrink: 0;
+  font-size: 15px; padding: 2px 4px; border-radius: 4px; transition: all 0.12s;
+  flex-shrink: 0; margin-left: 2px; opacity: 0.5;
 }
-.session-delete-btn:hover { color: var(--red); }
+.session-delete-btn:hover { color: var(--red); opacity: 1; }
 
 /* ── Notes scope bar (Session / Unassigned / All) ── */
 .notes-scope-bar {
   display: flex; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
+  background: var(--bg2); flex-shrink: 0; overflow: hidden;
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
-  color: var(--muted); padding: 6px 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); padding: 6px 4px; min-width: 0;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .note-scope-btn:hover { color: var(--text2); }
 .note-scope-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -1187,9 +1426,10 @@ body.is-resizing *{cursor:col-resize!important}
 .target-selector {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 5px 12px;
+  border-radius: 6px; padding: 0 12px;
   cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-  min-width: 200px; max-width: 340px; overflow: hidden;
+  min-width: 180px; max-width: 320px; overflow: hidden;
+  height: 28px; box-sizing: border-box; align-self: center;
 }
 .target-selector:hover { border-color: var(--accent); }
 .target-sel-dot {
@@ -1376,7 +1616,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Target badge on note list items */
 .note-item-target {
   display: inline-flex; align-items: center; gap: 3px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   color: var(--green); background: rgba(52,211,153,0.08);
   border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
   padding: 1px 5px; margin-top: 3px;
@@ -1592,9 +1832,10 @@ body.enc-active-body .topbar {
   height: 3px; flex: 1; border-radius: 2px;
   background: var(--border); transition: background 0.2s;
 }
-.pw-strength-bar.weak   { background: var(--red); }
-.pw-strength-bar.medium { background: var(--yellow); }
-.pw-strength-bar.strong { background: var(--green); }
+.pw-strength-bar.weak    { background: var(--red); }
+.pw-strength-bar.medium  { background: var(--yellow); }
+.pw-strength-bar.strong  { background: var(--green); }
+.pw-strength-bar.perfect { background: var(--accent); }
 .pw-error-msg {
   font-family: 'IBM Plex Mono', monospace; font-size: 12px;
   color: var(--red); display: none; margin-top: 2px;
@@ -1605,7 +1846,7 @@ body.enc-active-body .topbar {
 .pw-btn {
   flex: 1; padding: 9px; border-radius: 7px;
   border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: all 0.15s; text-align: center;
   letter-spacing: 0.04em;
 }
@@ -1633,9 +1874,9 @@ body.enc-active-body .topbar {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; padding: 0 10px;
   cursor: pointer; transition: all 0.15s;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
-  color: var(--muted); white-space: nowrap;
-  height: 32px; box-sizing: border-box; align-self: center;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); white-space: nowrap;
+  height: 28px; box-sizing: border-box; align-self: center;
 }
 .svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
 .svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
@@ -1695,8 +1936,8 @@ body.enc-active-body .topbar {
 .svc-quick-input::placeholder { color: var(--muted); }
 .svc-quick-add-btn {
   background: var(--accent); border: none; border-radius: 6px;
-  color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
-  font-weight: 700; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+  color: #fff; font-family: 'Inter', sans-serif; font-size: 13px;
+  font-weight: 600; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
 }
 .svc-quick-add-btn:hover { background: var(--accent2); }
 .svc-hint {
@@ -1734,8 +1975,8 @@ body.enc-active-body .topbar {
 }
 .notes-view-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
-  color: var(--muted); padding: 5px 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); padding: 5px 4px;
   border-bottom: 2px solid transparent; transition: all 0.12s;
   letter-spacing: 0.04em; text-transform: uppercase;
 }
@@ -1802,7 +2043,7 @@ body.enc-active-body .topbar {
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)">☰</button>
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)"><span style="line-height:1;display:block">☰</span></button>
     <div class="topbar-logo-wrap">
       <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
@@ -1821,10 +2062,11 @@ body.enc-active-body .topbar {
       <span class="target-sel-label" id="targetSelLabel"></span>
       <span class="target-sel-arrow">⌄</span>
     </div>
+    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">copy</button>
 
     <!-- ── Quick-Log button + popover ── -->
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
-      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log">
+      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
         ⚡ Log
         <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
       </button>
@@ -1858,6 +2100,11 @@ body.enc-active-body .topbar {
 
     <div class="topbar-actions">
       <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
+      <div class="syntax-theme-picker" title="Editor syntax theme">
+        <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+        <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+        <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+      </div>
       <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
     </div>
   </div>
@@ -1867,6 +2114,13 @@ body.enc-active-body .topbar {
 
     <!-- ── SIDEBAR ── -->
     <div class="sidebar">
+      <!-- Workbench switcher -->
+      <div class="sidebar-section-hdr">Workbench</div>
+      <div class="workbench-bar">
+        <span class="workbench-name" id="workbenchName">default</span>
+        <button class="workbench-switch-btn" onclick="openWorkbenchModal()" title="Switch or create workbench">⇄ Switch</button>
+      </div>
+      <div class="sidebar-divider"></div>
       <!-- Active session -->
       <div class="sidebar-section" id="sessionSection">
         <div class="sidebar-section-hdr">Session</div>
@@ -1902,7 +2156,7 @@ body.enc-active-body .topbar {
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
           <span class="nav-item-icon">🔍</span>
-          <span class="nav-item-label">Search</span>
+          <span class="nav-item-label">Search in KB</span>
         </div>
       </div>
 
@@ -2008,7 +2262,7 @@ body.enc-active-body .topbar {
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
-              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)">⏱ Timeline</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)">⏱ Timeline</button>
             </div>
             <div class="notes-scope-bar">
               <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
@@ -2049,6 +2303,7 @@ body.enc-active-body .topbar {
                   <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
+                <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
@@ -2064,7 +2319,14 @@ body.enc-active-body .topbar {
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
-              <div class="cm-wrap" id="noteBodyWrap"></div>
+              <div class="note-editor-split" id="noteEditorSplit">
+                <div class="cm-wrap" id="noteBodyWrap"></div>
+                <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
+                <div class="note-preview-pane" id="notePreviewPane" style="display:none">
+                  <div class="note-preview-label">Preview</div>
+                  <div class="md-content note-preview-content" id="notePreviewContent"></div>
+                </div>
+              </div>
               <div class="note-backlinks" id="noteBacklinks" style="display:none">
                 <div class="note-backlinks-hdr">🔗 Linked from</div>
                 <div class="note-backlinks-list" id="noteBacklinksList"></div>
@@ -2128,12 +2390,21 @@ body.enc-active-body .topbar {
             <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Search</span>            <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
           </div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Tools</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd></span></div>
+            </div>
+          </div>
           <div class="shortcuts-group">
             <div class="shortcuts-group-hdr">Notes</div>
             <div class="shortcuts-table">
@@ -2160,7 +2431,7 @@ body.enc-active-body .topbar {
       </div>
 
       <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;padding-top:6px;border-top:1px solid var(--border)">
-        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong>
+        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong> — Tools shortcuts use <strong style="color:var(--text2)">Ctrl</strong> on all platforms
       </div>
     </div>
   </div>
@@ -2239,7 +2510,7 @@ body.enc-active-body .topbar {
 
 <!-- ── NEW NOTE MODAL ── -->
 <div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
-  <div class="cmd-box" style="max-width:380px">
+  <div class="cmd-box" style="max-width:520px">
     <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
       <span class="cmd-input-icon">📝</span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
@@ -2261,6 +2532,40 @@ body.enc-active-body .topbar {
 </div>
 
 <!-- ── COMMAND PALETTE ── -->
+<!-- ── WORKBENCH MODAL ── -->
+<div class="cmd-overlay" id="workbenchOverlay" onclick="if(event.target===this)closeWorkbenchModal()">
+  <div class="cmd-box" style="max-width:480px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">⬡</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Workbenches</span>
+      <span class="cmd-esc" onclick="closeWorkbenchModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px">
+      <div class="workbench-list" id="workbenchList"></div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;align-items:center">
+        <input id="newWorkbenchInput" type="text" placeholder="New workbench name…"
+          autocomplete="off" spellcheck="false"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+                 padding:6px 10px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none"
+          onkeydown="if(event.key==='Enter')createWorkbench()">
+        <button onclick="createWorkbench()"
+          style="background:var(--accent);border:none;border-radius:6px;color:#fff;
+                 font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+                 padding:6px 14px;cursor:pointer;white-space:nowrap">
+          ＋ Create
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Shared status dropdown (fixed position, escapes overflow) ── -->
+<div class="status-dropdown" id="statusDropdown">
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('active')">  <span class="status-dot active"></span>Active</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('paused')">  <span class="status-dot paused"></span>Paused</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('complete')"><span class="status-dot complete"></span>Complete</div>
+</div>
+
 <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
   <div class="cmd-box">
     <div class="cmd-input-row">
@@ -2359,24 +2664,38 @@ function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<
 function updateTargetDots() { updateTargetSelector(); }
 
 function updateTargetSelector() {
-  const t   = getActiveTarget();
-  const dot = document.getElementById('targetSelDot');
-  const ip  = document.getElementById('targetSelIP');
-  const dom = document.getElementById('targetSelDomain');
-  const lbl = document.getElementById('targetSelLabel');
+  const t      = getActiveTarget();
+  const dot    = document.getElementById('targetSelDot');
+  const ip     = document.getElementById('targetSelIP');
+  const dom    = document.getElementById('targetSelDomain');
+  const lbl    = document.getElementById('targetSelLabel');
+  const cpyBtn = document.getElementById('targetCopyBtn');
   if (t) {
     dot.classList.add('active');
     ip.textContent  = t.ip     || '—';
     dom.textContent = t.domain || '';
     lbl.textContent = t.label  || '';
     lbl.style.display = t.label ? '' : 'none';
+    if (cpyBtn) cpyBtn.style.display = (t.ip || t.domain) ? '' : 'none';
   } else {
     dot.classList.remove('active');
     ip.textContent  = activeSessionId ? '— no targets' : '— no session';
     dom.textContent = '';
     lbl.textContent = '';
     lbl.style.display = 'none';
+    if (cpyBtn) cpyBtn.style.display = 'none';
   }
+}
+
+function copyActiveTarget(e) {
+  const t = getActiveTarget();
+  if (!t) return;
+  // Alt+click copies domain, regular click copies IP (fallback to domain if no IP)
+  const text = (e.altKey && t.domain) ? t.domain : (t.ip || t.domain || '');
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Copied: ${text}`);
+  });
 }
 
 // ── Targets panel ──
@@ -2530,26 +2849,26 @@ function wrapCodeBlocks(container) {
       navigator.clipboard.writeText(pre.innerText).then(() => {
         btn.textContent = '✓ copied';
         btn.classList.add('copied');
+        showToast('✓ Copied to clipboard');
         setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
       });
     });
-    // ── Line-level copy (multi-line blocks only) ──
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.innerText || '';
-    const lines   = rawText.split('\n');
-    const nonEmpty = lines.filter(l => l.trim()).length;
+    const lines   = rawText.replace(/\n$/, '').split('\n');
 
-    wrap.appendChild(btn); // always add copy button, regardless of line count
-    if (nonEmpty < 2) return;
+    wrap.appendChild(btn);
 
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
     codeEl.innerHTML = lines.map((line) => {
-      if (!line.trim()) return '<span class="code-line-blank">\n</span>';
+      if (!line.trim()) return '<span class="code-line-blank"> </span>';
       const injected = injectTargets(esc(line));
       return '<span class="code-line">' +
              injected +
-             '<span class="code-line-copy">\u2398 copy line</span>' +
-             '</span>\n';
-    }).join('');
+             '<span class="code-line-copy">\u2398 copy</span>' +
+             '</span>';
+    }).join('\n');
 
     codeEl.querySelectorAll('.code-line').forEach(lineEl => {
       lineEl.addEventListener('click', (e) => {
@@ -2560,11 +2879,39 @@ function wrapCodeBlocks(container) {
           lineEl.classList.add('flash');
           const hint = lineEl.querySelector('.code-line-copy');
           if (hint) hint.textContent = '✓ copied';
+          showToast('✓ Copied to clipboard');
           setTimeout(() => {
             lineEl.classList.remove('flash');
-            if (hint) hint.textContent = '\u2398 copy line';
+            if (hint) hint.textContent = '\u2398 copy';
           }, 1200);
         });
+      });
+    });
+  });
+}
+
+function wrapInlineCodes(container) {
+  container.querySelectorAll('code:not(pre code)').forEach(el => {
+    if (el.dataset.inlineWrapped) return;
+    el.dataset.inlineWrapped = '1';
+
+    // Inject targets into the rendered HTML
+    el.innerHTML = injectTargets(el.innerHTML);
+
+    el.style.cursor = 'pointer';
+    el.title = 'Click to copy';
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = el.innerText.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        el.classList.add('inline-code-copied');
+        el.title = '✓ copied';
+        showToast('✓ Copied to clipboard');
+        setTimeout(() => {
+          el.classList.remove('inline-code-copied');
+          el.title = 'Click to copy';
+        }, 1200);
       });
     });
   });
@@ -2602,6 +2949,9 @@ function toggleSidebar(force) {
 // ═══════════════════════════════════════════════
 async function init() {
   initTarget();
+  updateWorkbenchUI();
+  initSyntaxThemePicker();
+  applyNotePreviewState();
   initNotes();
 
   // Fetch services
@@ -2801,32 +3151,61 @@ async function openItem(view, id) {
   }
 }
 
-async function openPreviewByPath(title, filePath) {
+async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
   try {
-    const r = await fetch(`/api/preview?file=${encodeURIComponent(filePath)}`);
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    activeDoc = { html: d.html, icon: '🔍', title, meta: filePath.split('/').pop(), isLocal: false };
-    renderContent(d.html, '🔍', title, filePath.split('/').pop());
+    let d = null;
+
+    // For local results: proxy to ENGRAM's /api/preview via PRAGMA's /api/content-proxy.
+    // ENGRAM indexed the file — it knows the real path and can read it regardless of
+    // whether PRAGMA and ENGRAM share a filesystem/container.
+    if (filePath) {
+      try {
+        const r = await fetch('/api/content-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        });
+        const j = await r.json();
+        if (j.ok && j.html) d = j;
+        else console.warn('[PRAGMA] content-proxy:', j.error || j.detail || 'no content');
+      } catch (e) {
+        console.warn('[PRAGMA] content-proxy fetch failed:', e.message);
+      }
+    }
+
+    if (!d) throw new Error('Content unavailable — ENGRAM could not serve this file');
+
+    const meta = filePath.split('/').pop() || sourceName || '';
+    activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContent(d.html, '🔍', title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
-    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    document.getElementById('cpContent').innerHTML = `
+      <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
+        <div style="font-size:22px;margin-bottom:8px">⚠</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px">
+          Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
+          <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
+        </div>
+      </div>`;
   }
 }
 
-function renderContent(html, icon, title, meta) {
+function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpIcon').textContent  = icon;
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent  = meta || '';
   const el = document.getElementById('cpContent');
   el.innerHTML = injectTargets(html);
   wrapCodeBlocks(el);
-  // Scroll back to top
+  wrapInlineCodes(el);  // Scroll back to top
   el.parentElement.scrollTop = 0;
 }
 
@@ -2880,7 +3259,17 @@ function setFuzzy(f, btn) {
   if (q.length >= 2) runSearch(q);
 }
 
+// ── Search history ──
+let searchHistory = JSON.parse(localStorage.getItem('pragma-search-history') || '[]');
+
+function addToSearchHistory(query) {
+  if (!query || query.length < 2) return;
+  searchHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 30);
+  try { localStorage.setItem('pragma-search-history', JSON.stringify(searchHistory)); } catch(e) {}
+}
+
 async function runSearch(query) {
+  addToSearchHistory(query);
   try {
     const r = await fetch('/api/search-proxy', {
       method: 'POST',
@@ -2960,15 +3349,11 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
          data-title="${esc(r.title||'')}"
          data-url="${esc(href)}"
          onclick="handleResultClick(this)">
-      <div class="result-card-top">
-        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
-        <div class="result-card-right">
-          ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
-          <div class="result-card-badges">
-            ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-            ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
-          </div>
-        </div>
+      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      <div class="search-meta-row">
+        ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
@@ -2980,7 +3365,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
 
 function handleResultClick(el) {
   if (el.dataset.local === '1') {
-    openPreviewByPath(el.dataset.title, el.dataset.filepath);
+    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '', el.dataset.sourceid || '', el.dataset.sourcename || '');
   } else {
     window.open(el.dataset.url, '_blank', 'noopener');
   }
@@ -3383,6 +3768,148 @@ async function toggleEncryptedStorage(e) {
   }
 }
 
+// ═══════════════════════════════════════════════
+// WORKBENCH MANAGEMENT
+// ═══════════════════════════════════════════════
+let activeWorkbenchName = 'default';
+
+function updateWorkbenchUI() {
+  document.getElementById('workbenchName').textContent = activeWorkbenchName;
+}
+
+async function openWorkbenchModal() {
+  await renderWorkbenchList();
+  document.getElementById('workbenchOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newWorkbenchInput')?.focus(), 60);
+}
+
+function closeWorkbenchModal() {
+  document.getElementById('workbenchOverlay').classList.remove('open');
+  document.getElementById('newWorkbenchInput').value = '';
+}
+
+async function renderWorkbenchList() {
+  const list = document.getElementById('workbenchList');
+  list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:4px 2px">Loading…</div>';
+  try {
+    const r = await fetch('/api/workbenches');
+    const d = await r.json();
+    if (!d.workbenches?.length) { list.innerHTML = ''; return; }
+    list.innerHTML = d.workbenches.map(name => {
+      const isActive = name === activeWorkbenchName;
+      const isEnc    = d.encrypted?.[name] || (isActive && encryptedStorageEnabled);
+      return `<div class="workbench-item${isActive ? ' active-wb' : ' clickable'}"${!isActive ? ` onclick="switchWorkbench('${esc(name)}')"` : ''}>
+        <span class="workbench-item-name">${esc(name)}</span>
+        ${isActive ? '<span class="workbench-item-badge active">active</span>' : ''}
+        ${isEnc    ? '<span class="workbench-item-badge enc">🔒 enc</span>' : ''}
+        ${name !== 'default' && !isActive ? `<button class="workbench-item-del" onclick="event.stopPropagation();deleteWorkbench('${esc(name)}')" title="Delete">🗑</button>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div style="color:var(--red);font-size:11px">${esc(e.message)}</div>`;
+  }
+}
+
+async function switchWorkbench(name) {
+  if (name === activeWorkbenchName) { closeWorkbenchModal(); return; }
+
+  // Save current workbench state first
+  await saveNotes();
+
+  try {
+    const r = await fetch('/api/workbench/switch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Switch failed');
+
+    activeWorkbenchName = d.active;
+
+    // Reset all in-memory state
+    notes    = {};
+    sessions = {};
+    activeSessionId = null;
+    activeNoteId    = null;
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    localStorage.removeItem('ops-active-session');
+    localStorage.removeItem('ops-active-target');
+    localStorage.removeItem('ops-notes-v2-encrypted');
+    localStorage.removeItem('ops-notes-v2');
+
+    closeWorkbenchModal();
+    updateWorkbenchUI();
+    updateEncryptedStorageUI();
+
+    // Reload data from the new workbench
+    await initNotes();
+    showToast(`⬡ Switched to workbench: ${name}`);
+  } catch(e) {
+    showToast('Failed to switch: ' + e.message, 'err');
+  }
+}
+
+async function createWorkbench() {
+  const input = document.getElementById('newWorkbenchInput');
+  const name  = input.value.trim();
+  if (!name) { input.focus(); return; }
+
+  try {
+    // Save current workbench state FIRST, while the server still points at it
+    await saveNotes();
+
+    const r = await fetch('/api/workbench/create', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Create failed');
+
+    activeWorkbenchName      = d.active;
+    notes    = {};
+    sessions = {};
+    activeSessionId = null;
+    activeNoteId    = null;
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    localStorage.removeItem('ops-active-session');
+    localStorage.removeItem('ops-active-target');
+    localStorage.removeItem('ops-notes-v2-encrypted');
+    localStorage.removeItem('ops-notes-v2');
+
+    closeWorkbenchModal();
+    updateWorkbenchUI();
+    updateEncryptedStorageUI();
+    await initNotes();
+    showToast(`⬡ Created and switched to workbench: ${d.active}`);
+  } catch(e) {
+    showToast('Failed to create: ' + e.message, 'err');
+  }
+}
+
+async function deleteWorkbench(name) {
+  try {
+    await showConfirmDialog({
+      icon: '🗑', title: 'Delete Workbench', bigIcon: '⬡',
+      description: `Delete workbench "${name}"? This permanently removes the workbench file and cannot be undone.`,
+      confirmLabel: 'Delete', danger: true,
+    });
+  } catch { return; }
+  try {
+    const r = await fetch('/api/workbench/delete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Delete failed');
+    await renderWorkbenchList();
+    showToast(`Deleted workbench: ${name}`);
+  } catch(e) {
+    showToast('Failed to delete: ' + e.message, 'err');
+  }
+}
+
 async function initNotes() {
   try {
     const r = await fetch('/api/notes');
@@ -3401,15 +3928,21 @@ async function initNotes() {
           submitLabel: '🔓 Unlock',
         });
       } catch { throw new Error('Password required to unlock encrypted workspace'); }
+      // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
+      // localStorage branch (which would prompt for the password a second time).
+      let plain;
+      try {
+        plain = await decryptPayload(encObj, pw);
+      } catch {
+        throw new Error('Incorrect password — decryption failed');
+      }
       encryptedStoragePassword = pw;
-      updateEncryptedStorageUI(); // password accepted — switch from locked → active
-      const plain  = await decryptPayload(encObj, pw);
+      updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
       notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
       sessions = parsed.sessions || {};
-      // Cache ONLY the encrypted blob — never the plaintext
       localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
-      localStorage.removeItem('ops-notes-v2'); // scrub any stale plaintext
+      localStorage.removeItem('ops-notes-v2');
     } else {
       notes    = (d.notes    !== undefined ? d.notes    : d) || {};
       sessions = d.sessions || {};
@@ -3419,7 +3952,12 @@ async function initNotes() {
       encryptedStoragePassword = null;
       updateEncryptedStorageUI();
     }
-  } catch {
+  } catch (outerErr) {
+    // Only use localStorage fallback for genuine fetch/network failures,
+    // not for password/decryption errors (those should bubble up as-is).
+    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect'))) {
+      throw outerErr;
+    }
     try {
       const encCached = localStorage.getItem('ops-notes-v2-encrypted');
       if (encCached) {
@@ -3436,9 +3974,14 @@ async function initNotes() {
               submitLabel: '🔓 Unlock',
             });
           } catch { throw new Error('Password required'); }
+          let plain;
+          try {
+            plain = await decryptPayload(encObj, pw);
+          } catch {
+            throw new Error('Incorrect password — decryption failed');
+          }
           encryptedStoragePassword = pw;
-          updateEncryptedStorageUI(); // password accepted — switch from locked → active
-          const plain  = await decryptPayload(encObj, pw);
+          updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
           notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
           sessions = parsed.sessions || {};
@@ -3479,6 +4022,7 @@ async function initNotes() {
     saveNotes();
   }
   updateTargetSelector();
+  renderSvcLogTable();
 }
 
 function saveNotes() {
@@ -3518,11 +4062,15 @@ function renderSessionSidebar() {
   const target = document.getElementById('sessionTarget');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
-    dot.classList.add('live');
+    const status = sess.status || 'active';
+    dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent   = sess.codename;
-    target.textContent = [sess.target_ip, sess.target_domain].filter(Boolean).join(' · ') || 'no target set';
+    const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
+    target.textContent = activeTgt
+      ? [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set'
+      : 'no target set';
   } else {
-    dot.classList.remove('live');
+    dot.className = 'session-active-dot';
     name.textContent   = 'No session';
     target.textContent = '— click to set';
   }
@@ -3547,34 +4095,103 @@ function renderSessionList() {
     return;
   }
   const noteCount = id => Object.values(notes).filter(n => n.session_id === id).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
   list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
-    entries.map(s => `
-    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}" onclick="switchSession('${s.id}')">
+    entries.map(s => {
+      const status = s.status || 'active';
+      return `
+    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-      <div class="session-item-actions" onclick="event.stopPropagation()">
-        <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
-        <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
-        <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+      <div class="session-list-item-bottom" onclick="event.stopPropagation()">
+        <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="session-item-actions">
+          <div class="session-status-pill ${status}" onclick="toggleStatusDropdown(event,'${s.id}')">
+            <span class="status-dot ${status}"></span>${statusLabel[status]}
+          </div>
+          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
+          <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+        </div>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
+  const name   = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
-  const id = 'sess_' + Date.now();
-  sessions[id] = {
+  const ip     = document.getElementById('newSessionIP').value.trim()     || null;
+  const domain = document.getElementById('newSessionDomain').value.trim() || null;
+  const id     = 'sess_' + Date.now();
+  const sess   = {
     id,
     codename:      name,
-    target_ip:     document.getElementById('newSessionIP').value.trim()     || null,
-    target_domain: document.getElementById('newSessionDomain').value.trim() || null,
+    target_ip:     ip,
+    target_domain: domain,
     created:       Date.now(),
+    targets:       [],
   };
+  // Auto-populate targets list if IP or domain was provided
+  if (ip || domain) {
+    const tgtId = 'tgt_' + Date.now();
+    sess.targets.push({ id: tgtId, ip: ip || '', domain: domain || '', label: 'default' });
+  }
+  sessions[id] = sess;
   switchSession(id);
   saveNotes();
   renderSessionList();
-  document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionName').value   = '';
+  document.getElementById('newSessionIP').value     = '';
+  document.getElementById('newSessionDomain').value = '';
+}
+
+let _statusDropdownTarget = null;
+
+function toggleStatusDropdown(e, sessId) {
+  e.stopPropagation();
+  const dd = document.getElementById('statusDropdown');
+  const isOpen = dd.classList.contains('open') && _statusDropdownTarget === sessId;
+
+  // Always close first
+  dd.classList.remove('open');
+  _statusDropdownTarget = null;
+
+  if (isOpen) return; // toggle off
+
+  // Position relative to the pill
+  const pill = e.currentTarget;
+  const rect = pill.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  _statusDropdownTarget = sessId;
+  dd.classList.add('open');
+
+  // Close on outside click
+  setTimeout(() => {
+    const handler = (ev) => {
+      if (!ev.target.closest('#statusDropdown') && !ev.target.closest('.session-status-pill')) {
+        dd.classList.remove('open');
+        _statusDropdownTarget = null;
+        document.removeEventListener('click', handler);
+      }
+    };
+    document.addEventListener('click', handler);
+  }, 0);
+}
+
+function applyStatusFromDropdown(status) {
+  if (!_statusDropdownTarget) return;
+  setSessionStatus(null, _statusDropdownTarget, status);
+  document.getElementById('statusDropdown').classList.remove('open');
+  _statusDropdownTarget = null;
+}
+
+function setSessionStatus(e, sessId, status) {
+  if (e) e.stopPropagation();
+  if (!sessions[sessId]) return;
+  sessions[sessId].status = status;
+  saveNotes();
+  renderSessionList();
+  if (sessId === activeSessionId) renderSessionSidebar();
 }
 
 function switchSession(id) {
@@ -3803,6 +4420,9 @@ function openNote(id) {
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   // noteEditor onChange wired in cmInit
+
+  // Apply preview state and populate
+  applyNotePreviewState();
 }
 
 
@@ -3881,7 +4501,82 @@ function autoSaveNote() {
     const moEl = document.getElementById('noteModifiedAt');
     if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
       day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    updateNotePreview();
   }, 600);
+}
+
+// ── Note preview ──────────────────────────────────────────
+let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
+
+function updateNotePreview() {
+  const pane = document.getElementById('notePreviewPane');
+  if (!pane || pane.style.display === 'none') return;
+  const md = noteEditor ? cmGetValue(noteEditor) : '';
+  const el = document.getElementById('notePreviewContent');
+  if (!el) return;
+  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
+  // preview only needs per-line copy, not the block-level copy button
+  el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+function toggleNotePreview() {
+  notePreviewOpen = !notePreviewOpen;
+  localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function applyNotePreviewState() {
+  const split  = document.getElementById('noteEditorSplit');
+  const handle = document.getElementById('notePreviewHandle');
+  const pane   = document.getElementById('notePreviewPane');
+  const btn    = document.getElementById('notePreviewBtn');
+  if (!split || !handle || !pane || !btn) return;
+
+  const open = notePreviewOpen;
+  split.classList.toggle('preview-open', open);
+  handle.style.display = open ? '' : 'none';
+  pane.style.display   = open ? 'flex' : 'none';
+  btn.classList.toggle('active', open);
+  btn.title = open ? 'Hide preview' : 'Toggle markdown preview';
+
+  if (open) {
+    // Restore saved split position
+    const saved = localStorage.getItem('pragma-preview-split');
+    if (saved) split.style.setProperty('--note-editor-h', saved);
+    updateNotePreview();
+    initPreviewDragHandle();
+  }
+}
+
+function initPreviewDragHandle() {
+  const handle = document.getElementById('notePreviewHandle');
+  const split  = document.getElementById('noteEditorSplit');
+  if (!handle || handle._dragInited) return;
+  handle._dragInited = true;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startY    = e.clientY;
+    const splitRect = split.getBoundingClientRect();
+    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue('--note-editor-h')) || 50;
+
+    const onMove = ev => {
+      const delta  = ev.clientY - startY;
+      const newPct = Math.min(85, Math.max(15, startPct + (delta / splitRect.height) * 100));
+      split.style.setProperty('--note-editor-h', newPct + '%');
+      localStorage.setItem('pragma-preview-split', newPct + '%');
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 async function deleteCurrentNote() {
@@ -3993,6 +4688,7 @@ async function saveEdit() {
       activeDoc.raw  = d2.raw;
       document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
       wrapCodeBlocks(document.getElementById('cpContent'));
+      wrapInlineCodes(document.getElementById('cpContent'));
     } catch(_) {}
 
     setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
@@ -4086,6 +4782,80 @@ function cmSetValue(editor, value) {
   });
 }
 
+/* ── Syntax highlight themes ── */
+const SYNTAX_THEMES = {
+  monokai: (dark) => [
+    { tag: CM.tags.heading1,              color: '#f92672', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#f92672', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#fd971f', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#fd971f' },
+    { tag: CM.tags.strong,                color: '#fd971f', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a6e22e', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#75715e', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#66d9e8' },
+    { tag: CM.tags.monospace,             color: '#ae81ff' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#75715e', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#555566' : '#aaaacc' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#ae81ff' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#f92672' },
+    { tag: CM.tags.string,                color: '#e6db74' },
+  ],
+  nord: (dark) => [
+    { tag: CM.tags.heading1,              color: '#bf616a', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#d08770', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#ebcb8b', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#ebcb8b' },
+    { tag: CM.tags.strong,                color: '#d08770', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a3be8c', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#4c566a', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#88c0d0' },
+    { tag: CM.tags.monospace,             color: '#b48ead' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#616e88', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#4c566a' : '#9aa0b0' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#b48ead' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#81a1c1' },
+    { tag: CM.tags.string,                color: '#a3be8c' },
+  ],
+  solarized: (dark) => [
+    { tag: CM.tags.heading1,              color: '#dc322f', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#cb4b16', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#b58900', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#b58900' },
+    { tag: CM.tags.strong,                color: '#cb4b16', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#2aa198', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#586e75', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#268bd2' },
+    { tag: CM.tags.monospace,             color: '#6c71c4' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#586e75', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#586e75' : '#839496' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#6c71c4' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#859900' },
+    { tag: CM.tags.string,                color: '#2aa198' },
+  ],
+};
+
+let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
+
+function setSyntaxTheme(name) {
+  activeSyntaxTheme = name;
+  localStorage.setItem('pragma-syntax-theme', name);
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === name));
+
+  // Capture current content BEFORE destroying editors
+  const noteContent = noteEditor ? cmGetValue(noteEditor) : null;
+  const kbContent   = kbEditor   ? cmGetValue(kbEditor)   : null;
+
+  // Rebuild with new theme, passing saved content so doc is never empty
+  if (typeof cmInitNote === 'function') cmInitNote(noteContent);
+  if (typeof cmInitKb   === 'function') cmInitKb(kbContent);
+}
+
+function initSyntaxThemePicker() {
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
+}
+
 function cmThemeVars() {
   // Read CSS vars at runtime so theme matches dark/light mode
   const s = getComputedStyle(document.documentElement);
@@ -4098,6 +4868,7 @@ function cmThemeVars() {
 }
 
 function buildCmTheme() {
+  if (!window.CM) return [];
   const v    = cmThemeVars();
   const dark = !document.documentElement.classList.contains('light');
 
@@ -4112,49 +4883,27 @@ function buildCmTheme() {
     '.cm-line':                   { padding: '0' },
   }, { dark });
 
-  const highlightStyle = CM.HighlightStyle.define([
-    { tag: CM.tags.heading1,          color: '#f92672', fontWeight: '700' },
-    { tag: CM.tags.heading2,          color: '#f92672', fontWeight: '600' },
-    { tag: CM.tags.heading3,          color: '#fd971f', fontWeight: '600' },
-    { tag: CM.tags.heading4,          color: '#fd971f' },
-    { tag: CM.tags.heading5,          color: '#fd971f' },
-    { tag: CM.tags.heading6,          color: '#fd971f' },
-    { tag: CM.tags.strong,            color: '#1d4ed8', fontWeight: '700' },
-    { tag: CM.tags.emphasis,          color: '#0891b2', fontStyle: 'italic' },
-    { tag: CM.tags.strikethrough,     color: '#75715e', textDecoration: 'line-through' },
-    { tag: CM.tags.link,              color: '#66d9e8' },
-    { tag: CM.tags.url,               color: '#66d9e8', opacity: '0.7' },
-    { tag: CM.tags.monospace,         color: '#ae81ff' },
-    { tag: CM.tags.quote,             color: '#75715e', fontStyle: 'italic' },
-    { tag: CM.tags.comment,           color: '#75715e' },
-    { tag: CM.tags.meta,              color: '#75715e' },
-    { tag: CM.tags.punctuation,       color: dark ? '#555566' : '#aaaacc' },
-    { tag: CM.tags.processingInstruction, color: '#ae81ff' },
-    { tag: CM.tags.atom,              color: '#ae81ff' },
-    { tag: CM.tags.keyword,           color: '#f92672' },
-    { tag: CM.tags.operator,          color: '#f92672' },
-    { tag: CM.tags.string,            color: '#e6db74' },
-    { tag: CM.tags.number,            color: '#ae81ff' },
-    { tag: CM.tags.bool,              color: '#ae81ff' },
-    { tag: CM.tags.null,              color: '#ae81ff' },
-  ]);
+  const highlightStyle = CM.HighlightStyle.define(SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.monokai(dark));
 
   return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
 }
 
-function cmInitNote() {
+function cmInitNote(initialDoc) {
   const wrap = document.getElementById('noteBodyWrap');
   if (!wrap || !CM) return;
   if (noteEditor) { noteEditor.destroy(); }
 
   noteEditor = new CM.EditorView({
-    doc: '',
+    doc: initialDoc ?? '',
     extensions: [
       CM.basicSetup,
       CM.markdown(),
       ...buildCmTheme(),
       CM.EditorView.updateListener.of(update => {
-        if (update.docChanged && activeNoteId) autoSaveNote();
+        if (update.docChanged && activeNoteId) {
+          autoSaveNote();
+          updateNotePreview();
+        }
       }),
       CM.EditorView.lineWrapping,
     ],
@@ -4162,13 +4911,13 @@ function cmInitNote() {
   });
 }
 
-function cmInitKb() {
+function cmInitKb(initialDoc) {
   const wrap = document.getElementById('cpEditWrap');
   if (!wrap || !CM) return;
   if (kbEditor) { kbEditor.destroy(); }
 
   kbEditor = new CM.EditorView({
-    doc: '',
+    doc: initialDoc ?? '',
     extensions: [
       CM.basicSetup,
       CM.markdown(),
@@ -4364,12 +5113,15 @@ function _pwCheckStrength() {
   if (!bars[0]) return;
 
   let score = 0;
-  if (pw.length >= 8)  score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score++;
+  if (pw.length >= 8)                                        score++; // minimum length
+  if (pw.length >= 14)                                       score++; // good length
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw))                 score++; // mixed case
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw))         score++; // number + symbol
 
-  const cls = score <= 1 ? 'weak' : score <= 2 ? 'medium' : 'strong';
+  // Long passphrases (20+) with any complexity hit perfect directly
+  if (pw.length >= 20 && score >= 2) score = 4;
+
+  const cls = score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'strong' : 'perfect';
   bars.forEach((b, i) => {
     b.className = 'pw-strength-bar' + (i < score ? ' ' + cls : '');
   });
@@ -4670,10 +5422,46 @@ document.addEventListener('keydown', async e => {
     }
   }
 
+  // ── Ctrl+L — Toggle Quick Log popover ──
+  if (ctrl && e.key === 'l') {
+    e.preventDefault();
+    toggleSvcPopover();
+    return;
+  }
+
+  // ── Alt+T — Toggle Timeline view (switches to Notes first if needed) ──
+  if (e.altKey && e.key === 't') {
+    e.preventDefault();
+    if (activeView !== 'notes') {
+      switchView('notes', document.getElementById('nav-notes'));
+      // Small delay to let the view render before toggling timeline
+      setTimeout(() => {
+        const btn = document.getElementById('notesViewTimelineBtn');
+        if (notesListViewMode !== 'timeline') setNotesListView('timeline', btn);
+      }, 30);
+    } else {
+      // Already on notes — toggle between timeline and list
+      if (notesListViewMode === 'timeline') {
+        setNotesListView('list', document.getElementById('notesViewListBtn'));
+      } else {
+        setNotesListView('timeline', document.getElementById('notesViewTimelineBtn'));
+      }
+    }
+    return;
+  }
+
+  // ── Ctrl+. — Open target selector ──
+  if (ctrl && e.key === '.') {
+    e.preventDefault();
+    openTargetsPanel();
+    return;
+  }
+
   // ── ESC — Close topmost modal / overlay / panel / dropdown ──
   if (e.key === 'Escape') {
     // Shortcuts modal
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
+    if (document.getElementById('workbenchOverlay')?.classList.contains('open')) { closeWorkbenchModal(); return; }
     // Reassign dropdown
     const rd = document.getElementById('noteReassignDropdown');
     if (rd?.classList.contains('open')) { rd.classList.remove('open'); return; }
@@ -5148,7 +5936,7 @@ async function exportNotesMarkdown(sessionId) {
     lines.push('');
   });
 
-  // Write to project directory via server (per-target subdirs under notes/<session>/)
+  // Write to project directory via server (per-target subdirs under sessions/<session>/)
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
@@ -5158,7 +5946,7 @@ async function exportNotesMarkdown(sessionId) {
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      showToast(`Exported ${count} files → notes/${slugify(sess.codename)}/`);
+      showToast(`Exported ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }
@@ -5214,7 +6002,7 @@ cmInitNote();
 // ═══════════════════════════════════════════════
 (function() {
   const NOTES_MIN  = 120, NOTES_MAX  = 520, NOTES_DEFAULT  = 320;
-  const PANEL_MIN  = 320, PANEL_MAX  = 1500, PANEL_DEFAULT  = 680;
+  const PANEL_MIN  = 120, PANEL_MAX  = 1500, PANEL_DEFAULT  = 680;
 
   // Restore saved widths
   const savedNotesW = parseInt(localStorage.getItem('ops-notes-w2'))  || NOTES_DEFAULT;

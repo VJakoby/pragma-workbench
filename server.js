@@ -1,4 +1,3 @@
-
 /**
  * PRAGMA
  * Copyright (C) 2026 VJakoby
@@ -34,10 +33,17 @@ const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR     = path.join(__dirname, 'notes');
+const NOTES_DIR     = path.join(__dirname, 'sessions');
 const SESSIONS_DIR  = path.join(__dirname, 'sessions');
-const NOTES_FILE    = path.join(NOTES_DIR, 'pragma.workbench');       // plaintext
-const NOTES_ENC_FILE = path.join(NOTES_DIR, 'pragma.workbench.enc'); // encrypted
+
+// ── Active workbench — defaults to "default", switchable at runtime ──
+let activeWorkbenchName = 'default';
+function workbenchFile()    { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench`); }
+function workbenchEncFile() { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench.enc`); }
+
+// Keep legacy constants pointing at active workbench for existing code paths
+Object.defineProperty(global, 'NOTES_FILE',     { get: workbenchFile,    configurable: true });
+Object.defineProperty(global, 'NOTES_ENC_FILE', { get: workbenchEncFile, configurable: true });
 
 // ── Port / slug metadata maps (unchanged) ──
 const PORT_MAP = {
@@ -409,6 +415,7 @@ app.post('/api/search-proxy', async (req, res) => {
       title: r.title, source_name: r.source_name, url: r.url,
       relevance_score: r.relevance_score, match_type: r.match_type,
       snippet: r.snippet, is_local: r.is_local, file_path: r.file_path,
+      source_id: r.source_id || r.id || null,
     }));
     res.json({
       results, query,
@@ -434,6 +441,94 @@ app.get('/api/search-ping', async (req, res) => {
   }
 });
 
+// ── Content proxy — delegates local file preview to ENGRAM ──
+// ENGRAM knows where its files live (it indexed them). PRAGMA just proxies
+// the request to ENGRAM's /api/preview?file=<path>, which validates the path
+// against its own index and returns { html, raw, title, page_name }.
+// This works regardless of whether PRAGMA and ENGRAM share a filesystem.
+app.post('/api/content-proxy', async (req, res) => {
+  const { file_path, source_id, source_name } = req.body || {};
+
+  if (!file_path && !source_id && !source_name) {
+    return res.status(400).json({ error: 'file_path, source_id, or source_name required' });
+  }
+
+  try {
+    // Strategy 1: Use ENGRAM's /api/preview with the exact file_path from the search result.
+    // ENGRAM validates that the path exists in its index before reading it — safe by design.
+    if (file_path) {
+      const url = `${SEARCH_URL}/api/preview?file=${encodeURIComponent(file_path)}`;
+      const r = await fetchWithTimeout(url);
+      if (r.ok) {
+        const d = await r.json();
+        if (d.html) {
+          const html = d.html || (d.raw ? marked.parse(d.raw) : null);
+          if (html) return res.json({ ok: true, html, raw: d.raw || '' });
+        }
+      }
+      const errBody = await r.json().catch(() => ({}));
+      console.warn(`[PRAGMA] ENGRAM /api/preview returned ${r.status}: ${errBody.error || '?'} for file: ${file_path}`);
+    }
+
+    // Strategy 2: No file_path (online result with source_name only) — nothing to proxy.
+    res.status(404).json({
+      error: 'Content not available',
+      detail: file_path
+        ? 'ENGRAM could not serve this file — it may not be in the index or has moved'
+        : 'No file_path provided (online results open in browser)',
+    });
+  } catch (err) {
+    console.warn(`[PRAGMA] content-proxy error: ${err.message}`);
+    res.status(502).json({ error: 'ENGRAM unreachable', detail: err.message });
+  }
+});
+
+async function fetchWithTimeout(url, opts = {}) {
+  if (typeof fetch !== 'undefined') {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(url, { ...opts, signal: controller.signal });
+      clearTimeout(timer);
+      const text = await r.text();
+      return {
+        ok: r.ok,
+        status: r.status,
+        json: async () => { try { return JSON.parse(text); } catch { return {}; } },
+      };
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+  // Older Node fallback via http module
+  return new Promise((resolve, reject) => {
+    const http = require('http');
+    const u    = new URL(url);
+    const body = opts.body || null;
+    const req2 = http.request({
+      hostname: u.hostname,
+      port:     parseInt(u.port) || 3002,
+      path:     u.pathname + (u.search || ''),
+      method:   opts.method || 'GET',
+      timeout:  5000,
+      headers:  { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    }, (res2) => {
+      let data = '';
+      res2.on('data', c => { data += c; });
+      res2.on('end', () => resolve({
+        ok:     res2.statusCode < 400,
+        status: res2.statusCode,
+        json:   async () => { try { return JSON.parse(data); } catch { return {}; } },
+      }));
+    });
+    req2.on('error', reject);
+    req2.on('timeout', () => { req2.destroy(); reject(new Error('ENGRAM request timed out')); });
+    if (body) req2.write(body);
+    req2.end();
+  });
+}
+
 // ── Notes persistence ──
 function loadNotesFile() {
   if (!fs.existsSync(NOTES_FILE)) return { sessions: {}, notes: {} };
@@ -446,26 +541,32 @@ function loadNotesFile() {
 
 app.get('/api/notes', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE)) return res.json({ encrypted_storage: true });
+    // Encrypted only if enc file exists AND no plain file (plain = explicitly decrypted/disabled)
+    if (fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE))
+      return res.json({ encrypted_storage: true });
     res.json(loadNotesFile());
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/notes/save', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE))
+    if (fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE))
       return res.status(423).json({ error: 'Encrypted storage active. Use /api/notes/save-encrypted.' });
     const { sessions = {}, notes = {} } = req.body;
     fs.mkdirSync(NOTES_DIR, { recursive: true });
     fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
+    // Remove stale enc file if plain file now exists — they should never coexist
+    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/notes/storage-info', (req, res) => {
+  const encExists   = fs.existsSync(NOTES_ENC_FILE);
+  const plainExists = fs.existsSync(NOTES_FILE);
   res.json({
-    encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
-    plain_storage:     fs.existsSync(NOTES_FILE),
+    encrypted_storage: encExists && !plainExists,
+    plain_storage:     plainExists,
     notes_dir:         NOTES_DIR,
     sessions_dir:      SESSIONS_DIR,
   });
@@ -497,7 +598,83 @@ app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── POST /api/notes/export ──
+// ── Workbench management ──
+
+// GET /api/workbenches — list all workbench names on disk
+app.get('/api/workbenches', (req, res) => {
+  try {
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    const files = fs.readdirSync(NOTES_DIR);
+    const names = new Set();
+    names.add('default'); // always include default even if file doesn't exist yet
+    files.forEach(f => {
+      const m = f.match(/^(.+)\.workbench(\.enc)?$/);
+      if (m) names.add(m[1]);
+    });
+    const sorted = [...names].sort((a, b) => a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b));
+    res.json({
+      workbenches: sorted,
+      encrypted: Object.fromEntries(sorted.map(n => {
+        const encFile   = path.join(NOTES_DIR, `${n}.workbench.enc`);
+        const plainFile = path.join(NOTES_DIR, `${n}.workbench`);
+        return [n, fs.existsSync(encFile) && !fs.existsSync(plainFile)];
+      })),
+      active: activeWorkbenchName,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/switch — switch active workbench
+app.post('/api/workbench/switch', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' });
+    const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
+    if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
+    activeWorkbenchName = safe;
+    const encrypted = fs.existsSync(workbenchEncFile()) && !fs.existsSync(workbenchFile());
+    res.json({
+      ok: true,
+      active: activeWorkbenchName,
+      encrypted_storage: encrypted,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/create — create a new named workbench (empty)
+app.post('/api/workbench/create', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' });
+    const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
+    if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
+    const file = path.join(NOTES_DIR, `${safe}.workbench`);
+    const enc  = path.join(NOTES_DIR, `${safe}.workbench.enc`);
+    if (fs.existsSync(file) || fs.existsSync(enc))
+      return res.status(409).json({ error: `Workbench "${safe}" already exists` });
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ sessions: {}, notes: {} }, null, 2), 'utf8');
+    activeWorkbenchName = safe;
+    res.json({ ok: true, active: activeWorkbenchName });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/workbench/delete — delete a workbench (not allowed for active or default)
+app.post('/api/workbench/delete', (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'name required' });
+    if (name === 'default') return res.status(403).json({ error: 'Cannot delete the default workbench' });
+    if (name === activeWorkbenchName) return res.status(409).json({ error: 'Cannot delete the active workbench. Switch first.' });
+    const file = path.join(NOTES_DIR, `${name}.workbench`);
+    const enc  = path.join(NOTES_DIR, `${name}.workbench.enc`);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    if (fs.existsSync(enc))  fs.unlinkSync(enc);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
 // Writes per-target directory structure:
 //   notes/<session-slug>/README.md
 //   notes/<session-slug>/<target-ip>/README.md
@@ -635,6 +812,72 @@ app.post('/api/notes/export', (req, res) => {
     fs.writeFileSync(path.join(outDir, 'README.md'), index, 'utf8');
     written.unshift('README.md');
 
+    // ── SUMMARY.md — chronological timeline of all notes ──
+    const TYPE_ICONS = {
+      general:     '📋', credentials: '🔑', privesc: '⬆',
+      recon:       '🔭', loot:        '💰', exploit: '💥',
+      scratch:     '📄',
+    };
+
+    const sorted = [...sessionNotes].sort((a, b) => (a.created || 0) - (b.created || 0));
+
+    const byDay = {};
+    sorted.forEach(n => {
+      const d = new Date(n.created || 0);
+      const dayKey = d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
+      if (!byDay[dayKey]) byDay[dayKey] = [];
+      byDay[dayKey].push(n);
+    });
+
+    const typeCount = {};
+    sorted.forEach(n => { typeCount[n.type] = (typeCount[n.type] || 0) + 1; });
+
+    const summaryLines = [
+      `# ${session.codename} — Timeline Summary`,
+      '',
+      `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
+      `**Total events:** ${sorted.length}`,
+      `**Duration:** ${sorted.length > 1
+        ? (() => {
+            const ms  = (sorted[sorted.length-1].created||0) - (sorted[0].created||0);
+            const hrs = Math.floor(ms / 3600000);
+            const min = Math.floor((ms % 3600000) / 60000);
+            return hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
+          })()
+        : '—'}`,
+      '',
+      '**Activity breakdown:**',
+      ...Object.entries(typeCount).map(([type, count]) =>
+        `- ${TYPE_ICONS[type] || '📄'} ${type.charAt(0).toUpperCase() + type.slice(1)}: ${count}`
+      ),
+      '',
+      '---',
+      '',
+    ];
+
+    Object.entries(byDay).forEach(([day, dayNotes]) => {
+      summaryLines.push(`## ${day}`);
+      summaryLines.push('');
+      dayNotes.forEach(n => {
+        const time   = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+        const icon   = TYPE_ICONS[n.type] || '📄';
+        const tgt    = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+        const tgtStr = tgt ? ` \`${tgt.ip || tgt.domain || tgt.label}\`` : '';
+        const title  = n.title || `(${n.type})`;
+        const preview = (n.body || '')
+          .split('\n')
+          .map(l => l.trim())
+          .find(l => l && !l.startsWith('#') && !l.startsWith('---') && l.length > 3);
+        const previewStr = preview ? `\n  > ${preview.slice(0, 120)}${preview.length > 120 ? '…' : ''}` : '';
+
+        summaryLines.push(`**${time}** ${icon} **${title}**${tgtStr}${previewStr}`);
+        summaryLines.push('');
+      });
+    });
+
+    fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), summaryLines.join('\n'), 'utf8');
+    written.push('SUMMARY.md');
+
     console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
     res.json({ ok: true, path: outDir, files: written, session: session.codename });
   } catch (err) {
@@ -715,6 +958,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  notes/   → ${NOTES_DIR}`);
+  console.log(`  sessions/ → ${NOTES_DIR}  (workbench: ${activeWorkbenchName})`);
   console.log(`  sessions/→ ${SESSIONS_DIR}\n`);
 });

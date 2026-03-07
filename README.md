@@ -1,6 +1,6 @@
 # #️ PRAGMA / Workbench
 
-> A local workbench for pentest flow, notes, and knowledge — no cloud, no clutter.
+> A local workbench for pentest notes, encrypted sessions, and a target-aware KB — no cloud, no clutter.
 
 ---
 ## 🚩 The Problem
@@ -14,60 +14,40 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation.
 - **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
 
----
 
 ## ✅ What it IS
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
-
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-
-- **A knowledge-integrated interface** — pairs with ENGRAM (local knowledge base indexer on `http://localhost:3002`) to enable full-text knowledge base lookups from defined online sources directly inside the app
-
----
+- **A knowledge-integrated interface** — Integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002`) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
 ## 🏷️ Features
 
-**Sessions**
+**Workbenches & Sessions**
+- Multiple isolated workbenches — one per engagement, switchable without restart
+- Named sessions with multi-target tracking (IP, domain, label) per workbench
+- Active target auto-injects into all code blocks at copy time across KB and Tactical Guides
+- Export/import sessions as JSON for portability; notes export as structured markdown
 
-- Create named engagement sessions (e.g. `OP-BLACKSITE`, `CLIENT-XYZ`)
-- Each session tracks its own targets (IP, domain, label)
-- Active target IP/domain auto-injects into KB code blocks
-- Export sessions as `.session` files (JSON) for portability between instances
-- Import `.session` files to resume work on another machine
+**Encryption**
+- Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
+- Server stores ciphertext; password never touches disk, localStorage, or the network
 
-**Encrypted Session (optional, per-session)**
+**Notes**
+- Typed notes with markdown templates (`Blank`, `Enumeration`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`, …)
+- Tags, auto-save, session reassignment, and a Timeline view for chronological activity
 
-- Toggle via 🔒 **Encrypted Session** in the sidebar 
-- Workspace data (notes + sessions) is encrypted client-side with AES-256-GCM before disk write — the server stores ciphertext only
-- Key derived from your password using PBKDF2 (SHA-256, 310k iterations)
-- Password is held in memory only for the session — never written to disk, localStorage, or sent to the server
-- Reload requires password to decrypt the workspace
-- `.session` exports can be encrypted with a separate password for secure portability (server not involved)
-
-**Session Notes**
-- Six structured note types with pre-filled markdown templates: `General`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`
-- Free-form tags with sidebar filter and command palette search
-- Auto-save with manual `⌘S` override
-- Reassign notes between sessions at any time
-- Export notes to markdown files (`notes/<session>/`)
-
-**Knowledge Base**
-- Recursively indexes all Markdown files under `knowledge_base/` (even in sub-directories)
-- Files are served locally and can be edited directly in the UI — changes write back to disk
-- File watcher triggers automatic re-indexing on modification
-- Code blocks support per-line copy with IP placeholders replaced on copy
-
-**Search**
-- Full-text search via PKBI/ENGRAM indexer (port 3002)
-- Relevance scoring, fuzzy matching, local/online scope filter
-- Search results open inline in the content panel
+**Knowledge Base & Tactical Guides**
+- Indexes all `.md` files under `knowledge_base/` and `methodologies/` recursively
+- Editable in-UI with live disk write-back and auto re-index on change
+- Every code block and inline backtick span is click-to-copy with target IP injected
+- Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
+- Local/remote scope filter and query-term snippet highlighting in results
+- Degrades gracefully if ENGRAM is offline, with a one-click reachability check
 
 **Interface**
-- Command palette (`⌘K`) for quick navigation across everything
-- Keyboard shortcuts for all major actions
-- Resizable panels, dark/light mode
-- Drag-and-drop resizable notes list and content panel
+- Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
+- Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
 
 
 ## 🛠️ Requirements
@@ -83,7 +63,8 @@ Read [DOCKER](./DOCKER.md)
 # Build the image
 docker compose up --build
 
-# Access it on  https://localhost:3000
+# Access it 
+https://localhost:3000
 ```
 
 ### 1. Manually with NPM
