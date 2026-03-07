@@ -25,6 +25,65 @@
 <title>#PRAGMA</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="codemirror-bundle.js"></script>
+  <script>
+  // Minimal markdown renderer for note preview (no external deps)
+  window.marked = {
+    _opts: { breaks: false, gfm: true },
+    setOptions(o) { Object.assign(this._opts, o); },
+    parse(src) {
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // stash fenced code blocks to protect them from all further processing
+      const stash = [];
+      src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/\n$/,''))}</code></pre>`;
+        stash.push(html);
+        return `\x00STASH${stash.length-1}\x00`;
+      });
+      // inline code
+      src = src.replace(/`([^`\n]+)`/g, (_,c) => `<code>${esc(c)}</code>`);
+      // headings
+      src = src.replace(/^#{6} (.+)$/gm, '<h6>$1</h6>');
+      src = src.replace(/^#{5} (.+)$/gm, '<h5>$1</h5>');
+      src = src.replace(/^#{4} (.+)$/gm, '<h4>$1</h4>');
+      src = src.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      src = src.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      src = src.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      // bold, italic, strikethrough
+      src = src.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      src = src.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      src = src.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
+      // links & images
+      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+      src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      // hr
+      src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
+      // blockquote
+      src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // unordered list
+      src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      });
+      // ordered list
+      src = src.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      });
+      // paragraphs
+      src = src.split(/\n{2,}/).map(block => {
+        block = block.trim();
+        if (!block) return '';
+        if (/^\x00STASH/.test(block)) return block;
+        if (/^<(h[1-6]|ul|ol|hr|blockquote)/.test(block)) return block;
+        return `<p>${block.replace(/\n/g,' ')}</p>`;
+      }).join('\n');
+      // restore stashed code blocks
+      src = src.replace(/\x00STASH(\d+)\x00/g, (_,i) => stash[+i]);
+      return src;
+    }
+  };
+  </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -49,7 +108,7 @@
   --orange:   #fb923c;
   --yellow:   #fbbf24;
   --sidebar-w: 220px;
-  --topbar-h:  48px;
+  --topbar-h:  42px;
   --logo-icon-color: #8b5cf6;
   --logo-icon-size: 18px;
 }
@@ -160,7 +219,7 @@ body{
   color:var(--muted);font-size:12px;
   font-family:'Inter',sans-serif;
   flex:1;max-width:520px;min-width:0;
-  height:32px;box-sizing:border-box;align-self:center;
+  height:28px;box-sizing:border-box;align-self:center;
   overflow:hidden;white-space:nowrap;
 }
 .cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
@@ -179,10 +238,10 @@ body{
   background:var(--bg3);border:1px solid var(--border);
   border-radius:6px;padding:0 10px;
   cursor:pointer;transition:all 0.15s;
-  color:var(--btn-color);font-size:13px;
+  color:var(--btn-color);font-size:11px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
-  height:32px;box-sizing:border-box;align-self:center;
+  height:28px;box-sizing:border-box;align-self:center;
   display:flex;align-items:center;justify-content:center;
   line-height:1;
 }
@@ -528,9 +587,15 @@ body{
 .copy-btn.copied{color:var(--green);border-color:var(--green);opacity:1}
 
 /* ── Line-level copy ── */
-.code-line{
-  display:block;border-radius:3px;
+.code-line, .code-line-blank {
+  display: table;
+  width: 100%;
+  border-radius:3px;
   padding:0 4px;margin:0 -4px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+.code-line {
   position:relative;cursor:pointer;
   transition:background 0.1s;
 }
@@ -612,6 +677,45 @@ body{
 }
 
 .notes-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Note editor split (editor + preview) ── */
+.note-editor-split {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+}
+.note-editor-split .cm-wrap {
+  flex: 1; min-height: 80px;
+}
+.note-editor-split.preview-open .cm-wrap {
+  flex: 0 0 var(--note-editor-h, 50%); min-height: 80px; max-height: calc(100% - 120px);
+}
+.note-preview-handle {
+  height: 6px; flex-shrink: 0; cursor: ns-resize;
+  background: var(--border); transition: background 0.15s;
+  position: relative;
+}
+.note-preview-handle:hover, .note-preview-handle.dragging { background: var(--accent); }
+.note-preview-handle::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 2px; border-radius: 2px;
+  background: var(--border2);
+}
+.note-preview-pane {
+  flex: 1; display: flex; flex-direction: column;
+  border-top: 1px solid var(--border); overflow: hidden; min-height: 80px;
+}
+.note-preview-label {
+  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 5px 16px 4px; flex-shrink: 0; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.note-preview-content {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+}
+.note-preview-content::-webkit-scrollbar { width: 3px; }
+.note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
+#notePreviewBtn.active { color: var(--accent); }
 .notes-editor-hdr{
   display:flex;align-items:center;gap:8px;
   padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
@@ -950,7 +1054,7 @@ body{
 
     .note-type-btn {
       background: none; border: none; cursor: pointer;
-      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
       color: var(--btn-color); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
@@ -1137,7 +1241,9 @@ body.is-resizing *{cursor:col-resize!important}
 /* ── Syntax theme picker ── */
 .syntax-theme-picker {
   display: flex; align-items: center; gap: 4px;
-  padding: 0 4px;
+  padding: 0 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; height: 28px; box-sizing: border-box; align-self: center;
 }
 .syntax-dot {
   display: flex; align-items: center; gap: 5px;
@@ -1153,7 +1259,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
 .syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
-.target-copy-btn { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
+.target-copy-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
@@ -1284,8 +1390,8 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
-  color: var(--btn-color); padding: 7px 4px; min-width: 0;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); padding: 6px 4px; min-width: 0;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1320,9 +1426,10 @@ body.is-resizing *{cursor:col-resize!important}
 .target-selector {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 6px; padding: 5px 12px;
+  border-radius: 6px; padding: 0 12px;
   cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-  min-width: 200px; max-width: 340px; overflow: hidden;
+  min-width: 180px; max-width: 320px; overflow: hidden;
+  height: 28px; box-sizing: border-box; align-self: center;
 }
 .target-selector:hover { border-color: var(--accent); }
 .target-sel-dot {
@@ -1767,9 +1874,9 @@ body.enc-active-body .topbar {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; padding: 0 10px;
   cursor: pointer; transition: all 0.15s;
-  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   color: var(--btn-color); white-space: nowrap;
-  height: 32px; box-sizing: border-box; align-self: center;
+  height: 28px; box-sizing: border-box; align-self: center;
 }
 .svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
 .svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
@@ -1868,7 +1975,7 @@ body.enc-active-body .topbar {
 }
 .notes-view-btn {
   flex: 1; background: none; border: none; cursor: pointer;
-  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   color: var(--btn-color); padding: 5px 4px;
   border-bottom: 2px solid transparent; transition: all 0.12s;
   letter-spacing: 0.04em; text-transform: uppercase;
@@ -2196,6 +2303,7 @@ body.enc-active-body .topbar {
                   <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
+                <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
@@ -2211,7 +2319,14 @@ body.enc-active-body .topbar {
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
                   onkeydown="noteTagKeydown(event)" spellcheck="false">
               </div>
-              <div class="cm-wrap" id="noteBodyWrap"></div>
+              <div class="note-editor-split" id="noteEditorSplit">
+                <div class="cm-wrap" id="noteBodyWrap"></div>
+                <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
+                <div class="note-preview-pane" id="notePreviewPane" style="display:none">
+                  <div class="note-preview-label">Preview</div>
+                  <div class="md-content note-preview-content" id="notePreviewContent"></div>
+                </div>
+              </div>
               <div class="note-backlinks" id="noteBacklinks" style="display:none">
                 <div class="note-backlinks-hdr">🔗 Linked from</div>
                 <div class="note-backlinks-list" id="noteBacklinksList"></div>
@@ -2741,19 +2856,19 @@ function wrapCodeBlocks(container) {
     // ── Line-level copy for ALL blocks (single and multi-line) ──
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.innerText || '';
-    const lines   = rawText.split('\n');
+    const lines   = rawText.replace(/\n$/, '').split('\n');
 
     wrap.appendChild(btn);
 
     // ── Line-level copy for ALL blocks (single and multi-line) ──
     codeEl.innerHTML = lines.map((line) => {
-      if (!line.trim()) return '<span class="code-line-blank">\n</span>';
+      if (!line.trim()) return '<span class="code-line-blank"> </span>';
       const injected = injectTargets(esc(line));
       return '<span class="code-line">' +
              injected +
              '<span class="code-line-copy">\u2398 copy</span>' +
-             '</span>\n';
-    }).join('');
+             '</span>';
+    }).join('\n');
 
     codeEl.querySelectorAll('.code-line').forEach(lineEl => {
       lineEl.addEventListener('click', (e) => {
@@ -2836,6 +2951,7 @@ async function init() {
   initTarget();
   updateWorkbenchUI();
   initSyntaxThemePicker();
+  applyNotePreviewState();
   initNotes();
 
   // Fetch services
@@ -4304,6 +4420,9 @@ function openNote(id) {
   // Wire up auto-save
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   // noteEditor onChange wired in cmInit
+
+  // Apply preview state and populate
+  applyNotePreviewState();
 }
 
 
@@ -4382,7 +4501,82 @@ function autoSaveNote() {
     const moEl = document.getElementById('noteModifiedAt');
     if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
       day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    updateNotePreview();
   }, 600);
+}
+
+// ── Note preview ──────────────────────────────────────────
+let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
+
+function updateNotePreview() {
+  const pane = document.getElementById('notePreviewPane');
+  if (!pane || pane.style.display === 'none') return;
+  const md = noteEditor ? cmGetValue(noteEditor) : '';
+  const el = document.getElementById('notePreviewContent');
+  if (!el) return;
+  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
+  // preview only needs per-line copy, not the block-level copy button
+  el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+function toggleNotePreview() {
+  notePreviewOpen = !notePreviewOpen;
+  localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function applyNotePreviewState() {
+  const split  = document.getElementById('noteEditorSplit');
+  const handle = document.getElementById('notePreviewHandle');
+  const pane   = document.getElementById('notePreviewPane');
+  const btn    = document.getElementById('notePreviewBtn');
+  if (!split || !handle || !pane || !btn) return;
+
+  const open = notePreviewOpen;
+  split.classList.toggle('preview-open', open);
+  handle.style.display = open ? '' : 'none';
+  pane.style.display   = open ? 'flex' : 'none';
+  btn.classList.toggle('active', open);
+  btn.title = open ? 'Hide preview' : 'Toggle markdown preview';
+
+  if (open) {
+    // Restore saved split position
+    const saved = localStorage.getItem('pragma-preview-split');
+    if (saved) split.style.setProperty('--note-editor-h', saved);
+    updateNotePreview();
+    initPreviewDragHandle();
+  }
+}
+
+function initPreviewDragHandle() {
+  const handle = document.getElementById('notePreviewHandle');
+  const split  = document.getElementById('noteEditorSplit');
+  if (!handle || handle._dragInited) return;
+  handle._dragInited = true;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startY    = e.clientY;
+    const splitRect = split.getBoundingClientRect();
+    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue('--note-editor-h')) || 50;
+
+    const onMove = ev => {
+      const delta  = ev.clientY - startY;
+      const newPct = Math.min(85, Math.max(15, startPct + (delta / splitRect.height) * 100));
+      split.style.setProperty('--note-editor-h', newPct + '%');
+      localStorage.setItem('pragma-preview-split', newPct + '%');
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 async function deleteCurrentNote() {
@@ -4674,6 +4868,7 @@ function cmThemeVars() {
 }
 
 function buildCmTheme() {
+  if (!window.CM) return [];
   const v    = cmThemeVars();
   const dark = !document.documentElement.classList.contains('light');
 
@@ -4705,7 +4900,10 @@ function cmInitNote(initialDoc) {
       CM.markdown(),
       ...buildCmTheme(),
       CM.EditorView.updateListener.of(update => {
-        if (update.docChanged && activeNoteId) autoSaveNote();
+        if (update.docChanged && activeNoteId) {
+          autoSaveNote();
+          updateNotePreview();
+        }
       }),
       CM.EditorView.lineWrapping,
     ],
