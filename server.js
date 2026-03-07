@@ -541,26 +541,32 @@ function loadNotesFile() {
 
 app.get('/api/notes', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE)) return res.json({ encrypted_storage: true });
+    // Encrypted only if enc file exists AND no plain file (plain = explicitly decrypted/disabled)
+    if (fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE))
+      return res.json({ encrypted_storage: true });
     res.json(loadNotesFile());
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/notes/save', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE))
+    if (fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE))
       return res.status(423).json({ error: 'Encrypted storage active. Use /api/notes/save-encrypted.' });
     const { sessions = {}, notes = {} } = req.body;
     fs.mkdirSync(NOTES_DIR, { recursive: true });
     fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
+    // Remove stale enc file if plain file now exists — they should never coexist
+    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/notes/storage-info', (req, res) => {
+  const encExists   = fs.existsSync(NOTES_ENC_FILE);
+  const plainExists = fs.existsSync(NOTES_FILE);
   res.json({
-    encrypted_storage: fs.existsSync(NOTES_ENC_FILE),
-    plain_storage:     fs.existsSync(NOTES_FILE),
+    encrypted_storage: encExists && !plainExists,
+    plain_storage:     plainExists,
     notes_dir:         NOTES_DIR,
     sessions_dir:      SESSIONS_DIR,
   });
@@ -605,8 +611,14 @@ app.get('/api/workbenches', (req, res) => {
       const m = f.match(/^(.+)\.workbench(\.enc)?$/);
       if (m) names.add(m[1]);
     });
+    const sorted = [...names].sort((a, b) => a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b));
     res.json({
-      workbenches: [...names].sort((a, b) => a === 'default' ? -1 : b === 'default' ? 1 : a.localeCompare(b)),
+      workbenches: sorted,
+      encrypted: Object.fromEntries(sorted.map(n => {
+        const encFile   = path.join(NOTES_DIR, `${n}.workbench.enc`);
+        const plainFile = path.join(NOTES_DIR, `${n}.workbench`);
+        return [n, fs.existsSync(encFile) && !fs.existsSync(plainFile)];
+      })),
       active: activeWorkbenchName,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -620,7 +632,7 @@ app.post('/api/workbench/switch', (req, res) => {
     const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
     if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
     activeWorkbenchName = safe;
-    const encrypted = fs.existsSync(workbenchEncFile());
+    const encrypted = fs.existsSync(workbenchEncFile()) && !fs.existsSync(workbenchFile());
     res.json({
       ok: true,
       active: activeWorkbenchName,

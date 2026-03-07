@@ -39,7 +39,8 @@
   --border2:  #5a6878;
   --text:     #dde6f0;
   --text2:    #96abbe;
-  --muted:    #5e7385;
+  --muted:    #7a95aa;
+  --btn-color:#a8bfd0;
   --accent:   #8b5cf6;
   --accent2:  #7c3aed;
   --green:    #34d399;
@@ -63,6 +64,7 @@
   --text:     #1a2535;
   --text2:    #3a5068;
   --muted:    #7a90a8;
+  --btn-color:#4a6580;
   --accent:   #5b21b6;
   --accent2:  #6d28d9;
   --green:    #059669;
@@ -177,7 +179,7 @@ body{
   background:var(--bg3);border:1px solid var(--border);
   border-radius:6px;padding:0 10px;
   cursor:pointer;transition:all 0.15s;
-  color:var(--muted);font-size:13px;
+  color:var(--btn-color);font-size:13px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
   height:32px;box-sizing:border-box;align-self:center;
@@ -256,7 +258,7 @@ body{
 }
 .workbench-switch-btn {
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 4px; color: var(--muted); cursor: pointer;
+  border-radius: 4px; color: var(--btn-color); cursor: pointer;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   padding: 2px 7px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0;
 }
@@ -637,7 +639,7 @@ body{
 
 .icon-btn{
   background:none;border:none;cursor:pointer;
-  color:var(--muted);font-size:17px;padding:3px 7px;
+  color:var(--btn-color);font-size:17px;padding:3px 7px;
   border-radius:4px;transition:all 0.12s;
 }
 .icon-btn:hover{background:var(--bg4);color:var(--text)}
@@ -949,7 +951,7 @@ body{
     .note-type-btn {
       background: none; border: none; cursor: pointer;
       font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
-      color: var(--muted); padding: 3px 8px; border-radius: 4px;
+      color: var(--btn-color); padding: 3px 8px; border-radius: 4px;
       white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
     }
     .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
@@ -1132,7 +1134,25 @@ body.is-resizing *{cursor:col-resize!important}
 .session-list-item.status-complete { opacity: 0.6; }
 .session-list-item.status-complete .session-list-item-name { color: var(--text2); }
 
-/* ── Copy target button (standalone, outside selector) ── */
+/* ── Syntax theme picker ── */
+.syntax-theme-picker {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 4px;
+}
+.syntax-dot {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 5px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s; opacity: 0.45;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); white-space: nowrap;
+}
+.syntax-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dot-color); flex-shrink: 0;
+}
+.syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
+.syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
 .target-copy-btn { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
@@ -1244,7 +1264,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .session-item-export-btn {
   background: var(--bg4); border: 1px solid var(--border);
-  border-radius: 4px; color: var(--muted); cursor: pointer;
+  border-radius: 4px; color: var(--btn-color); cursor: pointer;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
 }
@@ -1265,7 +1285,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-scope-btn {
   flex: 1; background: none; border: none; cursor: pointer;
   font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
-  color: var(--muted); padding: 7px 4px; min-width: 0;
+  color: var(--btn-color); padding: 7px 4px; min-width: 0;
   border-bottom: 2px solid transparent;
   transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1748,7 +1768,7 @@ body.enc-active-body .topbar {
   border-radius: 6px; padding: 0 10px;
   cursor: pointer; transition: all 0.15s;
   font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
-  color: var(--muted); white-space: nowrap;
+  color: var(--btn-color); white-space: nowrap;
   height: 32px; box-sizing: border-box; align-self: center;
 }
 .svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
@@ -1849,7 +1869,7 @@ body.enc-active-body .topbar {
 .notes-view-btn {
   flex: 1; background: none; border: none; cursor: pointer;
   font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-  color: var(--muted); padding: 5px 4px;
+  color: var(--btn-color); padding: 5px 4px;
   border-bottom: 2px solid transparent; transition: all 0.12s;
   letter-spacing: 0.04em; text-transform: uppercase;
 }
@@ -1973,6 +1993,11 @@ body.enc-active-body .topbar {
 
     <div class="topbar-actions">
       <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
+      <div class="syntax-theme-picker" title="Editor syntax theme">
+        <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+        <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+        <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+      </div>
       <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
     </div>
   </div>
@@ -2810,6 +2835,7 @@ function toggleSidebar(force) {
 async function init() {
   initTarget();
   updateWorkbenchUI();
+  initSyntaxThemePicker();
   initNotes();
 
   // Fetch services
@@ -3655,25 +3681,14 @@ async function renderWorkbenchList() {
     if (!d.workbenches?.length) { list.innerHTML = ''; return; }
     list.innerHTML = d.workbenches.map(name => {
       const isActive = name === activeWorkbenchName;
+      const isEnc    = d.encrypted?.[name] || (isActive && encryptedStorageEnabled);
       return `<div class="workbench-item${isActive ? ' active-wb' : ' clickable'}"${!isActive ? ` onclick="switchWorkbench('${esc(name)}')"` : ''}>
         <span class="workbench-item-name">${esc(name)}</span>
         ${isActive ? '<span class="workbench-item-badge active">active</span>' : ''}
-        <span class="workbench-item-badge enc" id="wb-enc-${esc(name)}" style="display:none">🔒 enc</span>
+        ${isEnc    ? '<span class="workbench-item-badge enc">🔒 enc</span>' : ''}
         ${name !== 'default' && !isActive ? `<button class="workbench-item-del" onclick="event.stopPropagation();deleteWorkbench('${esc(name)}')" title="Delete">🗑</button>` : ''}
       </div>`;
     }).join('');
-    // Check which workbenches are encrypted (fire-and-forget)
-    d.workbenches.forEach(async name => {
-      try {
-        const sr = await fetch('/api/notes/storage-info');
-        // We can't easily check per-workbench encryption status without switching,
-        // so just mark the active one if encrypted
-        if (name === activeWorkbenchName && encryptedStorageEnabled) {
-          const badge = document.getElementById(`wb-enc-${name}`);
-          if (badge) badge.style.display = '';
-        }
-      } catch(_) {}
-    });
   } catch(e) {
     list.innerHTML = `<div style="color:var(--red);font-size:11px">${esc(e.message)}</div>`;
   }
@@ -4573,6 +4588,80 @@ function cmSetValue(editor, value) {
   });
 }
 
+/* ── Syntax highlight themes ── */
+const SYNTAX_THEMES = {
+  monokai: (dark) => [
+    { tag: CM.tags.heading1,              color: '#f92672', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#f92672', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#fd971f', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#fd971f' },
+    { tag: CM.tags.strong,                color: '#fd971f', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a6e22e', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#75715e', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#66d9e8' },
+    { tag: CM.tags.monospace,             color: '#ae81ff' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#75715e', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#555566' : '#aaaacc' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#ae81ff' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#f92672' },
+    { tag: CM.tags.string,                color: '#e6db74' },
+  ],
+  nord: (dark) => [
+    { tag: CM.tags.heading1,              color: '#bf616a', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#d08770', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#ebcb8b', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#ebcb8b' },
+    { tag: CM.tags.strong,                color: '#d08770', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a3be8c', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#4c566a', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#88c0d0' },
+    { tag: CM.tags.monospace,             color: '#b48ead' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#616e88', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#4c566a' : '#9aa0b0' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#b48ead' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#81a1c1' },
+    { tag: CM.tags.string,                color: '#a3be8c' },
+  ],
+  solarized: (dark) => [
+    { tag: CM.tags.heading1,              color: '#dc322f', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#cb4b16', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#b58900', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#b58900' },
+    { tag: CM.tags.strong,                color: '#cb4b16', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#2aa198', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#586e75', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#268bd2' },
+    { tag: CM.tags.monospace,             color: '#6c71c4' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#586e75', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#586e75' : '#839496' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#6c71c4' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#859900' },
+    { tag: CM.tags.string,                color: '#2aa198' },
+  ],
+};
+
+let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
+
+function setSyntaxTheme(name) {
+  activeSyntaxTheme = name;
+  localStorage.setItem('pragma-syntax-theme', name);
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === name));
+
+  // Capture current content BEFORE destroying editors
+  const noteContent = noteEditor ? cmGetValue(noteEditor) : null;
+  const kbContent   = kbEditor   ? cmGetValue(kbEditor)   : null;
+
+  // Rebuild with new theme, passing saved content so doc is never empty
+  if (typeof cmInitNote === 'function') cmInitNote(noteContent);
+  if (typeof cmInitKb   === 'function') cmInitKb(kbContent);
+}
+
+function initSyntaxThemePicker() {
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
+}
+
 function cmThemeVars() {
   // Read CSS vars at runtime so theme matches dark/light mode
   const s = getComputedStyle(document.documentElement);
@@ -4599,43 +4688,18 @@ function buildCmTheme() {
     '.cm-line':                   { padding: '0' },
   }, { dark });
 
-  const highlightStyle = CM.HighlightStyle.define([
-    { tag: CM.tags.heading1,          color: '#f92672', fontWeight: '700' },
-    { tag: CM.tags.heading2,          color: '#f92672', fontWeight: '600' },
-    { tag: CM.tags.heading3,          color: '#fd971f', fontWeight: '600' },
-    { tag: CM.tags.heading4,          color: '#fd971f' },
-    { tag: CM.tags.heading5,          color: '#fd971f' },
-    { tag: CM.tags.heading6,          color: '#fd971f' },
-    { tag: CM.tags.strong,            color: '#1d4ed8', fontWeight: '700' },
-    { tag: CM.tags.emphasis,          color: '#0891b2', fontStyle: 'italic' },
-    { tag: CM.tags.strikethrough,     color: '#75715e', textDecoration: 'line-through' },
-    { tag: CM.tags.link,              color: '#66d9e8' },
-    { tag: CM.tags.url,               color: '#66d9e8', opacity: '0.7' },
-    { tag: CM.tags.monospace,         color: '#ae81ff' },
-    { tag: CM.tags.quote,             color: '#75715e', fontStyle: 'italic' },
-    { tag: CM.tags.comment,           color: '#75715e' },
-    { tag: CM.tags.meta,              color: '#75715e' },
-    { tag: CM.tags.punctuation,       color: dark ? '#555566' : '#aaaacc' },
-    { tag: CM.tags.processingInstruction, color: '#ae81ff' },
-    { tag: CM.tags.atom,              color: '#ae81ff' },
-    { tag: CM.tags.keyword,           color: '#f92672' },
-    { tag: CM.tags.operator,          color: '#f92672' },
-    { tag: CM.tags.string,            color: '#e6db74' },
-    { tag: CM.tags.number,            color: '#ae81ff' },
-    { tag: CM.tags.bool,              color: '#ae81ff' },
-    { tag: CM.tags.null,              color: '#ae81ff' },
-  ]);
+  const highlightStyle = CM.HighlightStyle.define(SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.monokai(dark));
 
   return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
 }
 
-function cmInitNote() {
+function cmInitNote(initialDoc) {
   const wrap = document.getElementById('noteBodyWrap');
   if (!wrap || !CM) return;
   if (noteEditor) { noteEditor.destroy(); }
 
   noteEditor = new CM.EditorView({
-    doc: '',
+    doc: initialDoc ?? '',
     extensions: [
       CM.basicSetup,
       CM.markdown(),
@@ -4649,13 +4713,13 @@ function cmInitNote() {
   });
 }
 
-function cmInitKb() {
+function cmInitKb(initialDoc) {
   const wrap = document.getElementById('cpEditWrap');
   if (!wrap || !CM) return;
   if (kbEditor) { kbEditor.destroy(); }
 
   kbEditor = new CM.EditorView({
-    doc: '',
+    doc: initialDoc ?? '',
     extensions: [
       CM.basicSetup,
       CM.markdown(),
