@@ -37,7 +37,7 @@ const NOTES_DIR     = path.join(__dirname, 'sessions');
 const SESSIONS_DIR  = path.join(__dirname, 'sessions');
 
 // ── Active workbench — defaults to "default", switchable at runtime ──
-let activeWorkbenchName = 'default';
+let activeWorkbenchName = 'pragma';
 function workbenchFile()    { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench`); }
 function workbenchEncFile() { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench.enc`); }
 

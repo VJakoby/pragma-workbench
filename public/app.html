@@ -307,51 +307,6 @@ body{
 
 .sidebar-divider{height:1px;background:var(--border);margin:4px 0}
 
-/* ── Workbench switcher ── */
-.workbench-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 10px 6px 14px;
-}
-.workbench-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-  font-weight: 700; color: var(--text2); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.04em;
-}
-.workbench-switch-btn {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 4px; color: var(--btn-color); cursor: pointer;
-  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-  padding: 2px 7px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0;
-}
-.workbench-switch-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-/* ── Workbench modal list ── */
-.workbench-list { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
-.workbench-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: 6px;
-  background: var(--bg3); border: 1px solid var(--border);
-  transition: all 0.12s;
-}
-.workbench-item.clickable { cursor: pointer; }
-.workbench-item.clickable:hover { border-color: var(--accent); background: rgba(124,58,237,0.08); }
-.workbench-item.active-wb { border-color: var(--accent); background: rgba(124,58,237,0.12); cursor: default; }
-.workbench-item-name {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-  font-weight: 700; color: var(--text);
-}
-.workbench-item-badge {
-  font-size: 9px; font-family: 'Inter', sans-serif; font-weight: 700;
-  padding: 1px 6px; border-radius: 3px; letter-spacing: 0.06em;
-}
-.workbench-item-badge.enc { background: rgba(124,58,237,0.2); color: var(--accent); border: 1px solid rgba(124,58,237,0.3); }
-.workbench-item-badge.active { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
-.workbench-item-del {
-  background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 13px; padding: 2px 4px; border-radius: 3px; opacity: 0.4;
-  transition: all 0.12s;
-}
-.workbench-item-del:hover { color: var(--red); opacity: 1; }
 
 /* category list */
 .cat-scroll{overflow-y:auto;flex:1;padding-bottom:8px}
@@ -2178,13 +2133,6 @@ body.enc-active-body .topbar {
 
     <!-- ── SIDEBAR ── -->
     <div class="sidebar">
-      <!-- Workbench switcher -->
-      <div class="sidebar-section-hdr">Workbench</div>
-      <div class="workbench-bar">
-        <span class="workbench-name" id="workbenchName">default</span>
-        <button class="workbench-switch-btn" onclick="openWorkbenchModal()" title="Switch or create workbench">⇄ Switch</button>
-      </div>
-      <div class="sidebar-divider"></div>
       <!-- Active session -->
       <div class="sidebar-section" id="sessionSection">
         <div class="sidebar-section-hdr">Session</div>
@@ -2603,31 +2551,6 @@ body.enc-active-body .topbar {
 
 <!-- ── COMMAND PALETTE ── -->
 <!-- ── WORKBENCH MODAL ── -->
-<div class="cmd-overlay" id="workbenchOverlay" onclick="if(event.target===this)closeWorkbenchModal()">
-  <div class="cmd-box" style="max-width:480px">
-    <div class="cmd-input-row">
-      <span class="cmd-input-icon">⬡</span>
-      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Workbenches</span>
-      <span class="cmd-esc" onclick="closeWorkbenchModal()" style="cursor:pointer">ESC</span>
-    </div>
-    <div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:10px">
-      <div class="workbench-list" id="workbenchList"></div>
-      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;gap:8px;align-items:center">
-        <input id="newWorkbenchInput" type="text" placeholder="New workbench name…"
-          autocomplete="off" spellcheck="false"
-          style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;
-                 padding:6px 10px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none"
-          onkeydown="if(event.key==='Enter')createWorkbench()">
-        <button onclick="createWorkbench()"
-          style="background:var(--accent);border:none;border-radius:6px;color:#fff;
-                 font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
-                 padding:6px 14px;cursor:pointer;white-space:nowrap">
-          ＋ Create
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ── Shared status dropdown (fixed position, escapes overflow) ── -->
 <div class="status-dropdown" id="statusDropdown">
@@ -3028,7 +2951,6 @@ function toggleSidebar(force) {
 // ═══════════════════════════════════════════════
 async function init() {
   initTarget();
-  updateWorkbenchUI();
   initSyntaxThemePicker();
   applyNotePreviewState();
   initNotes();
@@ -3850,147 +3772,6 @@ async function toggleEncryptedStorage(e) {
 // ═══════════════════════════════════════════════
 // WORKBENCH MANAGEMENT
 // ═══════════════════════════════════════════════
-let activeWorkbenchName = 'default';
-
-function updateWorkbenchUI() {
-  document.getElementById('workbenchName').textContent = activeWorkbenchName;
-}
-
-async function openWorkbenchModal() {
-  await renderWorkbenchList();
-  document.getElementById('workbenchOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('newWorkbenchInput')?.focus(), 60);
-}
-
-function closeWorkbenchModal() {
-  document.getElementById('workbenchOverlay').classList.remove('open');
-  document.getElementById('newWorkbenchInput').value = '';
-}
-
-async function renderWorkbenchList() {
-  const list = document.getElementById('workbenchList');
-  list.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:4px 2px">Loading…</div>';
-  try {
-    const r = await fetch('/api/workbenches');
-    const d = await r.json();
-    if (!d.workbenches?.length) { list.innerHTML = ''; return; }
-    list.innerHTML = d.workbenches.map(name => {
-      const isActive = name === activeWorkbenchName;
-      const isEnc    = d.encrypted?.[name] || (isActive && encryptedStorageEnabled);
-      return `<div class="workbench-item${isActive ? ' active-wb' : ' clickable'}"${!isActive ? ` onclick="switchWorkbench('${esc(name)}')"` : ''}>
-        <span class="workbench-item-name">${esc(name)}</span>
-        ${isActive ? '<span class="workbench-item-badge active">active</span>' : ''}
-        ${isEnc    ? '<span class="workbench-item-badge enc">🔒 enc</span>' : ''}
-        ${name !== 'default' && !isActive ? `<button class="workbench-item-del" onclick="event.stopPropagation();deleteWorkbench('${esc(name)}')" title="Delete">🗑</button>` : ''}
-      </div>`;
-    }).join('');
-  } catch(e) {
-    list.innerHTML = `<div style="color:var(--red);font-size:11px">${esc(e.message)}</div>`;
-  }
-}
-
-async function switchWorkbench(name) {
-  if (name === activeWorkbenchName) { closeWorkbenchModal(); return; }
-
-  // Flush current state before switching
-  saveNotes();
-  await new Promise(r => setTimeout(r, 120));
-
-  try {
-    const r = await fetch('/api/workbench/switch', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Switch failed');
-
-    activeWorkbenchName = d.active;
-    tlTargetFilter = null;
-
-    // Reset all in-memory state
-    notes    = {};
-    sessions = {};
-    activeSessionId = null;
-    activeNoteId    = null;
-    encryptedStorageEnabled  = false;
-    encryptedStoragePassword = null;
-    localStorage.removeItem('ops-active-session');
-    localStorage.removeItem('ops-active-target');
-    localStorage.removeItem('ops-notes-v2-encrypted');
-    localStorage.removeItem('ops-notes-v2');
-
-    closeWorkbenchModal();
-    updateWorkbenchUI();
-    updateEncryptedStorageUI();
-
-    // Reload data from the new workbench
-    await initNotes();
-    showToast(`⬡ Switched to workbench: ${name}`);
-  } catch(e) {
-    showToast('Failed to switch: ' + e.message, 'err');
-  }
-}
-
-async function createWorkbench() {
-  const input = document.getElementById('newWorkbenchInput');
-  const name  = input.value.trim();
-  if (!name) { input.focus(); return; }
-
-  try {
-    // Save current workbench state FIRST, while the server still points at it
-    await saveNotes();
-
-    const r = await fetch('/api/workbench/create', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Create failed');
-
-    activeWorkbenchName      = d.active;
-    notes    = {};
-    sessions = {};
-    activeSessionId = null;
-    activeNoteId    = null;
-    encryptedStorageEnabled  = false;
-    encryptedStoragePassword = null;
-    localStorage.removeItem('ops-active-session');
-    localStorage.removeItem('ops-active-target');
-    localStorage.removeItem('ops-notes-v2-encrypted');
-    localStorage.removeItem('ops-notes-v2');
-
-    closeWorkbenchModal();
-    updateWorkbenchUI();
-    updateEncryptedStorageUI();
-    await initNotes();
-    showToast(`⬡ Created and switched to workbench: ${d.active}`);
-  } catch(e) {
-    showToast('Failed to create: ' + e.message, 'err');
-  }
-}
-
-async function deleteWorkbench(name) {
-  try {
-    await showConfirmDialog({
-      icon: '🗑', title: 'Delete Workbench', bigIcon: '⬡',
-      description: `Delete workbench "${name}"? This permanently removes the workbench file and cannot be undone.`,
-      confirmLabel: 'Delete', danger: true,
-    });
-  } catch { return; }
-  try {
-    const r = await fetch('/api/workbench/delete', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Delete failed');
-    await renderWorkbenchList();
-    showToast(`Deleted workbench: ${name}`);
-  } catch(e) {
-    showToast('Failed to delete: ' + e.message, 'err');
-  }
-}
-
 async function initNotes() {
   try {
     const r = await fetch('/api/notes');
@@ -4135,6 +3916,7 @@ function saveNotes() {
     }).catch(() => {});
   }
 }
+
 
 // ─── Session management ───
 function renderSessionSidebar() {
@@ -5555,7 +5337,6 @@ document.addEventListener('keydown', async e => {
   if (e.key === 'Escape') {
     // Shortcuts modal
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
-    if (document.getElementById('workbenchOverlay')?.classList.contains('open')) { closeWorkbenchModal(); return; }
     // Reassign dropdown
     const rd = document.getElementById('noteReassignDropdown');
     if (rd?.classList.contains('open')) { rd.classList.remove('open'); return; }
