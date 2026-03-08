@@ -2,9 +2,8 @@
 
 ### Set environment variables
 Use default locations for the knowledge base or change the environment variables in the `docker-compose.yml` file.
-
+### Example Project Structure
 ```
-EXAMPLE PROJECT STRUCTURE
 --------------------------------
  pragma/
  ├── public/
@@ -28,21 +27,6 @@ EXAMPLE PROJECT STRUCTURE
           ├── 80.md                         // http
           ├── 445.md                        // smb
           └── ...                           // any .md file becomes a service card
-```
-
----
-
-### 0. Before first run — create required directories
-
-Docker will create missing volume-mounted directories as root-owned if they don't exist, which causes permission errors. Create them manually first:
-
-```bash
-mkdir -p sessions knowledge_base/services knowledge_base/attacks knowledge_base/methodologies
-```
-
-If using ENGRAM integration, also create the shared network:
-```bash
-docker network create pragma-net
 ```
 
 ---
