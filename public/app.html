@@ -22,7 +22,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>#PRAGMA</title>
+<title>PRAGMA</title>
+  <meta name="theme-color" content="#363f49" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="codemirror-bundle.js"></script>
   <script>
@@ -2035,6 +2037,68 @@ body.enc-active-body .topbar {
   font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
 }
+/* ── Event type entries (non-note) ── */
+.tl-event {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 2px; border-radius: 5px;
+  position: relative; margin-bottom: 2px; transition: background 0.1s;
+}
+.tl-event::before {
+  content: ''; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border2); border: 1.5px solid var(--bg2); z-index: 1;
+}
+.tl-event-status::before { background: var(--accent); }
+.tl-event-session::before { background: var(--green); }
+.tl-event-label {
+  font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
+  flex: 1; min-width: 0;
+}
+.tl-event-label strong { color: var(--text2); font-weight: 600; }
+.tl-status-arrow {
+  font-size: 10px; color: var(--muted); margin: 0 2px;
+}
+.tl-status-badge {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+}
+.tl-status-active   { color: var(--green);  background: rgba(52,211,153,0.12); }
+.tl-status-paused   { color: var(--yellow); background: rgba(251,191,36,0.12); }
+.tl-status-complete { color: var(--muted);  background: rgba(150,171,190,0.12); }
+/* ── Idle gap ── */
+.tl-idle-gap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px 6px 2px; margin: 4px 0;
+  position: relative;
+}
+.tl-idle-gap::before {
+  content: ''; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border); border: 1.5px solid var(--bg2); z-index: 1;
+}
+.tl-idle-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--border2);
+  letter-spacing: 0.06em; font-style: italic;
+}
+/* ── Timeline toolbar ── */
+.timeline-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tl-filter-select {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text2); font-family: 'Inter', sans-serif;
+  font-size: 11px; padding: 3px 6px; outline: none; cursor: pointer;
+}
+.tl-filter-select:focus { border-color: var(--accent); }
+.tl-export-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--btn-color); font-family: 'Inter', sans-serif; font-size: 11px;
+  font-weight: 600; padding: 3px 8px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.tl-export-btn:hover { border-color: var(--border2); color: var(--text); }
 </style>
 </head>
 <body>
@@ -2062,7 +2126,7 @@ body.enc-active-body .topbar {
       <span class="target-sel-label" id="targetSelLabel"></span>
       <span class="target-sel-arrow">⌄</span>
     </div>
-    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">copy</button>
+    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">📋 Copy IP</button>
 
     <!-- ── Quick-Log button + popover ── -->
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
@@ -2281,6 +2345,12 @@ body.enc-active-body .topbar {
               <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
             </div>
             <div class="notes-list-items" id="notesList"></div>
+            <div class="timeline-toolbar" id="timelineToolbar" style="display:none">
+              <select class="tl-filter-select" id="tlTargetSelect" onchange="setTlTargetFilter(this.value)">
+                <option value="">All targets</option>
+              </select>
+              <button class="tl-export-btn" onclick="exportTimeline()" title="Export timeline as markdown">↓ Export</button>
+            </div>
             <div class="timeline-list" id="timelineList"></div>
           <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
           </div>
@@ -2453,11 +2523,11 @@ body.enc-active-body .topbar {
       <div style="display:flex;gap:8px">
         <div class="session-field" style="flex:1">
           <label>Target IP</label>
-          <input id="newSessionIP" type="text" placeholder="10.10.10.x" autocomplete="off">
+          <input id="newSessionIP" type="text" placeholder="10.10.10.x" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
         </div>
         <div class="session-field" style="flex:1">
           <label>Domain</label>
-          <input id="newSessionDomain" type="text" placeholder="corp.local" autocomplete="off">
+          <input id="newSessionDomain" type="text" placeholder="corp.local" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
         </div>
       </div>
       <div class="session-actions">
@@ -2602,6 +2672,7 @@ let activeSessionId = null;
 let activeTargetId  = null;
 let activeNoteId  = null;
 let noteSaveTimer;
+let tlTargetFilter = null; // timeline per-target filter
 
 const ACCENT_COLORS = [
   '#7c3aed','#34d399','#a78bfa','#fb923c',
@@ -2616,9 +2687,17 @@ function applyTheme(t) {
   if (t === 'light') {
     document.documentElement.setAttribute('data-theme','light');
     document.getElementById('themeBtn').textContent = '🌙 Dark';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta');
+    m.name = 'theme-color'; m.content = '#ffffff';
+    document.head.appendChild(m);
   } else {
     document.documentElement.removeAttribute('data-theme');
     document.getElementById('themeBtn').textContent = '☀ Light';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta');
+    m.name = 'theme-color'; m.content = '#363f49';
+    document.head.appendChild(m);
   }
 }
 function toggleTheme() {
@@ -3813,8 +3892,9 @@ async function renderWorkbenchList() {
 async function switchWorkbench(name) {
   if (name === activeWorkbenchName) { closeWorkbenchModal(); return; }
 
-  // Save current workbench state first
-  await saveNotes();
+  // Flush current state before switching
+  saveNotes();
+  await new Promise(r => setTimeout(r, 120));
 
   try {
     const r = await fetch('/api/workbench/switch', {
@@ -3825,6 +3905,7 @@ async function switchWorkbench(name) {
     if (!d.ok) throw new Error(d.error || 'Switch failed');
 
     activeWorkbenchName = d.active;
+    tlTargetFilter = null;
 
     // Reset all in-memory state
     notes    = {};
@@ -4109,7 +4190,8 @@ function renderSessionList() {
             <span class="status-dot ${status}"></span>${statusLabel[status]}
           </div>
           <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
-          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown">⬇ .md</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown files">⬇ .md</button>
+          <button class="session-item-export-btn" onclick="exportTimelineForSession('${s.id}')" title="Export timeline as markdown">⬇ timeline</button>
           <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
         </div>
       </div>
@@ -4136,6 +4218,7 @@ function createSession() {
     sess.targets.push({ id: tgtId, ip: ip || '', domain: domain || '', label: 'default' });
   }
   sessions[id] = sess;
+  tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);
   saveNotes();
   renderSessionList();
@@ -4185,13 +4268,23 @@ function applyStatusFromDropdown(status) {
   _statusDropdownTarget = null;
 }
 
+// ── Timeline event logger ──────────────────────────────────────────────────
+function tlLog(sessId, event) {
+  if (!sessId || !sessions[sessId]) return;
+  if (!sessions[sessId].events) sessions[sessId].events = [];
+  sessions[sessId].events.push({ ts: Date.now(), ...event });
+}
+
 function setSessionStatus(e, sessId, status) {
   if (e) e.stopPropagation();
   if (!sessions[sessId]) return;
+  const prev = sessions[sessId].status || 'active';
   sessions[sessId].status = status;
+  tlLog(sessId, { type: 'status', from: prev, to: status });
   saveNotes();
   renderSessionList();
   if (sessId === activeSessionId) renderSessionSidebar();
+  if (typeof renderTimeline === 'function' && typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
 }
 
 function switchSession(id) {
@@ -4357,6 +4450,7 @@ function newNote(type = 'general') {
     updated:       Date.now(),
   };
   saveNotes();
+  if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: type, targetId: activeTargetId || null });
   renderNotesList();
   openNote(id);
   // Focus title if blank, editor body if title pre-filled
@@ -5662,6 +5756,7 @@ function setNotesListView(mode, btn) {
   const filterBar  = document.getElementById('notesTypeFilter');
   const scopeBar   = document.querySelector('.notes-scope-bar');
   const tgtBar     = document.getElementById('targetFilterBar');
+  const tlToolbar  = document.getElementById('timelineToolbar');
 
   if (mode === 'timeline') {
     listEl.style.display     = 'none';
@@ -5669,79 +5764,236 @@ function setNotesListView(mode, btn) {
     if (filterBar) filterBar.style.display = 'none';
     if (scopeBar)  scopeBar.style.display  = 'none';
     if (tgtBar)    tgtBar.style.display    = 'none';
+    if (tlToolbar) tlToolbar.style.display = 'flex';
     renderTimeline();
   } else {
     listEl.style.display     = '';
     timelineEl.style.display = 'none';
     if (filterBar) filterBar.style.display = '';
     if (scopeBar)  scopeBar.style.display  = '';
+    if (tlToolbar) tlToolbar.style.display = 'none';
     renderNotesList();
   }
+}
+
+function setTlTargetFilter(val) {
+  tlTargetFilter = val || null;
+  renderTimeline();
 }
 
 function renderTimeline() {
   const el = document.getElementById('timelineList');
   if (!el) return;
 
-  const allNotes = Object.values(notes);
+  const sess    = activeSessionId ? sessions[activeSessionId] : null;
+  const targets = sess ? (sess.targets || []) : [];
 
-  // Build filtered list — show notes belonging to active session,
-  // OR all notes if no session is active
-  let items;
-  if (activeSessionId) {
-    items = allNotes.filter(n =>
-      n.session_id === activeSessionId ||
-      n.session_id === null ||
-      n.session_id === undefined
-    );
-    // If that's empty, fall back to showing everything so the user isn't stuck
-    if (!items.length) items = allNotes;
-  } else {
-    items = allNotes;
+  // ── Populate target filter dropdown ──
+  const sel = document.getElementById('tlTargetSelect');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All targets</option>' +
+      targets.map(t => {
+        const label = t.ip || t.domain || t.label || 'target';
+        return `<option value="${t.id}"${t.id === tlTargetFilter ? ' selected' : ''}>${esc(label)}</option>`;
+      }).join('');
+    if (!targets.find(t => t.id === tlTargetFilter)) tlTargetFilter = null;
   }
 
-  items = items.sort((a, b) => (a.created || 0) - (b.created || 0));
+  // ── Collect note events ──
+  const allNotes = Object.values(notes);
+  let noteItems = activeSessionId
+    ? allNotes.filter(n => n.session_id === activeSessionId || n.session_id == null)
+    : allNotes;
+  if (!noteItems.length && activeSessionId) noteItems = allNotes;
 
-  if (!items.length) {
+  // ── Collect session events (status changes, session created) ──
+  const sessEvents = sess ? (sess.events || []) : [];
+
+  // ── Merge into unified event list ──
+  let unified = [
+    ...noteItems.map(n => ({ ts: n.created || 0, kind: 'note', data: n })),
+    ...sessEvents.map(e => ({ ts: e.ts, kind: 'event', data: e })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  // ── Apply per-target filter ──
+  if (tlTargetFilter) {
+    unified = unified.filter(item => {
+      if (item.kind === 'note') return item.data.target_id === tlTargetFilter;
+      return true; // always show status/session events
+    });
+  }
+
+  if (!unified.length) {
     el.innerHTML = `<div style="padding:20px 12px;font-size:12px;color:var(--muted);font-family:Inter,sans-serif;text-align:center;line-height:1.6">
-      No notes found.<br>
-      <span style="font-size:11px;opacity:0.7">Total notes in workspace: ${allNotes.length} &nbsp;|&nbsp; Active session: ${activeSessionId || 'none'}</span>
+      No events yet.<br><span style="font-size:11px;opacity:0.7">Create notes or change target status to populate the timeline.</span>
     </div>`;
     return;
   }
 
-  const groups = {};
-  items.forEach(n => {
-    const key = new Date(n.created || 0).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(n);
+  // ── Group by day, inserting idle gap markers ──
+  const IDLE_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const groups  = {}; // dayKey -> [{item|gap}]
+
+  unified.forEach((item, i) => {
+    const dayKey = new Date(item.ts).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
+    if (!groups[dayKey]) groups[dayKey] = [];
+
+    // Check idle gap vs previous item on same day
+    const prev = groups[dayKey].slice().reverse().find(x => x.type !== 'gap');
+    if (prev && (item.ts - prev.ts) > IDLE_MS) {
+      const hrs = Math.round((item.ts - prev.ts) / 3600000);
+      groups[dayKey].push({ type: 'gap', hrs });
+    }
+    groups[dayKey].push({ type: 'item', item });
   });
 
+  // ── Render ──
+  const statusLabel = s => ({ active: 'Active', paused: 'Paused', complete: 'Complete' }[s] || s);
+  const statusClass = s => ({ active: 'tl-status-active', paused: 'tl-status-paused', complete: 'tl-status-complete' }[s] || '');
+
   let html = '';
-  Object.entries(groups).forEach(([dayLabel, dayNotes]) => {
+  Object.entries(groups).forEach(([dayLabel, entries]) => {
     html += `<div class="timeline-day-group"><div class="timeline-day-label">${esc(dayLabel)}</div>`;
-    dayNotes.forEach(n => {
-      const meta    = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
-      const time    = new Date(n.created || 0).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-      const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
-      const tgt     = n.target_id && activeSessionId && sessions[activeSessionId]
-        ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
-      const tgtBadge = tgt
-        ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
-        : '';
-      html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
-        <span class="tl-time">${esc(time)}</span>
-        <div class="tl-body">
-          <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
-          ${tgtBadge}
-          <div class="tl-title">${esc(n.title || 'Untitled')}</div>
-          ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
-        </div>
-      </div>`;
+
+    entries.forEach(entry => {
+      if (entry.type === 'gap') {
+        html += `<div class="tl-idle-gap"><span class="tl-idle-label">— ${entry.hrs}h break —</span></div>`;
+        return;
+      }
+
+      const { item } = entry;
+      const time = new Date(item.ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+      if (item.kind === 'note') {
+        const n       = item.data;
+        const meta    = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+        const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
+        const tgt     = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+        const tgtBadge = tgt
+          ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
+          : '';
+        html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
+          <span class="tl-time">${esc(time)}</span>
+          <div class="tl-body">
+            <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+            ${tgtBadge}
+            <div class="tl-title">${esc(n.title || 'Untitled')}</div>
+            ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
+          </div>
+        </div>`;
+      } else {
+        // System event
+        const ev = item.data;
+        if (ev.type === 'status') {
+          html += `<div class="tl-event tl-event-status">
+            <span class="tl-time">${esc(time)}</span>
+            <span class="tl-event-label">
+              Status changed
+              <span class="tl-status-badge ${statusClass(ev.from)}">${statusLabel(ev.from)}</span>
+              <span class="tl-status-arrow">→</span>
+              <span class="tl-status-badge ${statusClass(ev.to)}">${statusLabel(ev.to)}</span>
+            </span>
+          </div>`;
+        } else if (ev.type === 'session_created') {
+          html += `<div class="tl-event tl-event-session">
+            <span class="tl-time">${esc(time)}</span>
+            <span class="tl-event-label">Session <strong>${esc(ev.name || '')}</strong> created</span>
+          </div>`;
+        } else if (ev.type === 'note_created') {
+          // note_created events are already shown as note items — skip
+        }
+      }
     });
+
     html += '</div>';
   });
+
   el.innerHTML = html;
+}
+
+function exportTimelineForSession(sessionId) {
+  exportTimeline(sessionId);
+}
+
+function exportTimeline(overrideSessionId) {
+  const sessId = overrideSessionId || activeSessionId;
+  const sess   = sessId ? sessions[sessId] : null;
+  if (!sess) { showToast('No active session', 'err'); return; }
+
+  const targets  = sess.targets || [];
+  const tgtLabel = t => t ? (t.ip || t.domain || t.label || 'target') : null;
+
+  const allNotes   = Object.values(notes).filter(n => n.session_id === sessId || n.session_id == null);
+  const sessEvents = sess.events || [];
+
+  let unified = [
+    ...allNotes.map(n => ({ ts: n.created || 0, kind: 'note', data: n })),
+    ...sessEvents.map(e => ({ ts: e.ts, kind: 'event', data: e })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  if (tlTargetFilter) {
+    unified = unified.filter(item =>
+      item.kind === 'event' || item.data.target_id === tlTargetFilter
+    );
+  }
+
+  const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  const IDLE_MS = 2 * 60 * 60 * 1000;
+
+  let md = `# Timeline — ${sess.codename}\n`;
+  if (sess.target_ip)     md += `**Target IP:** ${sess.target_ip}  \n`;
+  if (sess.target_domain) md += `**Domain:** ${sess.target_domain}  \n`;
+  md += `**Exported:** ${new Date().toLocaleString('en-GB')}  \n\n---\n\n`;
+
+  let currentDay = '';
+  let prevTs     = null;
+
+  unified.forEach(item => {
+    const day = fmtDate(item.ts);
+    if (day !== currentDay) {
+      currentDay = day;
+      md += `## ${day}\n\n`;
+      prevTs = null;
+    }
+
+    if (prevTs && (item.ts - prevTs) > IDLE_MS) {
+      const hrs = Math.round((item.ts - prevTs) / 3600000);
+      md += `> ⏸ ${hrs}h break\n\n`;
+    }
+
+    const time = fmtTime(item.ts);
+
+    if (item.kind === 'note') {
+      const n    = item.data;
+      const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+      const tgt  = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+      md += `### ${time} — ${meta.icon} ${n.title || 'Untitled'}\n`;
+      md += `**Type:** ${meta.label}`;
+      if (tgt) md += `  |  **Target:** ${tgtLabel(tgt)}`;
+      md += `  \n\n`;
+      if (n.body && n.body.trim()) md += n.body.trim() + '\n\n';
+    } else {
+      const ev = item.data;
+      if (ev.type === 'status') {
+        md += `- \`${time}\` Status: **${ev.from}** → **${ev.to}**\n\n`;
+      } else if (ev.type === 'session_created') {
+        md += `- \`${time}\` Session created: **${ev.name}**\n\n`;
+      }
+    }
+
+    prevTs = item.ts;
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `timeline-${(sess.codename || 'session').replace(/\s+/g,'-').toLowerCase()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Timeline exported');
 }
 
 
@@ -5893,50 +6145,7 @@ async function exportSessionFile(sessionId) {
 async function exportNotesMarkdown(sessionId) {
   const sess = sessions[sessionId];
   if (!sess) return;
-  const sessNotes = Object.values(notes)
-    .filter(n => n.session_id === sessionId)
-    .sort((a, b) => (a.created || 0) - (b.created || 0));
 
-  if (!sessNotes.length) { alert('No notes in this session to export.'); return; }
-
-  const targets = sess.targets || [];
-
-  // Build a single markdown document
-  const lines = [];
-  lines.push(`# ${sess.codename}`);
-  lines.push('');
-  if (targets.length) {
-    lines.push('**Targets:**');
-    targets.forEach(t => {
-      const parts = [t.ip, t.domain, t.label].filter(Boolean);
-      lines.push(`- ${parts.join(' · ')}`);
-    });
-    lines.push('');
-  }
-  lines.push(`**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`);
-  lines.push(`**Notes:** ${sessNotes.length}`);
-  lines.push('');
-  lines.push('---');
-  lines.push('');
-
-  sessNotes.forEach((n, i) => {
-    const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
-    const ts  = new Date(n.created || 0).toISOString().replace('T',' ').slice(0,16);
-    lines.push(`## ${i + 1}. ${n.title || 'Untitled'}`);
-    lines.push('');
-    lines.push(`> **Type:** \`${n.type}\`  `);
-    if (tgt) lines.push(`> **Target:** \`${tgt.ip || tgt.domain || tgt.label}\`  `);
-    lines.push(`> **Created:** ${ts}`);
-    lines.push('');
-    if (n.body && n.body.trim()) {
-      lines.push(n.body.trim());
-      lines.push('');
-    }
-    lines.push('---');
-    lines.push('');
-  });
-
-  // Write to project directory via server (per-target subdirs under sessions/<session>/)
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
@@ -5946,7 +6155,7 @@ async function exportNotesMarkdown(sessionId) {
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      showToast(`Exported ${count} files → sessions/${slugify(sess.codename)}/`);
+      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }
