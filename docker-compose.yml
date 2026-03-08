@@ -1,16 +1,39 @@
 services:
   app:
     build: .
-    container_name: pragma
+    container_name: pragma-workbench
     ports:
-      - "127.0.0.1:3000:3000"                               # App is only accessible from local machine
-    volumes:                                                # Overwrite default paths in project dir
-      - ./knowledge_base:/usr/src/app/knowledge_base        # 
-      - ./notes:/usr/src/app/notes                          
-      - ./sessions:/usr/src/app/sessions
+      - "127.0.0.1:3000:3000"                               # App only accessible from local machine
+    volumes:                                                 # Overwrite default paths in project dir
+      - ./knowledge_base:/usr/src/app/knowledge_base        # Must match KB_DIR
+      - ./notes:/usr/src/app/notes                          # Must match NOTES_DIR
+      - ./sessions:/usr/src/app/sessions                    # Must match SESSIONS_DIR
     environment:
-      - KB_DIR=/usr/src/app/knowledge_base                  # Default; Or pick custom location to your personal KB directory
-      - METH_DIR=/usr/src/app/knowledge_base/methodologies  # Default; Or pick custom location to your personal KB directory
-      - NOTES_DIR=/usr/src/app/notes                        # Default; Or pick custom location 
-      - SESSIONS_DIR=/usr/src/app/sessions                  # Default; Or pick custom location 
+      - KB_DIR=/usr/src/app/knowledge_base                  # Default; or pick custom location
+      - METH_DIR=/usr/src/app/knowledge_base/methodologies  # Default; or pick custom location
+      - NOTES_DIR=/usr/src/app/notes                        # Default; or pick custom location
+      - SESSIONS_DIR=/usr/src/app/sessions                  # Default; or pick custom location
+      - SEARCH_URL=http://engram:3002                        # ENGRAM internal network hostname
     restart: unless-stopped
+    networks:
+      pragma-net:
+
+    # ── Security hardening ──────────────────────────────────────────────────
+    read_only: true                                          # Root filesystem is read-only
+    tmpfs:
+      - /tmp                                                 # Node/Express needs a writable /tmp
+    cap_drop:
+      - ALL                                                  # Drop all Linux capabilities
+    security_opt:
+      - no-new-privileges:true                               # Prevent privilege escalation
+
+    # ── Resource limits ─────────────────────────────────────────────────────
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: '0.50'
+
+networks:
+  pragma-net:
+    driver: bridge

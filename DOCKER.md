@@ -12,8 +12,8 @@ EXAMPLE PROJECT STRUCTURE
  ├── server.js            
  ├── package.json
  ├── sessions/                              // only created once a workbench session has been created
-     ├── default.workbench                  // Default file for workbench    
-     └── <workbench-name>.workbench.enc     // encrypted workbenchfile for several workbenches
+     ├── pragma.workbench                   // unencrypted default workbench    
+     └── <pragma>.workbench.enc             // encrypted workbenchfile
  └── knowledge_base/                        // can be set to other folder using the KB_DIR env
       ├── attacks/
       │   ├── lfi.md
