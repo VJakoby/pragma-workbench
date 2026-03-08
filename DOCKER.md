@@ -1,7 +1,7 @@
 # 🚀 Docker Usage Workflow
 
-### Set enviroment variables
-Use default locations for the knowledge base or change the environemnt variables `docker-compose.yml` file.
+### Set environment variables
+Use default locations for the knowledge base or change the environment variables in the `docker-compose.yml` file.
 
 ```
 EXAMPLE PROJECT STRUCTURE
@@ -12,13 +12,13 @@ EXAMPLE PROJECT STRUCTURE
  ├── server.js            
  ├── package.json
  ├── sessions/                              // only created once a workbench session has been created
-     ├── default.workbench                  // Default file for workbench    
-     └── <workbench-name>.workbench.enc     // encrypted workbenchfile for several workbenches
- └── knowledge_base/                        // can be set to other folder using the KB_DIR env
+ │   ├── pragma.workbench                   // unencrypted default workbench    
+ │   └── pragma.workbench.enc               // encrypted workbench file
+ └── knowledge_base/                        // can be set to other folder using KB_DIR env
       ├── attacks/
       │   ├── lfi.md
       │   ├── sqli.md
-      │   └── ...                           // any .md file becomes a attack card
+      │   └── ...                           // any .md file becomes an attack card
       ├── methodologies/
       │   ├── active-directory.md
       │   ├── pivoting.md
@@ -30,9 +30,25 @@ EXAMPLE PROJECT STRUCTURE
           └── ...                           // any .md file becomes a service card
 ```
 
---- 
+---
 
-### 1. First time build (only when code changes)
+### 0. Before first run — create required directories
+
+Docker will create missing volume-mounted directories as root-owned if they don't exist, which causes permission errors. Create them manually first:
+
+```bash
+mkdir -p sessions knowledge_base/services knowledge_base/attacks knowledge_base/methodologies
+```
+
+If using ENGRAM integration, also create the shared network:
+```bash
+docker network create pragma-net
+```
+
+---
+
+### 1. First time build (only needed when code changes)
+
 ```bash
 docker compose up -d --build
 ```
@@ -43,30 +59,28 @@ docker compose up -d --build
 
 ```bash
 # Either
-docker start pragma
+docker start pragma-workbench
 # Or
-docker compose up
+docker compose up -d
+```
 
-# You can now access it on https://localhost:3000
+You can now access it on http://localhost:3000
+
+---
+
+### 3. Stop container
+
+```bash
+# Either
+docker stop pragma-workbench
+# Or
+docker compose down
 ```
 
 ---
 
-### 3. Start the webserver
-```bash
-docker start pragma
-# ---- OR ----
-docker compose up
-```
+### 4. View logs
 
-### Stop existing container
 ```bash
-docker stop pragma
-```
-
----
-
-### View logs
-```bash
-docker logs -f pragma
+docker logs -f pragma-workbench
 ```

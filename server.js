@@ -37,7 +37,7 @@ const NOTES_DIR     = path.join(__dirname, 'sessions');
 const SESSIONS_DIR  = path.join(__dirname, 'sessions');
 
 // ── Active workbench — defaults to "default", switchable at runtime ──
-let activeWorkbenchName = 'default';
+let activeWorkbenchName = 'pragma';
 function workbenchFile()    { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench`); }
 function workbenchEncFile() { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench.enc`); }
 
@@ -441,6 +441,18 @@ app.get('/api/search-ping', async (req, res) => {
   }
 });
 
+// Proxy ENGRAM's source list so the client can build source filter chips
+app.get('/api/search-sources', async (req, res) => {
+  try {
+    const r = await fetch(`${SEARCH_URL}/api/sources`, { signal: AbortSignal.timeout(3000) });
+    const d = await r.json();
+    res.json(d);
+  } catch (err) {
+    res.json({ sources: [], total: 0, offline: true, error: err.message });
+  }
+});
+
+
 // ── Content proxy — delegates local file preview to ENGRAM ──
 // ENGRAM knows where its files live (it indexed them). PRAGMA just proxies
 // the request to ENGRAM's /api/preview?file=<path>, which validates the path
@@ -702,8 +714,10 @@ app.post('/api/notes/export', (req, res) => {
       (include_unassigned && (!n.session_id || !sessions[n.session_id]))
     );
 
-    if (!sessionNotes.length)
-      return res.json({ ok: true, path: outDir, files: [], message: 'No notes in this session.' });
+    const allServices = session.services || [];
+    const allPaths    = session.paths    || [];
+    if (!sessionNotes.length && !allServices.length && !allPaths.length)
+      return res.json({ ok: true, path: outDir, files: [], message: 'Nothing to export in this session.' });
 
     const written    = [];
     const byTarget   = {};
@@ -720,29 +734,56 @@ app.post('/api/notes/export', (req, res) => {
 
     // ── Per-target directories ──
     targets.forEach(tgt => {
-      const tNotes = byTarget[tgt.id];
-      if (!tNotes || !tNotes.length) return;
+      const tNotes = byTarget[tgt.id] || [];
+      const tgtServices = (session.services || []).filter(s => s.target_id === tgt.id);
+      const tgtPaths    = (session.paths    || []).filter(p => p.target_id === tgt.id);
+      if (!tNotes.length && !tgtServices.length && !tgtPaths.length) return;
 
       const dirName = slugify(tgt.ip || tgt.domain || tgt.label || tgt.id);
       const tgtDir  = path.join(outDir, dirName);
       fs.mkdirSync(tgtDir, { recursive: true });
 
       const label = [tgt.ip, tgt.domain, tgt.label].filter(Boolean).join(' · ');
+      tgtServices.sort((a, b) => (parseInt(a.port)||0) - (parseInt(b.port)||0));
+      tgtPaths.sort((a, b) => a.path < b.path ? -1 : 1);
 
       // Target README
-      const tReadme = [
+      const tReadmeParts = [
         `# ${label}`,
         '',
         `**Session:** ${session.codename}`,
         `**Notes:** ${tNotes.length}`,
         `**Exported:** ${new Date().toISOString().replace('T',' ').slice(0,19)}`,
         '',
-        '## Notes',
-        '',
-        ...tNotes
-          .sort((a, b) => (a.created || 0) - (b.created || 0))
-          .map(n => `- [${n.title || noteFilename(n).replace('.md','')}](./${noteFilename(n)}) — \`${n.type}\``),
-      ].join('\n');
+      ];
+
+      if (tgtServices.length) {
+        tReadmeParts.push('## Open Ports', '');
+        tReadmeParts.push('| Port | Service | Version | Notes |');
+        tReadmeParts.push('|------|---------|---------|-------|');
+        tgtServices.forEach(s => {
+          const port = s.proto && s.proto !== 'tcp' ? `${s.port}/${s.proto}` : s.port;
+          tReadmeParts.push(`| ${port} | ${s.service||''} | ${s.version||''} | ${s.notes||''} |`);
+        });
+        tReadmeParts.push('');
+      }
+
+      if (tgtPaths.length) {
+        tReadmeParts.push('## Paths', '');
+        tReadmeParts.push('| Status | Path | Notes |');
+        tReadmeParts.push('|--------|------|-------|');
+        tgtPaths.forEach(p => {
+          tReadmeParts.push(`| ${p.status||''} | ${p.path} | ${p.notes||''} |`);
+        });
+        tReadmeParts.push('');
+      }
+
+      tReadmeParts.push('## Notes', '');
+      tReadmeParts.push(...tNotes
+        .sort((a, b) => (a.created || 0) - (b.created || 0))
+        .map(n => `- [${n.title || noteFilename(n).replace('.md','')}](./${noteFilename(n)}) — \`${n.type}\``));
+
+      const tReadme = tReadmeParts.join('\n');
       fs.writeFileSync(path.join(tgtDir, 'README.md'), tReadme, 'utf8');
       written.push(`${dirName}/README.md`);
 
