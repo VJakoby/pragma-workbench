@@ -33,7 +33,7 @@ services:
         limits:
           memory: 512m
           cpus: '0.50'
-
 networks:
   pragma-net:
     driver: bridge
+    name: pragma-net
