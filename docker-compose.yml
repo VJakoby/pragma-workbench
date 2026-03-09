@@ -16,7 +16,7 @@ services:
       - SEARCH_URL=http://engram:3002                        # ENGRAM internal network hostname
     restart: unless-stopped
     networks:
-      pragma-net:
+      - pragma-net
 
     # ── Security hardening ──────────────────────────────────────────────────
     read_only: true                                          # Root filesystem is read-only
@@ -33,6 +33,7 @@ services:
         limits:
           memory: 512m
           cpus: '0.50'
+
 networks:
   pragma-net:
     driver: bridge
