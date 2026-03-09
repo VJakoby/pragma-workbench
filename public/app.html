@@ -2032,8 +2032,8 @@ body.enc-active-body .topbar {
 .timeline-list::-webkit-scrollbar { width: 3px; }
 .timeline-list::-webkit-scrollbar-thumb { background: var(--border2); }
 .timeline-list::before {
-  content: ''; position: absolute; left: 14px; top: 0; bottom: 0;
-  width: 2px; background: var(--border); border-radius: 1px;
+  content: ''; position: absolute; left: 18px; top: 0; bottom: 0;
+  width: 2px; background: rgba(124,58,237,0.35); border-radius: 1px;
 }
 .timeline-day-group { margin-bottom: 4px; }
 .timeline-day-label {
@@ -2042,7 +2042,7 @@ body.enc-active-body .topbar {
   padding: 6px 10px 4px 2px; display: flex; align-items: center; gap: 6px; position: relative;
 }
 .timeline-day-label::before {
-  content: ''; position: absolute; left: -18px; top: 50%; transform: translateY(-50%);
+  content: ''; position: absolute; left: -13px; top: 50%; transform: translateY(-50%);
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--border2); border: 2px solid var(--bg2); z-index: 1;
 }
@@ -2054,7 +2054,7 @@ body.enc-active-body .topbar {
 .timeline-entry:hover { background: rgba(124,58,237,0.1); }
 .timeline-entry.tl-active { background: rgba(124,58,237,0.15); }
 .timeline-entry::before {
-  content: ''; position: absolute; left: -17px; top: 11px;
+  content: ''; position: absolute; left: -12px; top: 11px;
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--border2); border: 1.5px solid var(--bg2);
   transition: background 0.12s; z-index: 1;
@@ -2085,7 +2085,7 @@ body.enc-active-body .topbar {
   position: relative; margin-bottom: 2px; transition: background 0.1s;
 }
 .tl-event::before {
-  content: ''; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
+  content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--border2); border: 1.5px solid var(--bg2); z-index: 1;
 }

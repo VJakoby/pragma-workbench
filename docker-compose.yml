@@ -1,3 +1,4 @@
+name: pragma-workbench
 services:
   app:
     build: .
