@@ -64,6 +64,36 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 ---
 
+## 🔐 Security
+
+PRAGMA is a **single-operator, local-first tool** designed to run in a controlled environment — ideally a dedicated pentest VM. It has no authentication layer, no multi-user access control, and no network hardening beyond what the host OS provides. The security model assumes the operator controls the machine it runs on.
+
+### Encryption
+
+- Workbench encryption uses **AES-256-GCM** with **PBKDF2-SHA-512** key derivation at 600,000 iterations
+- Encryption and decryption happen **entirely in the browser** — the password never touches disk, localStorage, server memory, or the network
+- The server stores only the ciphertext blob and refuses plaintext writes while an encrypted workbench is active
+- Disabling encryption requires supplying the decrypted payload to the server — a bare unauthenticated request is rejected, preventing accidental or console-based erasure of the workbench file
+- If the password prompt is cancelled or decryption fails on load, the application halts and renders a locked screen — no data is written and no UI is exposed
+
+### Deployment recommendations
+
+- **Run on localhost only** — PRAGMA binds to `127.0.0.1:3000` by default. Do not expose it on a LAN, VPN, or any network interface accessible to others. Your session notes, targets, and KB content are sensitive operational data
+- **Use a dedicated pentest VM** — the recommended setup is a VM used exclusively for pentesting, with PRAGMA running locally inside it. This isolates your notes from your host OS and limits exposure if the VM is compromised
+- **Do not run as root** — the Docker setup drops all capabilities and runs as a non-root user. If running with Node.js directly, use a standard user account
+- **Encrypt your workbench** — if your notes contain credentials, findings, or client-sensitive data, enable workbench encryption. The workbench file is portable and encrypted at rest, so even if the file is copied off the machine it cannot be read without the password
+- **Back up your workbench file** — the encrypted `.workbench.enc` file is the single source of truth for your data. Back it up regularly. There is no password recovery
+
+### What encryption does NOT protect against
+
+- An attacker with active access to the running browser session (the plaintext is in memory while unlocked)
+- Keyloggers or screen capture on the host machine
+- A compromised VM where the attacker can observe the browser process
+
+These are outside the threat model for a local single-operator tool. If your VM is compromised during an engagement, your notes are the least of your concerns.
+
+---
+
 ## 🎯 Target Injection Reference
 
 When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and Tactical Guides with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
