@@ -3118,7 +3118,26 @@ async function init() {
   initTarget();
   initSyntaxThemePicker();
   applyNotePreviewState();
-  initNotes();
+  try {
+    await initNotes();
+  } catch (err) {
+    // Password cancelled or decryption failed — show locked screen, do NOT continue
+    // to avoid saveNotes() being called with empty state and overwriting the workbench
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  height:100vh;background:#0f0f13;color:#e2e8f0;font-family:'Inter',sans-serif;gap:16px">
+        <div style="font-size:48px">🔒</div>
+        <div style="font-size:18px;font-weight:700">Workspace Locked</div>
+        <div style="font-size:13px;color:#94a3b8;max-width:320px;text-align:center">
+          ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workspace.')}</div>
+        <button onclick="location.reload()"
+          style="margin-top:8px;padding:8px 24px;background:#7c3aed;border:none;border-radius:8px;
+                 color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔓 Try Again
+        </button>
+      </div>`;
+    return;
+  }
 
   // Fetch services
   try {
@@ -3945,6 +3964,7 @@ let activeTargetFilter = null; // target id or null
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
+let workbenchUnlocked        = true; // set false if encrypted but not yet decrypted
 
 // Tab handling is native in CodeMirror 6
 
@@ -3965,6 +3985,14 @@ function updateEncryptedStorageUI() {
 
 async function toggleEncryptedStorage(e) {
   try { e?.stopPropagation?.(); } catch(_) {}
+
+  // If encryption is enabled but no password is in memory, the workbench is locked —
+  // disabling encryption here would overwrite the encrypted file with empty state
+  if (encryptedStorageEnabled && !encryptedStoragePassword) {
+    showToast('⚠ Workspace is locked — unlock it first before changing encryption settings');
+    return;
+  }
+
   if (!encryptedStorageEnabled) {
     let pw1;
     try {
@@ -3991,7 +4019,13 @@ async function toggleEncryptedStorage(e) {
     encryptedStorageEnabled  = false;
     encryptedStoragePassword = null;
     updateEncryptedStorageUI();
-    try { await fetch('/api/notes/storage/disable-encrypted', { method: 'POST' }); } catch(_) {}
+    try {
+      await fetch('/api/notes/storage/disable-encrypted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessions, notes }),
+      });
+    } catch(_) {}
     saveNotes();
   }
 }
@@ -4016,7 +4050,7 @@ async function initNotes() {
           label: 'Password', placeholder: 'Enter password…',
           submitLabel: '🔓 Unlock',
         });
-      } catch { throw new Error('Password required to unlock encrypted workspace'); }
+      } catch { throw new Error('cancelled'); }
       // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
       // localStorage branch (which would prompt for the password a second time).
       let plain;
@@ -4044,7 +4078,7 @@ async function initNotes() {
   } catch (outerErr) {
     // Only use localStorage fallback for genuine fetch/network failures,
     // not for password/decryption errors (those should bubble up as-is).
-    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect'))) {
+    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect') || outerErr.message.includes('cancelled'))) {
       throw outerErr;
     }
     try {
@@ -4081,7 +4115,12 @@ async function initNotes() {
         notes    = cached.notes    || {};
         sessions = cached.sessions || {};
       }
-    } catch { notes = {}; sessions = {}; }
+    } catch (innerErr) {
+      if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
+        throw innerErr;
+      }
+      notes = {}; sessions = {};
+    }
   }
   // Restore last active session
   const savedSid = localStorage.getItem('ops-active-session');

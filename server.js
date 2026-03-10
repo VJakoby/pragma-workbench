@@ -605,7 +605,21 @@ app.post('/api/notes/save-encrypted', (req, res) => {
 
 app.post('/api/notes/storage/disable-encrypted', (req, res) => {
   try {
-    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) { } }
+    // Require the caller to supply the decrypted plaintext payload.
+    // This proves they actually hold the password — we won't delete the enc file
+    // based on a bare unauthenticated POST (e.g. from a JS console call).
+    const { sessions, notes } = req.body || {};
+    if (sessions === undefined || notes === undefined)
+      return res.status(403).json({ error: 'Decrypted payload required to disable encryption.' });
+
+    // Validate payload is sane before touching disk
+    if (typeof sessions !== 'object' || typeof notes !== 'object')
+      return res.status(400).json({ error: 'Invalid payload structure.' });
+
+    // Write plaintext file first, then remove enc file — never leave both or neither
+    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
+    if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

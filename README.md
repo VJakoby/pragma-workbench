@@ -26,7 +26,10 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
   <a href="./screenshots/pragma-session-notes.png" target="_blank"><img src="./screenshots/pragma-session-notes.png" width="24%"></a>
   <a href="./screenshots/pragma-sessions.png" target="_blank"><img src="./screenshots/pragma-sessions.png" width="24%"></a>
   <a href="./screenshots/pragma-kb.png" target="_blank"><img src="./screenshots/pragma-kb.png" width="24%"></a>
+</p>
+<p align="left">
   <a href="./screenshots/pragma-encrypted-workbench.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
+  <a href="./screenshots/pragma-workbench-locked.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
 </p>
 
 ## 🏷️ Features
