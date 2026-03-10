@@ -21,6 +21,17 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in docker-network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 📸 Screenshots
+<p align="left">
+  <a href="./screenshots/pragma-session-notes.png" target="_blank"><img src="./screenshots/pragma-session-notes.png" width="24%"></a>
+  <a href="./screenshots/pragma-sessions.png" target="_blank"><img src="./screenshots/pragma-sessions.png" width="24%"></a>
+  <a href="./screenshots/pragma-kb.png" target="_blank"><img src="./screenshots/pragma-kb.png" width="24%"></a>
+</p>
+<p align="left">
+  <a href="./screenshots/pragma-encrypted-workbench.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
+  <a href="./screenshots/pragma-workbench-locked.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
+</p>
+
 ## 🏷️ Features
 
 **Sessions & Targets**
@@ -51,6 +62,69 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
 - Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
 
+---
+
+## 🔐 Security
+
+PRAGMA is a **single-operator, local-first tool** designed to run in a controlled environment — ideally a dedicated pentest VM. It has no authentication layer, no multi-user access control, and no network hardening beyond what the host OS provides. The security model assumes the operator controls the machine it runs on.
+
+### Encryption
+
+- Workbench encryption uses **AES-256-GCM** with **PBKDF2-SHA-512** key derivation at 600,000 iterations
+- Encryption and decryption happen **entirely in the browser** — the password never touches disk, localStorage, server memory, or the network
+- The server stores only the ciphertext blob and refuses plaintext writes while an encrypted workbench is active
+- Disabling encryption requires supplying the decrypted payload to the server — a bare unauthenticated request is rejected, preventing accidental or console-based erasure of the workbench file
+- If the password prompt is cancelled or decryption fails on load, the application halts and renders a locked screen — no data is written and no UI is exposed
+
+### Deployment recommendations
+
+- **Run on localhost only** — PRAGMA binds to `127.0.0.1:3000` by default. Do not expose it on a LAN, VPN, or any network interface accessible to others. Your session notes, targets, and KB content are sensitive operational data
+- **Use a dedicated pentest VM** — the recommended setup is a VM used exclusively for pentesting, with PRAGMA running locally inside it. This isolates your notes from your host OS and limits exposure if the VM is compromised
+- **Do not run as root** — the Docker setup drops all capabilities and runs as a non-root user. If running with Node.js directly, use a standard user account
+- **Encrypt your workbench** — if your notes contain credentials, findings, or client-sensitive data, enable workbench encryption. The workbench file is portable and encrypted at rest, so even if the file is copied off the machine it cannot be read without the password
+- **Back up your workbench file** — the encrypted `.workbench.enc` file is the single source of truth for your data. Back it up regularly. There is no password recovery
+
+### What encryption does NOT protect against
+
+- An attacker with active access to the running browser session (the plaintext is in memory while unlocked)
+- Keyloggers or screen capture on the host machine
+- A compromised VM where the attacker can observe the browser process
+
+These are outside the threat model for a local single-operator tool. If your VM is compromised during an engagement, your notes are the least of your concerns.
+
+---
+
+## 🎯 Target Injection Reference
+
+When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and Tactical Guides with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
+
+Write your KB docs using any of the supported placeholder styles below.
+
+### IP / Host → Active Target IP
+
+| Style | Supported placeholders |
+|---|---|
+| Angle brackets | `<IP>` `<ip>` `<TARGET>` `<TARGET_IP>` `<target_ip>` `<RHOST>` `<rhost>` `<HOST>` `<host>` `<MACHINE_IP>` |
+| Shell variables | `$IP` `$RHOST` `$TARGET` `$TARGET_IP` `$HOST` |
+| Curly braces | `{IP}` `{ip}` `{RHOST}` `{rhost}` `{TARGET}` `{HOST}` `{host}` |
+| Double curly | `{{ip}}` `{{IP}}` `{{target}}` `{{rhost}}` `{{host}}` `{{HOST}}` |
+| Bare words | `TARGET_IP` `TARGET_IP_ADDRESS` `RHOST` `TARGET` `MACHINE_IP` |
+| HTB-style literals | `10.10.10.X` `10.10.X.X` |
+| Backtick-scoped only | \`IP\` \`HOST\` — injected **only inside inline code**, not in plain prose |
+
+### Domain / FQDN → Active Target Domain
+
+| Style | Supported placeholders |
+|---|---|
+| Angle brackets | `<DOMAIN>` `<domain>` `<TARGET_DOMAIN>` `<FQDN>` `<fqdn>` `<DC>` `<dc>` `<WORKGROUP>` |
+| Shell variables | `$DOMAIN` `$FQDN` `$DC` |
+| Curly braces | `{DOMAIN}` `{domain}` `{FQDN}` |
+| Double curly | `{{domain}}` |
+| Bare words | `TARGET_DOMAIN` `DOMAIN` `WORKGROUP` |
+
+> **Note on bare `IP` and `HOST`:** These are common English words, so global replacement would cause false positives in prose. PRAGMA only injects them when wrapped in backticks — e.g. `` `nmap -sV IP` `` or `` `curl HOST/api` `` — leaving sentences like *"Enter the target IP"* untouched.
+
+---
 
 ## 🛠️ Requirements
 
@@ -59,7 +133,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
     - docker & docker-compose
     - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
 
-When running both services in Docker, they communicate over a shared internal network. See [DOCKER.md](./DOCKER.md) for setup.
+See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run both PRAGMA and ENGRAM together over a shared Docker network.
 
 ## 🚀 Quick Start
 

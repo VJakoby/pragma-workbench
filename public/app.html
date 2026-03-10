@@ -37,7 +37,7 @@
       // stash fenced code blocks to protect them from all further processing
       const stash = [];
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
-        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/\n$/,''))}</code></pre>`;
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/,''))}</code></pre>`;
         stash.push(html);
         return `\x00STASH${stash.length-1}\x00`;
       });
@@ -1266,19 +1266,20 @@ body.is-resizing *{cursor:col-resize!important}
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
-  word-break: break-word;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: 'Inter', sans-serif;
 }
 .session-active-target {
-  font-size: 12px; color: var(--text2);
-  font-family: 'Inter', sans-serif;
-  word-break: break-word;
+  font-size: 11px; color: var(--text2);
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
 
 /* Encrypted session button */
 .session-encrypt-row {
   padding: 4px 14px 10px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .session-encrypt-btn {
   width: 100%;
@@ -1288,11 +1289,12 @@ body.is-resizing *{cursor:col-resize!important}
   border-radius: 6px;
   padding: 7px 12px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
   text-align: center;
 }
 .session-encrypt-btn:hover {
@@ -1301,21 +1303,24 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--bg4);
 }
 .session-encrypt-btn.on {
-  border-color: rgba(52,211,153,0.35);
+  border-color: rgba(52,211,153,0.5);
   color: var(--green);
-  background: rgba(52,211,153,0.07);
+  background: rgba(52,211,153,0.1);
+  box-shadow: 0 0 8px rgba(52,211,153,0.12);
 }
 .session-encrypt-btn.on:hover {
-  background: rgba(52,211,153,0.12);
-  border-color: rgba(52,211,153,0.5);
+  background: rgba(52,211,153,0.16);
+  border-color: rgba(52,211,153,0.7);
 }
 .session-encrypt-btn.locked {
-  border-color: rgba(248,113,113,0.3);
+  border-color: rgba(248,113,113,0.5);
   color: var(--red);
-  background: rgba(248,113,113,0.06);
+  background: rgba(248,113,113,0.1);
+  box-shadow: 0 0 8px rgba(248,113,113,0.1);
 }
 .session-encrypt-btn.locked:hover {
-  background: rgba(248,113,113,0.12);
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.7);
 }
 
 /* Session modal */
@@ -1364,10 +1369,13 @@ body.is-resizing *{cursor:col-resize!important}
   font-family: 'IBM Plex Mono', monospace; font-size: 13px;
   font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.session-list-item-meta {
+  font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .session-list-item-bottom {
   display: flex; align-items: center; gap: 6px;
 }
-.session-list-item-meta { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; flex: 1; }
 .session-item-actions {
   display: flex; align-items: center; gap: 4px; flex-shrink: 0;
 }
@@ -1924,7 +1932,7 @@ body.enc-active-body .topbar {
 .svc-tab-count {
   display: inline-block; background: var(--bg); border-radius: 8px;
   font-size: 9px; font-weight: 700; padding: 1px 5px; margin-left: 4px;
-  color: var(--muted); vertical-align: middle;
+  color: var(--text2); vertical-align: middle;
 }
 .svc-tab.active .svc-tab-count { background: rgba(124,58,237,0.2); color: var(--accent); }
 .svc-popover-body { padding: 12px 14px; }
@@ -2178,6 +2186,7 @@ body.enc-active-body .topbar {
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
           <span class="svc-popover-title">⚡ Recon Log</span>
+          <span id="svcSessionLabel" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
@@ -2283,7 +2292,8 @@ body.enc-active-body .topbar {
           <span class="session-active-arrow">›</span>
         </div>
         <div class="session-encrypt-row">
-          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Session</button>
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Workbench</button>
+          <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none">⬇ Backup</button>
         </div>
       </div>
       <div class="sidebar-divider"></div>
@@ -2610,16 +2620,6 @@ body.enc-active-body .topbar {
         <label>New session codename</label>
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
       </div>
-      <div style="display:flex;gap:8px">
-        <div class="session-field" style="flex:1">
-          <label>Target IP</label>
-          <input id="newSessionIP" type="text" placeholder="10.10.10.x" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
-        </div>
-        <div class="session-field" style="flex:1">
-          <label>Domain</label>
-          <input id="newSessionDomain" type="text" placeholder="corp.local" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
-        </div>
-      </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">＋ Create Session</button>
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">⬆ Import .session</button>
@@ -2881,6 +2881,7 @@ function renderTargetsList() {
       <div class="target-item-ip">${esc(t.ip || '—')}</div>
       <div class="target-item-domain">${esc(t.domain || '')}</div>
       ${t.label ? `<span class="target-item-label">${esc(t.label)}</span>` : ''}
+      <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label" style="margin-left:auto">✎</button>
       <button class="target-item-del" onclick="event.stopPropagation();deleteTarget('${t.id}')" title="Remove">✕</button>
     </div>`).join('');
 }
@@ -2938,6 +2939,20 @@ function deleteTarget(id) {
   refreshCodeBlocks();
 }
 
+function renameTarget(id) {
+  if (!activeSessionId) return;
+  const sess = sessions[activeSessionId];
+  const t = (sess.targets || []).find(t => t.id === id);
+  if (!t) return;
+  const newLabel = prompt('Target label:', t.label || '');
+  if (newLabel === null) return; // cancelled
+  t.label = newLabel.trim();
+  saveNotes();
+  renderTargetsList();
+  updateTargetSelector();
+  renderSessionSidebar();
+}
+
 // ═══════════════════════════════════════════════
 // IP INJECTION into rendered HTML code blocks
 // ═══════════════════════════════════════════════
@@ -2955,9 +2970,11 @@ function injectTargets(rawHtml) {
     // Shell variable style
     /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
     /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
+    /\$HOST\b/g,
     // Curly brace template style
     /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
     /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
+    /\{HOST\}/g,  /\{host\}/g,  /\{\{host\}\}/g,  /\{\{HOST\}\}/g,
     // HackTricks-specific
     /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
     // Literal placeholder text in code blocks
@@ -2976,6 +2993,14 @@ function injectTargets(rawHtml) {
   let out = rawHtml;
   for (const p of ipPatterns)     out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
+
+  // Bare "IP" and "HOST" only inside <code> tags (backtick-rendered) — avoids false positives in prose
+  out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
+    const replaced = inner.replace(/\bIP\b/g, span(ip))
+                          .replace(/\bHOST\b/g, span(ip));
+    return open + replaced + close;
+  });
+
   return out;
 }
 
@@ -3099,7 +3124,26 @@ async function init() {
   initTarget();
   initSyntaxThemePicker();
   applyNotePreviewState();
-  initNotes();
+  try {
+    await initNotes();
+  } catch (err) {
+    // Password cancelled or decryption failed — show locked screen, do NOT continue
+    // to avoid saveNotes() being called with empty state and overwriting the workbench
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  height:100vh;background:#0f0f13;color:#e2e8f0;font-family:'Inter',sans-serif;gap:16px">
+        <div style="font-size:48px">🔒</div>
+        <div style="font-size:18px;font-weight:700">Workspace Locked</div>
+        <div style="font-size:13px;color:#94a3b8;max-width:320px;text-align:center">
+          ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workspace.')}</div>
+        <button onclick="location.reload()"
+          style="margin-top:8px;padding:8px 24px;background:#7c3aed;border:none;border-radius:8px;
+                 color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔓 Try Again
+        </button>
+      </div>`;
+    return;
+  }
 
   // Fetch services
   try {
@@ -3926,12 +3970,15 @@ let activeTargetFilter = null; // target id or null
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
+let encryptedStorageHint     = '';   // plain-text hint, stored in blob, not secret
+let workbenchUnlocked        = true; // set false if encrypted but not yet decrypted
 
 // Tab handling is native in CodeMirror 6
 
 function updateEncryptedStorageUI() {
-  const btn     = document.getElementById('encStorageBtn');
-  const sidebar = document.querySelector('.sidebar');
+  const btn      = document.getElementById('encStorageBtn');
+  const dlBtn    = document.getElementById('encDownloadBtn');
+  const sidebar  = document.querySelector('.sidebar');
   if (!btn) return;
   const locked = encryptedStorageEnabled && !encryptedStoragePassword;
   const active = encryptedStorageEnabled && !locked;
@@ -3939,31 +3986,51 @@ function updateEncryptedStorageUI() {
   btn.classList.toggle('locked', locked);
   if (sidebar) sidebar.classList.toggle('enc-active', active);
   document.body.classList.toggle('enc-active-body', active);
-  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Session';
-  else if (locked)               btn.textContent = '🔒 Encrypted Session (locked)';
-  else                           btn.textContent = '🔒 Encrypted Session (on)';
+  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Workbench';
+  else if (locked)               btn.textContent = '🔒 Encrypted Workbench';
+  else                           btn.textContent = '🔒 Encrypted Workbench';
+  if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
+}
+
+function downloadWorkbench() {
+  const a = document.createElement('a');
+  a.href = '/api/notes/download';
+  a.download = 'pragma.workbench.enc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 async function toggleEncryptedStorage(e) {
   try { e?.stopPropagation?.(); } catch(_) {}
+
+  // If encryption is enabled but no password is in memory, the workbench is locked —
+  // disabling encryption here would overwrite the encrypted file with empty state
+  if (encryptedStorageEnabled && !encryptedStoragePassword) {
+    showToast('⚠ Workspace is locked — unlock it first before changing encryption settings');
+    return;
+  }
+
   if (!encryptedStorageEnabled) {
     let pw1;
     try {
       pw1 = await showPasswordPrompt({
-        icon: '🔒', title: 'Enable Encrypted Session',
+        icon: '🔒', title: 'Enable Encrypted Workbench',
         description: 'All notes and session data will be encrypted with AES-256-GCM before being written to disk. <strong>If you lose this password, your data cannot be recovered.</strong>',
         label: 'Set Password', placeholder: 'Choose a strong password…',
         confirm: true, submitLabel: '🔒 Enable Encryption',
+        hint: true,
       });
     } catch { return; } // cancelled
     encryptedStorageEnabled  = true;
-    encryptedStoragePassword = pw1;
+    encryptedStoragePassword = pw1.password;
+    encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
     saveNotes();
   } else {
     try {
       await showConfirmDialog({
-        icon: '🔓', title: 'Disable Encrypted Session',
+        icon: '🔓', title: 'Disable Encrypted Workbench',
         bigIcon: '🔓',
         description: 'Encryption will be disabled. Your notes will be stored as <strong>plaintext</strong> on disk from the next save onwards.',
         confirmLabel: 'Disable Encryption', danger: true,
@@ -3972,7 +4039,13 @@ async function toggleEncryptedStorage(e) {
     encryptedStorageEnabled  = false;
     encryptedStoragePassword = null;
     updateEncryptedStorageUI();
-    try { await fetch('/api/notes/storage/disable-encrypted', { method: 'POST' }); } catch(_) {}
+    try {
+      await fetch('/api/notes/storage/disable-encrypted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessions, notes }),
+      });
+    } catch(_) {}
     saveNotes();
   }
 }
@@ -3993,11 +4066,12 @@ async function initNotes() {
       try {
         pw = await showPasswordPrompt({
           icon: '🔒', title: 'Workspace Locked',
-          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.',
+          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.'
+            + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
           label: 'Password', placeholder: 'Enter password…',
           submitLabel: '🔓 Unlock',
         });
-      } catch { throw new Error('Password required to unlock encrypted workspace'); }
+      } catch { throw new Error('cancelled'); }
       // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
       // localStorage branch (which would prompt for the password a second time).
       let plain;
@@ -4007,6 +4081,7 @@ async function initNotes() {
         throw new Error('Incorrect password — decryption failed');
       }
       encryptedStoragePassword = pw;
+      encryptedStorageHint     = encObj.hint || '';
       updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
       notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
@@ -4025,7 +4100,7 @@ async function initNotes() {
   } catch (outerErr) {
     // Only use localStorage fallback for genuine fetch/network failures,
     // not for password/decryption errors (those should bubble up as-is).
-    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect'))) {
+    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect') || outerErr.message.includes('cancelled'))) {
       throw outerErr;
     }
     try {
@@ -4051,6 +4126,7 @@ async function initNotes() {
             throw new Error('Incorrect password — decryption failed');
           }
           encryptedStoragePassword = pw;
+          encryptedStorageHint     = encObj.hint || '';
           updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
           notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
@@ -4062,7 +4138,12 @@ async function initNotes() {
         notes    = cached.notes    || {};
         sessions = cached.sessions || {};
       }
-    } catch { notes = {}; sessions = {}; }
+    } catch (innerErr) {
+      if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
+        throw innerErr;
+      }
+      notes = {}; sessions = {};
+    }
   }
   // Restore last active session
   const savedSid = localStorage.getItem('ops-active-session');
@@ -4105,6 +4186,7 @@ function saveNotes() {
       try {
         if (!encryptedStoragePassword) return; // guard: no password in memory, skip silently
         const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+        if (encryptedStorageHint) blob.hint = encryptedStorageHint;
         // Cache encrypted blob in localStorage (no plaintext ever stored)
         localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
         localStorage.removeItem('ops-notes-v2'); // ensure no stale plaintext
@@ -4139,20 +4221,22 @@ function renderSessionSidebar() {
     dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent   = sess.codename;
     const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
-    target.textContent = activeTgt
-      ? [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set'
-      : 'no target set';
+    if (activeTgt) {
+      target.textContent = [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set';
+    } else {
+      target.textContent = '—';
+    }
+    target.style.color = '';
   } else {
     dot.className = 'session-active-dot';
     name.textContent   = 'No session';
     target.textContent = '— click to set';
+    target.style.color = '';
   }
 }
 
 function openSessionModal() {
-  document.getElementById('newSessionName').value   = '';
-  document.getElementById('newSessionIP').value     = '';
-  document.getElementById('newSessionDomain').value = '';
+  document.getElementById('newSessionName').value = '';
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -4167,20 +4251,24 @@ function renderSessionList() {
     list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
     return;
   }
-  const noteCount = id => Object.values(notes).filter(n => n.session_id === id).length;
+  const noteCount   = id => Object.values(notes).filter(n => n.session_id === id).length;
+  const targetCount = id => (sessions[id]?.targets || []).length;
   const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
   list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
     entries.map(s => {
-      const status = s.status || 'active';
+      const status  = s.status || 'active';
+      const tCount  = targetCount(s.id);
+      const tLabel  = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-name">${esc(s.codename)}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
-        <div class="session-list-item-meta">${noteCount(s.id)} notes · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
         <div class="session-item-actions">
           <div class="session-status-pill ${status}" onclick="toggleStatusDropdown(event,'${s.id}')">
             <span class="status-dot ${status}"></span>${statusLabel[status]}
           </div>
+          <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">✎</button>
           <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
           <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown files">⬇ .md</button>
           <button class="session-item-export-btn" onclick="exportTimelineForSession('${s.id}')" title="Export timeline as markdown">⬇ timeline</button>
@@ -4191,32 +4279,21 @@ function renderSessionList() {
 }
 
 function createSession() {
-  const name   = document.getElementById('newSessionName').value.trim();
+  const name = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
-  const ip     = document.getElementById('newSessionIP').value.trim()     || null;
-  const domain = document.getElementById('newSessionDomain').value.trim() || null;
-  const id     = 'sess_' + Date.now();
-  const sess   = {
+  const id   = 'sess_' + Date.now();
+  const sess = {
     id,
-    codename:      name,
-    target_ip:     ip,
-    target_domain: domain,
-    created:       Date.now(),
-    targets:       [],
+    codename: name,
+    created:  Date.now(),
+    targets:  [],
   };
-  // Auto-populate targets list if IP or domain was provided
-  if (ip || domain) {
-    const tgtId = 'tgt_' + Date.now();
-    sess.targets.push({ id: tgtId, ip: ip || '', domain: domain || '', label: 'default' });
-  }
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);
   saveNotes();
   renderSessionList();
-  document.getElementById('newSessionName').value   = '';
-  document.getElementById('newSessionIP').value     = '';
-  document.getElementById('newSessionDomain').value = '';
+  document.getElementById('newSessionName').value = '';
 }
 
 let _statusDropdownTarget = null;
@@ -4304,6 +4381,7 @@ function switchSession(id) {
   renderNotesList();
   updateTargetSelector();
   refreshCodeBlocks();
+  updateSvcTabCounts();
 }
 
 async function deleteSession(id) {
@@ -4330,6 +4408,17 @@ async function deleteSession(id) {
   renderSessionSidebar();
   renderSessionList();
   renderNotesList();
+}
+
+function renameSession(id) {
+  const sess = sessions[id];
+  if (!sess) return;
+  const newName = prompt('Rename session:', sess.codename);
+  if (!newName || !newName.trim() || newName.trim() === sess.codename) return;
+  sess.codename = newName.trim();
+  saveNotes();
+  renderSessionList();
+  renderSessionSidebar();
 }
 
 function setNoteFilter(type, btn) {
@@ -5078,6 +5167,14 @@ function showPasswordPrompt(opts = {}) {
         <div class="pw-strength-bar" id="pwBar4"></div>
       </div>` : '';
 
+    const hintField = opts.hint ? `
+      <div class="pw-field" style="margin-top:4px">
+        <label style="color:var(--muted)">Password Hint <span style="font-weight:400;font-size:10px">(optional — stored in plain text)</span></label>
+        <input class="pw-input" id="pwHintInput" type="text"
+          placeholder="e.g. favourite phrase, year, symbol…"
+          autocomplete="off" style="font-size:12px">
+      </div>` : '';
+
     body.innerHTML = `
       ${opts.description ? `<div class="pw-description">${opts.description}</div>` : ''}
       <div class="pw-field">
@@ -5093,6 +5190,7 @@ function showPasswordPrompt(opts = {}) {
         ${strengthMeter}
       </div>
       ${confirmField}
+      ${hintField}
       <div class="pw-error-msg" id="pwError"></div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="pwCancel()">Cancel</button>
@@ -5169,8 +5267,9 @@ function _pwSubmit(requireConfirm) {
   }
 
   _closePwModal();
-  const pw = v1;
-  if (_pwResolve) _pwResolve(pw);
+  const pw   = v1;
+  const hint = document.getElementById('pwHintInput')?.value?.trim() || null;
+  if (_pwResolve) _pwResolve(hint !== null ? { password: pw, hint } : pw);
   _pwResolve = null; _pwReject = null;
 }
 
@@ -5293,7 +5392,7 @@ async function importSession(event) {
         let password;
         try {
           password = await showPasswordPrompt({
-            icon: '🔒', title: 'Encrypted Session',
+            icon: '🔒', title: 'Encrypted Workbench',
             description: 'This .session file is encrypted. Enter the password used when it was exported.',
             label: 'Password', placeholder: 'Enter password…',
             submitLabel: '🔓 Decrypt & Import',
@@ -6064,6 +6163,12 @@ function toggleSvcPopover() {
   } else {
     popover.classList.add('open');
     btn.classList.add('open');
+    // Show which session this log belongs to
+    const sessLabel = document.getElementById('svcSessionLabel');
+    if (sessLabel) {
+      const sess = activeSessionId && sessions[activeSessionId];
+      sessLabel.textContent = sess ? sess.codename : '';
+    }
     renderSvcLogTable();
     renderPathTable();
     updateSvcTabCounts();
