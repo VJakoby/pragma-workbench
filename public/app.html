@@ -37,7 +37,7 @@
       // stash fenced code blocks to protect them from all further processing
       const stash = [];
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
-        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/\n$/,''))}</code></pre>`;
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/,''))}</code></pre>`;
         stash.push(html);
         return `\x00STASH${stash.length-1}\x00`;
       });

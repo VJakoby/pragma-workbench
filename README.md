@@ -21,6 +21,14 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in docker-network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 📸 Screenshots
+<p align="left">
+  <a href="./screenshots/pragma-session-notes.png" target="_blank"><img src="./screenshots/pragma-session-notes.png" width="24%"></a>
+  <a href="./screenshots/pragma-sessions.png" target="_blank"><img src="./screenshots/pragma-sessions.png" width="24%"></a>
+  <a href="./screenshots/pragma-kb.png" target="_blank"><img src="./screenshots/pragma-kb.png" width="24%"></a>
+  <a href="./screenshots/pragma-encrypted-workbench.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
+</p>
+
 ## 🏷️ Features
 
 **Sessions & Targets**
