@@ -1279,6 +1279,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Encrypted session button */
 .session-encrypt-row {
   padding: 4px 14px 10px;
+  display: flex; flex-direction: column; gap: 6px;
 }
 .session-encrypt-btn {
   width: 100%;
@@ -1288,11 +1289,12 @@ body.is-resizing *{cursor:col-resize!important}
   border-radius: 6px;
   padding: 7px 12px;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
   text-align: center;
 }
 .session-encrypt-btn:hover {
@@ -1301,21 +1303,24 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--bg4);
 }
 .session-encrypt-btn.on {
-  border-color: rgba(52,211,153,0.35);
+  border-color: rgba(52,211,153,0.5);
   color: var(--green);
-  background: rgba(52,211,153,0.07);
+  background: rgba(52,211,153,0.1);
+  box-shadow: 0 0 8px rgba(52,211,153,0.12);
 }
 .session-encrypt-btn.on:hover {
-  background: rgba(52,211,153,0.12);
-  border-color: rgba(52,211,153,0.5);
+  background: rgba(52,211,153,0.16);
+  border-color: rgba(52,211,153,0.7);
 }
 .session-encrypt-btn.locked {
-  border-color: rgba(248,113,113,0.3);
+  border-color: rgba(248,113,113,0.5);
   color: var(--red);
-  background: rgba(248,113,113,0.06);
+  background: rgba(248,113,113,0.1);
+  box-shadow: 0 0 8px rgba(248,113,113,0.1);
 }
 .session-encrypt-btn.locked:hover {
-  background: rgba(248,113,113,0.12);
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.7);
 }
 
 /* Session modal */
@@ -2287,7 +2292,8 @@ body.enc-active-body .topbar {
           <span class="session-active-arrow">›</span>
         </div>
         <div class="session-encrypt-row">
-          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Session</button>
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Workbench</button>
+          <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none">⬇ Backup</button>
         </div>
       </div>
       <div class="sidebar-divider"></div>
@@ -3964,13 +3970,15 @@ let activeTargetFilter = null; // target id or null
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
+let encryptedStorageHint     = '';   // plain-text hint, stored in blob, not secret
 let workbenchUnlocked        = true; // set false if encrypted but not yet decrypted
 
 // Tab handling is native in CodeMirror 6
 
 function updateEncryptedStorageUI() {
-  const btn     = document.getElementById('encStorageBtn');
-  const sidebar = document.querySelector('.sidebar');
+  const btn      = document.getElementById('encStorageBtn');
+  const dlBtn    = document.getElementById('encDownloadBtn');
+  const sidebar  = document.querySelector('.sidebar');
   if (!btn) return;
   const locked = encryptedStorageEnabled && !encryptedStoragePassword;
   const active = encryptedStorageEnabled && !locked;
@@ -3978,9 +3986,19 @@ function updateEncryptedStorageUI() {
   btn.classList.toggle('locked', locked);
   if (sidebar) sidebar.classList.toggle('enc-active', active);
   document.body.classList.toggle('enc-active-body', active);
-  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Session';
-  else if (locked)               btn.textContent = '🔒 Encrypted Session (locked)';
-  else                           btn.textContent = '🔒 Encrypted Session (on)';
+  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Workbench';
+  else if (locked)               btn.textContent = '🔒 Encrypted Workbench';
+  else                           btn.textContent = '🔒 Encrypted Workbench';
+  if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
+}
+
+function downloadWorkbench() {
+  const a = document.createElement('a');
+  a.href = '/api/notes/download';
+  a.download = 'pragma.workbench.enc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 async function toggleEncryptedStorage(e) {
@@ -3997,20 +4015,22 @@ async function toggleEncryptedStorage(e) {
     let pw1;
     try {
       pw1 = await showPasswordPrompt({
-        icon: '🔒', title: 'Enable Encrypted Session',
+        icon: '🔒', title: 'Enable Encrypted Workbench',
         description: 'All notes and session data will be encrypted with AES-256-GCM before being written to disk. <strong>If you lose this password, your data cannot be recovered.</strong>',
         label: 'Set Password', placeholder: 'Choose a strong password…',
         confirm: true, submitLabel: '🔒 Enable Encryption',
+        hint: true,
       });
     } catch { return; } // cancelled
     encryptedStorageEnabled  = true;
-    encryptedStoragePassword = pw1;
+    encryptedStoragePassword = pw1.password;
+    encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
     saveNotes();
   } else {
     try {
       await showConfirmDialog({
-        icon: '🔓', title: 'Disable Encrypted Session',
+        icon: '🔓', title: 'Disable Encrypted Workbench',
         bigIcon: '🔓',
         description: 'Encryption will be disabled. Your notes will be stored as <strong>plaintext</strong> on disk from the next save onwards.',
         confirmLabel: 'Disable Encryption', danger: true,
@@ -4046,7 +4066,8 @@ async function initNotes() {
       try {
         pw = await showPasswordPrompt({
           icon: '🔒', title: 'Workspace Locked',
-          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.',
+          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.'
+            + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
           label: 'Password', placeholder: 'Enter password…',
           submitLabel: '🔓 Unlock',
         });
@@ -4060,6 +4081,7 @@ async function initNotes() {
         throw new Error('Incorrect password — decryption failed');
       }
       encryptedStoragePassword = pw;
+      encryptedStorageHint     = encObj.hint || '';
       updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
       notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
@@ -4104,6 +4126,7 @@ async function initNotes() {
             throw new Error('Incorrect password — decryption failed');
           }
           encryptedStoragePassword = pw;
+          encryptedStorageHint     = encObj.hint || '';
           updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
           notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
@@ -4163,6 +4186,7 @@ function saveNotes() {
       try {
         if (!encryptedStoragePassword) return; // guard: no password in memory, skip silently
         const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+        if (encryptedStorageHint) blob.hint = encryptedStorageHint;
         // Cache encrypted blob in localStorage (no plaintext ever stored)
         localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
         localStorage.removeItem('ops-notes-v2'); // ensure no stale plaintext
@@ -5143,6 +5167,14 @@ function showPasswordPrompt(opts = {}) {
         <div class="pw-strength-bar" id="pwBar4"></div>
       </div>` : '';
 
+    const hintField = opts.hint ? `
+      <div class="pw-field" style="margin-top:4px">
+        <label style="color:var(--muted)">Password Hint <span style="font-weight:400;font-size:10px">(optional — stored in plain text)</span></label>
+        <input class="pw-input" id="pwHintInput" type="text"
+          placeholder="e.g. favourite phrase, year, symbol…"
+          autocomplete="off" style="font-size:12px">
+      </div>` : '';
+
     body.innerHTML = `
       ${opts.description ? `<div class="pw-description">${opts.description}</div>` : ''}
       <div class="pw-field">
@@ -5158,6 +5190,7 @@ function showPasswordPrompt(opts = {}) {
         ${strengthMeter}
       </div>
       ${confirmField}
+      ${hintField}
       <div class="pw-error-msg" id="pwError"></div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="pwCancel()">Cancel</button>
@@ -5234,8 +5267,9 @@ function _pwSubmit(requireConfirm) {
   }
 
   _closePwModal();
-  const pw = v1;
-  if (_pwResolve) _pwResolve(pw);
+  const pw   = v1;
+  const hint = document.getElementById('pwHintInput')?.value?.trim() || null;
+  if (_pwResolve) _pwResolve(hint !== null ? { password: pw, hint } : pw);
   _pwResolve = null; _pwReject = null;
 }
 
@@ -5358,7 +5392,7 @@ async function importSession(event) {
         let password;
         try {
           password = await showPasswordPrompt({
-            icon: '🔒', title: 'Encrypted Session',
+            icon: '🔒', title: 'Encrypted Workbench',
             description: 'This .session file is encrypted. Enter the password used when it was exported.',
             label: 'Password', placeholder: 'Enter password…',
             submitLabel: '🔓 Decrypt & Import',

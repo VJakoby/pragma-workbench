@@ -591,6 +591,16 @@ app.get('/api/notes/encrypted', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get('/api/notes/download', (req, res) => {
+  try {
+    if (!fs.existsSync(NOTES_ENC_FILE)) return res.status(404).json({ error: 'No encrypted workbench file found' });
+    const filename = path.basename(NOTES_ENC_FILE);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.sendFile(path.resolve(NOTES_ENC_FILE));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/notes/save-encrypted', (req, res) => {
   try {
     const { blob } = req.body || {};
