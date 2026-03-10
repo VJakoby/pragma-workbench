@@ -2964,9 +2964,11 @@ function injectTargets(rawHtml) {
     // Shell variable style
     /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
     /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
+    /\$HOST\b/g,
     // Curly brace template style
     /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
     /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
+    /\{HOST\}/g,  /\{host\}/g,  /\{\{host\}\}/g,  /\{\{HOST\}\}/g,
     // HackTricks-specific
     /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
     // Literal placeholder text in code blocks
@@ -2985,6 +2987,14 @@ function injectTargets(rawHtml) {
   let out = rawHtml;
   for (const p of ipPatterns)     out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
+
+  // Bare "IP" and "HOST" only inside <code> tags (backtick-rendered) — avoids false positives in prose
+  out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
+    const replaced = inner.replace(/\bIP\b/g, span(ip))
+                          .replace(/\bHOST\b/g, span(ip));
+    return open + replaced + close;
+  });
+
   return out;
 }
 

@@ -51,6 +51,39 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
 - Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
 
+---
+
+## 🎯 Target Injection Reference
+
+When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and Tactical Guides with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
+
+Write your KB docs using any of the supported placeholder styles below.
+
+### IP / Host → Active Target IP
+
+| Style | Supported placeholders |
+|---|---|
+| Angle brackets | `<IP>` `<ip>` `<TARGET>` `<TARGET_IP>` `<target_ip>` `<RHOST>` `<rhost>` `<HOST>` `<host>` `<MACHINE_IP>` |
+| Shell variables | `$IP` `$RHOST` `$TARGET` `$TARGET_IP` `$HOST` |
+| Curly braces | `{IP}` `{ip}` `{RHOST}` `{rhost}` `{TARGET}` `{HOST}` `{host}` |
+| Double curly | `{{ip}}` `{{IP}}` `{{target}}` `{{rhost}}` `{{host}}` `{{HOST}}` |
+| Bare words | `TARGET_IP` `TARGET_IP_ADDRESS` `RHOST` `TARGET` `MACHINE_IP` |
+| HTB-style literals | `10.10.10.X` `10.10.X.X` |
+| Backtick-scoped only | \`IP\` \`HOST\` — injected **only inside inline code**, not in plain prose |
+
+### Domain / FQDN → Active Target Domain
+
+| Style | Supported placeholders |
+|---|---|
+| Angle brackets | `<DOMAIN>` `<domain>` `<TARGET_DOMAIN>` `<FQDN>` `<fqdn>` `<DC>` `<dc>` `<WORKGROUP>` |
+| Shell variables | `$DOMAIN` `$FQDN` `$DC` |
+| Curly braces | `{DOMAIN}` `{domain}` `{FQDN}` |
+| Double curly | `{{domain}}` |
+| Bare words | `TARGET_DOMAIN` `DOMAIN` `WORKGROUP` |
+
+> **Note on bare `IP` and `HOST`:** These are common English words, so global replacement would cause false positives in prose. PRAGMA only injects them when wrapped in backticks — e.g. `` `nmap -sV IP` `` or `` `curl HOST/api` `` — leaving sentences like *"Enter the target IP"* untouched.
+
+---
 
 ## 🛠️ Requirements
 
@@ -59,7 +92,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
     - docker & docker-compose
     - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
 
-When running both services in Docker, they communicate over a shared internal network. See [DOCKER.md](./DOCKER.md) for setup.
+See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run both PRAGMA and ENGRAM together over a shared Docker network.
 
 ## 🚀 Quick Start
 
