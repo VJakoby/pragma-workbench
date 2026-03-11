@@ -1,6 +1,9 @@
 # Notes
 sessions/*
 
+# Personal Knowledge-base dir or symlinks
+/knowledge_base
+
 # Workbenches
 *.workbench
 *.workbench.enc

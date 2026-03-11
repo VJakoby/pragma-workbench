@@ -2,20 +2,30 @@ name: pragma-workbench
 services:
   app:
     build: .
+
     container_name: pragma-workbench
+
     ports:
       - "127.0.0.1:3000:3000"                               # App only accessible from local machine
-    volumes:                                                 # Overwrite default paths in project dir
-      - ./knowledge_base:/usr/src/app/knowledge_base        # Must match KB_DIR
-      - ./notes:/usr/src/app/notes                          # Must match NOTES_DIR
-      - ./sessions:/usr/src/app/sessions                    # Must match SESSIONS_DIR
+
+    volumes:
+      # Format: [Host Path]:[Container Path]
+      - ./knowledge_base:/usr/src/app/knowledge_base         # Link local KB folder to the container's app path
+      - ./notes:/usr/src/app/notes                           # Persists your notes on your local drive
+      - ./sessions:/usr/src/app/sessions                     # Keeps session data alive even if the container is deleted
+  
     environment:
-      - KB_DIR=/usr/src/app/knowledge_base                  # Default; or pick custom location
-      - METH_DIR=/usr/src/app/knowledge_base/methodologies  # Default; or pick custom location
-      - NOTES_DIR=/usr/src/app/notes                        # Default; or pick custom location
-      - SESSIONS_DIR=/usr/src/app/sessions                  # Default; or pick custom location
-      - SEARCH_URL=http://engram:3002                        # ENGRAM internal network hostname
+      # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
+      - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
+      - METH_DIR=/usr/src/app/knowledge_base/methodologies   # Sub-folder specifically for methodology files
+      - NOTES_DIR=/usr/src/app/notes                         # Where the app will write/read markdown notes
+      - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
+      
+      # Networking
+      - SEARCH_URL=http://engram:3002                        # Points to the internal Docker service 'engram' on port 3002
+
     restart: unless-stopped
+
     networks:
       - pragma-net
 
