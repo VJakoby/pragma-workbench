@@ -18,7 +18,7 @@ services:
       # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - METH_DIR=/usr/src/app/knowledge_base/methodologies   # Sub-folder specifically for methodology files
-      - NOTES_DIR=/usr/src/app/notes                         # Where the app will write/read markdown notes
+      - NOTES_DIR=/usr/src/app/sessions                      # Where the app will write/read markdown notes
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
       
       # Networking
