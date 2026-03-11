@@ -33,8 +33,9 @@ const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR     = path.join(__dirname, 'sessions');
-const SESSIONS_DIR  = path.join(__dirname, 'sessions');
+const NOTES_DIR      = path.join(__dirname, 'sessions');
+const SESSIONS_DIR   = path.join(__dirname, 'sessions');
+const TEMPLATES_FILE = path.join(__dirname, 'notes-templates.json');
 
 // ── Active workbench — defaults to "default", switchable at runtime ──
 let activeWorkbenchName = 'pragma';
@@ -550,6 +551,21 @@ function loadNotesFile() {
     return { sessions: raw.sessions || {}, notes: raw.notes || {} };
   } catch { return { sessions: {}, notes: {} }; }
 }
+
+// ── Note templates ──────────────────────────────────────────────────────────
+app.get('/api/templates', async (req, res) => {
+  try {
+    const raw  = await fs.promises.readFile(TEMPLATES_FILE, 'utf-8');
+    const data = JSON.parse(raw);
+    const templates = Array.isArray(data.templates) ? data.templates : [];
+    console.log(`[PRAGMA] /api/templates — file: ${TEMPLATES_FILE}, parsed ${templates.length} templates`);
+    if (!templates.length) return res.json({ templates: null });
+    res.json({ templates });
+  } catch (err) {
+    console.log(`[PRAGMA] /api/templates — error: ${err.message} (file: ${TEMPLATES_FILE})`);
+    res.json({ templates: null });
+  }
+});
 
 app.get('/api/notes', (req, res) => {
   try {
