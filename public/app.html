@@ -1088,14 +1088,16 @@ body{
       border-radius: 7px; padding: 10px 8px;
       font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
+      position: relative;
     }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
-    .new-note-type-btn.template-from-file { border-style: dashed; }
-    .template-file-divider {
-      grid-column: 1 / -1;
-      font-size: 10px; font-family: 'IBM Plex Mono', monospace;
-      color: var(--muted); text-align: center;
-      padding: 4px 0 2px; letter-spacing: 0.05em;
+    .new-note-type-btn.template-from-file {
+      border-color: rgba(124,58,237,0.5);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.25);
+    }
+    .new-note-type-btn.template-from-file:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.5);
     }
     .note-type-custom { border-style: dashed; }
 
@@ -3167,8 +3169,9 @@ async function init() {
     METHODOLOGIES = d.guides || [];
   } catch(e) { console.warn('methodologies unavailable', e); }
 
-  // Fetch note templates (non-blocking — falls back to hardcoded if missing)
-  loadNoteTemplates();
+  // Fetch note templates (falls back to hardcoded if missing)
+  await loadNoteTemplates();
+  renderNoteTypeGrid();
 
   document.getElementById('svc-count').textContent  = SERVICES.length;
   document.getElementById('meth-count').textContent = METHODOLOGIES.length;
@@ -3865,29 +3868,25 @@ function renderNoteTypeGrid() {
   const grid = document.getElementById('newNoteTypeGrid');
   if (!grid) return;
 
-  const builtinIds  = Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch');
-  const fromFile    = Object.entries(NOTE_TEMPLATES).filter(([id, t]) => id !== 'scratch' && t.fromFile && !builtinIds.includes(id));
-  const builtin     = Object.entries(NOTE_TEMPLATES).filter(([id, t]) => id !== 'scratch' && builtinIds.includes(id));
-  const fileUpdated = Object.entries(NOTE_TEMPLATES).filter(([id, t]) => id !== 'scratch' && t.fromFile &&  builtinIds.includes(id));
+  const builtinIds = new Set(Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch'));
 
-  // Always first: Blank
+  // NOTE_TEMPLATES is the single source of truth — either fallback or file, never both
+  const entries = Object.entries(NOTE_TEMPLATES).filter(([id]) => id !== 'scratch');
+  const builtins = entries.filter(([id]) =>  builtinIds.has(id));
+  const customs  = entries.filter(([id]) => !builtinIds.has(id));
+
   const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')">📄 Blank</button>`];
 
-  // Builtin templates (also covers file-overridden builtins)
-  for (const [id, tmpl] of [...builtin, ...fileUpdated]) {
+  for (const [id, tmpl] of builtins) {
     const icon  = tmpl.icon  || NOTE_TYPE_META[id]?.icon  || '📄';
     const label = tmpl.label || NOTE_TYPE_META[id]?.label || id;
     buttons.push(`<button class="new-note-type-btn" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
   }
 
-  // Custom templates from file — with divider
-  if (fromFile.length) {
-    buttons.push(`<div class="template-file-divider">— From templates file —</div>`);
-    for (const [id, tmpl] of fromFile) {
-      const icon  = tmpl.icon  || '📄';
-      const label = tmpl.label || id;
-      buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
-    }
+  for (const [id, tmpl] of customs) {
+    const icon  = tmpl.icon  || '📄';
+    const label = tmpl.label || id;
+    buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
   }
 
   grid.innerHTML = buttons.join('');
