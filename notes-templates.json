@@ -49,12 +49,12 @@
       "body": "## Vulnerability\n\n| Field        | Value |\n|--------------|-------|\n| Name         |       |\n| CVE          |       |\n| CVSS         |       |\n| Affected     |       |\n| Auth Required|       |\n\n## Payload\n\n```bash\n\n```\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n"
     },
     {
-      "id": "oscp-machine",
-      "label": "OSCP Machine",
+      "id": "CTF-machine",
+      "label": "CTF-Machine",
       "icon": "🛡️",
       "title_prefix": "Machine_",
-      "default_tags": ["oscp", "ctf"],
-      "body": "# Machine Name - [NAME]\n**IP:** `<TARGET>` \n\n## 1. Enumeration\n\n### Service Scanning\n\n### Web\n\n### Other Services\n\n## 2. Exploitation\n\n## 3. Post-Exploitation\n\n## 4. Privilege Escalation\n\n## 5. Clean up & Notes"
+      "default_tags": ["ctf", "custom"],
+      "body": "# Machine Name - [NAME]\n- **IP:** `<TARGET>`\n-**DOMAIN:** `<DOMAIN>` \n\n## 1. Enumeration\n\n### Service Scanning\n\n### Web\n\n### Other Services\n\n## 2. Exploitation\n\n## 3. Post-Exploitation\n\n## 4. Privilege Escalation\n\n## 5. Clean up & Notes"
     }
   ]
 }

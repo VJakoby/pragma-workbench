@@ -1,163 +1,6888 @@
-# #️ PRAGMA // Workbench
+<!--
+/**
+* PRAGMA
+ * Copyright (C) 2026 VJakoby
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PRAGMA is architected by VJakoby + 🤖. This program is distributed in 
+ * the hope that it will be useful, but WITHOUT ANY WARRANTY; without even 
+ * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRAGMA</title>
+  <meta name="theme-color" content="#363f49" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="codemirror-bundle.js"></script>
+  <script>
+  // Minimal markdown renderer for note preview (no external deps)
+  window.marked = {
+    _opts: { breaks: false, gfm: true },
+    setOptions(o) { Object.assign(this._opts, o); },
+    parse(src) {
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // normalize line endings
+      src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      // stash fenced code blocks to protect them from all further processing
+      const stash = [];
+      src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/,''))}</code></pre>`;
+        stash.push(html);
+        return `\x00STASH${stash.length-1}\x00`;
+      });
+      // inline code
+      src = src.replace(/`([^`\n]+)`/g, (_,c) => `<code>${esc(c)}</code>`);
+      // headings
+      src = src.replace(/^#{6} (.+)$/gm, '<h6>$1</h6>');
+      src = src.replace(/^#{5} (.+)$/gm, '<h5>$1</h5>');
+      src = src.replace(/^#{4} (.+)$/gm, '<h4>$1</h4>');
+      src = src.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      src = src.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      src = src.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      // bold, italic, strikethrough
+      src = src.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      src = src.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      src = src.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
+      // links & images
+      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+      src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      // hr
+      src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
+      // blockquote
+      src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // checklists — must run before unordered list
+      src = src.replace(/((?:^[ \t]*[-*+] \[[ xX]\] .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => {
+          const checked = /^[ \t]*[-*+] \[[xX]\]/.test(l);
+          const text = l.replace(/^[ \t]*[-*+] \[[ xX]\] /, '');
+          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span>${text}</span></li>`;
+        }).join('');
+        return `<ul class="task-list">${items}</ul>`;
+      });
+      // unordered list
+      src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      });
+      // ordered list
+      src = src.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      });
+      // paragraphs — ensure any text immediately after a block-level closing tag
+      // gets separated into its own block (fixes heading+text single-newline gap)
+      src = src.replace(/\x00STASH(\d+)\x00\n(?!\n)/g, '\x00STASH$1\x00\n\n');
+      src = src.replace(/<\/(h[1-6])>\n(?!\n)/g, '</$1>\n\n');
+      src = src.replace(/<hr>\n(?!\n)/g, '<hr>\n\n');
+      src = src.replace(/<\/blockquote>\n(?!\n)/g, '</blockquote>\n\n');
+      src = src.split(/\n{2,}/).map(block => {
+        block = block.trim();
+        if (!block) return '';
+        if (/^\x00STASH/.test(block)) return block;
+        if (/^<(h[1-6]|ul|ol|hr|blockquote)/.test(block)) return block;
+        return `<p>${block.replace(/\n/g,' ')}</p>`;
+      }).join('\n');
+      // restore stashed code blocks
+      src = src.replace(/\x00STASH(\d+)\x00/g, (_,i) => stash[+i]);
+      return src;
+    }
+  };
+  </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware KB — no cloud, no clutter.
+:root{
+  --bg:       #303841;
+  --bg2:      #363f49;
+  --bg3:      #3d4752;
+  --bg4:      #46515d;
+  --border:   #4a5562;
+  --border2:  #5a6878;
+  --text:     #dde6f0;
+  --text2:    #96abbe;
+  --muted:    #7a95aa;
+  --btn-color:#a8bfd0;
+  --accent:   #8b5cf6;
+  --accent2:  #7c3aed;
+  --green:    #34d399;
+  --purple:   #a78bfa;
+  --red:      #f87171;
+  --orange:   #fb923c;
+  --yellow:   #fbbf24;
+  --sidebar-w: 220px;
+  --topbar-h:  42px;
+  --logo-icon-color: #8b5cf6;
+  --logo-icon-size: 18px;
+}
 
----
-## 🚩 My Problem
+[data-theme="light"]{
+  --bg:       #f1f5f9;
+  --bg2:      #ffffff;
+  --bg3:      #e8eef6;
+  --bg4:      #dce5f0;
+  --border:   #c8d7e8;
+  --border2:  #b0c4da;
+  --text:     #1a2535;
+  --text2:    #3a5068;
+  --muted:    #7a90a8;
+  --btn-color:#4a6580;
+  --accent:   #5b21b6;
+  --accent2:  #6d28d9;
+  --green:    #059669;
+  --purple:   #7c3aed;
+  --red:      #dc2626;
+  --orange:   #ea580c;
+  --yellow:   #d97706;
+}
 
-Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
+html,body{height:100%;overflow:hidden}
 
-## ❌ What it is NOT
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  font-weight:500;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
 
-- **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
-- **Not a team platform** — single-operator, local-first by design
-- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation
-- **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
+/* ── LAYOUT ── */
+.layout{display:flex;flex-direction:column;height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:var(--topbar-h);
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 14px; gap:10px;
+  flex-shrink:0; z-index:50;
+  flex-wrap:nowrap; overflow:visible;
+}
+
+.topbar-logo{
+  font-family:'Inter',sans-serif;
+  font-weight:700; font-size:15px;
+  color:var(--accent);
+  letter-spacing:0.05em;
+  flex-shrink:0;
+  margin-right:8px;
+  position:relative;
+  cursor:default;
+}
+.topbar-logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
+.topbar-logo-tip{
+  display:none;
+  position:fixed;top:calc(var(--topbar-h) + 4px);left:14px;
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 13px;
+  font-family:'Inter',sans-serif;font-size:12px;
+  color:var(--text2);line-height:1.6;
+  width:280px;z-index:9999;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  white-space:normal;
+}
+.topbar-logo:hover .topbar-logo-tip{display:block}
+
+/* target pill */
+.target-pill{
+  display:flex;align-items:center;gap:0;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:6px; overflow:hidden; flex-shrink:0;
+}
+.target-seg{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 10px;
+}
+.target-seg+.target-seg{border-left:1px solid var(--border)}
+.target-seg-label{
+  font-family:'Inter',sans-serif;
+  font-size:9px;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--muted);
+}
+.target-seg-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--muted);flex-shrink:0;
+  transition:background 0.2s;
+}
+.target-seg-dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
+.target-input{
+  background:none;border:none;outline:none;
+  color:var(--text);font-family:'Inter',sans-serif;
+  font-size:12px;width:130px;
+}
+.target-input::placeholder{color:var(--muted)}
+
+/* cmd palette trigger */
+.cmd-trigger{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:0 12px;
+  cursor:pointer;transition:all 0.15s;
+  color:var(--muted);font-size:12px;
+  font-family:'Inter',sans-serif;
+  flex:1;max-width:520px;min-width:0;
+  height:28px;box-sizing:border-box;align-self:center;
+  overflow:hidden;white-space:nowrap;
+}
+.cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
+.cmd-trigger-icon{font-size:16px;flex-shrink:0}
+.cmd-trigger-text{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cmd-trigger-kbd{
+  font-size:10px;background:var(--bg4);
+  border:1px solid var(--border2);
+  border-radius:3px;padding:1px 5px;
+  color:var(--muted);
+}
+
+.topbar-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+
+.tb-btn{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:0 10px;
+  cursor:pointer;transition:all 0.15s;
+  color:var(--btn-color);font-size:11px;
+  font-family:'Inter',sans-serif;
+  white-space:nowrap;
+  height:28px;box-sizing:border-box;align-self:center;
+  display:flex;align-items:center;justify-content:center;
+  line-height:1;
+}
+.tb-btn:hover{border-color:var(--border2);color:var(--text)}
+.tb-btn.active{border-color:var(--accent);color:var(--accent)}
+
+/* ── BODY SPLIT ── */
+.body-split{
+  display:flex;flex:1;overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  flex-shrink:0;overflow:hidden;
+  position:relative;
+  transition:border-color 0.4s,box-shadow 0.4s;
+}
+
+.sidebar-version {
+  margin-top: auto; padding: 10px 14px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.08em;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-section-hdr{
+  padding:10px 14px 6px;
+  font-family:'Inter',sans-serif;
+  font-size:9px;font-weight:700;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--text2);
+}
+
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 14px;
+  cursor:pointer;transition:all 0.12s;
+  border-left:2px solid transparent;
+  font-size:14px;color:var(--text2);
+  user-select:none;
+}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{
+  background:rgba(124,58,237,0.15);
+  border-left-color:var(--accent);
+  color:var(--accent);
+}
+.nav-item-icon{font-size:17px;flex-shrink:0;width:20px;text-align:center}
+.nav-item-label{flex:1;font-size:13px}
+.nav-item-count{
+  font-family:'Inter',sans-serif;
+  font-size:10px;color:var(--text2);font-weight:600;
+  background:var(--bg4);
+  border-radius:4px;padding:1px 5px;
+}
+
+.sidebar-divider{height:1px;background:var(--border);margin:4px 0}
 
 
-## ✅ What it IS
+/* category list */
+.cat-scroll{overflow-y:auto;flex:1;padding-bottom:8px}
+.cat-scroll::-webkit-scrollbar{width:3px}
+.cat-scroll::-webkit-scrollbar-track{background:transparent}
+.cat-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-- **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
-- **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in docker-network) to enable full-text knowledge base lookups from defined online sources directly inside the app
+/* ── MAIN PANEL ── */
+.main-panel{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
 
-## 📸 Screenshots
-<p align="left">
-  <a href="./screenshots/pragma-session-notes.png" target="_blank"><img src="./screenshots/pragma-session-notes.png" width="24%"></a>
-  <a href="./screenshots/pragma-sessions.png" target="_blank"><img src="./screenshots/pragma-sessions.png" width="24%"></a>
-  <a href="./screenshots/pragma-kb.png" target="_blank"><img src="./screenshots/pragma-kb.png" width="24%"></a>
-</p>
-<p align="left">
-  <a href="./screenshots/pragma-encrypted-workbench.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
-  <a href="./screenshots/pragma-workbench-locked.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
-</p>
+/* panel tabs (Services / Methodologies / Notes / Search) */
+.panel-tabs{
+  display:flex;align-items:stretch;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;padding:0 16px;gap:0;
+}
+.panel-tab{
+  padding:0 16px;height:36px;
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:500;color:var(--muted);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all 0.15s;white-space:nowrap;
+  font-family:'Inter',sans-serif;
+}
+.panel-tab:hover{color:var(--text2)}
+.panel-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel-tab-icon{font-size:13px}
+.panel-tab-badge{
+  font-size:10px;background:var(--bg4);
+  border-radius:3px;padding:1px 5px;
+  color:var(--muted);
+}
+.panel-tab.active .panel-tab-badge{background:rgba(124,58,237,0.20);color:var(--accent)}
 
-## 🏷️ Features
+/* panel views */
+.panel-view{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel-view.active{display:flex}
 
-**Sessions & Targets**
-- Named sessions with multi-target tracking (IP, domain, label)
-- Active target auto-injects into all code blocks at copy time across KB and Tactical Guides
-- Session status tracking (Active / Paused / Complete) with timeline view
-- Export/import sessions as JSON for portability; notes export as structured markdown
+/* ── SERVICE / GUIDE VIEW ── */
+.cards-toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;flex-shrink:0;
+  background:var(--bg);border-bottom:1px solid var(--border);
+}
 
-**Encryption**
-- Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
-- Server stores ciphertext; password never touches disk, localStorage, or the network
-- Workbench file is portable — moving to another machine is a file copy
+.local-search{
+  position:relative;flex:1;max-width:340px;
+}
+.local-search input{
+  width:100%;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);
+  padding:6px 10px 6px 30px;
+  font-size:12px;font-family:'Inter',sans-serif;
+  outline:none;transition:border-color 0.15s;
+}
+.local-search input:focus{border-color:var(--accent)}
+.local-search input::placeholder{color:var(--muted)}
+.local-search-icon{
+  position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:12px;pointer-events:none;
+}
 
-**Notes**
-- Typed notes with markdown templates (`Blank`, `Enumeration`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`, …)
-- Tags, auto-save, session reassignment, and a Timeline view for chronological activity
-- Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
+.toolbar-count{
+  font-family:'Inter',sans-serif;
+  font-size:11px;color:var(--muted);
+  margin-left:auto;
+}
 
-**Knowledge Base & Tactical Guides**
-- Indexes all `.md` files under `knowledge_base/` and `methodologies/` recursively
-- Editable in-UI with live disk write-back and auto re-index on change
-- Every code block and inline backtick span is click-to-copy with target IP injected
-- Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
-- Local/remote scope filter, source filter, and query-term snippet highlighting in results
-- Degrades gracefully if ENGRAM is offline, with a one-click reachability check
+.cards-area{
+  flex:1;overflow-y:auto;padding:14px 16px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+  align-content:start;
+}
+.cards-area::-webkit-scrollbar{width:4px}
+.cards-area::-webkit-scrollbar-track{background:transparent}
+.cards-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-**Interface**
-- Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
-- Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
+.card{
+  position:relative;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 12px;
+  cursor:pointer;transition:all 0.15s;
+  user-select:none;min-width:0;
+  display:flex;flex-direction:column;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--card-accent,var(--accent));opacity:0.5;
+  transition:opacity 0.15s;border-radius:8px 8px 0 0;
+}
+.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.card:hover::before{opacity:1}
+.card.active-card{border-color:var(--accent);background:rgba(124,58,237,0.11)}
+.card.active-card::before{opacity:1}
 
----
+.card-icon{font-size:20px;margin-bottom:6px;display:block;line-height:1;flex-shrink:0}
+.card-port{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  color:var(--text2);margin-bottom:2px;letter-spacing:0.06em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.card-name{
+  font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;
+  line-height:1.35;word-break:break-word;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-port-name-row{ display:block;min-width:0; }
+.card-desc{
+  font-size:10px;color:var(--text2);line-height:1.45;margin-top:2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;word-break:break-word;opacity:0.8;
+}
+.card-cat{
+  position:absolute;top:8px;right:8px;
+  font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
+  color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
+  background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);
+  border-radius:3px;padding:2px 5px;
+  white-space:nowrap;
+}
 
-## 🔐 Security
+.card.hidden{display:none !important}
+/* empty state */
+.empty-state{
+  grid-column:1/-1;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:10px;
+  color:var(--muted);text-align:center;
+}
+.empty-state-icon{font-size:40px;opacity:0.4}
+.empty-state-title{font-size:14px;font-weight:500}
+.empty-state-hint{font-size:12px;font-family:'Inter',sans-serif}
 
-PRAGMA is a **single-operator, local-first tool** designed to run in a controlled environment — ideally a dedicated pentest VM. It has no authentication layer, no multi-user access control, and no network hardening beyond what the host OS provides. The security model assumes the operator controls the machine it runs on.
+/* ── CONTENT PANEL (right side, reader) ── */
+.content-panel{
+  width:520px;
+  background:var(--bg2);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  flex-shrink:0;position:relative;
+  min-width:120px;
+}
+.content-panel.hidden-panel{width:0!important;overflow:hidden;border:none;min-width:0}
 
-### Encryption
+.content-panel-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;min-height:44px;
+}
+.content-panel-icon{font-size:22px}
+.content-panel-title{
+  flex:1;font-size:12px;font-weight:600;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.content-panel-meta{
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
+  flex-shrink:0;
+}
+.content-panel-close{
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:18px;padding:2px 8px;
+  border-radius:4px;transition:all 0.12s;
+}
+.content-panel-close:hover{background:var(--bg4);color:var(--text)}
 
-- Workbench encryption uses **AES-256-GCM** with **PBKDF2-SHA-512** key derivation at 600,000 iterations
-- Encryption and decryption happen **entirely in the browser** — the password never touches disk, localStorage, server memory, or the network
-- The server stores only the ciphertext blob and refuses plaintext writes while an encrypted workbench is active
-- Disabling encryption requires supplying the decrypted payload to the server — a bare unauthenticated request is rejected, preventing accidental or console-based erasure of the workbench file
-- If the password prompt is cancelled or decryption fails on load, the application halts and renders a locked screen — no data is written and no UI is exposed
+.content-panel-body{
+  flex:1;overflow-y:auto;padding:16px;
+  font-size:15px;line-height:1.75;
+}
+.content-panel-body::-webkit-scrollbar{width:4px}
+.content-panel-body::-webkit-scrollbar-track{background:transparent}
+.content-panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-### Deployment recommendations
+/* Search result preview — framed source content */
+.source-preview-frame {
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.source-preview-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border2);
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  user-select: none;
+}
+.source-preview-label span { color: var(--text2); font-weight: 500; letter-spacing: 0; text-transform: none; }
+.source-preview-body {
+  padding: 20px 22px;
+}
 
-- **Run on localhost only** — PRAGMA binds to `127.0.0.1:3000` by default. Do not expose it on a LAN, VPN, or any network interface accessible to others. Your session notes, targets, and KB content are sensitive operational data
-- **Use a dedicated pentest VM** — the recommended setup is a VM used exclusively for pentesting, with PRAGMA running locally inside it. This isolates your notes from your host OS and limits exposure if the VM is compromised
-- **Do not run as root** — the Docker setup drops all capabilities and runs as a non-root user. If running with Node.js directly, use a standard user account
-- **Encrypt your workbench** — if your notes contain credentials, findings, or client-sensitive data, enable workbench encryption. The workbench file is portable and encrypted at rest, so even if the file is copied off the machine it cannot be read without the password
-- **Back up your workbench file** — the encrypted `.workbench.enc` file is the single source of truth for your data. Back it up regularly. There is no password recovery
 
-### What encryption does NOT protect against
+/* ── MARKDOWN RENDERING ── */
+.md-content{font-family:'Inter',sans-serif;font-size:15px;line-height:1.85}
+.md-content h1{
+  font-size:1.4em;font-weight:700;color:var(--accent);
+  margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);
+  font-family:'Inter',sans-serif;letter-spacing:-0.01em;
+}
+.md-content h2{
+  font-size:1.1em;font-weight:600;color:var(--text);
+  margin:22px 0 8px;font-family:'Inter',sans-serif;
+  padding-left:10px;border-left:2px solid var(--accent2);
+}
+.md-content h3{
+  font-size:1em;font-weight:600;color:var(--text2);
+  margin:16px 0 6px;font-family:'Inter',sans-serif;
+}
+.md-content h4{font-size:0.95em;font-weight:600;color:var(--muted);margin:12px 0 4px}
+.md-content p{margin-bottom:10px;color:var(--text2)}
+.md-content a{color:var(--accent);text-decoration:none}
+.md-content a:hover{text-decoration:underline}
+.md-content strong{color:var(--text);font-weight:600}
+.md-content em{color:var(--orange)}
+.md-content ul,.md-content ol{padding-left:20px;margin-bottom:10px}
+.md-content li{margin-bottom:4px;color:var(--text2)}
+.md-content li::marker{color:var(--accent2)}
+.md-content hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.md-content blockquote{
+  border-left:3px solid var(--accent2);padding-left:14px;
+  margin:12px 0;color:var(--muted);font-style:italic;
+}
+.md-content table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12px}
+.md-content th{
+  background:var(--bg3);color:var(--accent);
+  padding:7px 12px;border:1px solid var(--border);
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;
+  font-family:'Inter',sans-serif;
+}
+.md-content td{padding:7px 12px;border:1px solid var(--border);color:var(--text2)}
+.md-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
 
-- An attacker with active access to the running browser session (the plaintext is in memory while unlocked)
-- Keyloggers or screen capture on the host machine
-- A compromised VM where the attacker can observe the browser process
+/* Code blocks with IP injection */
+.code-block-wrap{position:relative;margin:12px 0}
+.code-block-wrap pre{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:7px;padding:14px 16px;overflow-x:auto;
+}
+.code-block-wrap pre code{
+  font-family:'Inter',sans-serif;
+  font-size:13px;line-height:1.65;color:var(--green);
+  background:none;border:none;padding:0;
+}
+.copy-btn{
+  position:absolute;top:8px;right:8px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:5px;padding:3px 9px;
+  font-family:'Inter',sans-serif;font-size:10px;
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+  opacity:0.35;
+}
+.code-block-wrap:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green);opacity:1}
 
-These are outside the threat model for a local single-operator tool. If your VM is compromised during an engagement, your notes are the least of your concerns.
+/* ── Line-level copy ── */
+.code-line, .code-line-blank {
+  display: table;
+  width: 100%;
+  border-radius:3px;
+  padding:0 4px;margin:0 -4px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+.code-line {
+  position:relative;cursor:pointer;
+  transition:background 0.1s;
+}
+.code-line:hover{background:rgba(124,58,237,0.20)}
+.code-line-copy{
+  display:none;
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
+  color:var(--accent);background:var(--bg4);
+  border:1px solid rgba(124,58,237,0.3);
+  border-radius:3px;padding:1px 6px;
+  pointer-events:none;white-space:nowrap;
+}
+.code-line:hover .code-line-copy{display:block}
+.code-line.flash{background:rgba(52,211,153,0.18);transition:background 0s}
 
----
+/* Inline code */
+.md-content code:not(pre code){
+  font-family:'IBM Plex Mono',monospace;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;
+  font-size:0.88em;color:var(--green);
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.md-content code:not(pre code):hover {
+  background: rgba(124,58,237,0.18);
+  border-color: rgba(124,58,237,0.5);
+  color: var(--text);
+}
+.md-content code:not(pre code).inline-code-copied {
+  background: rgba(124,58,237,0.25);
+  border-color: var(--accent);
+  color: #fff;
+}
 
-## 🎯 Target Injection Reference
+/* IP injection highlight */
+.ip-injected{color:var(--yellow);font-weight:600}
 
-When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and Tactical Guides with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
+/* ── NOTES VIEW ── */
+.notes-layout{display:flex;flex:1;overflow:hidden}
 
-Write your KB docs using any of the supported placeholder styles below.
+.notes-list{
+  width:200px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:relative;
+  min-width:210px;max-width:520px;
+}
+.notes-list-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:600;color:var(--muted);
+  font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.1em;
+}
+.notes-list-items{flex:1;overflow-y:auto}
+.notes-list-items::-webkit-scrollbar{width:3px}
+.notes-list-items::-webkit-scrollbar-thumb{background:var(--border2)}
 
-### IP / Host → Active Target IP
+.note-item{
+  padding:10px 12px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background 0.1s;border-left:2px solid transparent;
+}
+.note-item:hover{background:var(--bg3)}
+.note-item.active{background:rgba(124,58,237,0.13);border-left-color:var(--accent)}
+.note-item-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.note-item-preview{
+  font-size:12px;color:var(--text2);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'Inter',sans-serif;
+}
+.note-item-date{
+  font-size:10px;color:var(--text2);font-weight:500;
+  font-family:'Inter',sans-serif;margin-top:3px;
+}
+.note-item-session{
+  font-size:9px;color:var(--purple);font-family:'Inter',sans-serif;
+  margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 
-| Style | Supported placeholders |
-|---|---|
-| Angle brackets | `<IP>` `<ip>` `<TARGET>` `<TARGET_IP>` `<target_ip>` `<RHOST>` `<rhost>` `<HOST>` `<host>` `<MACHINE_IP>` |
-| Shell variables | `$IP` `$RHOST` `$TARGET` `$TARGET_IP` `$HOST` |
-| Curly braces | `{IP}` `{ip}` `{RHOST}` `{rhost}` `{TARGET}` `{HOST}` `{host}` |
-| Double curly | `{{ip}}` `{{IP}}` `{{target}}` `{{rhost}}` `{{host}}` `{{HOST}}` |
-| Bare words | `TARGET_IP` `TARGET_IP_ADDRESS` `RHOST` `TARGET` `MACHINE_IP` |
-| HTB-style literals | `10.10.10.X` `10.10.X.X` |
-| Backtick-scoped only | \`IP\` \`HOST\` — injected **only inside inline code**, not in plain prose |
+.notes-editor{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-### Domain / FQDN → Active Target Domain
+/* ── Note editor split (editor + preview) ── */
+.note-editor-split {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+}
+.note-editor-split .cm-wrap {
+  flex: 1; min-height: 80px;
+}
+.note-editor-split.preview-open .cm-wrap {
+  flex: 0 0 var(--note-editor-h, 50%); min-height: 80px; max-height: calc(100% - 120px);
+}
+.note-preview-handle {
+  height: 6px; flex-shrink: 0; cursor: ns-resize;
+  background: var(--border); transition: background 0.15s;
+  position: relative;
+}
+.note-preview-handle:hover, .note-preview-handle.dragging { background: var(--accent); }
+.note-preview-handle::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 2px; border-radius: 2px;
+  background: var(--border2);
+}
+.note-preview-pane {
+  flex: 1; display: flex; flex-direction: column;
+  border-top: 1px solid var(--border); overflow: hidden; min-height: 80px;
+}
+.note-preview-label {
+  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 5px 16px 4px; flex-shrink: 0; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.note-preview-content {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+}
+.note-preview-content::-webkit-scrollbar { width: 3px; }
+.note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
+#notePreviewBtn.active { color: var(--accent); }
+.notes-editor-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.note-title-input{
+  flex:1;background:none;border:none;outline:none;
+  font-size:15px;font-weight:600;color:var(--text);
+  font-family:'Inter',sans-serif;
+}
+.note-title-input::placeholder{color:var(--muted)}
+.note-save-status{
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
+  flex-shrink:0;
+}
+.note-save-status.saved{color:var(--green)}
 
-| Style | Supported placeholders |
-|---|---|
-| Angle brackets | `<DOMAIN>` `<domain>` `<TARGET_DOMAIN>` `<FQDN>` `<fqdn>` `<DC>` `<dc>` `<WORKGROUP>` |
-| Shell variables | `$DOMAIN` `$FQDN` `$DC` |
-| Curly braces | `{DOMAIN}` `{domain}` `{FQDN}` |
-| Double curly | `{{domain}}` |
-| Bare words | `TARGET_DOMAIN` `DOMAIN` `WORKGROUP` |
+.notes-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;color:var(--muted);text-align:center;padding:40px;
+}
+.notes-empty-icon{font-size:28px;opacity:0.3}
+.notes-empty-text{font-size:13px}
+.notes-empty-hint{font-size:11px;font-family:'Inter',sans-serif}
 
-> **Note on bare `IP` and `HOST`:** These are common English words, so global replacement would cause false positives in prose. PRAGMA only injects them when wrapped in backticks — e.g. `` `nmap -sV IP` `` or `` `curl HOST/api` `` — leaving sentences like *"Enter the target IP"* untouched.
+.icon-btn{
+  background:none;border:none;cursor:pointer;
+  color:var(--btn-color);font-size:17px;padding:3px 7px;
+  border-radius:4px;transition:all 0.12s;
+}
+.icon-btn:hover{background:var(--bg4);color:var(--text)}
+.icon-btn.danger:hover{background:rgba(248,113,113,0.1);color:var(--red)}
 
----
+/* ── SEARCH RESULTS VIEW ── */
+.search-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.search-toolbar{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  flex-shrink:0;display:flex;flex-direction:column;gap:8px;
+}
+.search-input-row{
+  display:flex;align-items:center;gap:8px;
+}
+.search-big{
+  position:relative;flex:1;
+}
+.search-big input{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);padding:9px 12px 9px 36px;
+  font-size:13px;font-family:'Inter',sans-serif;
+  outline:none;transition:border-color 0.15s;
+}
+.search-big input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,58,237,0.18)}
+.search-big input::placeholder{color:var(--muted)}
+.search-big-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:14px;pointer-events:none;
+}
+.search-clear-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  color:var(--muted);padding:6px 12px;cursor:pointer;transition:all 0.15s;
+  font-size:11px;font-family:'Inter',sans-serif;white-space:nowrap;
+}
+.search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
 
-## 🛠️ Requirements
+.search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
+.ctrl-label{
+  font-family:'Inter',sans-serif;font-size:10px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;
+}
+.btn-group{
+  display:flex;border-radius:5px;overflow:hidden;
+  border:1px solid var(--border2);
+}
+.btn-group-item{
+  background:var(--bg3);border:none;color:var(--muted);
+  padding:3px 10px;font-size:10px;font-weight:600;
+  cursor:pointer;transition:all 0.12s;
+  font-family:'Inter',sans-serif;letter-spacing:0.04em;
+  white-space:nowrap;
+}
+.btn-group-item:not(:last-child){border-right:1px solid var(--border)}
+.btn-group-item.active{background:var(--accent);color:#fff}
+.btn-group-item.fuzzy-active{background:var(--purple);color:#fff}
+.btn-group-item:not(.active):not(.fuzzy-active):hover{background:var(--bg4);color:var(--text)}
 
-- Node.js 20+
-- **Optional:** 
-    - docker & docker-compose
-    - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
+.source-filter-row{display:flex;align-items:center;gap:8px;padding:0 2px;flex-wrap:wrap}
+.source-chips{display:flex;gap:5px;flex-wrap:wrap}
+.source-chip{
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:3px;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text2);transition:all 0.12s;white-space:nowrap;
+  letter-spacing:0.03em;
+}
+.source-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.source-chip:hover:not(.active){border-color:var(--accent);color:var(--text)}
 
-See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run both PRAGMA and ENGRAM together over a shared Docker network.
+.search-status{
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
+  color:var(--text2);margin-left:auto;
+}
 
-## 🚀 Quick Start
+.results-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.results-list::-webkit-scrollbar{width:4px}
+.results-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
-See [DOCKER.md](./DOCKER.md) for full Docker instructions.
+.result-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+  cursor:pointer;transition:all 0.15s;
+  position:relative;
+}
+.result-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--accent);opacity:0;transition:opacity 0.15s;
+}
+.result-card.local-result::before{background:var(--green)}
+.result-card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.result-card:hover::before{opacity:1}
 
-```bash
-# Build and start
-docker compose up -d --build
+.result-card-top{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;gap:10px;margin-bottom:5px;
+}
+.result-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:6px}
+.search-meta-row{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.result-score{
+  font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
+  background:rgba(52,211,153,0.15);color:var(--green);
+  border:1px solid rgba(52,211,153,0.3);
+  padding:2px 8px;border-radius:4px;flex-shrink:0;
+  display:flex;align-items:center;gap:4px;
+}
+.result-score-label{color:var(--muted);font-weight:500}
+.result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
+.result-badge{
+  font-family:'Inter',sans-serif;font-size:9px;
+  padding:1px 6px;border-radius:3px;
+}
+.result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
+.result-badge.local{color:#3b82f6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)}
+.result-snippet{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);font-weight:400;
+  line-height:1.65;white-space:pre-wrap;word-break:break-word;
+  overflow:hidden;max-height:5.4em;
+  margin-top:10px;
+  margin-bottom:2px;
+  padding:8px 12px;
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;
+}
+.results-offline{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:10px;
+  color:var(--muted);text-align:center;
+}
+.results-offline-icon{font-size:28px;opacity:0.4}
+.results-offline-text{font-size:13px}
+.results-offline-hint{font-size:11px;font-family:'Inter',sans-serif}
+.results-offline.error{
+  background:rgba(248,113,113,0.05);
+  border:1px solid rgba(248,113,113,0.2);
+  border-radius:8px;margin:16px;padding:40px 20px;
+}
+.results-offline.error .results-offline-icon{opacity:1}
+.results-offline.error .results-offline-text{color:var(--red);font-weight:600}
+.results-offline.error .results-offline-hint{color:var(--text2)}
 
-# Access at
-http://localhost:3000
-```
+/* ── COMMAND PALETTE ── */
+.cmd-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.55);
+}
+.cmd-overlay.open{display:flex;align-items:flex-start;justify-content:center;padding:clamp(52px,8vh,100px) 16px 16px;}
 
-### Running manually with Node.js
-```bash
-# 1. Install dependencies
-npm install
+.cmd-box{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;width:100%;max-width:780px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.7);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - clamp(68px,10vh,120px));
+  overflow:hidden;
+  animation:cmdSlide 0.04s ease;
+}
+@keyframes cmdSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
-# 2. Start the server
-npm start
+.cmd-input-row{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+}
+.cmd-input-icon{font-size:16px;color:var(--muted)}
+.cmd-input{
+  flex:1;background:none;border:none;outline:none;
+  font-size:16px;color:var(--text);
+  font-family:'Inter',sans-serif;
+}
+.cmd-input::placeholder{color:var(--muted)}
+.cmd-esc{
+  font-family:'Inter',sans-serif;font-size:10px;
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:4px;padding:2px 7px;color:var(--muted);
+}
 
-# 3. Open in browser
-http://localhost:3000
-```
+.cmd-results{flex:1 1 auto;overflow-y:auto;min-height:0}
+.cmd-results::-webkit-scrollbar{width:3px}
+.cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
 
----
-Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+.cmd-group-hdr{
+  padding:8px 16px 4px;
+  font-family:'Inter',sans-serif;font-size:9px;
+  font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--muted);
+}
+.cmd-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px;cursor:pointer;transition:background 0.1s;
+}
+.cmd-item:hover,.cmd-item.selected{background:rgba(124,58,237,0.14)}
+.cmd-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.cmd-item-main{flex:1;overflow:hidden}
+.cmd-item-title{font-size:14px;color:var(--text);font-weight:600}
+.cmd-item-sub{
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cmd-item-tag{
+  font-family:'Inter',sans-serif;font-size:9px;
+  background:var(--bg4);border:1px solid var(--border);
+  border-radius:3px;padding:1px 6px;color:var(--muted);flex-shrink:0;
+}
+.cmd-footer{
+  padding:8px 16px;border-top:1px solid var(--border);
+  display:flex;gap:14px;
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
+}
+.cmd-footer-key{
+  display:flex;align-items:center;gap:5px;
+}
+.cmd-footer-key kbd{
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:3px;padding:1px 5px;font-size:9px;
+}
+
+
+/* ── Sidebar toggle button ── */
+.sidebar-toggle-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0 10px; cursor: pointer;
+  color: var(--muted); font-size: 15px;
+  transition: all 0.15s; flex-shrink: 0;
+  height: 32px; box-sizing: border-box; align-self: center;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
+.sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
+.sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
+.sidebar { transition: width 0.18s ease, border-color 0.4s, box-shadow 0.4s; }
+/* ── SCROLLBAR GENERAL ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── RESPONSIVE / MEDIA ── */
+@media(max-width:768px){
+  .content-panel{display:none}
+}
+
+/* ── Topbar responsive ── */
+/* Below 900px: shrink cmd-trigger, hide placeholder text */
+@media(max-width:900px){
+  .cmd-trigger{ max-width:260px; }
+}
+@media(max-width:700px){
+  .cmd-trigger-text{ display:none; }
+  .cmd-trigger{ min-width:36px; flex:0 0 36px; justify-content:center; padding:0 10px; }
+  .cmd-trigger-kbd{ display:none; }
+}
+
+/* ── Responsive card grid ── */
+/* Layout switching is handled by JS ResizeObserver adding .cards-list-mode */
+
+/* List mode — compact single row per card */
+.cards-area.cards-list-mode {
+  grid-template-columns: repeat(2, 1fr) !important;
+  padding: 6px 8px;
+  gap: 4px;
+}
+.cards-area.cards-list-mode .card {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  transform: none !important;
+}
+.cards-area.cards-list-mode .card::before {
+  top:0; left:0; right:auto; bottom:0;
+  height:100%; width:3px; border-radius:8px 0 0 8px;
+}
+.cards-area.cards-list-mode .card-icon {
+  font-size:17px; flex-shrink:0; margin-bottom:0; line-height:1; width:22px; text-align:center;
+}
+.cards-area.cards-list-mode .card-port-name-row {
+  display:flex; align-items:center; gap:7px;
+  flex:1; min-width:0; overflow:hidden;
+}
+.cards-area.cards-list-mode .card-port {
+  font-size:12px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
+}
+.cards-area.cards-list-mode .card-name {
+  font-size:13px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-bottom:0; flex:1;
+}
+.cards-area.cards-list-mode .card-desc { display:none; }
+.cards-area.cards-list-mode .card-cat {
+  position:static; flex-shrink:0; margin-left:4px;
+  font-size:8px; padding:1px 5px;
+}
+
+    /* ── Note markdown hint bar ── */
+    .note-md-hint {
+      display: flex; align-items: center; gap: 0;
+      padding: 5px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0; flex-wrap: nowrap; overflow: hidden;
+    }
+    .note-md-hint span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      padding: 2px 8px; cursor: default;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .note-md-hint span:last-child { border-right: none; }
+    .note-md-hint span:hover { color: var(--text2); }
+
+    /* ── Note type filter bar ── */
+    .notes-type-filter {
+      display: flex; gap: 0; overflow-x: auto; flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 8px; background: var(--bg);
+    }
+    .notes-type-filter::-webkit-scrollbar { height: 2px; }
+    .notes-type-filter::-webkit-scrollbar-thumb { background: var(--border2); }
+
+    .note-type-btn {
+      background: none; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+      color: var(--btn-color); padding: 3px 8px; border-radius: 4px;
+      white-space: nowrap; transition: all 0.12s; letter-spacing: 0.04em;
+    }
+    .note-type-btn:hover { color: var(--text2); background: var(--bg3); }
+    .note-type-btn.active { color: var(--accent); background: rgba(124,58,237,0.16); }
+
+    /* Note type badge on list items */
+    .note-item-type {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+      padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .note-type-general     { color: var(--muted);   background: var(--bg4); }
+    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
+    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
+    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
+    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); }
+    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
+    .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
+
+    /* Borders only on the note list item badges, not the filter bar buttons */
+    .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
+    .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
+    .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
+    .note-item-type.note-type-loot        { border: 1px solid rgba(52,211,153,0.15); }
+    .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
+    .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
+
+    /* New note type picker grid */
+    .new-note-type-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .new-note-type-heading {
+      grid-column: 1 / -1;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      padding: 6px 0 2px;
+    }
+    .new-note-type-btn {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 7px; padding: 10px 8px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+      color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
+      position: relative;
+    }
+    .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
+    .new-note-type-btn.template-from-file {
+      border-color: rgba(124,58,237,0.5);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.25);
+    }
+    .new-note-type-btn.template-from-file:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.5);
+    }
+    .note-type-custom { color: var(--accent); }
+
+
+/* ── Pin button ── */
+.note-pin-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; padding: 3px 6px; border-radius: 4px;
+  color: var(--muted); transition: all 0.12s; line-height: 1;
+  flex-shrink: 0;
+}
+.note-pin-btn:hover { color: var(--yellow); background: rgba(251,191,36,0.1); }
+.note-pin-btn.pinned { color: var(--yellow); }
+.note-item-pin { display: inline-block; font-size: 10px; margin-left: 3px; color: var(--yellow); vertical-align: middle; }
+
+/* ── Note timestamps bar ── */
+.note-timestamps {
+  display: flex; gap: 14px; align-items: center;
+  padding: 3px 14px 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.note-ts {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--muted); white-space: nowrap;
+}
+.note-ts strong { color: var(--text2); font-weight: 600; }
+
+/* ── Note wiki links [[...]] ── */
+.note-wikilink {
+  color: var(--accent); cursor: pointer;
+  background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 3px; padding: 0 4px; font-size: 0.9em;
+  transition: all 0.12s; display: inline;
+}
+.note-wikilink:hover { background: rgba(124,58,237,0.22); border-color: var(--accent); }
+.note-wikilink.broken { color: var(--muted); border-color: var(--border); background: var(--bg3); cursor: default; }
+
+/* ── Backlinks panel ── */
+.note-backlinks {
+  padding: 8px 14px 12px; border-top: 1px solid var(--border);
+  flex-shrink: 0; background: var(--bg);
+}
+.note-backlinks-hdr {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.note-backlinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.note-backlink-chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 8px; cursor: pointer; transition: all 0.12s;
+}
+.note-backlink-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Resize drag handles ── */
+.drag-handle{
+  position:absolute;
+  z-index:20;
+  transition:background 0.15s;
+}
+/* Notes list — right edge */
+.drag-handle-right{
+  top:0;right:-3px;bottom:0;width:6px;
+  cursor:col-resize;
+}
+.drag-handle-right::after{
+  content:'';
+  position:absolute;top:0;bottom:0;
+  left:2px;width:2px;
+  background:transparent;
+  transition:background 0.15s;
+}
+.drag-handle-right:hover::after,
+.drag-handle-right.dragging::after{
+  background:var(--accent);
+}
+/* Content panel — left edge */
+.drag-handle-left{
+  top:0;left:-3px;bottom:0;width:6px;
+  cursor:col-resize;
+}
+.drag-handle-left::after{
+  content:'';
+  position:absolute;top:0;bottom:0;
+  right:2px;width:2px;
+  background:transparent;
+  transition:background 0.15s;
+}
+.drag-handle-left:hover::after,
+.drag-handle-left.dragging::after{
+  background:var(--accent);
+}
+/* Prevent text selection while dragging */
+body.is-resizing{user-select:none;cursor:col-resize!important}
+body.is-resizing *{cursor:col-resize!important}
+
+/* ── Session block in sidebar ── */
+.session-active {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px; cursor: pointer;
+  transition: background 0.12s; border-left: 2px solid transparent;
+}
+.session-active:hover { background: var(--bg3); border-left-color: var(--accent); }
+.session-active-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background 0.2s;
+}
+.session-active-dot.live     { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.session-active-dot.paused   { background: var(--yellow); }
+.session-active-dot.complete { background: var(--muted);  }
+
+/* ── Session status pill in list ── */
+.session-status-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 600;
+  letter-spacing: 0.06em; border-radius: 4px; padding: 2px 7px;
+  cursor: pointer; border: 1px solid transparent; flex-shrink: 0;
+  transition: all 0.12s; user-select: none;
+}
+.session-status-pill.active   { color: var(--green);  background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.25); }
+.session-status-pill.paused   { color: var(--yellow); background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.25); }
+.session-status-pill.complete { color: var(--muted);  background: var(--bg4);            border-color: var(--border); }
+.session-status-pill:hover { filter: brightness(1.2); border-color: currentColor; }
+
+/* ── Status dropdown (shared singleton, fixed position) ── */
+.status-dropdown {
+  display: none; position: fixed;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 4px; z-index: 9000;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5); min-width: 110px;
+  flex-direction: column; gap: 2px;
+}
+.status-dropdown.open { display: flex; }
+.status-dropdown-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 9px; border-radius: 4px; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  transition: background 0.1s;
+}
+.status-dropdown-item:hover { background: var(--bg3); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.active   { background: var(--green); }
+.status-dot.paused   { background: var(--yellow); }
+.status-dot.complete { background: var(--muted); }
+
+/* ── Completed session muted look ── */
+.session-list-item.status-complete { opacity: 0.6; }
+.session-list-item.status-complete .session-list-item-name { color: var(--text2); }
+
+/* ── Syntax theme picker ── */
+.syntax-theme-picker {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; height: 28px; box-sizing: border-box; align-self: center;
+}
+.syntax-dot {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 5px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s; opacity: 0.45;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); white-space: nowrap;
+}
+.syntax-dot::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dot-color); flex-shrink: 0;
+}
+.syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
+.syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
+
+
+.task-list { list-style: none; padding-left: 4px; }
+.task-item { display: flex; align-items: baseline; gap: 7px; padding: 2px 0; }
+.task-checkbox {
+  width: 13px; height: 13px; margin: 0; flex-shrink: 0;
+  accent-color: var(--accent); cursor: pointer; margin-top: 2px;
+}
+.task-item input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+.notes-search-wrap {
+  padding: 6px 10px; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+.notes-search-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 5px 9px; font-size: 11px;
+  font-family: 'Inter', sans-serif; color: var(--text);
+  outline: none; box-sizing: border-box;
+}
+.notes-search-input::placeholder { color: var(--muted); }
+.notes-search-input:focus { border-color: var(--accent); }
+.session-notes-badge {
+  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700; color: var(--muted); background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 1px 5px; margin-left: 4px; flex-shrink: 0;
+}
+.target-copy-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
+.session-active-info { flex: 1; min-width: 0; }
+.session-active-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'Inter', sans-serif;
+}
+.session-active-target {
+  font-size: 11px; color: var(--text2);
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+/* Encrypted session button */
+.session-encrypt-row {
+  padding: 4px 14px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.session-encrypt-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  text-align: center;
+}
+.session-encrypt-btn:hover {
+  border-color: var(--border2);
+  color: var(--text2);
+  background: var(--bg4);
+}
+.session-encrypt-btn.on {
+  border-color: rgba(52,211,153,0.5);
+  color: var(--green);
+  background: rgba(52,211,153,0.1);
+  box-shadow: 0 0 8px rgba(52,211,153,0.12);
+}
+.session-encrypt-btn.on:hover {
+  background: rgba(52,211,153,0.16);
+  border-color: rgba(52,211,153,0.7);
+}
+.session-encrypt-btn.locked {
+  border-color: rgba(248,113,113,0.5);
+  color: var(--red);
+  background: rgba(248,113,113,0.1);
+  box-shadow: 0 0 8px rgba(248,113,113,0.1);
+}
+.session-encrypt-btn.locked:hover {
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.7);
+}
+
+/* Session modal */
+.session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.session-field { display: flex; flex-direction: column; gap: 4px; }
+.session-field label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.session-field input {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 7px 10px;
+  font-size: 13px; font-family: 'IBM Plex Mono', monospace;
+  outline: none; transition: border-color 0.15s;
+  width: 100%; box-sizing: border-box;
+}
+.session-field input:focus { border-color: var(--accent); }
+.session-field input::placeholder { color: var(--muted); }
+.session-actions { display: flex; gap: 8px; margin-top: 4px; }
+.session-btn {
+  flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.session-btn.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.session-btn.primary:hover { background: var(--accent2); }
+.session-btn.secondary { background: var(--bg3); color: var(--text2); }
+.session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
+.session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.session-list-hdr {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  padding: 0 2px 4px;
+}
+.session-list-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--border);
+  transition: all 0.12s;
+}
+.session-list-item:hover { border-color: var(--border2); }
+.session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
+.session-list-item-name {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.session-list-item-meta {
+  font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.session-list-item-bottom {
+  display: flex; align-items: center; gap: 6px;
+}
+.session-item-actions {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.session-item-export-btn {
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--btn-color); cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  padding: 2px 7px; transition: all 0.12s; white-space: nowrap;
+}
+.session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.session-delete-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 15px; padding: 2px 4px; border-radius: 4px; transition: all 0.12s;
+  flex-shrink: 0; margin-left: 2px; opacity: 0.5;
+}
+.session-delete-btn:hover { color: var(--red); opacity: 1; }
+
+/* ── Notes scope bar (Session / Unassigned / All) ── */
+.notes-scope-bar {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0; overflow: hidden;
+}
+.note-scope-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); padding: 6px 4px; min-width: 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.note-scope-btn:hover { color: var(--text2); }
+.note-scope-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Score tooltip ── */
+.score-help{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:50%;
+  border:1px solid var(--border2);
+  font-size:9px;font-weight:700;color:var(--muted);
+  cursor:help;position:relative;flex-shrink:0;
+  font-family:'Inter',sans-serif;
+}
+.score-help:hover{border-color:var(--accent);color:var(--accent)}
+.score-help-tip{
+  display:none;
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:var(--bg4);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 13px;
+  font-family:'Inter',sans-serif;font-size:12px;
+  color:var(--text2);line-height:1.6;
+  width:240px;z-index:200;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  white-space:normal;
+}
+.score-help:hover .score-help-tip{display:block}
+
+/* ── Target selector (topbar) ── */
+.target-selector {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0 12px;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  min-width: 180px; max-width: 320px; overflow: hidden;
+  height: 28px; box-sizing: border-box; align-self: center;
+}
+.target-selector:hover { border-color: var(--accent); }
+.target-sel-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0; transition: background 0.2s;
+}
+.target-sel-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.target-sel-info { display: flex; align-items: baseline; gap: 7px; flex: 1; min-width: 0; overflow: hidden; }
+.target-sel-domain { max-width: 100px; }
+.target-sel-ip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--text); white-space: nowrap;
+}
+.target-sel-domain {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.target-sel-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--accent); background: rgba(124,58,237,0.18);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
+  padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
+}
+.target-sel-arrow { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+
+/* Targets list items */
+.target-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg3);
+  cursor: pointer; transition: all 0.12s;
+}
+.target-item:hover { border-color: var(--border2); }
+.target-item.active-target {
+  border-color: var(--green); background: rgba(52,211,153,0.06);
+}
+.target-item-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+}
+.target-item.active-target .target-item-dot {
+  background: var(--green); box-shadow: 0 0 5px var(--green);
+}
+.target-item-ip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--text); min-width: 110px;
+}
+.target-item-domain {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); flex: 1;
+}
+.target-item-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--accent); background: rgba(124,58,237,0.18);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
+}
+.target-item-del {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 16px; padding: 2px 6px; border-radius: 3px; transition: all 0.12s;
+}
+.target-item-del:hover { color: var(--red); }
+.targets-empty {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--muted); text-align: center; padding: 14px 0;
+}
+
+/* ── Content panel edit mode ── */
+.content-panel-edit {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.cp-edit-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; background: var(--bg2);
+}
+.cp-edit-status {
+  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--muted);
+}
+.cp-edit-status.saved  { color: var(--green); }
+.cp-edit-status.unsaved { color: var(--yellow); }
+.cp-edit-textarea {
+  flex: 1; background: transparent; border: none; outline: none; resize: none;
+  color: transparent; caret-color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; line-height: 1.75; padding: 16px 20px;
+  tab-size: 2; position: relative; z-index: 1;
+  white-space: pre-wrap; word-wrap: break-word; overflow-y: auto;
+}
+.cp-edit-textarea::placeholder { color: var(--muted); }
+/* Edit button active state */
+#cpEditBtn.editing { color: var(--accent); }
+
+/* ── Note tags ── */
+.note-tags-row {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+  padding: 6px 14px 0; flex-shrink: 0;
+}
+.note-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  color: var(--accent); background: rgba(124,58,237,0.18);
+  border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
+  padding: 2px 7px; cursor: pointer; transition: all 0.12s;
+  user-select: none;
+}
+.note-tag:hover { background: rgba(124,58,237,0.2); }
+.note-tag-del { opacity: 0.5; margin-left: 3px; }
+.note-tag-del:hover { opacity: 1; }
+.note-tag-input {
+  background: none; border: none; outline: none;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  color: var(--text2); min-width: 80px; flex: 1;
+}
+.note-tag-input::placeholder { color: var(--muted); }
+
+/* Tags in note list items */
+.note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.note-item-tag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: var(--accent); background: rgba(124,58,237,0.16);
+  border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
+}
+
+/* Tag filter in sidebar */
+.tag-filter-scroll {
+  padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
+}
+.tag-filter-chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
+  letter-spacing: 0.03em;
+}
+.tag-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.tag-filter-chip.active { color: var(--accent); background: rgba(124,58,237,0.18); border-color: rgba(124,58,237,0.35); }
+
+/* ── Note target assign ── */
+.note-target-assign-wrap { position: relative; flex-shrink: 0; }
+.note-target-assign-btn {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 3px 9px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--muted); transition: all 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
+.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
+.note-target-assign-dropdown {
+  display: none; position: absolute; top: calc(100% + 5px); right: 0;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 8px; min-width: 180px; z-index: 400;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  flex-direction: column; overflow: hidden;
+}
+.note-target-assign-dropdown.open { display: flex; }
+.note-target-assign-option {
+  padding: 8px 14px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: var(--text2); transition: background 0.1s; white-space: nowrap;
+}
+.note-target-assign-option:hover { background: var(--bg4); color: var(--text); }
+.note-target-assign-option.current { color: var(--accent); }
+.note-target-assign-option.unassign { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+/* ── Target filter bar in notes list ── */
+.target-filter-bar {
+  display: none;
+  gap: 5px; padding: 5px 10px 4px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; flex-shrink: 0;
+}
+.target-filter-bar::-webkit-scrollbar { height: 2px; }
+.target-filter-bar::-webkit-scrollbar-thumb { background: var(--border2); }
+.target-filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 8px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
+}
+.target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
+.target-filter-chip.active { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+
+/* Target badge on note list items */
+.note-item-target {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--green); background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
+  padding: 1px 5px; margin-top: 3px;
+}
+
+/* ── Note reassign dropdown ── */
+.note-reassign-wrap { position: relative; flex-shrink: 0; }
+.note-reassign-btn {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
+}
+.note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
+.note-reassign-btn.assigned { color: var(--green); border-color: rgba(52,211,153,0.3); }
+.note-reassign-dropdown {
+  display: none; position: absolute; top: calc(100% + 5px); right: 0;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px; min-width: 180px;
+  z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  flex-direction: column; gap: 3px;
+}
+.note-reassign-dropdown.open { display: flex; }
+.note-reassign-option {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  color: var(--text2); padding: 6px 10px; border-radius: 5px; cursor: pointer;
+  transition: background 0.1s; white-space: nowrap;
+}
+.note-reassign-option:hover { background: var(--bg3); color: var(--text); }
+.note-reassign-option.current { color: var(--accent); }
+.note-reassign-option.unassign { color: var(--muted); font-weight: 400; }
+
+/* ── .session file import feedback ── */
+.import-feedback {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  padding: 8px 10px; border-radius: 6px; margin-top: 2px;
+}
+.import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
+.import-feedback.err { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+
+/* ── Shortcuts modal ── */
+.shortcuts-group { display: flex; flex-direction: column; gap: 6px; }
+.shortcuts-group-hdr {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  padding-bottom: 4px; border-bottom: 1px solid var(--border);
+}
+.shortcuts-table { display: flex; flex-direction: column; gap: 2px; }
+.shortcut-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 6px; border-radius: 5px; transition: background 0.1s;
+}
+.shortcut-row:hover { background: var(--bg3); }
+.shortcut-desc {
+  font-size: 13px; color: var(--text2); font-family: 'Inter', sans-serif;
+}
+.shortcut-keys {
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+}
+kbd {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--text); background: var(--bg4);
+  border: 1px solid var(--border2); border-bottom-width: 2px;
+  border-radius: 4px; padding: 2px 7px; line-height: 1.6;
+}
+
+/* ── Logo image (future) — uncomment when logo is added
+.topbar-logo-wrap { display: flex; align-items: center; flex-shrink: 0; margin-right: 8px; color: var(--logo-icon-color); }
+.topbar-logo-img  { height: 28px; width: auto; object-fit: contain; }
+.topbar-logo-icon { width: var(--logo-icon-size); height: var(--logo-icon-size); display: block; }
+── */
+
+/* ── Result card right column: score + badges stacked ── */
+.result-card-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 4px; flex-shrink: 0; margin-left: 10px;
+}
+.result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+
+/* note-textarea and cp-edit-textarea styled via CodeMirror */
+
+/* ── CodeMirror 6 editor integration ── */
+.cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.cm-wrap .cm-editor {
+  flex: 1; height: 100%; font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  background: transparent !important;
+}
+.cm-wrap.kb-editor .cm-editor { font-size: 13px; }
+.cm-editor.cm-focused { outline: none !important; }
+.cm-editor .cm-scroller { padding: 16px; line-height: 1.8; overflow-y: auto; }
+.cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }
+/* Override CM6 default background to match PRAGMA theme */
+.cm-editor .cm-content { caret-color: var(--text); }
+
+.result-badge.online{color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
+.result-snippet mark{background:rgba(34,197,94,0.18);color:var(--text);border-radius:2px;padding:0 2px;font-style:normal}
+.search-meta{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+  margin-top:1px;
+}
+
+/* ── Encrypted session indicator ── */
+/* Green left border + subtle sweep animation when encrypted session active */
+.sidebar.enc-active {
+  border-right-color: rgba(52,211,153,0.35);
+  box-shadow: inset -2px 0 18px rgba(52,211,153,0.07);
+}
+
+/* Pulsing green bar down the left edge of sidebar */
+.sidebar.enc-active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--green) 15%,
+    var(--green) 85%,
+    transparent 100%
+  );
+  animation: encPulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes encPulse {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1;   }
+  100% { opacity: 0.4; }
+}
+
+/* Session block gets subtle green tint */
+.sidebar.enc-active #sessionSection {
+  background: rgba(52,211,153,0.04);
+  border-bottom: 1px solid rgba(52,211,153,0.15);
+}
+
+/* Topbar gets a hairline green glow at the bottom when enc active */
+body.enc-active-body .topbar {
+  border-bottom-color: rgba(52,211,153,0.3);
+  box-shadow: 0 1px 0 rgba(52,211,153,0.15);
+}
+
+/* ── Custom password / confirm modal ── */
+.pw-overlay {
+  display: none; position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.65);
+  align-items: center; justify-content: center;
+}
+.pw-overlay.open { display: flex; }
+
+.pw-box {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 12px; width: 90%; max-width: 400px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  overflow: hidden;
+  animation: cmdSlide 0.06s ease;
+}
+.pw-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.pw-header-icon { font-size: 18px; }
+.pw-header-title {
+  flex: 1; font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.pw-header-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 18px; padding: 2px 8px;
+  border-radius: 4px; transition: all 0.12s;
+}
+.pw-header-close:hover { background: var(--bg4); color: var(--text); }
+
+.pw-body {
+  padding: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.pw-description {
+  font-family: 'Inter', sans-serif; font-size: 13px;
+  color: var(--text2); line-height: 1.6;
+}
+.pw-description strong { color: var(--text); }
+.pw-field { display: flex; flex-direction: column; gap: 5px; }
+.pw-field label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.pw-input-wrap { position: relative; }
+.pw-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text);
+  padding: 8px 36px 8px 10px;
+  font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  outline: none; transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.pw-input:focus { border-color: var(--accent); }
+.pw-input::placeholder { color: var(--muted); }
+.pw-input.error { border-color: var(--red); }
+.pw-toggle-vis {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 14px; padding: 2px 4px;
+  transition: color 0.12s;
+}
+.pw-toggle-vis:hover { color: var(--text2); }
+.pw-strength {
+  display: flex; gap: 3px; margin-top: 3px;
+}
+.pw-strength-bar {
+  height: 3px; flex: 1; border-radius: 2px;
+  background: var(--border); transition: background 0.2s;
+}
+.pw-strength-bar.weak    { background: var(--red); }
+.pw-strength-bar.medium  { background: var(--yellow); }
+.pw-strength-bar.strong  { background: var(--green); }
+.pw-strength-bar.perfect { background: var(--accent); }
+.pw-error-msg {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--red); display: none; margin-top: 2px;
+}
+.pw-error-msg.visible { display: block; }
+
+.pw-actions { display: flex; gap: 8px; padding-top: 4px; }
+.pw-btn {
+  flex: 1; padding: 9px; border-radius: 7px;
+  border: 1px solid var(--border);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+  letter-spacing: 0.04em;
+}
+.pw-btn.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.pw-btn.primary:hover { background: var(--accent2); }
+.pw-btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.pw-btn.secondary { background: var(--bg3); color: var(--text2); }
+.pw-btn.secondary:hover { background: var(--bg4); color: var(--text); }
+.pw-btn.danger {
+  background: rgba(248,113,113,0.1); color: var(--red);
+  border-color: rgba(248,113,113,0.25);
+}
+.pw-btn.danger:hover { background: rgba(248,113,113,0.2); }
+
+/* Confirm variant */
+.pw-confirm-icon { font-size: 32px; text-align: center; padding: 4px 0; }
+
+/* ── Port/Service Quick-Log ── */
+/* ── Quick-Log topbar button ── */
+.svc-topbar-wrap { position: relative; flex-shrink: 0; }
+.svc-topbar-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0 10px;
+  cursor: pointer; transition: all 0.15s;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); white-space: nowrap;
+  height: 28px; box-sizing: border-box; align-self: center;
+}
+.svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
+.svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
+.svc-topbar-btn-count {
+  background: var(--accent); color: #fff;
+  font-size: 9px; font-weight: 700;
+  border-radius: 3px; padding: 1px 5px; min-width: 16px; text-align: center;
+  display: none;
+}
+.svc-topbar-btn-count.has-entries { display: inline-block; }
+
+/* ── Quick-Log popover panel ── */
+.svc-popover {
+  display: none; position: absolute; top: calc(100% + 8px); right: 0;
+  width: 520px; max-width: 95vw;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  z-index: 300; overflow: hidden;
+  animation: cmdSlide 0.06s ease;
+}
+.svc-popover.open { display: block; }
+.svc-popover-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px 0; border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.svc-popover-title {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  white-space: nowrap;
+}
+/* ── Tabs ── */
+.svc-tabs { display: flex; gap: 0; flex: 1; margin-left: 4px; }
+.svc-tab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600; padding: 4px 10px 8px;
+  transition: all 0.12s; white-space: nowrap;
+}
+.svc-tab:hover { color: var(--text2); }
+.svc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.svc-tab-count {
+  display: inline-block; background: var(--bg); border-radius: 8px;
+  font-size: 9px; font-weight: 700; padding: 1px 5px; margin-left: 4px;
+  color: var(--text2); vertical-align: middle;
+}
+.svc-tab.active .svc-tab-count { background: rgba(124,58,237,0.2); color: var(--accent); }
+.svc-popover-body { padding: 12px 14px; }
+.svc-popover-table-wrap { max-height: 260px; overflow-y: auto; margin-top: 10px; }
+.svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
+.svc-popover-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
+/* ── Paths table ── */
+.path-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.path-table th {
+  text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border); background: var(--bg3);
+}
+.path-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.path-table tr:last-child td { border-bottom: none; }
+.path-table tr:hover td { background: rgba(124,58,237,0.06); }
+.path-table td:first-child { white-space: nowrap; }
+.path-status { font-size: 10px; font-weight: 700; font-family: 'Inter', sans-serif;
+  padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+.path-status-2 { background: rgba(52,211,153,0.15); color: var(--green); }
+.path-status-3 { background: rgba(251,191,36,0.15); color: #f59e0b; }
+.path-status-4 { background: rgba(239,68,68,0.15); color: var(--red); }
+.path-status-x { background: var(--bg3); color: var(--muted); }
+
+.svc-log-hdr {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 7px; display: flex; align-items: center; gap: 8px;
+}
+.svc-log-hdr-count {
+  font-size: 10px; background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 3px; padding: 1px 5px; color: var(--text2); font-weight: 600;
+}
+.svc-quick-input-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.svc-quick-input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  outline: none; transition: border-color 0.15s;
+}
+.svc-quick-input:focus { border-color: var(--accent); }
+.svc-quick-input::placeholder { color: var(--muted); }
+.svc-quick-add-btn {
+  background: var(--accent); border: none; border-radius: 6px;
+  color: #fff; font-family: 'Inter', sans-serif; font-size: 13px;
+  font-weight: 600; padding: 7px 14px; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+}
+.svc-quick-add-btn:hover { background: var(--accent2); }
+.svc-hint {
+  font-family: 'Inter', sans-serif; font-size: 12px; color: var(--muted);
+  margin-bottom: 7px; line-height: 1.6;
+}
+/* ── Nmap parse preview ── */
+.nmap-preview-hdr {
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--text2); margin-bottom: 4px;
+}
+.nmap-preview-hdr span { color: var(--green); }
+.nmap-preview-none {
+  font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
+  padding: 6px 0;
+}
+.svc-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.svc-table th {
+  text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border); background: var(--bg3);
+}
+.svc-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.svc-table tr:last-child td { border-bottom: none; }
+.svc-table tr:hover td { background: rgba(124,58,237,0.06); }
+.svc-table td:first-child { color: var(--green); font-weight: 700; white-space: nowrap; }
+.svc-table td:nth-child(2) { color: var(--accent); font-weight: 700; }
+.svc-del-btn {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 13px; padding: 0 4px; border-radius: 3px; transition: color 0.12s;
+}
+.svc-del-btn:hover { color: var(--red); }
+.svc-notes-cell {
+  background: none; border: none; outline: none;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  color: var(--text2); width: 100%; resize: none; min-width: 80px;
+}
+.svc-notes-cell::placeholder { color: var(--muted); }
+.svc-empty { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
+
+/* ── Timeline View ── */
+.notes-list-view-toggle {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+.notes-view-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--btn-color); padding: 5px 4px;
+  border-bottom: 2px solid transparent; transition: all 0.12s;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.notes-view-btn:hover { color: var(--text2); }
+.notes-view-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.timeline-list {
+  flex: 1; overflow-y: auto; position: relative;
+  padding: 12px 0 12px 28px; display: none;
+}
+.timeline-list::-webkit-scrollbar { width: 3px; }
+.timeline-list::-webkit-scrollbar-thumb { background: var(--border2); }
+.timeline-list::before {
+  content: ''; position: absolute; left: 18px; top: 0; bottom: 0;
+  width: 2px; background: rgba(124,58,237,0.35); border-radius: 1px;
+}
+.timeline-day-group { margin-bottom: 4px; }
+.timeline-day-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  padding: 6px 10px 4px 2px; display: flex; align-items: center; gap: 6px; position: relative;
+}
+.timeline-day-label::before {
+  content: ''; position: absolute; left: -13px; top: 50%; transform: translateY(-50%);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2); border: 2px solid var(--bg2); z-index: 1;
+}
+.timeline-entry {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 10px 6px 2px; cursor: pointer;
+  border-radius: 5px; transition: background 0.1s; position: relative; margin-bottom: 2px;
+}
+.timeline-entry:hover { background: rgba(124,58,237,0.1); }
+.timeline-entry.tl-active { background: rgba(124,58,237,0.15); }
+.timeline-entry::before {
+  content: ''; position: absolute; left: -12px; top: 11px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border2); border: 1.5px solid var(--bg2);
+  transition: background 0.12s; z-index: 1;
+}
+.timeline-entry:hover::before, .timeline-entry.tl-active::before { background: var(--accent); }
+.tl-time {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-top: 2px; min-width: 38px;
+}
+.tl-body { flex: 1; min-width: 0; }
+.tl-type-badge {
+  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
+}
+.tl-title {
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-preview {
+  font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+}
+/* ── Event type entries (non-note) ── */
+.tl-event {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 2px; border-radius: 5px;
+  position: relative; margin-bottom: 2px; transition: background 0.1s;
+}
+.tl-event::before {
+  content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border2); border: 1.5px solid var(--bg2); z-index: 1;
+}
+.tl-event-status::before { background: var(--accent); }
+.tl-event-session::before { background: var(--green); }
+.tl-event-label {
+  font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
+  flex: 1; min-width: 0;
+}
+.tl-event-label strong { color: var(--text2); font-weight: 600; }
+.tl-status-arrow {
+  font-size: 10px; color: var(--muted); margin: 0 2px;
+}
+.tl-status-badge {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+}
+.tl-status-active   { color: var(--green);  background: rgba(52,211,153,0.12); }
+.tl-status-paused   { color: var(--yellow); background: rgba(251,191,36,0.12); }
+.tl-status-complete { color: var(--muted);  background: rgba(150,171,190,0.12); }
+/* ── Idle gap ── */
+.tl-idle-gap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px 6px 2px; margin: 4px 0;
+  position: relative;
+}
+.tl-idle-gap::before {
+  content: ''; position: absolute; left: -17px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border); border: 1.5px solid var(--bg2); z-index: 1;
+}
+.tl-idle-label {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--border2);
+  letter-spacing: 0.06em; font-style: italic;
+}
+/* ── Timeline toolbar ── */
+.timeline-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tl-filter-select {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text2); font-family: 'Inter', sans-serif;
+  font-size: 11px; padding: 3px 6px; outline: none; cursor: pointer;
+}
+.tl-filter-select:focus { border-color: var(--accent); }
+.tl-export-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--btn-color); font-family: 'Inter', sans-serif; font-size: 11px;
+  font-weight: 600; padding: 3px 8px; cursor: pointer; white-space: nowrap;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.tl-export-btn:hover { border-color: var(--border2); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── TOPBAR ── -->
+  <div class="topbar">
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)"><span style="line-height:1;display:block">☰</span></button>
+    <div class="topbar-logo-wrap">
+      <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
+      </svg>
+    </div>
+    <div class="topbar-logo">PRAGMA<span>// Workbench</span>
+      <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
+    </div>
+
+    <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
+      <div class="target-sel-dot" id="targetSelDot"></div>
+      <div class="target-sel-info">
+        <span class="target-sel-ip" id="targetSelIP">No target</span>
+        <span class="target-sel-domain" id="targetSelDomain"></span>
+      </div>
+      <span class="target-sel-label" id="targetSelLabel"></span>
+      <span class="target-sel-arrow">⌄</span>
+    </div>
+    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">📋 Copy IP</button>
+
+    <!-- ── Quick-Log button + popover ── -->
+    <div class="svc-topbar-wrap" id="svcTopbarWrap">
+      <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
+        ⚡ Log
+        <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
+      </button>
+      <div class="svc-popover" id="svcPopover">
+        <div class="svc-popover-hdr">
+          <span class="svc-popover-title">⚡ Recon Log</span>
+          <span id="svcSessionLabel" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <div class="svc-tabs">
+            <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
+            <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
+          </div>
+          <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">✕</button>
+        </div>
+
+        <!-- ── PORTS TAB ── -->
+        <div class="svc-popover-body" id="svcPanelPorts">
+          <div class="svc-hint">Format: <strong style="color:var(--text2)">port/proto service version notes</strong> — e.g. <code style="color:var(--green);font-size:10px">445/tcp smb</code> &nbsp; <code style="color:var(--green);font-size:10px">8080 http nginx 1.18</code></div>
+          <div class="svc-quick-input-row">
+            <input class="svc-quick-input" id="svcQuickInput" type="text"
+              placeholder="80/tcp http apache 2.4.49…"
+              autocomplete="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter')addServiceLog()">
+            <button class="svc-quick-add-btn" onclick="addServiceLog()">＋ Add</button>
+            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output">⌨ Import</button>
+          </div>
+          <div id="portPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
+            <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">nmap · rustscan · masscan</strong></div>
+            <textarea id="portPasteInput" placeholder="Paste tool output here…" spellcheck="false"
+              style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+                     color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 10px;
+                     outline:none;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
+            <div id="portParsePreview" style="display:none"></div>
+            <div style="display:flex;gap:6px">
+              <button class="svc-quick-add-btn" onclick="parseAndPreviewPorts()" style="flex:1">⚡ Parse</button>
+              <button class="svc-quick-add-btn" onclick="commitPortParse()" id="portCommitBtn"
+                style="flex:1;display:none;background:var(--accent);border-color:var(--accent);color:#fff">＋ Add</button>
+              <button class="svc-quick-add-btn" onclick="toggleToolPaste('ports')"
+                style="background:var(--bg3);color:var(--muted);border-color:var(--border)">Cancel</button>
+            </div>
+          </div>
+          <div class="svc-popover-table-wrap">
+            <div id="svcLogTable"></div>
+          </div>
+        </div>
+
+        <!-- ── PATHS TAB ── -->
+        <div class="svc-popover-body" id="svcPanelPaths" style="display:none">
+          <div class="svc-hint">Log web paths from directory/vhost enumeration.</div>
+          <div class="svc-quick-input-row">
+            <input class="svc-quick-input" id="pathQuickInput" type="text"
+              placeholder="/admin  or  200 /login.php"
+              autocomplete="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter')addPathLog()">
+            <button class="svc-quick-add-btn" onclick="addPathLog()">＋ Add</button>
+            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('paths')" id="pathPasteToggle" title="Paste tool output">⌨ Import</button>
+          </div>
+          <div id="pathPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
+            <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">gobuster · ffuf · dirbuster</strong></div>
+            <textarea id="pathPasteInput" placeholder="Paste tool output here…" spellcheck="false"
+              style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+                     color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 10px;
+                     outline:none;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
+            <div id="pathParsePreview" style="display:none"></div>
+            <div style="display:flex;gap:6px">
+              <button class="svc-quick-add-btn" onclick="parseAndPreviewPaths()" style="flex:1">⚡ Parse</button>
+              <button class="svc-quick-add-btn" onclick="commitPathParse()" id="pathCommitBtn"
+                style="flex:1;display:none;background:var(--accent);border-color:var(--accent);color:#fff">＋ Add</button>
+              <button class="svc-quick-add-btn" onclick="toggleToolPaste('paths')"
+                style="background:var(--bg3);color:var(--muted);border-color:var(--border)">Cancel</button>
+            </div>
+          </div>
+          <div class="svc-popover-table-wrap">
+            <div id="pathLogTable"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="cmd-trigger" onclick="openCmd()" title="⌘K">
+      <span class="cmd-trigger-icon">⌘</span>
+      <span class="cmd-trigger-text">Quick open, search anything…</span>
+      <span class="cmd-trigger-kbd">⌘K</span>
+    </button>
+
+    <div class="topbar-actions">
+      <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
+      <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
+    </div>
+  </div>
+
+  <!-- ── BODY ── -->
+  <div class="body-split">
+
+    <!-- ── SIDEBAR ── -->
+    <div class="sidebar">
+      <!-- Active session -->
+      <div class="sidebar-section" id="sessionSection">
+        <div class="sidebar-section-hdr">Session</div>
+        <div class="session-active" id="sessionActive" onclick="openSessionModal()">
+          <div class="session-active-dot" id="sessionDot"></div>
+          <div class="session-active-info">
+            <div class="session-active-name" id="sessionName">No session</div>
+            <div class="session-active-target" id="sessionTarget">click to set</div>
+          </div>
+          <span class="session-notes-badge" id="sessionNotesBadge" style="display:none"></span>
+          <span class="session-active-arrow">›</span>
+        </div>
+        <div class="session-encrypt-row">
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Workbench</button>
+          <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none">⬇ Backup</button>
+        </div>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr">Navigate</div>
+        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes">
+          <span class="nav-item-icon">📝</span>
+          <span class="nav-item-label">Session Notes</span>
+          <span class="nav-item-count" id="notes-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('services',this)" id="nav-services">
+          <span class="nav-item-icon">🔌</span>
+          <span class="nav-item-label">Services</span>
+          <span class="nav-item-count" id="svc-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies">
+          <span class="nav-item-icon">📋</span>
+          <span class="nav-item-label">Tactical Guides</span>
+          <span class="nav-item-count" id="meth-count">—</span>
+        </div>
+        <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
+          <span class="nav-item-icon">🔍</span>
+          <span class="nav-item-label">Search in KB</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Category filters (contextual) -->
+      <div class="sidebar-section" style="display:none">
+        <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
+      </div>
+      <div class="cat-scroll" id="catList" style="display:none"></div>
+
+      <!-- Tag filter (notes view) -->
+      <div class="sidebar-section" id="tagFilterSection" style="display:none">
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-hdr">Tags</div>
+        <div class="tag-filter-scroll" id="tagFilterList"></div>
+      </div>
+
+      <!-- Version (NOT YET ADDED) --> 
+      <!--<div class="sidebar-version"></d>-->
+    </div>
+
+    <!-- ── MAIN PANEL ── -->
+    <div class="main-panel">
+
+      <!-- ── SERVICES VIEW ── -->
+      <div class="panel-view" id="view-services">
+        <div class="cards-toolbar">
+          <div class="local-search">
+            <span class="local-search-icon">⌕</span>
+            <input type="text" id="svcSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('services',this.value)">
+          </div>
+          <span class="toolbar-count" id="svc-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="svcGrid"></div>
+      </div>
+
+      <!-- ── METHODOLOGIES VIEW ── -->
+      <div class="panel-view" id="view-methodologies">
+        <div class="cards-toolbar">
+          <div class="local-search">
+            <span class="local-search-icon">⌕</span>
+            <input type="text" id="methSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('methodologies',this.value)">
+          </div>
+          <span class="toolbar-count" id="meth-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="methGrid"></div>
+      </div>
+
+      <!-- ── SEARCH VIEW ── -->
+      <div class="panel-view" id="view-search">
+        <div class="search-toolbar">
+          <div class="search-input-row">
+            <div class="search-big">
+              <span class="search-big-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Search across all indexed sources…" autocomplete="off" oninput="onSearch(this.value)">
+            </div>
+            <div class="score-help" style="margin-right:4px">?
+              <div class="score-help-tip">
+                <strong style="color:var(--text)">Relevance Score</strong><br>
+                0–100 scale. Higher = stronger match.<br><br>
+                <span style="color:var(--green)">90–100</span> — exact title or phrase match<br>
+                <span style="color:var(--accent)">60–89</span> — strong content match<br>
+                <span style="color:var(--muted)">below 60</span> — fuzzy / partial match<br><br>
+                Calculated by the search indexer using TF-IDF weighted full-text scoring across the indexed source content.
+              </div>
+            </div>
+            <button class="search-clear-btn" onclick="clearSearch()">✕ Clear</button>
+          </div>
+          <div class="search-controls-row">
+            <span class="ctrl-label">Scope</span>
+            <div class="btn-group" id="scopeGroup">
+              <button class="btn-group-item active" data-scope="all" onclick="setScope('all',this)">All</button>
+              <button class="btn-group-item" data-scope="local" onclick="setScope('local',this)">Local</button>
+              <button class="btn-group-item" data-scope="online" onclick="setScope('online',this)">Online</button>
+            </div>
+            <span class="ctrl-label">Fuzzy</span>
+            <div class="btn-group" id="fuzzyGroup">
+              <button class="btn-group-item" data-fuzzy="off" onclick="setFuzzy('off',this)">Off</button>
+              <button class="btn-group-item fuzzy-active" data-fuzzy="normal" onclick="setFuzzy('normal',this)">On</button>
+              <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
+            </div>
+            <span class="search-status" id="searchStatus"></span>
+            <span class="search-meta" id="searchMeta"></span>
+          </div>
+          <div class="source-filter-row" id="sourceFilterRow" style="display:none">
+            <span class="ctrl-label">Sources</span>
+            <div class="source-chips" id="sourceChips"></div>
+          </div>
+        </div>
+        <div class="results-list" id="resultsList">
+          <div class="results-offline">
+            <div class="results-offline-icon">🔍</div>
+            <div class="results-offline-text">Start typing to search</div>
+            <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NOTES VIEW ── -->
+      <div class="panel-view active" id="view-notes">
+        <div class="notes-layout">
+          <div class="notes-list">
+            <div class="notes-list-hdr">
+              <span>Notes</span>
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note">＋</button>
+            </div>
+            <div class="notes-search-wrap">
+              <input class="notes-search-input" id="noteSearchInput" type="text"
+                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="notes-list-view-toggle">
+              <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)">⏱ Timeline</button>
+            </div>
+            <div class="notes-scope-bar">
+              <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
+              <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
+              <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
+            </div>
+            <div class="target-filter-bar" id="targetFilterBar"></div>
+            <div class="notes-type-filter" id="notesTypeFilter">
+              <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
+              <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
+              <button class="note-type-btn" data-type="credentials" onclick="setNoteFilter('credentials',this)">Creds</button>
+              <button class="note-type-btn" data-type="privesc" onclick="setNoteFilter('privesc',this)">PrivEsc</button>
+              <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
+              <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
+              <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
+              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
+            </div>
+            <div class="notes-list-items" id="notesList"></div>
+            <div class="timeline-toolbar" id="timelineToolbar" style="display:none">
+              <select class="tl-filter-select" id="tlTargetSelect" onchange="setTlTargetFilter(this.value)">
+                <option value="">All targets</option>
+              </select>
+              <button class="tl-export-btn" onclick="exportTimeline()" title="Export timeline as markdown">↓ Export</button>
+            </div>
+            <div class="timeline-list" id="timelineList"></div>
+          <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
+          </div>
+          <div class="notes-editor" id="notesEditor">
+            <div class="notes-empty" id="notesEmpty">
+              <div class="notes-empty-icon">📝</div>
+              <div class="notes-empty-text">No note selected</div>
+              <div class="notes-empty-hint">Click ＋ to create a new note</div>
+            </div>
+            <div id="noteEditArea" style="display:none;flex:1;display:none;flex-direction:column;overflow:hidden">
+              <div class="notes-editor-hdr">
+                <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title…">
+                <span class="note-save-status" id="noteSaveStatus">saved</span>
+                <div class="note-reassign-wrap">
+                  <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
+                  <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                </div>
+                <div class="note-target-assign-wrap">
+                  <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">🎯 target</button>
+                  <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
+                </div>
+                <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
+                <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
+                <div class="syntax-theme-picker" title="Editor syntax theme">
+                  <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+                  <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+                  <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+                </div>
+                <button class="icon-btn" onclick="exportCurrentNote()" title="Export note as .md">⬇</button>
+                <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note">⧉</button>
+                <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
+              </div>
+              <div class="note-md-hint">
+                <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
+                <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+                <span title="Wiki link to another note">[[link]]</span>
+              </div>
+              <div class="note-timestamps" id="noteTimestamps">
+                <span class="note-ts">Created: <strong id="noteCreatedAt">—</strong></span>
+                <span class="note-ts">Modified: <strong id="noteModifiedAt">—</strong></span>
+              </div>
+              <div class="note-tags-row" id="noteTagsRow">
+                <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
+                  onkeydown="noteTagKeydown(event)" spellcheck="false">
+              </div>
+              <div class="note-editor-split" id="noteEditorSplit">
+                <div class="cm-wrap" id="noteBodyWrap"></div>
+                <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
+                <div class="note-preview-pane" id="notePreviewPane" style="display:none">
+                  <div class="note-preview-label">Preview</div>
+                  <div class="md-content note-preview-content" id="notePreviewContent"></div>
+                </div>
+              </div>
+              <div class="note-backlinks" id="noteBacklinks" style="display:none">
+                <div class="note-backlinks-hdr">🔗 Linked from</div>
+                <div class="note-backlinks-list" id="noteBacklinksList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main-panel -->
+
+    <!-- ── CONTENT PANEL (reader) ── -->
+    <div class="content-panel hidden-panel" id="contentPanel">
+      <div class="drag-handle drag-handle-left" id="contentPanelHandle"></div>
+      <div class="content-panel-hdr">
+        <span class="content-panel-icon" id="cpIcon">📄</span>
+        <span class="content-panel-title" id="cpTitle">—</span>
+        <span class="content-panel-meta" id="cpMeta"></span>
+        <button class="icon-btn" id="cpEditBtn" onclick="toggleEditMode()" title="Edit file" style="display:none">✎</button>
+        <button class="content-panel-close" onclick="closeContent()">✕</button>
+      </div>
+      <!-- Read mode -->
+      <div class="content-panel-body" id="cpReadBody">
+        <div class="md-content" id="cpContent"></div>
+      </div>
+      <!-- Edit mode -->
+      <div class="content-panel-edit" id="cpEditBody" style="display:none">
+        <div class="cp-edit-toolbar">
+          <span class="cp-edit-status" id="cpEditStatus"></span>
+          <button class="session-btn secondary" onclick="cancelEdit()" style="padding:5px 12px;font-size:11px">Cancel</button>
+          <button class="session-btn primary"   onclick="saveEdit()"   style="padding:5px 12px;font-size:11px">💾 Save</button>
+        </div>
+        <div class="note-md-hint">
+          <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
+          <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>> quote</span>
+        </div>
+        <div class="cm-wrap kb-editor" id="cpEditWrap"></div>
+      </div>
+    </div>
+
+  </div><!-- end body-split -->
+</div>
+
+
+<!-- ── SHORTCUTS MODAL ── -->
+<div class="cmd-overlay" id="shortcutsOverlay" onclick="if(event.target===this)closeShortcutsModal()">
+  <div class="cmd-box" style="max-width:680px;width:95vw">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">⌨</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Keyboard Shortcuts</span>
+      <span class="cmd-esc" onclick="closeShortcutsModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px">
+
+        <div class="shortcuts-group">
+          <div class="shortcuts-group-hdr">Navigation</div>
+          <div class="shortcuts-table">
+            <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Tools</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd></span></div>
+            </div>
+          </div>
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Notes</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">New note</span>        <span class="shortcut-keys"><kbd>⌘</kbd><kbd>N</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Save note</span>        <span class="shortcut-keys"><kbd>⌘</kbd><kbd>S</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Add tag</span>          <span class="shortcut-keys"><kbd>Enter</kbd></span></div>
+            </div>
+          </div>
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">Knowledge Base</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Edit open file</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>E</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Save file edit</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>S</kbd></span></div>
+            </div>
+          </div>
+          <div class="shortcuts-group">
+            <div class="shortcuts-group-hdr">General</div>
+            <div class="shortcuts-table">
+              <div class="shortcut-row"><span class="shortcut-desc">Close / dismiss</span> <span class="shortcut-keys"><kbd>ESC</kbd></span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;padding-top:6px;border-top:1px solid var(--border)">
+        On Windows/Linux use <strong style="color:var(--text2)">Ctrl</strong> instead of <strong style="color:var(--text2)">⌘</strong> — Tools shortcuts use <strong style="color:var(--text2)">Ctrl</strong> on all platforms
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ── SESSION MODAL ── -->
+<div class="cmd-overlay" id="sessionOverlay" onclick="closeSessionModalIfOutside(event)">
+  <div class="cmd-box" style="max-width:420px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">🎯</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
+      <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div class="session-modal-body">
+      <!-- New session form -->
+      <div class="session-field">
+        <label>New session codename</label>
+        <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
+      </div>
+      <div class="session-actions">
+        <button class="session-btn primary" onclick="createSession()">＋ Create Session</button>
+        <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">⬆ Import .session</button>
+        <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
+      </div>
+      <div id="importFeedback" style="display:none"></div>
+      <!-- Existing sessions -->
+      <div class="session-list" id="sessionList"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── TARGETS PANEL ── -->
+<div class="cmd-overlay" id="targetsOverlay" onclick="closeTargetsPanelIfOutside(event)">
+  <div class="cmd-box" style="max-width:440px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">🖥</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1" id="targetsPanelTitle">Targets</span>
+      <span class="cmd-esc" onclick="closeTargetsPanel()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px">
+      <!-- Add target form -->
+      <div style="display:flex;gap:8px">
+        <div class="session-field" style="flex:2;min-width:0">
+          <label>IP / Host</label>
+          <input id="newTargetIP" type="text" placeholder="10.10.10.5" autocomplete="off"
+            onkeydown="if(event.key==='Enter')addTarget()">
+        </div>
+        <div class="session-field" style="flex:2;min-width:0">
+          <label>Domain (opt.)</label>
+          <input id="newTargetDomain" type="text" placeholder="corp.local" autocomplete="off"
+            onkeydown="if(event.key==='Enter')addTarget()">
+        </div>
+        <div class="session-field" style="flex:1;min-width:0">
+          <label>Label</label>
+          <input id="newTargetLabel" type="text" placeholder="DC01" autocomplete="off"
+            onkeydown="if(event.key==='Enter')addTarget()">
+        </div>
+      </div>
+      <button class="session-btn primary" onclick="addTarget()" style="align-self:flex-start;padding:7px 16px">＋ Add Target</button>
+      <!-- Targets list -->
+      <div id="targetsList" style="display:flex;flex-direction:column;gap:5px;margin-top:4px"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── NEW NOTE MODAL ── -->
+<div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
+  <div class="cmd-box" style="max-width:520px">
+    <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
+      <span class="cmd-input-icon">📝</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
+      <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
+      <div class="new-note-type-grid" id="newNoteTypeGrid">
+        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >📄 Blank</button>
+        <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
+        <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
+        <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
+        <button class="new-note-type-btn" data-type="recon"       onclick="newNote('recon')"      >🔭 Recon</button>
+        <button class="new-note-type-btn" data-type="loot"        onclick="newNote('loot')"       >💰 Loot</button>
+        <button class="new-note-type-btn" data-type="exploit"     onclick="newNote('exploit')"    >💥 Exploit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMMAND PALETTE ── -->
+<!-- ── WORKBENCH MODAL ── -->
+
+<!-- ── Shared status dropdown (fixed position, escapes overflow) ── -->
+<div class="status-dropdown" id="statusDropdown">
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('active')">  <span class="status-dot active"></span>Active</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('paused')">  <span class="status-dot paused"></span>Paused</div>
+  <div class="status-dropdown-item" onclick="applyStatusFromDropdown('complete')"><span class="status-dot complete"></span>Complete</div>
+</div>
+
+<div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
+  <div class="cmd-box">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon">⌘</span>
+      <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
+      <span class="cmd-esc">ESC</span>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+    <div class="cmd-footer">
+      <span class="cmd-footer-key"><kbd>↑↓</kbd> navigate</span>
+      <span class="cmd-footer-key"><kbd>↵</kbd> open</span>
+      <span class="cmd-footer-key"><kbd>ESC</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let SERVICES      = [];
+let METHODOLOGIES = [];
+let activeView    = 'services';
+let activeDoc     = null;
+let activeCat     = 'all';
+let searchScope   = 'all';
+let fuzzyMode     = 'normal';
+let knownSources  = [];          // [{id, name}] fetched from ENGRAM via /api/search-sources
+let disabledSources = new Set(JSON.parse(localStorage.getItem('pragma-disabled-sources') || '[]'));
+let searchDebounce;
+let cmdSelected   = 0;
+let cmdItems      = [];
+let notes         = {};
+let sessions      = {};
+let activeSessionId = null;
+let activeTargetId  = null;
+let activeNoteId  = null;
+let noteSaveTimer;
+let tlTargetFilter = null; // timeline per-target filter
+
+const ACCENT_COLORS = [
+  '#7c3aed','#34d399','#a78bfa','#fb923c',
+  '#f87171','#fbbf24','#22d3ee','#6ee7b7',
+];
+const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
+
+// ═══════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════
+function applyTheme(t) {
+  if (t === 'light') {
+    document.documentElement.setAttribute('data-theme','light');
+    document.getElementById('themeBtn').textContent = '🌙 Dark';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta');
+    m.name = 'theme-color'; m.content = '#ffffff';
+    document.head.appendChild(m);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('themeBtn').textContent = '☀ Light';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+    const m = document.createElement('meta');
+    m.name = 'theme-color'; m.content = '#363f49';
+    document.head.appendChild(m);
+  }
+}
+function toggleTheme() {
+  // Reinit CM editors after theme change so colours update
+  setTimeout(() => {
+    if (noteEditor) {
+      const val = cmGetValue(noteEditor);
+      cmInitNote();
+      cmSetValue(noteEditor, val);
+    }
+    if (kbEditor) {
+      const val = cmGetValue(kbEditor);
+      cmInitKb();
+      cmSetValue(kbEditor, val);
+    }
+  }, 50);
+  const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  localStorage.setItem('ops-theme', cur);
+  applyTheme(cur);
+}
+applyTheme(localStorage.getItem('ops-theme') || 'dark');
+
+// ═══════════════════════════════════════════════
+// TARGET
+// ═══════════════════════════════════════════════
+function initTarget() {
+  // Restore active target from localStorage
+  activeTargetId = localStorage.getItem('ops-active-target') || null;
+  updateTargetSelector();
+}
+
+function getActiveTarget() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  const sess = sessions[activeSessionId];
+  const targets = sess.targets || [];
+  if (!targets.length) return null;
+  return targets.find(t => t.id === activeTargetId) || targets[0];
+}
+
+function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
+function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<DOMAIN>'; }
+
+function updateTargetDots() { updateTargetSelector(); }
+
+function updateTargetSelector() {
+  const t      = getActiveTarget();
+  const dot    = document.getElementById('targetSelDot');
+  const ip     = document.getElementById('targetSelIP');
+  const dom    = document.getElementById('targetSelDomain');
+  const lbl    = document.getElementById('targetSelLabel');
+  const cpyBtn = document.getElementById('targetCopyBtn');
+  if (t) {
+    dot.classList.add('active');
+    ip.textContent  = t.ip     || '—';
+    dom.textContent = t.domain || '';
+    lbl.textContent = t.label  || '';
+    lbl.style.display = t.label ? '' : 'none';
+    if (cpyBtn) cpyBtn.style.display = (t.ip || t.domain) ? '' : 'none';
+  } else {
+    dot.classList.remove('active');
+    ip.textContent  = activeSessionId ? '— no targets' : '— no session';
+    dom.textContent = '';
+    lbl.textContent = '';
+    lbl.style.display = 'none';
+    if (cpyBtn) cpyBtn.style.display = 'none';
+  }
+}
+
+function copyActiveTarget(e) {
+  const t = getActiveTarget();
+  if (!t) return;
+  // Alt+click copies domain, regular click copies IP (fallback to domain if no IP)
+  const text = (e.altKey && t.domain) ? t.domain : (t.ip || t.domain || '');
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Copied: ${text}`);
+  });
+}
+
+// ── Targets panel ──
+function openTargetsPanel() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  document.getElementById('targetsPanelTitle').textContent =
+    sess ? `Targets — ${sess.codename}` : 'Targets';
+  document.getElementById('newTargetIP').value     = '';
+  document.getElementById('newTargetDomain').value = '';
+  document.getElementById('newTargetLabel').value  = '';
+  renderTargetsList();
+  renderSvcLogTable();
+  renderPathTable();
+  updateSvcTabCounts();
+  document.getElementById('targetsOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newTargetIP').focus(), 50);
+}
+function closeTargetsPanel() {
+  document.getElementById('targetsOverlay').classList.remove('open');
+}
+function closeTargetsPanelIfOutside(e) {
+  if (e.target === document.getElementById('targetsOverlay')) closeTargetsPanel();
+}
+
+function renderTargetsList() {
+  const list = document.getElementById('targetsList');
+  const sess = activeSessionId && sessions[activeSessionId];
+  const targets = (sess && sess.targets) || [];
+  if (!targets.length) {
+    list.innerHTML = '<div class="targets-empty">No targets yet — add one above</div>';
+    return;
+  }
+  const curId = getActiveTarget()?.id;
+  list.innerHTML = targets.map(t => `
+    <div class="target-item${t.id === curId ? ' active-target' : ''}" onclick="setActiveTarget('${t.id}')">
+      <div class="target-item-dot"></div>
+      <div class="target-item-ip">${esc(t.ip || '—')}</div>
+      <div class="target-item-domain">${esc(t.domain || '')}</div>
+      ${t.label ? `<span class="target-item-label">${esc(t.label)}</span>` : ''}
+      <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label" style="margin-left:auto">✎</button>
+      <button class="target-item-del" onclick="event.stopPropagation();deleteTarget('${t.id}')" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function addTarget() {
+  const ip     = document.getElementById('newTargetIP').value.trim();
+  const domain = document.getElementById('newTargetDomain').value.trim();
+  const label  = document.getElementById('newTargetLabel').value.trim();
+  if (!ip && !domain) { document.getElementById('newTargetIP').focus(); return; }
+  if (!activeSessionId) return;
+
+  const sess = sessions[activeSessionId];
+  if (!sess.targets) sess.targets = [];
+  const id = 'tgt_' + Date.now();
+  sess.targets.push({ id, ip, domain, label });
+
+  // Auto-select if first target
+  if (sess.targets.length === 1) {
+    activeTargetId = id;
+    localStorage.setItem('ops-active-target', id);
+  }
+
+  document.getElementById('newTargetIP').value     = '';
+  document.getElementById('newTargetDomain').value = '';
+  document.getElementById('newTargetLabel').value  = '';
+  saveNotes();
+  renderTargetsList();
+  updateTargetSelector();
+  refreshCodeBlocks();
+}
+
+function setActiveTarget(id) {
+  activeTargetId = id;
+  localStorage.setItem('ops-active-target', id);
+  renderTargetsList();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  closeTargetsPanel();
+}
+
+function deleteTarget(id) {
+  if (!activeSessionId) return;
+  const sess = sessions[activeSessionId];
+  sess.targets = (sess.targets || []).filter(t => t.id !== id);
+  if (activeTargetId === id) {
+    activeTargetId = sess.targets[0]?.id || null;
+    if (activeTargetId) localStorage.setItem('ops-active-target', activeTargetId);
+    else localStorage.removeItem('ops-active-target');
+  }
+    // Clear target_id from notes assigned to this target
+  Object.values(notes).forEach(n => { if (n.target_id === id) n.target_id = null; });
+  saveNotes();
+  renderTargetsList();
+  updateTargetSelector();
+  refreshCodeBlocks();
+}
+
+function renameTarget(id) {
+  if (!activeSessionId) return;
+  const sess = sessions[activeSessionId];
+  const t = (sess.targets || []).find(t => t.id === id);
+  if (!t) return;
+  const newLabel = prompt('Target label:', t.label || '');
+  if (newLabel === null) return; // cancelled
+  t.label = newLabel.trim();
+  saveNotes();
+  renderTargetsList();
+  updateTargetSelector();
+  renderSessionSidebar();
+}
+
+// ═══════════════════════════════════════════════
+// IP INJECTION into rendered HTML code blocks
+// ═══════════════════════════════════════════════
+function injectTargets(rawHtml) {
+  const ip     = esc(getIP());
+  const domain = esc(getDomain());
+  const span   = (val) => `<span class="ip-injected">${val}</span>`;
+
+  // IP placeholders — covers HackTricks, GTFOBins, OSCP notes conventions
+  const ipPatterns = [
+    // Angle-bracket style (raw and HTML-escaped)
+    /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
+    /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
+    /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
+    // Shell variable style
+    /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
+    /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
+    /\$HOST\b/g,
+    // Curly brace template style
+    /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
+    /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
+    /\{HOST\}/g,  /\{host\}/g,  /\{\{host\}\}/g,  /\{\{HOST\}\}/g,
+    // HackTricks-specific
+    /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
+    // Literal placeholder text in code blocks
+    /\b10\.10\.10\.X\b/g,  /\b10\.10\.X\.X\b/g,
+  ];
+
+  const domainPatterns = [
+    /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
+    /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
+    /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
+    /\$DOMAIN\b/g,  /\$FQDN\b/g,  /\$DC\b/g,
+    /\{DOMAIN\}/g,  /\{domain\}/g,  /\{FQDN\}/g,  /\{\{domain\}\}/g,
+    /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
+  ];
+
+  let out = rawHtml;
+  for (const p of ipPatterns)     out = out.replace(p, span(ip));
+  for (const p of domainPatterns) out = out.replace(p, span(domain));
+
+  // Bare "IP" and "HOST" only inside <code> tags (backtick-rendered) — avoids false positives in prose
+  out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
+    const replaced = inner.replace(/\bIP\b/g, span(ip))
+                          .replace(/\bHOST\b/g, span(ip));
+    return open + replaced + close;
+  });
+
+  return out;
+}
+
+function wrapCodeBlocks(container) {
+  container.querySelectorAll('pre').forEach(pre => {
+    if (pre.parentElement.classList.contains('code-block-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'code-block-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+
+    // ── Block copy button ──
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'copy';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = '✓ copied';
+        btn.classList.add('copied');
+        showToast('✓ Copied to clipboard');
+        setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
+    const codeEl = pre.querySelector('code') || pre;
+    const rawText = codeEl.innerText || '';
+    const lines   = rawText.replace(/\n$/, '').split('\n');
+
+    wrap.appendChild(btn);
+
+    // ── Line-level copy for ALL blocks (single and multi-line) ──
+    codeEl.innerHTML = lines.map((line) => {
+      if (!line.trim()) return '<span class="code-line-blank"> </span>';
+      const injected = injectTargets(esc(line));
+      return '<span class="code-line">' +
+             injected +
+             '<span class="code-line-copy">\u2398 copy</span>' +
+             '</span>';
+    }).join('\n');
+
+    codeEl.querySelectorAll('.code-line').forEach(lineEl => {
+      lineEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nodes = [...lineEl.childNodes].filter(n => !n.classList?.contains('code-line-copy'));
+        const plain = nodes.map(n => n.textContent).join('').trimEnd();
+        navigator.clipboard.writeText(plain).then(() => {
+          lineEl.classList.add('flash');
+          const hint = lineEl.querySelector('.code-line-copy');
+          if (hint) hint.textContent = '✓ copied';
+          showToast('✓ Copied to clipboard');
+          setTimeout(() => {
+            lineEl.classList.remove('flash');
+            if (hint) hint.textContent = '\u2398 copy';
+          }, 1200);
+        });
+      });
+    });
+  });
+}
+
+function wrapInlineCodes(container) {
+  container.querySelectorAll('code:not(pre code)').forEach(el => {
+    if (el.dataset.inlineWrapped) return;
+    el.dataset.inlineWrapped = '1';
+
+    // Inject targets into the rendered HTML
+    el.innerHTML = injectTargets(el.innerHTML);
+
+    el.style.cursor = 'pointer';
+    el.title = 'Click to copy';
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = el.innerText.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        el.classList.add('inline-code-copied');
+        el.title = '✓ copied';
+        showToast('✓ Copied to clipboard');
+        setTimeout(() => {
+          el.classList.remove('inline-code-copied');
+          el.title = 'Click to copy';
+        }, 1200);
+      });
+    });
+  });
+}
+
+function refreshCodeBlocks() {
+  const el = document.getElementById('cpContent');
+  if (!el || !activeDoc) return;
+  renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
+}
+
+// ═══════════════════════════════════════════════
+// SIDEBAR TOGGLE
+// ═══════════════════════════════════════════════
+let sidebarVisible = true;
+
+function toggleSidebar(force) {
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.getElementById('sidebarToggleBtn');
+  sidebarVisible = (force !== undefined) ? force : !sidebarVisible;
+  sidebar.classList.toggle('sidebar-hidden', !sidebarVisible);
+  btn.classList.toggle('sidebar-collapsed', !sidebarVisible);
+  localStorage.setItem('ops-sidebar-v2', sidebarVisible ? '1' : '0');
+}
+
+(function() {
+  const saved = localStorage.getItem('ops-sidebar-v2');
+  // Default: always visible — only hide if user explicitly closed it
+  const vis = saved !== null ? saved === '1' : true;
+  if (!vis) requestAnimationFrame(() => toggleSidebar(false));
+})();
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function init() {
+  initTarget();
+  initSyntaxThemePicker();
+  applyNotePreviewState();
+  try {
+    await initNotes();
+  } catch (err) {
+    // Password cancelled or decryption failed — show locked screen, do NOT continue
+    // to avoid saveNotes() being called with empty state and overwriting the workbench
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  height:100vh;background:#0f0f13;color:#e2e8f0;font-family:'Inter',sans-serif;gap:16px">
+        <div style="font-size:48px">🔒</div>
+        <div style="font-size:18px;font-weight:700">Workspace Locked</div>
+        <div style="font-size:13px;color:#94a3b8;max-width:320px;text-align:center">
+          ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workspace.')}</div>
+        <button onclick="location.reload()"
+          style="margin-top:8px;padding:8px 24px;background:#7c3aed;border:none;border-radius:8px;
+                 color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔓 Try Again
+        </button>
+      </div>`;
+    return;
+  }
+
+  // Fetch services
+  try {
+    const r = await fetch('/api/services');
+    const d = await r.json();
+    SERVICES = d.services || [];
+  } catch(e) { console.warn('services unavailable', e); }
+
+  // Fetch methodologies
+  try {
+    const r = await fetch('/api/methodologies');
+    const d = await r.json();
+    METHODOLOGIES = d.guides || [];
+  } catch(e) { console.warn('methodologies unavailable', e); }
+
+  // Fetch note templates (falls back to hardcoded if missing)
+  await loadNoteTemplates();
+  renderNoteTypeGrid();
+
+  document.getElementById('svc-count').textContent  = SERVICES.length;
+  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
+
+  renderCards('services');
+  renderCards('methodologies');
+  buildSidebar('services');
+  // Set initial card layout mode after render
+  setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
+}
+
+// ═══════════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════════
+function switchView(view, navEl) {
+  activeView = view;
+  document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  else document.getElementById('nav-'+view)?.classList.add('active');
+
+  // Update sidebar categories
+  const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
+  if (view === 'services' || view === 'methodologies') {
+    buildSidebar(view);
+    if (catSection) catSection.style.display = '';
+    document.getElementById('catList').style.display = '';
+  } else {
+    document.getElementById('catList').innerHTML = '';
+    document.getElementById('catList').style.display = 'none';
+    if (catSection) catSection.style.display = 'none';
+  }
+
+  if (view === 'search') {
+    setTimeout(() => document.getElementById('searchInput').focus(), 50);
+    if (!knownSources.length) loadSearchSources();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SIDEBAR CATEGORIES
+// ═══════════════════════════════════════════════
+function buildSidebar(view) {
+  const items = view === 'services' ? SERVICES : METHODOLOGIES;
+  const cats  = ['all', ...new Set(items.map(i => i.category))].filter(Boolean);
+  const list  = document.getElementById('catList');
+  document.getElementById('cat-hdr').textContent = 'Categories';
+  activeCat = 'all';
+
+  list.innerHTML = cats.map(cat => `
+    <div class="nav-item${cat==='all'?' active':''}" data-cat="${esc(cat)}"
+         onclick="setCat('${esc(cat)}', this, '${view}')">
+      <span class="nav-item-icon">${cat==='all'?'◈':'·'}</span>
+      <span class="nav-item-label">${cat==='all'?'All':esc(cat)}</span>
+      ${cat!=='all'?`<span class="nav-item-count">${items.filter(i=>i.category===cat).length}</span>`:''}
+    </div>`).join('');
+}
+
+function setCat(cat, el, view) {
+  activeCat = cat;
+  document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
+}
+
+// ═══════════════════════════════════════════════
+// CARDS RENDERING
+// ═══════════════════════════════════════════════
+function renderCards(view) {
+  const items  = view === 'services' ? SERVICES : METHODOLOGIES;
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const grid   = document.getElementById(gridId);
+  grid.innerHTML = '';
+
+  if (items.length === 0) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📂</div>
+      <div class="empty-state-title">No ${view} found</div>
+      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base':'methodologies'}/ folder</div>
+    </div>`;
+    return;
+  }
+
+  items.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id  = item.id;
+    card.dataset.cat = item.category || '';
+    card.style.setProperty('--card-accent', accentFor(idx));
+    card.innerHTML = `
+      <span class="card-cat">${esc(item.category || '')}</span>
+      <span class="card-icon">${item.icon || '📄'}</span>
+      <div class="card-port-name-row">
+        ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
+        <span class="card-name">${esc(item.name)}</span>
+      </div>
+      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.onclick = () => openItem(view, item.id);
+    grid.appendChild(card);
+  });
+
+  updateToolbarCount(view, items.length);
+}
+
+
+// ── Cards layout: switch between grid tiles and compact list based on actual container width ──
+(function() {
+  const BREAKPOINT = 1100; // px — below this, switch to list mode
+
+  function applyMode(el) {
+    if (!el) return;
+    const w = el.getBoundingClientRect().width;
+    el.classList.toggle('cards-list-mode', w < BREAKPOINT && w > 0);
+  }
+
+  function observeGrids() {
+    const grids = document.querySelectorAll('.cards-area');
+    if (!grids.length) return;
+    const ro = new ResizeObserver(entries => {
+      entries.forEach(e => applyMode(e.target));
+    });
+    grids.forEach(g => { ro.observe(g); applyMode(g); });
+  }
+
+  // Run after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeGrids);
+  } else {
+    setTimeout(observeGrids, 100);
+  }
+
+  // Expose so init() can call after layout settles
+  window._observeCardGrids = observeGrids;
+})();
+
+function filterCards(view, query) {
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const q      = query.toLowerCase().trim();
+  const cards  = document.querySelectorAll(`#${gridId} .card`);
+  let vis      = 0;
+
+  cards.forEach(card => {
+    const name  = card.querySelector('.card-name')?.textContent.toLowerCase() || '';
+    const desc  = card.querySelector('.card-desc')?.textContent.toLowerCase() || '';
+    const port  = card.querySelector('.card-port')?.textContent.toLowerCase() || '';
+    const cat   = card.dataset.cat || '';
+    const catOk = activeCat === 'all' || cat === activeCat;
+    const qOk   = !q || name.includes(q) || desc.includes(q) || port.includes(q) || cat.toLowerCase().includes(q);
+    const show  = catOk && qOk;
+    card.classList.toggle('hidden', !show);
+    if (show) vis++;
+  });
+
+  updateToolbarCount(view, vis);
+}
+
+function updateToolbarCount(view, n) {
+  const total = (view === 'services' ? SERVICES : METHODOLOGIES).length;
+  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
+  el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
+}
+
+// ═══════════════════════════════════════════════
+// OPEN ITEM → CONTENT PANEL
+// ═══════════════════════════════════════════════
+async function openItem(view, id) {
+  // Mark card as active
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (card) card.classList.add('active-card');
+
+  const panel = document.getElementById('contentPanel');
+  panel.classList.remove('hidden-panel');
+  document.getElementById('cpTitle').textContent = 'Loading…';
+  document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
+
+  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/methodology/${encodeURIComponent(id)}`;
+  try {
+    const r = await fetch(endpoint);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    const meta = view === 'services'
+      ? `${d.port} · ${d.category}`
+      : `${d.category} · ${d.wordCount} words`;
+    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || '📄', title: d.name, meta, id, view, isLocal: true };
+    renderContent(d.html, d.icon || '📄', d.name, meta);
+    document.getElementById('cpEditBtn').style.display = '';
+  } catch(e) {
+    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
+  const panel = document.getElementById('contentPanel');
+  panel.classList.remove('hidden-panel');
+  document.getElementById('cpTitle').textContent = title;
+  document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
+
+  try {
+    let d = null;
+
+    // For local results: proxy to ENGRAM's /api/preview via PRAGMA's /api/content-proxy.
+    // ENGRAM indexed the file — it knows the real path and can read it regardless of
+    // whether PRAGMA and ENGRAM share a filesystem/container.
+    if (filePath) {
+      try {
+        const r = await fetch('/api/content-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_path: filePath }),
+        });
+        const j = await r.json();
+        if (j.ok && j.html) d = j;
+        else console.warn('[PRAGMA] content-proxy:', j.error || j.detail || 'no content');
+      } catch (e) {
+        console.warn('[PRAGMA] content-proxy fetch failed:', e.message);
+      }
+    }
+
+    if (!d) throw new Error('Content unavailable — ENGRAM could not serve this file');
+
+    const meta = filePath.split('/').pop() || sourceName || '';
+    activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContent(d.html, '🔍', title, meta, query);
+    document.getElementById('cpEditBtn').style.display = 'none';
+  } catch(e) {
+    document.getElementById('cpContent').innerHTML = `
+      <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
+        <div style="font-size:22px;margin-bottom:8px">⚠</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px">
+          Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
+          <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
+        </div>
+      </div>`;
+  }
+}
+
+function renderContent(html, icon, title, meta, query = '') {
+  document.getElementById('cpIcon').textContent  = icon;
+  document.getElementById('cpTitle').textContent = title;
+  document.getElementById('cpMeta').textContent  = meta || '';
+  const el = document.getElementById('cpContent');
+
+  if (query) {
+    // Search result — frame the content so it's clearly marked as external source
+    el.innerHTML = `
+      <div class="source-preview-frame">
+        <div class="source-preview-label">
+          🔍 Source content${meta ? ' — <span>' + esc(meta) + '</span>' : ''}
+        </div>
+        <div class="source-preview-body md-content" id="cpContentInner"></div>
+      </div>`;
+    const inner = document.getElementById('cpContentInner');
+    inner.innerHTML = injectTargets(html);
+    wrapCodeBlocks(inner);
+    wrapInlineCodes(inner);
+  } else {
+    el.innerHTML = injectTargets(html);
+    wrapCodeBlocks(el);
+    wrapInlineCodes(el);
+  }
+
+  el.parentElement.scrollTop = 0;
+}
+
+function closeContent() {
+  document.getElementById('contentPanel').classList.add('hidden-panel');
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
+  activeDoc = null;
+  exitEditMode();
+  document.getElementById('cpEditBtn').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════
+function onSearch(val) {
+  clearTimeout(searchDebounce);
+  if (val.trim().length < 2) {
+    document.getElementById('resultsList').innerHTML = `<div class="results-offline">
+      <div class="results-offline-icon">🔍</div>
+      <div class="results-offline-text">Start typing to search</div>
+      <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+    </div>`;
+    document.getElementById('searchStatus').textContent = '';
+    return;
+  }
+  document.getElementById('searchStatus').textContent = 'searching…';
+  searchDebounce = setTimeout(() => runSearch(val.trim()), 300);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  onSearch('');
+  document.getElementById('searchInput').focus();
+}
+
+function setScope(s, btn) {
+  searchScope = s;
+  document.querySelectorAll('#scopeGroup .btn-group-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length >= 2) runSearch(q);
+}
+
+function setFuzzy(f, btn) {
+  fuzzyMode = f;
+  document.querySelectorAll('#fuzzyGroup .btn-group-item').forEach(b => {
+    b.classList.remove('active','fuzzy-active');
+  });
+  btn.classList.add(f === 'off' ? 'active' : 'fuzzy-active');
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length >= 2) runSearch(q);
+}
+
+// ── Source filter ──
+async function loadSearchSources() {
+  try {
+    const r = await fetch('/api/search-sources');
+    const d = await r.json();
+    if (!d.sources || !d.sources.length) return;
+    knownSources = d.sources.map(s => ({ id: s.id, name: s.name }));
+    renderSourceChips();
+  } catch(e) {
+    // ENGRAM offline — source filter stays hidden, no problem
+  }
+}
+
+function renderSourceChips() {
+  const row   = document.getElementById('sourceFilterRow');
+  const chips = document.getElementById('sourceChips');
+  if (!knownSources.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  chips.innerHTML = knownSources.map(s => {
+    const active = !disabledSources.has(s.id);
+    return `<button class="source-chip${active ? ' active' : ''}"
+      onclick="toggleSourceFilter('${esc(s.id)}')"
+      title="${active ? 'Disable' : 'Enable'} source: ${esc(s.name)}"
+    >${esc(s.name)}</button>`;
+  }).join('');
+}
+
+function toggleSourceFilter(sourceId) {
+  if (disabledSources.has(sourceId)) {
+    disabledSources.delete(sourceId);
+  } else {
+    disabledSources.add(sourceId);
+  }
+  try { localStorage.setItem('pragma-disabled-sources', JSON.stringify([...disabledSources])); } catch(e) {}
+  renderSourceChips();
+  const q = document.getElementById('searchInput').value.trim();
+  if (q.length >= 2) runSearch(q);
+}
+
+// ── Search history ──
+let searchHistory = JSON.parse(localStorage.getItem('pragma-search-history') || '[]');
+
+function addToSearchHistory(query) {
+  if (!query || query.length < 2) return;
+  searchHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 30);
+  try { localStorage.setItem('pragma-search-history', JSON.stringify(searchHistory)); } catch(e) {}
+}
+
+async function runSearch(query) {
+  addToSearchHistory(query);
+  try {
+    const r = await fetch('/api/search-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, fuzzyMode })
+    });
+    const d = await r.json();
+    if (d.offline) {
+      console.warn('[Search] Proxy returned offline. Server error:', d.error || 'unknown');
+    }
+    let results = d.results || [];
+
+    // Filter by scope
+    if (searchScope === 'local')  results = results.filter(r => r.is_local);
+    if (searchScope === 'online') results = results.filter(r => !r.is_local);
+
+    // Filter by disabled sources
+    if (disabledSources.size > 0) results = results.filter(r => !disabledSources.has(r.source_id));
+
+    renderResults(query, results, d.offline || false, d.docs_searched, d.search_time_ms);
+  } catch(e) {
+    console.error('[Search] Fetch failed:', e.message);
+    renderResults(query, [], true, null, null);
+  }
+}
+
+function highlightSnippet(text, query) {
+  if (!query || !text) return esc(text);
+  const escaped = esc(text);
+  const terms = query.trim().split(/\s+/).filter(t => t.length > 2)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!terms.length) return escaped;
+  const re = new RegExp('(' + terms.join('|') + ')', 'gi');
+  return escaped.replace(re, '<mark>$1</mark>');
+}
+
+function renderResults(query, results, offline, docsSearched, timeMs) {
+  const list = document.getElementById('resultsList');
+  const stat = document.getElementById('searchStatus');
+  const meta = document.getElementById('searchMeta');
+
+  if (meta) meta.textContent = '';
+  if (offline) {
+    stat.textContent = '⚠ offline';
+    list.innerHTML = `<div class="results-offline error">
+      <div class="results-offline-icon">⚠</div>
+      <div class="results-offline-text">Search indexer not reachable</div>
+      <div class="results-offline-hint">Check console · <a href="/api/search-ping" target="_blank" style="color:var(--accent)">ping indexer</a></div>
+    </div>`;
+    return;
+  }
+
+  stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+  if (meta) {
+    meta.textContent = (docsSearched != null && timeMs != null)
+      ? `${docsSearched} pages · ${Math.round(timeMs)}ms`
+      : (docsSearched != null ? `${docsSearched} pages searched` : '');
+  }
+
+  if (!results.length) {
+    list.innerHTML = `<div class="results-offline">
+      <div class="results-offline-icon">∅</div>
+      <div class="results-offline-text">No results for "${esc(query)}"</div>
+      <div class="results-offline-hint">Try different keywords or enable Max fuzzy</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = results.map(r => {
+    const scoreRaw = typeof r.relevance_score === 'number' ? Math.round(r.relevance_score) : (r.relevance_score || '');
+    const score    = scoreRaw !== '' ? String(scoreRaw) : '';
+    const snippet  = r.snippet ? (typeof r.snippet === 'object' ? r.snippet.text : r.snippet) : '';
+    const trimmed  = snippet ? snippet.replace(/[ \t]+/g,' ').trim().slice(0, 400) : '';
+    const isLocal = r.is_local;
+    const href    = isLocal ? '#' : (r.url || '#');
+
+    return `<div class="result-card${isLocal?' local-result':''}"
+         data-local="${isLocal?'1':'0'}"
+         data-filepath="${esc(r.file_path||'')}"
+         data-title="${esc(r.title||'')}"
+         data-url="${esc(href)}"
+         data-query="${esc(query)}"
+         data-sourcename="${esc(r.source_name||'')}"
+         onclick="handleResultClick(this)">
+      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      <div class="search-meta-row">
+        ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
+        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
+      </div>
+      <div class="result-meta">
+        <span class="result-source">${esc(r.source_name||'')}</span>
+      </div>
+      ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function handleResultClick(el) {
+  if (el.dataset.local === '1') {
+    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '', el.dataset.sourceid || '', el.dataset.sourcename || '');
+  } else {
+    window.open(el.dataset.url, '_blank', 'noopener');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// COMMAND PALETTE
+// ═══════════════════════════════════════════════
+function openCmd() {
+  document.getElementById('cmdOverlay').classList.add('open');
+  document.getElementById('cmdInput').value = '';
+  buildCmdResults('');
+  setTimeout(() => document.getElementById('cmdInput').focus(), 30);
+}
+
+function closeCmd() {
+  document.getElementById('cmdOverlay').classList.remove('open');
+  cmdSelected = 0; cmdItems = [];
+}
+
+function closeCmdIfOutside(e) {
+  if (e.target === document.getElementById('cmdOverlay')) closeCmd();
+}
+
+function buildCmdResults(q) {
+  const ql    = q.toLowerCase().trim();
+  const res   = document.getElementById('cmdResults');
+  cmdItems    = [];
+  let html    = '';
+
+  // Services
+  const svcs = SERVICES.filter(s =>
+    !ql || s.name.toLowerCase().includes(ql) || (s.port||'').includes(ql) ||
+    (s.category||'').toLowerCase().includes(ql)
+  ).slice(0, 6);
+
+  if (svcs.length) {
+    html += `<div class="cmd-group-hdr">Services</div>`;
+    svcs.forEach(s => {
+      cmdItems.push({ type:'service', id:s.id, label:s.name });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">${s.icon||'📄'}</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(s.name)}</div>
+          <div class="cmd-item-sub">${esc(s.port||'')} · ${esc(s.category||'')}</div>
+        </div>
+        <span class="cmd-item-tag">service</span>
+      </div>`;
+    });
+  }
+
+  // Methodologies
+  const meths = METHODOLOGIES.filter(m =>
+    !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
+  ).slice(0, 5);
+
+  if (meths.length) {
+    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
+    meths.forEach(m => {
+      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">${m.icon||'📋'}</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(m.name)}</div>
+          <div class="cmd-item-sub">${esc(m.category||'')}</div>
+        </div>
+        <span class="cmd-item-tag">guide</span>
+      </div>`;
+    });
+  }
+
+  // Notes
+  const noteList = Object.values(notes).filter(n =>
+    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql) ||
+    (n.tags||[]).some(t => t.toLowerCase().includes(ql))
+  ).slice(0, 3);
+
+  if (noteList.length) {
+    html += `<div class="cmd-group-hdr">Session Notes</div>`;
+    noteList.forEach(n => {
+      cmdItems.push({ type:'note', id:n.id, label:n.title });
+      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+        <span class="cmd-item-icon">📝</span>
+        <div class="cmd-item-main">
+          <div class="cmd-item-title">${esc(n.title||'Untitled')}</div>
+          <div class="cmd-item-sub">${esc((n.body||'').slice(0,60))}</div>
+        </div>
+        <span class="cmd-item-tag">note</span>
+      </div>`;
+    });
+  }
+
+  // Search action
+  if (ql) {
+    cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
+    html += `<div class="cmd-group-hdr">Search</div>
+    <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+      <span class="cmd-item-icon">🔍</span>
+      <div class="cmd-item-main">
+        <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
+        <div class="cmd-item-sub">Search the full knowledge index</div>
+      </div>
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
+      Type to search services, guides and notes…
+    </div>`;
+  }
+
+  res.innerHTML = html;
+  cmdSelected = 0;
+  updateCmdSelection();
+}
+
+function onCmdInput(val) { buildCmdResults(val); }
+
+function onCmdKey(e) {
+  if (e.key === 'Escape') { closeCmd(); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); cmdSelected = Math.min(cmdSelected+1, cmdItems.length-1); updateCmdSelection(); }
+  if (e.key === 'ArrowUp')   { e.preventDefault(); cmdSelected = Math.max(cmdSelected-1, 0); updateCmdSelection(); }
+  if (e.key === 'Enter')     { e.preventDefault(); execCmd(cmdSelected); }
+}
+
+function updateCmdSelection() {
+  document.querySelectorAll('.cmd-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === cmdSelected);
+  });
+}
+
+function execCmd(idx) {
+  const item = cmdItems[idx];
+  if (!item) return;
+  closeCmd();
+  if (item.type === 'service') {
+    switchView('services', document.getElementById('nav-services'));
+    openItem('services', item.id);
+  } else if (item.type === 'methodology') {
+    switchView('methodologies', document.getElementById('nav-methodologies'));
+    openItem('methodologies', item.id);
+  } else if (item.type === 'note') {
+    switchView('notes', document.getElementById('nav-notes'));
+    setTimeout(() => openNote(item.id), 50);
+  } else if (item.type === 'tag') {
+    switchView('notes', document.getElementById('nav-notes'));
+    setTimeout(() => setTagFilter(item.tag), 50);
+  } else if (item.type === 'search') {
+    switchView('search', document.getElementById('nav-search'));
+    document.getElementById('searchInput').value = item.query;
+    runSearch(item.query);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NOTES
+// Schema per note:
+//   id        — unique key, e.g. "note_1718000000000"
+//   type      — "general" | "credentials" | "privesc" | "recon" | "loot" | "exploit"
+//   title     — string
+//   body      — markdown string
+//   target_ip — snapshot of IP at creation time (for future export grouping)
+//   target_domain — snapshot of domain at creation time
+//   created   — timestamp ms
+//   updated   — timestamp ms
+//
+// Persisted as notes.json via /api/notes/save.
+// localStorage is a fallback/cache. Future export will use type + target to
+// group notes into per-engagement markdown files.
+// ═══════════════════════════════════════════════
+
+// ── Templates path — change this if you move the file ──
+const TEMPLATES_PATH = '/api/templates';
+
+const NOTE_TYPE_META = {
+  general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
+  credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
+  privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
+  recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
+  loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
+  exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
+  scratch:     { label: 'Blank',       icon: '📄', cssClass: 'note-type-scratch'     },
+};
+
+// ── Hardcoded fallback — used only if notes-templates.json is missing/empty ──
+const NOTE_TEMPLATES_FALLBACK = {
+  general:     { title: '',                    body: `## Overview\n\n\n## Notes\n\n\n## References\n\n` },
+  credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
+  privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
+  recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
+  loot:        { title: 'Loot',                body: `## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n\`\`\`\n# root.txt / user.txt / proof.txt\n\n\`\`\`\n\n## Notes\n\n` },
+  exploit:     { title: 'Exploit',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
+  scratch:     { title: '',                    body: '' },
+};
+
+// Live templates — populated from /api/templates on init, falls back to NOTE_TEMPLATES_FALLBACK
+let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
+
+async function loadNoteTemplates() {
+  try {
+    const r = await fetch(TEMPLATES_PATH);
+    const d = await r.json();
+    if (!d.templates || !d.templates.length) {
+      console.log('[Templates] No templates file or empty — using hardcoded fallback');
+      return;
+    }
+    const loaded = {};
+    for (const t of d.templates) {
+      if (!t.id) continue;
+      loaded[t.id] = {
+        title:        t.title_prefix || '',
+        body:         t.body         || '',
+        icon:         t.icon,
+        label:        t.label,
+        default_tags: t.default_tags || [],
+        fromFile:     true,
+      };
+      if (!NOTE_TYPE_META[t.id]) {
+        NOTE_TYPE_META[t.id] = { label: t.label || t.id, icon: t.icon || '📄', cssClass: 'note-type-general' };
+      }
+    }
+    loaded.scratch = NOTE_TEMPLATES_FALLBACK.scratch;
+    NOTE_TEMPLATES = loaded;
+    console.log(`[Templates] Loaded ${Object.keys(loaded).length - 1} templates from file`);
+    renderNoteTypeGrid();
+    renderNoteFilterBar();
+  } catch (e) {
+    console.warn('[Templates] Failed to load templates file, using hardcoded fallback:', e.message);
+  }
+}
+
+function renderNoteTypeGrid() {
+  const grid = document.getElementById('newNoteTypeGrid');
+  if (!grid) return;
+
+  const builtinIds = new Set(Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch'));
+
+  // NOTE_TEMPLATES is the single source of truth — either fallback or file, never both
+  const entries = Object.entries(NOTE_TEMPLATES).filter(([id]) => id !== 'scratch');
+  const builtins = entries.filter(([id]) =>  builtinIds.has(id));
+  const customs  = entries.filter(([id]) => !builtinIds.has(id));
+
+  const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')">📄 Blank</button>`];
+
+  for (const [id, tmpl] of builtins) {
+    const icon  = tmpl.icon  || NOTE_TYPE_META[id]?.icon  || '📄';
+    const label = tmpl.label || NOTE_TYPE_META[id]?.label || id;
+    buttons.push(`<button class="new-note-type-btn" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+  }
+
+  if (customs.length) {
+    buttons.push(`<div class="new-note-type-heading">Custom</div>`);
+    for (const [id, tmpl] of customs) {
+      const icon  = tmpl.icon  || '📄';
+      const label = tmpl.label || id;
+      buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+    }
+  }
+  grid.innerHTML = buttons.join('');
+}
+
+function renderNoteFilterBar() {
+  const bar = document.getElementById('notesTypeFilter');
+  if (!bar) return;
+  const builtinIds = Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch');
+  const customIds  = Object.keys(NOTE_TEMPLATES).filter(id => id !== 'scratch' && !builtinIds.includes(id) && NOTE_TEMPLATES[id].fromFile);
+
+  let html = `<button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>`;
+  for (const id of builtinIds) {
+    const meta = NOTE_TYPE_META[id];
+    if (!meta) continue;
+    html += `<button class="note-type-btn" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.label}</button>`;
+  }
+  html += `<button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>`;
+  for (const id of customIds) {
+    const meta = NOTE_TYPE_META[id];
+    if (!meta) continue;
+    html += `<button class="note-type-btn note-type-custom" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.icon || ''} ${meta.label}</button>`;
+  }
+  bar.innerHTML = html;
+}
+let activeNoteFilter = 'all';
+let activeNoteScope  = 'session';
+let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
+let activeTargetFilter = null; // target id or null
+let activeNoteSearch = ''; // body/title full-text search
+
+let encryptedStorageEnabled  = false;
+let encryptedStoragePassword = null; // in-memory only; never persisted
+let encryptedStorageHint     = '';   // plain-text hint, stored in blob, not secret
+let workbenchUnlocked        = true; // set false if encrypted but not yet decrypted
+
+// Tab handling is native in CodeMirror 6
+
+function updateEncryptedStorageUI() {
+  const btn      = document.getElementById('encStorageBtn');
+  const dlBtn    = document.getElementById('encDownloadBtn');
+  const sidebar  = document.querySelector('.sidebar');
+  if (!btn) return;
+  const locked = encryptedStorageEnabled && !encryptedStoragePassword;
+  const active = encryptedStorageEnabled && !locked;
+  btn.classList.toggle('on',     active);
+  btn.classList.toggle('locked', locked);
+  if (sidebar) sidebar.classList.toggle('enc-active', active);
+  document.body.classList.toggle('enc-active-body', active);
+  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Workbench';
+  else if (locked)               btn.textContent = '🔒 Encrypted Workbench';
+  else                           btn.textContent = '🔒 Encrypted Workbench';
+  if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
+}
+
+function downloadWorkbench() {
+  const a = document.createElement('a');
+  a.href = '/api/notes/download';
+  a.download = 'pragma.workbench.enc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function toggleEncryptedStorage(e) {
+  try { e?.stopPropagation?.(); } catch(_) {}
+
+  // If encryption is enabled but no password is in memory, the workbench is locked —
+  // disabling encryption here would overwrite the encrypted file with empty state
+  if (encryptedStorageEnabled && !encryptedStoragePassword) {
+    showToast('⚠ Workspace is locked — unlock it first before changing encryption settings');
+    return;
+  }
+
+  if (!encryptedStorageEnabled) {
+    let pw1;
+    try {
+      pw1 = await showPasswordPrompt({
+        icon: '🔒', title: 'Enable Encrypted Workbench',
+        description: 'All notes and session data will be encrypted with AES-256-GCM before being written to disk. <strong>If you lose this password, your data cannot be recovered.</strong>',
+        label: 'Set Password', placeholder: 'Choose a strong password…',
+        confirm: true, submitLabel: '🔒 Enable Encryption',
+        hint: true,
+      });
+    } catch { return; } // cancelled
+    encryptedStorageEnabled  = true;
+    encryptedStoragePassword = pw1.password;
+    encryptedStorageHint     = pw1.hint || '';
+    updateEncryptedStorageUI();
+    saveNotes();
+  } else {
+    try {
+      await showConfirmDialog({
+        icon: '🔓', title: 'Disable Encrypted Workbench',
+        bigIcon: '🔓',
+        description: 'Encryption will be disabled. Your notes will be stored as <strong>plaintext</strong> on disk from the next save onwards.',
+        confirmLabel: 'Disable Encryption', danger: true,
+      });
+    } catch { return; } // cancelled
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    updateEncryptedStorageUI();
+    try {
+      await fetch('/api/notes/storage/disable-encrypted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessions, notes }),
+      });
+    } catch(_) {}
+    saveNotes();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// WORKBENCH MANAGEMENT
+// ═══════════════════════════════════════════════
+async function initNotes() {
+  try {
+    const r = await fetch('/api/notes');
+    const d = await r.json();
+    if (d && d.encrypted_storage === true) {
+      encryptedStorageEnabled = true;
+      updateEncryptedStorageUI();
+      const encRes = await fetch('/api/notes/encrypted');
+      const encObj = await encRes.json();
+      let pw;
+      try {
+        pw = await showPasswordPrompt({
+          icon: '🔒', title: 'Workspace Locked',
+          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.'
+            + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
+          label: 'Password', placeholder: 'Enter password…',
+          submitLabel: '🔓 Unlock',
+        });
+      } catch { throw new Error('cancelled'); }
+      // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
+      // localStorage branch (which would prompt for the password a second time).
+      let plain;
+      try {
+        plain = await decryptPayload(encObj, pw);
+      } catch {
+        throw new Error('Incorrect password — decryption failed');
+      }
+      encryptedStoragePassword = pw;
+      encryptedStorageHint     = encObj.hint || '';
+      updateEncryptedStorageUI();
+      const parsed = JSON.parse(plain);
+      notes    = (parsed.notes    !== undefined ? parsed.notes    : parsed) || {};
+      sessions = parsed.sessions || {};
+      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
+      localStorage.removeItem('ops-notes-v2');
+    } else {
+      notes    = (d.notes    !== undefined ? d.notes    : d) || {};
+      sessions = d.sessions || {};
+      localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
+      localStorage.removeItem('ops-notes-v2-encrypted');
+      encryptedStorageEnabled  = false;
+      encryptedStoragePassword = null;
+      updateEncryptedStorageUI();
+    }
+  } catch (outerErr) {
+    // Only use localStorage fallback for genuine fetch/network failures,
+    // not for password/decryption errors (those should bubble up as-is).
+    if (outerErr.message && (outerErr.message.includes('decrypt') || outerErr.message.includes('Password') || outerErr.message.includes('Incorrect') || outerErr.message.includes('cancelled'))) {
+      throw outerErr;
+    }
+    try {
+      const encCached = localStorage.getItem('ops-notes-v2-encrypted');
+      if (encCached) {
+        const encObj = JSON.parse(encCached);
+        if (encObj && encObj.encrypted === true) {
+          encryptedStorageEnabled = true;
+          updateEncryptedStorageUI();
+          let pw;
+          try {
+            pw = await showPasswordPrompt({
+              icon: '🔒', title: 'Workspace Locked',
+              description: 'This workspace is encrypted. Enter your password to unlock.',
+              label: 'Password', placeholder: 'Enter password…',
+              submitLabel: '🔓 Unlock',
+            });
+          } catch { throw new Error('Password required'); }
+          let plain;
+          try {
+            plain = await decryptPayload(encObj, pw);
+          } catch {
+            throw new Error('Incorrect password — decryption failed');
+          }
+          encryptedStoragePassword = pw;
+          encryptedStorageHint     = encObj.hint || '';
+          updateEncryptedStorageUI();
+          const parsed = JSON.parse(plain);
+          notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
+          sessions = parsed.sessions || {};
+        }
+      }
+      if (!encryptedStorageEnabled) {
+        const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
+        notes    = cached.notes    || {};
+        sessions = cached.sessions || {};
+      }
+    } catch (innerErr) {
+      if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
+        throw innerErr;
+      }
+      notes = {}; sessions = {};
+    }
+  }
+  // Restore last active session
+  const savedSid = localStorage.getItem('ops-active-session');
+  if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
+  else if (Object.keys(sessions).length) activeSessionId = Object.keys(sessions)[0];
+
+  renderSessionSidebar();
+  renderNotesList();
+  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+
+  // Restore active target for current session
+  const sess = activeSessionId && sessions[activeSessionId];
+  const targets = (sess && sess.targets) || [];
+  const savedTgt = localStorage.getItem('ops-active-target');
+  if (savedTgt && targets.find(t => t.id === savedTgt)) {
+    activeTargetId = savedTgt;
+  } else if (targets.length) {
+    activeTargetId = targets[0].id;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  }
+  // Migrate old single-IP sessions: if no targets array but has target_ip, create one target
+  if (sess && (!sess.targets || !sess.targets.length) && (sess.target_ip || sess.target_domain)) {
+    const id = 'tgt_migrate_' + sess.id;
+    sess.targets = [{ id, ip: sess.target_ip || '', domain: sess.target_domain || '', label: 'default' }];
+    activeTargetId = id;
+    localStorage.setItem('ops-active-target', id);
+    saveNotes();
+  }
+  updateTargetSelector();
+  renderSvcLogTable();
+  renderPathTable();
+  updateSvcTabCounts();
+}
+
+function saveNotes() {
+  const payload = { notes, sessions };
+  if (encryptedStorageEnabled) {
+    // ── Encrypted path — never write plaintext ──
+    (async () => {
+      try {
+        if (!encryptedStoragePassword) return; // guard: no password in memory, skip silently
+        const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+        if (encryptedStorageHint) blob.hint = encryptedStorageHint;
+        // Cache encrypted blob in localStorage (no plaintext ever stored)
+        localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
+        localStorage.removeItem('ops-notes-v2'); // ensure no stale plaintext
+        await fetch('/api/notes/save-encrypted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blob }),
+        });
+      } catch(_) {}
+    })();
+  } else {
+    // ── Plaintext path ──
+    localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
+    localStorage.removeItem('ops-notes-v2-encrypted'); // ensure no stale enc blob
+    fetch('/api/notes/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+}
+
+
+// ─── Session management ───
+function renderSessionSidebar() {
+  const dot    = document.getElementById('sessionDot');
+  const name   = document.getElementById('sessionName');
+  const target = document.getElementById('sessionTarget');
+  const sess   = activeSessionId && sessions[activeSessionId];
+  if (sess) {
+    const status = sess.status || 'active';
+    dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
+    name.textContent   = sess.codename;
+    const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
+    if (activeTgt) {
+      target.textContent = [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set';
+    } else {
+      target.textContent = '—';
+    }
+    target.style.color = '';
+    // notes badge
+    const badge = document.getElementById('sessionNotesBadge');
+    if (badge) {
+      const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
+      badge.textContent = n + ' note' + (n !== 1 ? 's' : '');
+      badge.style.display = n > 0 ? '' : 'none';
+    }
+  } else {
+    dot.className = 'session-active-dot';
+    name.textContent   = 'No session';
+    target.textContent = '— click to set';
+    target.style.color = '';
+    const badge = document.getElementById('sessionNotesBadge');
+    if (badge) badge.style.display = 'none';
+  }
+}
+
+function openSessionModal() {
+  document.getElementById('newSessionName').value = '';
+  renderSessionList();
+  document.getElementById('sessionOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newSessionName').focus(), 60);
+}
+function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
+function closeSessionModalIfOutside(e) { if (e.target === document.getElementById('sessionOverlay')) closeSessionModal(); }
+
+function renderSessionList() {
+  const list    = document.getElementById('sessionList');
+  const entries = Object.values(sessions).sort((a,b) => (b.created||0) - (a.created||0));
+  if (!entries.length) {
+    list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
+    return;
+  }
+  const noteCount   = id => Object.values(notes).filter(n => n.session_id === id).length;
+  const targetCount = id => (sessions[id]?.targets || []).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
+  list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
+    entries.map(s => {
+      const status  = s.status || 'active';
+      const tCount  = targetCount(s.id);
+      const tLabel  = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      return `
+    <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
+      <div class="session-list-item-name">${esc(s.codename)}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-bottom" onclick="event.stopPropagation()">
+        <div class="session-item-actions">
+          <div class="session-status-pill ${status}" onclick="toggleStatusDropdown(event,'${s.id}')">
+            <span class="status-dot ${status}"></span>${statusLabel[status]}
+          </div>
+          <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">✎</button>
+          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown files">⬇ .md</button>
+          <button class="session-item-export-btn" onclick="exportTimelineForSession('${s.id}')" title="Export timeline as markdown">⬇ timeline</button>
+          <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+        </div>
+      </div>
+    </div>`}).join('');
+}
+
+function createSession() {
+  const name = document.getElementById('newSessionName').value.trim();
+  if (!name) { document.getElementById('newSessionName').focus(); return; }
+  const id   = 'sess_' + Date.now();
+  const sess = {
+    id,
+    codename: name,
+    created:  Date.now(),
+    targets:  [],
+  };
+  sessions[id] = sess;
+  tlLog(id, { type: 'session_created', name: sess.codename });
+  switchSession(id);
+  saveNotes();
+  renderSessionList();
+  document.getElementById('newSessionName').value = '';
+}
+
+let _statusDropdownTarget = null;
+
+function toggleStatusDropdown(e, sessId) {
+  e.stopPropagation();
+  const dd = document.getElementById('statusDropdown');
+  const isOpen = dd.classList.contains('open') && _statusDropdownTarget === sessId;
+
+  // Always close first
+  dd.classList.remove('open');
+  _statusDropdownTarget = null;
+
+  if (isOpen) return; // toggle off
+
+  // Position relative to the pill
+  const pill = e.currentTarget;
+  const rect = pill.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  _statusDropdownTarget = sessId;
+  dd.classList.add('open');
+
+  // Close on outside click
+  setTimeout(() => {
+    const handler = (ev) => {
+      if (!ev.target.closest('#statusDropdown') && !ev.target.closest('.session-status-pill')) {
+        dd.classList.remove('open');
+        _statusDropdownTarget = null;
+        document.removeEventListener('click', handler);
+      }
+    };
+    document.addEventListener('click', handler);
+  }, 0);
+}
+
+function applyStatusFromDropdown(status) {
+  if (!_statusDropdownTarget) return;
+  setSessionStatus(null, _statusDropdownTarget, status);
+  document.getElementById('statusDropdown').classList.remove('open');
+  _statusDropdownTarget = null;
+}
+
+// ── Timeline event logger ──────────────────────────────────────────────────
+function tlLog(sessId, event) {
+  if (!sessId || !sessions[sessId]) return;
+  if (!sessions[sessId].events) sessions[sessId].events = [];
+  sessions[sessId].events.push({ ts: Date.now(), ...event });
+}
+
+function setSessionStatus(e, sessId, status) {
+  if (e) e.stopPropagation();
+  if (!sessions[sessId]) return;
+  const prev = sessions[sessId].status || 'active';
+  sessions[sessId].status = status;
+  tlLog(sessId, { type: 'status', from: prev, to: status });
+  saveNotes();
+  renderSessionList();
+  if (sessId === activeSessionId) renderSessionSidebar();
+  if (typeof renderTimeline === 'function' && typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
+}
+
+function switchSession(id) {
+  activeSessionId = id;
+  localStorage.setItem('ops-active-session', id);
+  // Reset scope to session view when switching
+  activeNoteScope = 'session';
+  activeTargetFilter = null;
+  activeNoteSearch = '';
+  const searchEl = document.getElementById('noteSearchInput');
+  if (searchEl) searchEl.value = '';
+  document.querySelectorAll('.note-scope-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.scope === 'session'));
+  // Restore last active target for this session
+  const sess = sessions[id];
+  const targets = (sess && sess.targets) || [];
+  const savedTarget = localStorage.getItem('ops-active-target');
+  if (savedTarget && targets.find(t => t.id === savedTarget)) {
+    activeTargetId = savedTarget;
+  } else if (targets.length) {
+    activeTargetId = targets[0].id;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  } else {
+    activeTargetId = null;
+  }
+  renderSessionSidebar();
+  renderSessionList();
+  renderNotesList();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  updateSvcTabCounts();
+}
+
+async function deleteSession(id) {
+  const sess  = sessions[id];
+  const count = Object.values(notes).filter(n => n.session_id === id).length;
+  const msg   = count
+    ? `Delete session "${sess?.codename}"?\n\n${count} note${count>1?'s':''} will become unassigned.`
+    : `Delete session "${sess?.codename}"?`;
+  try { await showConfirmDialog({ icon: '🗑', title: 'Delete Session', bigIcon: '🗑', description: msg, confirmLabel: 'Delete', danger: true }); }
+  catch { return; }
+
+  // Unassign notes rather than delete them
+  Object.values(notes).forEach(n => {
+    if (n.session_id === id) n.session_id = null;
+  });
+
+  delete sessions[id];
+  if (activeSessionId === id) {
+    activeSessionId = Object.keys(sessions)[0] || null;
+    if (activeSessionId) localStorage.setItem('ops-active-session', activeSessionId);
+    else localStorage.removeItem('ops-active-session');
+  }
+  saveNotes();
+  renderSessionSidebar();
+  renderSessionList();
+  renderNotesList();
+}
+
+function renameSession(id) {
+  const sess = sessions[id];
+  if (!sess) return;
+  const newName = prompt('Rename session:', sess.codename);
+  if (!newName || !newName.trim() || newName.trim() === sess.codename) return;
+  sess.codename = newName.trim();
+  saveNotes();
+  renderSessionList();
+  renderSessionSidebar();
+}
+
+function setNoteFilter(type, btn) {
+  activeNoteFilter = type;
+  document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotesList();
+}
+
+function setNoteScope(scope, btn) {
+  activeNoteScope = scope;
+  activeTargetFilter = null;
+  activeNoteSearch = '';
+  const si = document.getElementById('noteSearchInput'); if (si) si.value = '';
+  document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotesList();
+}
+
+function renderNotesList() {
+  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
+    renderTimeline();
+    document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+    renderTargetFilterBar();
+    return;
+  }
+  const list = document.getElementById('notesList');
+  let items = Object.values(notes).sort((a,b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated||0) - (a.updated||0);
+  });
+
+  // Scope filter
+  if (activeNoteScope === 'session') {
+    items = activeSessionId
+      ? items.filter(n => n.session_id === activeSessionId)
+      : items.filter(n => !n.session_id);
+  } else if (activeNoteScope === 'unassigned') {
+    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
+  }
+
+  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
+  if (activeTagFilter) items = items.filter(n => (n.tags||[]).includes(activeTagFilter));
+  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
+  if (activeNoteSearch) {
+    const q = activeNoteSearch.toLowerCase();
+    items = items.filter(n =>
+      (n.title||'').toLowerCase().includes(q) ||
+      (n.body||'').toLowerCase().includes(q)
+    );
+  }
+
+  if (!items.length) {
+    list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
+      font-family:'Inter',sans-serif;text-align:center">
+      ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(n => {
+    const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+    const sess = n.session_id && sessions[n.session_id];
+    const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
+    const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
+      ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
+    const tgtLabel = tgt ? `<div class="note-item-target">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</div>` : '';
+    const tagsHtml = (n.tags||[]).length
+      ? `<div class="note-item-tags">${(n.tags).map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
+      : '';
+    return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
+      <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">📌</span>' : ''}</div>
+      <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
+      ${tagsHtml}
+      ${sessLabel}
+      ${tgtLabel}
+      <div class="note-item-date">${formatDate(n.updated)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  renderTargetFilterBar();
+}
+
+function onNoteSearch(val) {
+  activeNoteSearch = val.trim();
+  renderNotesList();
+}
+
+function exportCurrentNote() {
+  if (!activeNoteId || !notes[activeNoteId]) return;
+  const n = notes[activeNoteId];
+  const lines = [
+    '---',
+    `title: ${n.title || 'Untitled'}`,
+    `type: ${n.type || 'general'}`,
+  ];
+  if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
+  if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
+  if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
+  lines.push('---', '', n.body || '');
+  const filename = slugify(n.title || 'untitled') + '.md';
+  downloadText(lines.join('\n'), filename);
+  showToast('✓ Exported ' + filename);
+}
+
+function toggleCheckbox(el) {
+  if (!activeNoteId || !notes[activeNoteId]) { el.checked = !el.checked; return; }
+  const n = notes[activeNoteId];
+  const body = n.body || '';
+  const lines = body.split('\n');
+  // Count which checkbox index this is in the preview
+  const allBoxes = el.closest('.note-preview-content, .md-content')
+    ? [...(el.closest('.note-preview-content, .md-content') || document).querySelectorAll('.task-checkbox')]
+    : [];
+  const idx = allBoxes.indexOf(el);
+  if (idx === -1) return;
+  // Find the idx-th checklist line in the source
+  let count = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^[ \t]*[-*+] \[[ xX]\]/.test(lines[i])) {
+      if (count === idx) {
+        lines[i] = el.checked
+          ? lines[i].replace(/\[ \]/, '[x]')
+          : lines[i].replace(/\[[xX]\]/, '[ ]');
+        break;
+      }
+      count++;
+    }
+  }
+  const newBody = lines.join('\n');
+  notes[activeNoteId].body = newBody;
+  notes[activeNoteId].updated = Date.now();
+  if (noteEditor) cmSetValue(noteEditor, newBody);
+  autoSaveNote();
+}
+
+function formatDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) + ' ' +
+         d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+
+// New note type picker modal
+function openNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.add('open');
+}
+function closeNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.remove('open');
+}
+function closeNewNoteModalIfOutside(e) {
+  if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal();
+}
+
+function newNote(type = 'general') {
+  closeNewNoteModal();
+  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.general;
+  const id   = 'note_' + Date.now();
+  notes[id]  = {
+    id,
+    session_id:    activeSessionId || null,
+    target_id:     activeTargetId || null,
+    type,
+    title:         tmpl.title || '',
+    body:          tmpl.body  || '',
+    tags:          tmpl.default_tags ? [...tmpl.default_tags] : [],
+    target_ip:     getIP()     !== '<IP>'     ? getIP()     : null,
+    target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
+    created:       Date.now(),
+    updated:       Date.now(),
+  };
+  saveNotes();
+  if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: type, targetId: activeTargetId || null });
+  renderNotesList();
+  renderSessionSidebar();
+  openNote(id);
+  // Focus title if blank, editor body if title pre-filled
+  setTimeout(() => {
+    if (tmpl.title) {
+      document.getElementById('noteTitleInput').select();
+    } else {
+      document.getElementById('noteTitleInput').focus();
+    }
+  }, 50);
+}
+
+function duplicateCurrentNote() {
+  if (!activeNoteId || !notes[activeNoteId]) return;
+  const src = notes[activeNoteId];
+  const id  = 'note_' + Date.now();
+  notes[id] = {
+    ...src,
+    id,
+    title:   src.title ? src.title + ' (copy)' : '',
+    tags:    src.tags ? [...src.tags] : [],
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  saveNotes();
+  if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: src.type, targetId: src.target_id || null });
+  renderNotesList();
+  renderSessionSidebar();
+  openNote(id);
+  showToast('Note duplicated');
+}
+
+function openNote(id) {
+  activeNoteId = id;
+  const n = notes[id];
+  if (!n) return;
+
+  document.getElementById('notesEmpty').style.display     = 'none';
+  const area = document.getElementById('noteEditArea');
+  area.style.display = 'flex';
+
+  // Show type badge in editor header
+  const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+  let badge = document.getElementById('noteTypeBadge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'noteTypeBadge';
+    badge.className = 'note-item-type';
+    document.querySelector('.notes-editor-hdr').prepend(badge);
+  }
+  badge.textContent = meta.icon + ' ' + meta.label;
+  badge.className = 'note-item-type ' + meta.cssClass;
+
+  document.getElementById('noteTitleInput').value = n.title || '';
+  // ── Timestamps ──
+  const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+  const elCr = document.getElementById('noteCreatedAt');
+  const elMo = document.getElementById('noteModifiedAt');
+  if (elCr) elCr.textContent = fmtTs(n.created);
+  if (elMo) elMo.textContent = fmtTs(n.updated);
+  // ── Pin button state ──
+  const pinBtn = document.getElementById('notePinBtn');
+  if (pinBtn) { pinBtn.classList.toggle('pinned', !!n.pinned); pinBtn.title = n.pinned ? 'Unpin note' : 'Pin note'; }
+  cmSetValue(noteEditor, n.body || '');
+  renderNoteTags(n);
+  updateReassignBtn(n);
+  renderBacklinks(id);
+  if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
+  document.getElementById('noteSaveStatus').textContent  = 'saved';
+  document.getElementById('noteSaveStatus').className    = 'note-save-status saved';
+
+  renderNotesList();
+  // Keep timeline highlight in sync when a note is opened from timeline
+  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
+    renderTimeline();
+  }
+
+  // Wire up auto-save
+  document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
+  // noteEditor onChange wired in cmInit
+
+  // Apply preview state and populate
+  applyNotePreviewState();
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// PIN NOTES
+// ═══════════════════════════════════════════════════════════
+function togglePinNote() {
+  if (!activeNoteId) return;
+  notes[activeNoteId].pinned  = !notes[activeNoteId].pinned;
+  notes[activeNoteId].updated = Date.now();
+  const pinBtn = document.getElementById('notePinBtn');
+  if (pinBtn) {
+    pinBtn.classList.toggle('pinned', !!notes[activeNoteId].pinned);
+    pinBtn.title = notes[activeNoteId].pinned ? 'Unpin note' : 'Pin note';
+  }
+  saveNotes();
+  renderNotesList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTE LINKING  [[Note Title]]
+// ═══════════════════════════════════════════════════════════
+
+// Resolve [[Title]] → note id (exact match first, then partial)
+function resolveNoteLink(rawTitle) {
+  const q = rawTitle.trim().toLowerCase();
+  let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
+  if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
+  return hit ? hit.id : null;
+}
+
+// Find all notes that contain [[...]] links pointing to noteId
+function getBacklinks(noteId) {
+  return Object.values(notes).filter(n => {
+    if (n.id === noteId) return false;
+    const body = n.body || '';
+    const re = /\[\[([^\]]+)\]\]/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+      if (resolveNoteLink(m[1]) === noteId) return true;
+    }
+    return false;
+  });
+}
+
+// Render backlinks panel under the editor
+function renderBacklinks(noteId) {
+  const panel = document.getElementById('noteBacklinks');
+  const list  = document.getElementById('noteBacklinksList');
+  if (!panel || !list) return;
+  const links = getBacklinks(noteId);
+  if (!links.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  list.innerHTML = links.map(n => {
+    const safeTitle = (n.title || 'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return '<span class="note-backlink-chip" onclick="openNote(\'' + n.id + '\')" title="' + safeTitle + '">' + safeTitle + '</span>';
+  }).join('');
+}
+
+function autoSaveNote() {
+  if (!activeNoteId) return;
+  document.getElementById('noteSaveStatus').textContent = '…saving';
+  document.getElementById('noteSaveStatus').className   = 'note-save-status';
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => {
+    notes[activeNoteId].title   = document.getElementById('noteTitleInput').value;
+    notes[activeNoteId].body    = cmGetValue(noteEditor);
+    // tags are saved directly in addNoteTag/removeNoteTag
+    notes[activeNoteId].updated = Date.now();
+    saveNotes();
+    renderNotesList();
+    renderSessionSidebar();
+    if (activeNoteId) renderBacklinks(activeNoteId);
+    document.getElementById('noteSaveStatus').textContent = 'saved';
+    document.getElementById('noteSaveStatus').className   = 'note-save-status saved';
+    // Update modified timestamp live
+    const moEl = document.getElementById('noteModifiedAt');
+    if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
+      day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    updateNotePreview();
+  }, 600);
+}
+
+// ── Note preview ──────────────────────────────────────────
+let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
+
+function updateNotePreview() {
+  const pane = document.getElementById('notePreviewPane');
+  if (!pane || pane.style.display === 'none') return;
+  const md = noteEditor ? cmGetValue(noteEditor) : '';
+  const el = document.getElementById('notePreviewContent');
+  if (!el) return;
+  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
+  // preview only needs per-line copy, not the block-level copy button
+  el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+function toggleNotePreview() {
+  notePreviewOpen = !notePreviewOpen;
+  localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function applyNotePreviewState() {
+  const split  = document.getElementById('noteEditorSplit');
+  const handle = document.getElementById('notePreviewHandle');
+  const pane   = document.getElementById('notePreviewPane');
+  const btn    = document.getElementById('notePreviewBtn');
+  if (!split || !handle || !pane || !btn) return;
+
+  const open = notePreviewOpen;
+  split.classList.toggle('preview-open', open);
+  handle.style.display = open ? '' : 'none';
+  pane.style.display   = open ? 'flex' : 'none';
+  btn.classList.toggle('active', open);
+  btn.title = open ? 'Hide preview' : 'Toggle markdown preview';
+
+  if (open) {
+    // Restore saved split position
+    const saved = localStorage.getItem('pragma-preview-split');
+    if (saved) split.style.setProperty('--note-editor-h', saved);
+    updateNotePreview();
+    initPreviewDragHandle();
+  }
+}
+
+function initPreviewDragHandle() {
+  const handle = document.getElementById('notePreviewHandle');
+  const split  = document.getElementById('noteEditorSplit');
+  if (!handle || handle._dragInited) return;
+  handle._dragInited = true;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startY    = e.clientY;
+    const splitRect = split.getBoundingClientRect();
+    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue('--note-editor-h')) || 50;
+
+    const onMove = ev => {
+      const delta  = ev.clientY - startY;
+      const newPct = Math.min(85, Math.max(15, startPct + (delta / splitRect.height) * 100));
+      split.style.setProperty('--note-editor-h', newPct + '%');
+      localStorage.setItem('pragma-preview-split', newPct + '%');
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+async function deleteCurrentNote() {
+  if (!activeNoteId) return;
+  try { await showConfirmDialog({ icon: '🗑', title: 'Delete Note', bigIcon: '🗑', description: 'This note will be permanently deleted.', confirmLabel: 'Delete', danger: true }); }
+  catch { return; }
+  delete notes[activeNoteId];
+  activeNoteId = null;
+  saveNotes();
+  renderNotesList();
+  renderSessionSidebar();
+  const total = Object.keys(notes).length;
+  document.getElementById('notes-count').textContent = total || '—';
+  document.getElementById('notesEmpty').style.display     = 'flex';
+  document.getElementById('noteEditArea').style.display   = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// CONTENT PANEL EDIT MODE
+// ═══════════════════════════════════════════════
+let cpEditDirty = false;
+
+function cpEditTabHandler(e) {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const ta = e.target;
+  const s  = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = s + 2;
+  setCpEditStatus('unsaved', '● unsaved');
+  cpEditDirty = true;
+}
+
+function setCpEditStatus(cls, msg) {
+  const el = document.getElementById('cpEditStatus');
+  el.className = 'cp-edit-status ' + cls;
+  el.textContent = msg;
+}
+
+async function toggleEditMode() {
+  const editBody = document.getElementById('cpEditBody');
+  const isEditing = editBody.style.display !== 'none';
+  if (isEditing) {
+    if (cpEditDirty) {
+      try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+      catch { return; }
+    }
+    exitEditMode();
+  } else {
+    enterEditMode();
+  }
+}
+
+function enterEditMode() {
+  if (!activeDoc || !activeDoc.raw) return;
+  document.getElementById('cpReadBody').style.display  = 'none';
+  document.getElementById('cpEditBody').style.display  = 'flex';
+  document.getElementById('cpEditBtn').classList.add('editing');
+  document.getElementById('cpEditBtn').title = 'Exit edit mode';
+  cmInitKb();
+  cmSetValue(kbEditor, activeDoc.raw);
+  cpEditDirty = false;
+  setCpEditStatus('', activeDoc.meta || '');
+  setTimeout(() => kbEditor && kbEditor.focus(), 30);
+  // KB dirty tracking wired in cmInitKb
+}
+
+function exitEditMode() {
+  document.getElementById('cpReadBody').style.display  = '';
+  document.getElementById('cpEditBody').style.display  = 'none';
+  document.getElementById('cpEditBtn').classList.remove('editing');
+  document.getElementById('cpEditBtn').title = 'Edit file';
+  cpEditDirty = false;
+}
+
+async function cancelEdit() {
+  if (cpEditDirty) {
+    try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+    catch { return; }
+  }
+  exitEditMode();
+}
+
+async function saveEdit() {
+  if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
+  const raw = cmGetValue(kbEditor);
+  setCpEditStatus('', '⏳ Saving…');
+  try {
+    const r = await fetch('/api/kb/save', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: activeDoc.id, view: activeDoc.view, content: raw }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Save failed');
+
+    // Update activeDoc raw + re-render preview in background
+    activeDoc.raw = raw;
+    cpEditDirty   = false;
+    setCpEditStatus('saved', '✓ saved');
+
+    // Re-render the read view with updated content so it's fresh when you exit
+    try {
+      const endpoint = activeDoc.view === 'services'
+        ? `/api/service/${encodeURIComponent(activeDoc.id)}`
+        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
+      const r2 = await fetch(endpoint);
+      const d2 = await r2.json();
+      activeDoc.html = d2.html;
+      activeDoc.raw  = d2.raw;
+      document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
+      wrapCodeBlocks(document.getElementById('cpContent'));
+      wrapInlineCodes(document.getElementById('cpContent'));
+    } catch(_) {}
+
+    setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
+  } catch(e) {
+    setCpEditStatus('unsaved', '✗ ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TAGS
+// ═══════════════════════════════════════════════
+function getAllTags() {
+  const set = new Set();
+  Object.values(notes).forEach(n => (n.tags||[]).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+function renderNoteTags(n) {
+  const row   = document.getElementById('noteTagsRow');
+  const input = document.getElementById('noteTagInput');
+  // Remove existing tag pills (keep the input)
+  row.querySelectorAll('.note-tag').forEach(el => el.remove());
+  (n.tags || []).forEach(tag => {
+    const pill = document.createElement('span');
+    pill.className = 'note-tag';
+    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + esc(tag) + '\')">×</span>';
+    row.insertBefore(pill, input);
+  });
+}
+
+function noteTagKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const raw = e.target.value.trim().replace(/^#/, '').replace(/[,\s]+/g, '-').toLowerCase();
+  if (!raw || !activeNoteId) return;
+  const n = notes[activeNoteId];
+  if (!n.tags) n.tags = [];
+  if (!n.tags.includes(raw)) {
+    n.tags.push(raw);
+    notes[activeNoteId].updated = Date.now();
+    saveNotes();
+    renderNoteTags(n);
+    renderNotesList();
+    renderTagFilterSidebar();
+  }
+  e.target.value = '';
+}
+
+function removeNoteTag(tag) {
+  if (!activeNoteId) return;
+  const n = notes[activeNoteId];
+  n.tags = (n.tags||[]).filter(t => t !== tag);
+  n.updated = Date.now();
+  saveNotes();
+  renderNoteTags(n);
+  renderNotesList();
+  renderTagFilterSidebar();
+  if (activeTagFilter === tag) { activeTagFilter = null; renderNotesList(); }
+}
+
+function setTagFilter(tag) {
+  activeTagFilter = activeTagFilter === tag ? null : tag;
+  renderTagFilterSidebar();
+  renderNotesList();
+}
+
+function renderTagFilterSidebar() {
+  const list = document.getElementById('tagFilterList');
+  const tags = getAllTags();
+  if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  list.innerHTML = tags.map(t =>
+    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
+  ).join('');
+}
+
+
+// ═══════════════════════════════════════════════
+// CODEMIRROR 6 EDITORS
+// ═══════════════════════════════════════════════
+let noteEditor = null;
+let kbEditor   = null;
+
+function cmGetValue(editor) {
+  return editor ? editor.state.doc.toString() : '';
+}
+
+function cmSetValue(editor, value) {
+  if (!editor) return;
+  editor.dispatch({
+    changes: { from: 0, to: editor.state.doc.length, insert: value || '' }
+  });
+}
+
+/* ── Syntax highlight themes ── */
+const SYNTAX_THEMES = {
+  monokai: (dark) => [
+    { tag: CM.tags.heading1,              color: '#f92672', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#f92672', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#fd971f', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#fd971f' },
+    { tag: CM.tags.strong,                color: '#fd971f', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a6e22e', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#75715e', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#66d9e8' },
+    { tag: CM.tags.monospace,             color: '#ae81ff' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#75715e', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#555566' : '#aaaacc' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#ae81ff' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#f92672' },
+    { tag: CM.tags.string,                color: '#e6db74' },
+  ],
+  nord: (dark) => [
+    { tag: CM.tags.heading1,              color: '#bf616a', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#d08770', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#ebcb8b', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#ebcb8b' },
+    { tag: CM.tags.strong,                color: '#d08770', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#a3be8c', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#4c566a', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#88c0d0' },
+    { tag: CM.tags.monospace,             color: '#b48ead' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#616e88', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#4c566a' : '#9aa0b0' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#b48ead' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#81a1c1' },
+    { tag: CM.tags.string,                color: '#a3be8c' },
+  ],
+  solarized: (dark) => [
+    { tag: CM.tags.heading1,              color: '#dc322f', fontWeight: '700' },
+    { tag: CM.tags.heading2,              color: '#cb4b16', fontWeight: '600' },
+    { tag: CM.tags.heading3,              color: '#b58900', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#b58900' },
+    { tag: CM.tags.strong,                color: '#cb4b16', fontWeight: '700' },
+    { tag: CM.tags.emphasis,              color: '#2aa198', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough,         color: '#586e75', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url],   color: '#268bd2' },
+    { tag: CM.tags.monospace,             color: '#6c71c4' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#586e75', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation,           color: dark ? '#586e75' : '#839496' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#6c71c4' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: '#859900' },
+    { tag: CM.tags.string,                color: '#2aa198' },
+  ],
+};
+
+let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
+
+function setSyntaxTheme(name) {
+  activeSyntaxTheme = name;
+  localStorage.setItem('pragma-syntax-theme', name);
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === name));
+
+  // Capture current content BEFORE destroying editors
+  const noteContent = noteEditor ? cmGetValue(noteEditor) : null;
+  const kbContent   = kbEditor   ? cmGetValue(kbEditor)   : null;
+
+  // Rebuild with new theme, passing saved content so doc is never empty
+  if (typeof cmInitNote === 'function') cmInitNote(noteContent);
+  if (typeof cmInitKb   === 'function') cmInitKb(kbContent);
+}
+
+function initSyntaxThemePicker() {
+  document.querySelectorAll('.syntax-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
+}
+
+function cmThemeVars() {
+  // Read CSS vars at runtime so theme matches dark/light mode
+  const s = getComputedStyle(document.documentElement);
+  const bg    = s.getPropertyValue('--bg').trim()    || '#1a1a1f';
+  const text  = s.getPropertyValue('--text').trim()  || '#e2e8f0';
+  const text2 = s.getPropertyValue('--text2').trim() || '#94a3b8';
+  const muted = s.getPropertyValue('--muted').trim() || '#4a5568';
+  const bg3   = s.getPropertyValue('--bg3').trim()   || '#26262f';
+  return { bg, text, text2, muted, bg3 };
+}
+
+function buildCmTheme() {
+  if (!window.CM) return [];
+  const v    = cmThemeVars();
+  const dark = !document.documentElement.classList.contains('light');
+
+  const editorTheme = CM.EditorView.theme({
+    '&':                          { background: 'transparent', height: '100%' },
+    '.cm-content':                { color: v.text2, caretColor: v.text, padding: '0' },
+    '.cm-cursor':                 { borderLeftColor: v.text },
+    '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },
+    '.cm-activeLine':             { background: 'rgba(124,58,237,0.06)' },
+    '.cm-gutters':                { display: 'none' },
+    '.cm-placeholder':            { color: v.muted },
+    '.cm-line':                   { padding: '0' },
+  }, { dark });
+
+  const highlightStyle = CM.HighlightStyle.define(SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.monokai(dark));
+
+  return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
+}
+
+function cmInitNote(initialDoc) {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) { noteEditor.destroy(); }
+
+  noteEditor = new CM.EditorView({
+    doc: initialDoc ?? '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged && activeNoteId) {
+          autoSaveNote();
+          updateNotePreview();
+        }
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
+}
+
+function cmInitKb(initialDoc) {
+  const wrap = document.getElementById('cpEditWrap');
+  if (!wrap || !CM) return;
+  if (kbEditor) { kbEditor.destroy(); }
+
+  kbEditor = new CM.EditorView({
+    doc: initialDoc ?? '',
+    extensions: [
+      CM.basicSetup,
+      CM.markdown(),
+      ...buildCmTheme(),
+      CM.EditorView.updateListener.of(update => {
+        if (update.docChanged) {
+          if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
+        }
+      }),
+      CM.EditorView.lineWrapping,
+    ],
+    parent: wrap,
+  });
+}
+
+// Reinit editors on theme toggle to pick up new CSS vars
+const _origToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
+
+
+// ═══════════════════════════════════════════════
+// CUSTOM MODAL ENGINE
+// Replaces window.prompt / window.confirm
+// All functions return Promises for async/await use
+// ═══════════════════════════════════════════════
+let _pwResolve = null;
+let _pwReject  = null;
+
+function pwCancel() {
+  _closePwModal();
+  if (_pwReject) _pwReject(new Error('cancelled'));
+  _pwResolve = null; _pwReject = null;
+}
+
+function _closePwModal() {
+  const ov = document.getElementById('pwOverlay');
+  if (ov) ov.classList.remove('open');
+}
+
+// Close on backdrop click
+document.addEventListener('click', e => {
+  const ov = document.getElementById('pwOverlay');
+  if (ov && ov.classList.contains('open') && e.target === ov) pwCancel();
+});
+
+// ── showPasswordPrompt(options) → Promise<string>
+// options: { title, icon, description, label, placeholder, confirm: bool, confirmLabel }
+function showPasswordPrompt(opts = {}) {
+  return new Promise((resolve, reject) => {
+    _pwResolve = resolve;
+    _pwReject  = reject;
+
+    document.getElementById('pwIcon').textContent  = opts.icon  || '🔒';
+    document.getElementById('pwTitle').textContent = opts.title || 'Enter Password';
+
+    const body = document.getElementById('pwBody');
+    const confirmField = opts.confirm ? `
+      <div class="pw-field">
+        <label>Confirm Password</label>
+        <div class="pw-input-wrap">
+          <input class="pw-input" id="pwInput2" type="password"
+            placeholder="Re-enter password…" autocomplete="new-password"
+            oninput="_pwCheckStrength()" onkeydown="_pwKey(event)">
+          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput2')" tabindex="-1">👁</button>
+        </div>
+      </div>` : '';
+
+    const strengthMeter = opts.confirm ? `
+      <div class="pw-strength" id="pwStrength">
+        <div class="pw-strength-bar" id="pwBar1"></div>
+        <div class="pw-strength-bar" id="pwBar2"></div>
+        <div class="pw-strength-bar" id="pwBar3"></div>
+        <div class="pw-strength-bar" id="pwBar4"></div>
+      </div>` : '';
+
+    const hintField = opts.hint ? `
+      <div class="pw-field" style="margin-top:4px">
+        <label style="color:var(--muted)">Password Hint <span style="font-weight:400;font-size:10px">(optional — stored in plain text)</span></label>
+        <input class="pw-input" id="pwHintInput" type="text"
+          placeholder="e.g. favourite phrase, year, symbol…"
+          autocomplete="off" style="font-size:12px">
+      </div>` : '';
+
+    body.innerHTML = `
+      ${opts.description ? `<div class="pw-description">${opts.description}</div>` : ''}
+      <div class="pw-field">
+        <label>${opts.label || 'Password'}</label>
+        <div class="pw-input-wrap">
+          <input class="pw-input" id="pwInput1" type="password"
+            placeholder="${opts.placeholder || 'Enter password…'}"
+            autocomplete="${opts.confirm ? 'new-password' : 'current-password'}"
+            oninput="${opts.confirm ? '_pwCheckStrength()' : ''}"
+            onkeydown="_pwKey(event)">
+          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput1')" tabindex="-1">👁</button>
+        </div>
+        ${strengthMeter}
+      </div>
+      ${confirmField}
+      ${hintField}
+      <div class="pw-error-msg" id="pwError"></div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="pwCancel()">Cancel</button>
+        <button class="pw-btn primary" id="pwSubmitBtn"
+          onclick="_pwSubmit(${opts.confirm ? 'true' : 'false'})">
+          ${opts.submitLabel || (opts.confirm ? '🔒 Enable Encryption' : 'Unlock')}
+        </button>
+      </div>`;
+
+    document.getElementById('pwOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('pwInput1')?.focus(), 40);
+  });
+}
+
+// ── showConfirmDialog(options) → Promise<void>  (resolves on confirm, rejects on cancel)
+function showConfirmDialog(opts = {}) {
+  return new Promise((resolve, reject) => {
+    _pwResolve = resolve;
+    _pwReject  = reject;
+
+    document.getElementById('pwIcon').textContent  = opts.icon  || '⚠️';
+    document.getElementById('pwTitle').textContent = opts.title || 'Confirm';
+
+    const body = document.getElementById('pwBody');
+    body.innerHTML = `
+      <div class="pw-confirm-icon">${opts.bigIcon || opts.icon || '⚠️'}</div>
+      <div class="pw-description">${opts.description || 'Are you sure?'}</div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="pwCancel()">${opts.cancelLabel || 'Cancel'}</button>
+        <button class="pw-btn ${opts.danger ? 'danger' : 'primary'}"
+          onclick="_pwConfirmOk()">${opts.confirmLabel || 'Confirm'}</button>
+      </div>`;
+
+    document.getElementById('pwOverlay').classList.add('open');
+    // Focus the confirm button (safer UX — avoids accidental Enter confirm)
+    setTimeout(() => body.querySelector('.pw-btn.primary, .pw-btn.danger')?.focus(), 40);
+  });
+}
+
+function _pwConfirmOk() {
+  _closePwModal();
+  if (_pwResolve) _pwResolve(true);
+  _pwResolve = null; _pwReject = null;
+}
+
+function _pwSubmit(requireConfirm) {
+  const v1 = document.getElementById('pwInput1')?.value || '';
+  const v2 = document.getElementById('pwInput2')?.value || '';
+  const err = document.getElementById('pwError');
+
+  if (!v1) {
+    err.textContent = 'Password cannot be empty.';
+    err.classList.add('visible');
+    document.getElementById('pwInput1').classList.add('error');
+    document.getElementById('pwInput1').focus();
+    return;
+  }
+
+  if (requireConfirm) {
+    if (v1 !== v2) {
+      err.textContent = 'Passwords do not match.';
+      err.classList.add('visible');
+      document.getElementById('pwInput2').classList.add('error');
+      document.getElementById('pwInput2').focus();
+      return;
+    }
+    if (v1.length < 8) {
+      err.textContent = 'Password must be at least 8 characters.';
+      err.classList.add('visible');
+      document.getElementById('pwInput1').classList.add('error');
+      document.getElementById('pwInput1').focus();
+      return;
+    }
+  }
+
+  _closePwModal();
+  const pw   = v1;
+  const hint = document.getElementById('pwHintInput')?.value?.trim() || null;
+  if (_pwResolve) _pwResolve(hint !== null ? { password: pw, hint } : pw);
+  _pwResolve = null; _pwReject = null;
+}
+
+function _pwKey(e) {
+  if (e.key === 'Escape') { pwCancel(); return; }
+  if (e.key === 'Enter') {
+    const confirmMode = !!document.getElementById('pwInput2');
+    _pwSubmit(confirmMode);
+  }
+}
+
+function _pwToggleVis(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function _pwCheckStrength() {
+  const pw = document.getElementById('pwInput1')?.value || '';
+  const bars = [
+    document.getElementById('pwBar1'),
+    document.getElementById('pwBar2'),
+    document.getElementById('pwBar3'),
+    document.getElementById('pwBar4'),
+  ];
+  if (!bars[0]) return;
+
+  let score = 0;
+  if (pw.length >= 8)                                        score++; // minimum length
+  if (pw.length >= 14)                                       score++; // good length
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw))                 score++; // mixed case
+  if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw))         score++; // number + symbol
+
+  // Long passphrases (20+) with any complexity hit perfect directly
+  if (pw.length >= 20 && score >= 2) score = 4;
+
+  const cls = score <= 1 ? 'weak' : score === 2 ? 'medium' : score === 3 ? 'strong' : 'perfect';
+  bars.forEach((b, i) => {
+    b.className = 'pw-strength-bar' + (i < score ? ' ' + cls : '');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SESSION ENCRYPTION (AES-256-GCM + PBKDF2-SHA-512)
+// ═══════════════════════════════════════════════
+// Format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
+// Format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
+//
+// Note: AES-GCM provides built-in authenticated encryption via the GHASH tag.
+// Any tampering with ciphertext, IV, or AAD causes decrypt to throw — no
+// separate HMAC is required on top of GCM. The pragma_version field gates
+// which key derivation parameters are used on decrypt.
+
+const PBKDF2_ITERATIONS_V2 = 600000; // NIST SP 800-132 (2023) recommendation
+const PBKDF2_ITERATIONS_V1 = 310000; // legacy — kept for reading old blobs
+
+async function deriveKey(password, salt, version = 2) {
+  const enc    = new TextEncoder();
+  const keyMat = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name:       'PBKDF2',
+      salt,
+      iterations: version >= 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1,
+      hash:       version >= 2 ? 'SHA-512' : 'SHA-256',  // SHA-512 harder on GPUs
+    },
+    keyMat,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptPayload(plaintext, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(32)); // 32-byte salt (v2)
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt, 2);
+  const enc  = new TextEncoder();
+  const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+  const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
+  return { pragma_version: 2, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
+}
+
+async function decryptPayload(obj, password) {
+  const b64d   = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const salt   = b64d(obj.salt);
+  const iv     = b64d(obj.iv);
+  const ct     = b64d(obj.data);
+  // Detect format version — v1 blobs have pragma_version: 1 or missing
+  const version = (obj.pragma_version >= 2) ? 2 : 1;
+  const key    = await deriveKey(password, salt, version);
+  const dec    = new TextDecoder();
+  try {
+    // GCM auth tag mismatch throws here if password wrong or data tampered
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return dec.decode(plain);
+  } catch {
+    throw new Error('Wrong password or corrupted data');
+  }
+}
+
+// ═══════════════════════════════════════════════
+async function importSession(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const fb = document.getElementById('importFeedback');
+  fb.style.display = 'block';
+  fb.className = 'import-feedback';
+  fb.textContent = '⏳ Importing…';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      let parsed = JSON.parse(e.target.result);
+
+      // ── Decrypt if needed ──
+      if (parsed.encrypted === true) {
+        let password;
+        try {
+          password = await showPasswordPrompt({
+            icon: '🔒', title: 'Encrypted Workbench',
+            description: 'This .session file is encrypted. Enter the password used when it was exported.',
+            label: 'Password', placeholder: 'Enter password…',
+            submitLabel: '🔓 Decrypt & Import',
+          });
+        } catch { fb.style.display = 'none'; event.target.value = ''; return; }
+        try {
+          const plain = await decryptPayload(parsed, password);
+          parsed = JSON.parse(plain);
+        } catch(decErr) {
+          fb.className = 'import-feedback err';
+          fb.textContent = '✗ ' + decErr.message;
+          event.target.value = '';
+          return;
+        }
+      }
+
+      const data = parsed;
+      if (!data.session || !data.notes) throw new Error('Invalid .session file');
+
+      // Create new session with new ID to avoid collisions
+      const newSessId = 'sess_' + Date.now();
+      const importedSess = {
+        ...data.session,
+        id:      newSessId,
+        created: data.session.created || Date.now(),
+        imported_from: data.session.codename,
+      };
+
+      sessions[newSessId] = importedSess;
+
+      // Re-attach notes with new session ID and new note IDs
+      let noteCount = 0;
+      data.notes.forEach(n => {
+        const newNoteId = 'note_' + Date.now() + '_' + (noteCount++);
+        notes[newNoteId] = {
+          ...n,
+          id:         newNoteId,
+          session_id: newSessId,
+        };
+      });
+
+      saveNotes();
+      switchSession(newSessId);
+      renderSessionList();
+
+      fb.className = 'import-feedback ok';
+      fb.textContent = '✓ Imported "' + importedSess.codename + '" — ' + noteCount + ' note' + (noteCount !== 1 ? 's' : '');
+      setTimeout(() => { fb.style.display = 'none'; }, 4000);
+    } catch(err) {
+      fb.className = 'import-feedback err';
+      fb.textContent = '✗ ' + err.message;
+    }
+    // Reset file input so same file can be re-imported
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════
+// NOTE REASSIGN
+// ═══════════════════════════════════════════════
+function toggleReassignDropdown() {
+  const dd = document.getElementById('noteReassignDropdown');
+  if (dd.classList.contains('open')) {
+    dd.classList.remove('open');
+    return;
+  }
+  renderReassignDropdown();
+  dd.classList.add('open');
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeReassignOnOutside, { once: true });
+  }, 0);
+}
+
+function closeReassignOnOutside(e) {
+  const dd = document.getElementById('noteReassignDropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+}
+
+function renderReassignDropdown() {
+  const dd   = document.getElementById('noteReassignDropdown');
+  const note = activeNoteId && notes[activeNoteId];
+  if (!note) return;
+
+  const sessList = Object.values(sessions).sort((a,b) => (b.created||0) - (a.created||0));
+  let html = '';
+
+  // Unassign option
+  if (note.session_id) {
+    html += `<div class="note-reassign-option unassign" onclick="reassignNote(null)">— Unassign</div>`;
+  }
+
+  sessList.forEach(s => {
+    const isCurrent = s.id === note.session_id;
+    html += `<div class="note-reassign-option${isCurrent ? ' current' : ''}" onclick="reassignNote('${s.id}')">
+      ${isCurrent ? '✓ ' : ''}${esc(s.codename)}
+    </div>`;
+  });
+
+  if (!sessList.length) html = '<div class="note-reassign-option unassign">No sessions yet</div>';
+  dd.innerHTML = html;
+}
+
+function reassignNote(sessionId) {
+  if (!activeNoteId) return;
+  const note = notes[activeNoteId];
+  note.session_id = sessionId || null;
+  note.updated    = Date.now();
+  saveNotes();
+  updateReassignBtn(note);
+  document.getElementById('noteReassignDropdown').classList.remove('open');
+  renderNotesList();
+}
+
+function updateReassignBtn(note) {
+  const btn  = document.getElementById('noteReassignBtn');
+  if (!btn) return;
+  const sess = note.session_id && sessions[note.session_id];
+  if (sess) {
+    btn.textContent = '⎘ ' + sess.codename;
+    btn.classList.add('assigned');
+  } else {
+    btn.textContent = '⎘ unassigned';
+    btn.classList.remove('assigned');
+  }
+}
+
+function openShortcutsModal() {
+  document.getElementById('shortcutsOverlay').classList.add('open');
+}
+function closeShortcutsModal() {
+  document.getElementById('shortcutsOverlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════
+// Full shortcut reference:
+//   ⌘/Ctrl + K        — Command palette
+//   ⌘/Ctrl + N        — New note
+//   ⌘/Ctrl + S        — Save current note (force)
+//   ⌘/Ctrl + F        — Jump to search view
+//   ⌘/Ctrl + 1-5      — Switch views (services/guides/notes/search)
+//   ⌘/Ctrl + E        — Edit current KB file (if content panel open)
+//   ESC               — Close topmost modal / panel / dropdown
+
+document.addEventListener('keydown', async e => {
+  const ctrl = e.metaKey || e.ctrlKey;
+
+  // ── ⌘B — Toggle sidebar ──
+  if (ctrl && e.key === 'b') { e.preventDefault(); toggleSidebar(); return; }
+
+  // ── ⌘K — Command palette ──
+  if (ctrl && e.key === 'k') {
+    e.preventDefault(); openCmd(); return;
+  }
+
+  // ── ⌘N — New note ──
+  if (ctrl && e.key === 'n') {
+    e.preventDefault();
+    switchView('notes', document.getElementById('nav-notes'));
+    openNewNoteModal();
+    return;
+  }
+
+  // ── ⌘S — Save current note ──
+  if (ctrl && e.key === 's') {
+    if (activeNoteId) {
+      e.preventDefault();
+      autoSaveNote();
+      const status = document.getElementById('noteSaveStatus');
+      if (status) { status.textContent = '✓ saved'; setTimeout(() => status.textContent = 'saved', 1500); }
+    }
+    return;
+  }
+
+  // ── ⌘F — Search ──
+  if (ctrl && e.key === 'f') {
+    // Only intercept if not in a text input already
+    if (document.activeElement.tagName !== 'TEXTAREA' &&
+        document.activeElement.id     !== 'noteBody' &&
+        document.activeElement.id     !== 'noteTitleInput') {
+      e.preventDefault();
+      switchView('search', document.getElementById('nav-search'));
+      setTimeout(() => document.getElementById('searchInput')?.focus(), 50);
+      return;
+    }
+  }
+
+  // ── ⌘1-5 — Switch views ──
+  if (ctrl && ['1','2','3','4','5'].includes(e.key)) {
+    e.preventDefault();
+    const viewMap = {
+      '1': ['notes',         'nav-notes'],
+      '2': ['services',      'nav-services'],
+      '3': ['methodologies', 'nav-methodologies'],
+      '4': ['search',        'nav-search'],
+    };
+    const v = viewMap[e.key];
+    if (v) switchView(v[0], document.getElementById(v[1]));
+    return;
+  }
+
+  // ── ⌘E — Toggle edit mode on open KB file ──
+  if (ctrl && e.key === 'e') {
+    const cp = document.getElementById('contentPanel');
+    if (cp && !cp.classList.contains('hidden-panel') && activeDoc?.isLocal) {
+      e.preventDefault();
+      toggleEditMode();
+      return;
+    }
+  }
+
+  // ── Ctrl+L — Toggle Quick Log popover ──
+  if (ctrl && e.key === 'l') {
+    e.preventDefault();
+    toggleSvcPopover();
+    return;
+  }
+
+  // ── Alt+T — Toggle Timeline view (switches to Notes first if needed) ──
+  if (e.altKey && e.key === 't') {
+    e.preventDefault();
+    if (activeView !== 'notes') {
+      switchView('notes', document.getElementById('nav-notes'));
+      // Small delay to let the view render before toggling timeline
+      setTimeout(() => {
+        const btn = document.getElementById('notesViewTimelineBtn');
+        if (notesListViewMode !== 'timeline') setNotesListView('timeline', btn);
+      }, 30);
+    } else {
+      // Already on notes — toggle between timeline and list
+      if (notesListViewMode === 'timeline') {
+        setNotesListView('list', document.getElementById('notesViewListBtn'));
+      } else {
+        setNotesListView('timeline', document.getElementById('notesViewTimelineBtn'));
+      }
+    }
+    return;
+  }
+
+  // ── Ctrl+. — Open target selector ──
+  if (ctrl && e.key === '.') {
+    e.preventDefault();
+    openTargetsPanel();
+    return;
+  }
+
+  // ── ESC — Close topmost modal / overlay / panel / dropdown ──
+  if (e.key === 'Escape') {
+    // Shortcuts modal
+    if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
+    // Reassign dropdown
+    const rd = document.getElementById('noteReassignDropdown');
+    if (rd?.classList.contains('open')) { rd.classList.remove('open'); return; }
+    // Svc quick-log popover
+    if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
+    // Targets panel
+    if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
+    // Session modal
+    if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
+    // New note modal
+    if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }
+    // Command palette
+    if (document.getElementById('cmdOverlay')?.classList.contains('open')) { closeCmd(); return; }
+    // KB edit mode
+    if (document.getElementById('cpEditBody')?.style.display !== 'none') {
+      if (cpEditDirty) {
+        try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+        catch { return; }
+      }
+      exitEditMode(); return;
+    }
+    // Content panel
+    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); return; }
+  }
+});
+
+// ── Show shortcut hints in tooltips ──
+document.addEventListener('DOMContentLoaded', () => {
+  const hints = [
+    ['nav-services',      '⌘1'],
+    ['nav-methodologies', '⌘2'],
+    ['nav-notes',         '⌘3'],
+    ['nav-search',        '⌘4'],
+  ];
+  hints.forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.title = key;
+  });
+});
+
+// ═══════════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════════
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════
+// PORT / SERVICE QUICK-LOG
+// Stored per session: sessions[id].services = [{id,target_id,port,proto,service,version,notes,added}]
+// ═══════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
+// RECON TOOL OUTPUT PARSERS
+// ═══════════════════════════════════════════════
+
+let _portParsed = [];  // staging: port results
+let _pathParsed = [];  // staging: path results
+let _activeSvcTab = 'ports';
+
+// ── Tab switching ──
+function switchSvcTab(tab) {
+  _activeSvcTab = tab;
+  document.getElementById('svcTabPorts').classList.toggle('active', tab === 'ports');
+  document.getElementById('svcTabPaths').classList.toggle('active', tab === 'paths');
+  document.getElementById('svcPanelPorts').style.display = tab === 'ports' ? 'block' : 'none';
+  document.getElementById('svcPanelPaths').style.display = tab === 'paths' ? 'block' : 'none';
+  if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
+  if (tab === 'paths') { renderPathTable();  setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
+}
+
+function updateSvcTabCounts() {
+  const ports = getSessionServices().length;
+  const paths = getSessionPaths().length;
+  const cp = document.getElementById('svcTabCountPorts');
+  const ch = document.getElementById('svcTabCountPaths');
+  if (cp) cp.textContent = ports || '';
+  if (ch) ch.textContent = paths || '';
+  // topbar button count — total
+  const btn = document.getElementById('svcTopbarCount');
+  if (btn) { btn.textContent = ports + paths || ''; btn.classList.toggle('has-entries', (ports + paths) > 0); }
+}
+
+// ── Toggle import panel ──
+function toggleToolPaste(kind) {
+  const panel   = document.getElementById(kind === 'ports' ? 'portPastePanel' : 'pathPastePanel');
+  const toggle  = document.getElementById(kind === 'ports' ? 'portPasteToggle' : 'pathPasteToggle');
+  const isOpen  = panel.style.display === 'flex';
+  panel.style.display      = isOpen ? 'none' : 'flex';
+  toggle.style.color       = isOpen ? '' : 'var(--accent)';
+  toggle.style.borderColor = isOpen ? '' : 'var(--accent)';
+  if (!isOpen) {
+    document.getElementById(kind === 'ports' ? 'portPasteInput' : 'pathPasteInput').focus();
+  } else {
+    resetPastePanel(kind);
+  }
+}
+
+function resetPastePanel(kind) {
+  if (kind === 'ports') {
+    document.getElementById('portPasteInput').value = '';
+    document.getElementById('portParsePreview').style.display = 'none';
+    document.getElementById('portCommitBtn').style.display = 'none';
+    _portParsed = [];
+  } else {
+    document.getElementById('pathPasteInput').value = '';
+    document.getElementById('pathParsePreview').style.display = 'none';
+    document.getElementById('pathCommitBtn').style.display = 'none';
+    _pathParsed = [];
+  }
+}
+
+// ════════════════════════════════
+// PORT PARSERS  (nmap / rustscan / masscan)
+// ════════════════════════════════
+function parsePortOutput(text) {
+  const results = [];
+  const seen    = new Set();
+
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+
+    // ── nmap standard: 80/tcp   open  http    Apache httpd 2.4.49
+    const nmapLine = line.match(/^(\d+)\/(tcp|udp|sctp)\s+open\s+(\S+)(?:\s+(.+))?$/i);
+    if (nmapLine) {
+      const port  = nmapLine[1];
+      const proto = nmapLine[2].toLowerCase();
+      if (seen.has(`${port}/${proto}`)) continue;
+      seen.add(`${port}/${proto}`);
+      let service = nmapLine[3] || '';
+      let version = (nmapLine[4] || '').replace(/\s*\(\([^)]*\)\)/g, '').replace(/\s*\(protocol \d[\d.]*\)/i, '').trim();
+      if (service.startsWith('ssl/')) { version = ('SSL ' + version).trim(); service = service.slice(4); }
+      results.push({ port, proto, service, version: version.slice(0, 80), notes: '' });
+      continue;
+    }
+
+    // ── nmap grepable -oG: Ports: 22/open/tcp//ssh//OpenSSH 8.2/
+    const grepPorts = line.match(/Ports:\s*(.+)/i);
+    if (grepPorts) {
+      for (const entry of grepPorts[1].split(',')) {
+        const m = entry.trim().match(/^(\d+)\/open\/(tcp|udp|sctp)\/+(\S*)\/+([^/]*)\//i);
+        if (!m) continue;
+        const key = `${m[1]}/${m[2].toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ port: m[1], proto: m[2].toLowerCase(), service: m[3] || '', version: m[4].trim().slice(0, 80), notes: '' });
+      }
+      continue;
+    }
+
+    // ── rustscan: Open 192.168.1.1:22
+    const rustscan = line.match(/^Open\s+[\d.]+:(\d+)$/i);
+    if (rustscan) {
+      const port = rustscan[1]; const proto = 'tcp';
+      if (seen.has(`${port}/${proto}`)) continue;
+      seen.add(`${port}/${proto}`);
+      results.push({ port, proto, service: '', version: '', notes: '' });
+      continue;
+    }
+
+    // ── masscan standard: Discovered open port 22/tcp on 192.168.1.1
+    const masscan = line.match(/^Discovered open port\s+(\d+)\/(tcp|udp)\s+on\s+/i);
+    if (masscan) {
+      const port = masscan[1]; const proto = masscan[2].toLowerCase();
+      if (seen.has(`${port}/${proto}`)) continue;
+      seen.add(`${port}/${proto}`);
+      results.push({ port, proto, service: '', version: '', notes: '' });
+      continue;
+    }
+
+    // ── masscan list format: open tcp 80 192.168.1.1 ...
+    const masscanList = line.match(/^open\s+(tcp|udp)\s+(\d+)\s+[\d.]+/i);
+    if (masscanList) {
+      const proto = masscanList[1].toLowerCase(); const port = masscanList[2];
+      if (seen.has(`${port}/${proto}`)) continue;
+      seen.add(`${port}/${proto}`);
+      results.push({ port, proto, service: '', version: '', notes: '' });
+      continue;
+    }
+  }
+
+  return results.sort((a, b) => (parseInt(a.port) || 0) - (parseInt(b.port) || 0));
+}
+
+function parseAndPreviewPorts() {
+  const raw     = document.getElementById('portPasteInput').value;
+  const preview = document.getElementById('portParsePreview');
+  const commitBtn = document.getElementById('portCommitBtn');
+  _portParsed = parsePortOutput(raw);
+  preview.style.display = 'block';
+  if (!_portParsed.length) {
+    preview.innerHTML = '<div class="nmap-preview-none">No open ports found — check format (nmap · rustscan · masscan).</div>';
+    commitBtn.style.display = 'none'; return;
+  }
+  const existing = new Set(getSessionServices().map(s => `${s.port}/${s.proto}`));
+  const fresh = _portParsed.filter(r => !existing.has(`${r.port}/${r.proto}`));
+  const dupes = _portParsed.length - fresh.length;
+  let html = `<div class="nmap-preview-hdr"><span>${_portParsed.length}</span> port${_portParsed.length !== 1 ? 's' : ''} found`;
+  if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
+  html += `</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>`;
+  html += _portParsed.map(r => {
+    const isDupe = existing.has(`${r.port}/${r.proto}`);
+    return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(r.port)}${r.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(r.proto)}</span>` : ''}</td><td>${esc(r.service || '—')}</td><td style="color:var(--text2)">${esc(r.version || '')}</td></tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  preview.innerHTML = html;
+  if (fresh.length > 0) { commitBtn.style.display = 'block'; commitBtn.textContent = `＋ Add ${fresh.length} new`; }
+  else { commitBtn.style.display = 'none'; preview.innerHTML += '<div class="nmap-preview-none">All ports already logged.</div>'; }
+}
+
+function commitPortParse() {
+  if (!activeSessionId || !_portParsed.length) return;
+  if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
+  const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
+  let added = 0;
+  for (const r of _portParsed) {
+    if (existing.has(`${r.port}/${r.proto}`)) continue;
+    sessions[activeSessionId].services.push({ id: 'svc_' + Date.now() + '_' + added, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() });
+    added++;
+  }
+  saveNotes(); renderSvcLogTable(); updateSvcTabCounts();
+  showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
+  toggleToolPaste('ports');
+}
+
+// ════════════════════════════════
+// PATH PARSERS  (gobuster / ffuf / dirbuster)
+// ════════════════════════════════
+function parsePathOutput(text) {
+  const results = [];
+  const seen    = new Set();
+  const lines   = text.split('\n');
+
+  // Pre-pass: pair ffuf [Status:]/[Size:] lines with the | URL | line that follows
+  // Build a map: lineIndex → {status, size} for URL lines
+  const ffufMeta = {};
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].trim().match(/^\[Status:\s*(\d+),\s*Size:\s*(\d+)/i);
+    if (m) {
+      // Find the next | URL | line within 5 lines
+      for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
+        if (/^\|\s*URL\s*\|/i.test(lines[j].trim())) {
+          ffufMeta[j] = { status: m[1], size: m[2] };
+          break;
+        }
+      }
+    }
+  }
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx].trim();
+    if (!line || line.startsWith('#')) continue;
+
+    // ── gobuster dir: /admin   (Status: 200) [Size: 1234] [--> /redir/]
+    const gobuster = line.match(/^(\S+)\s+\(Status:\s*(\d+)\)(?:\s*\[Size:\s*(\d+)\])?(?:\s*\[-->\s*([^\]]+)\])?/i);
+    if (gobuster && gobuster[1].startsWith('/')) {
+      const path = gobuster[1], status = gobuster[2], size = gobuster[3] || '';
+      const redir = gobuster[4] ? `→ ${gobuster[4].trim()}` : '';
+      if (seen.has(path)) continue; seen.add(path);
+      results.push({ path, status, size, notes: redir }); continue;
+    }
+
+    // ── gobuster dns / vhost: Found: sub.domain.com [Status: 200] [Size: 1234]
+    const gobusterDns = line.match(/^Found:\s+(\S+)(?:\s+Status:\s*(\d+))?/i);
+    if (gobusterDns && !gobusterDns[1].startsWith('/') && gobusterDns[1].includes('.')) {
+      const path = gobusterDns[1], status = gobusterDns[2] || '';
+      if (seen.has(path)) continue; seen.add(path);
+      results.push({ path, status, size: '', notes: '' }); continue;
+    }
+
+    // ── ffuf [Status:] line — skip, already handled via ffufMeta
+    if (/^\[Status:\s*\d+/i.test(line)) continue;
+
+    // ── ffuf | URL | line — use paired status/size if available
+    const ffufUrl = line.match(/^\|\s*URL\s*\|\s*(https?:\/\/[^\s]+)/i);
+    if (ffufUrl) {
+      try {
+        const u = new URL(ffufUrl[1]);
+        const path = u.pathname + (u.search || '');
+        if (seen.has(path)) continue; seen.add(path);
+        const meta = ffufMeta[idx] || {};
+        results.push({ path, status: meta.status || '', size: meta.size || '', notes: '' });
+      } catch(_) {}
+      continue;
+    }
+
+    // ── ffuf compact: /path   [Status: 200, Size: 1234, ...]
+    const ffufCompact = line.match(/^(\S+)\s+\[Status:\s*(\d+),\s*Size:\s*(\d+)/i);
+    if (ffufCompact && ffufCompact[1].startsWith('/')) {
+      const path = ffufCompact[1], status = ffufCompact[2], size = ffufCompact[3];
+      if (seen.has(path)) continue; seen.add(path);
+      results.push({ path, status, size, notes: '' }); continue;
+    }
+
+    // ── dirbuster report: File found: /path - 200  |  Dir found: /path/
+    const dirbFile = line.match(/^(?:File|Dir) found:\s+(\S+?)(?:\s+-\s+(\d+))?$/i);
+    if (dirbFile) {
+      const path = dirbFile[1], status = dirbFile[2] || '';
+      if (seen.has(path)) continue; seen.add(path);
+      results.push({ path, status, size: '', notes: '' }); continue;
+    }
+
+    // ── plain path list: /admin/ or /login.php
+    const plainPath = line.match(/^(\/\S*)$/);
+    if (plainPath) {
+      const path = plainPath[1];
+      if (seen.has(path)) continue; seen.add(path);
+      results.push({ path, status: '', size: '', notes: '' });
+    }
+  }
+
+  return results;
+}
+
+function statusClass(code) {
+  if (!code) return 'path-status-x';
+  const c = parseInt(code);
+  if (c >= 200 && c < 300) return 'path-status-2';
+  if (c >= 300 && c < 400) return 'path-status-3';
+  if (c >= 400 && c < 500) return 'path-status-4';
+  return 'path-status-x';
+}
+
+function parseAndPreviewPaths() {
+  const raw     = document.getElementById('pathPasteInput').value;
+  const preview = document.getElementById('pathParsePreview');
+  const commitBtn = document.getElementById('pathCommitBtn');
+  _pathParsed = parsePathOutput(raw);
+  preview.style.display = 'block';
+  if (!_pathParsed.length) {
+    preview.innerHTML = '<div class="nmap-preview-none">No paths found — check format (gobuster · ffuf · dirbuster).</div>';
+    commitBtn.style.display = 'none'; return;
+  }
+  const existing = new Set(getSessionPaths().map(p => p.path));
+  const fresh = _pathParsed.filter(r => !existing.has(r.path));
+  const dupes = _pathParsed.length - fresh.length;
+  let html = `<div class="nmap-preview-hdr"><span>${_pathParsed.length}</span> path${_pathParsed.length !== 1 ? 's' : ''} found`;
+  if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
+  html += `</div><table class="path-table" style="margin-bottom:4px"><thead><tr><th>Status</th><th>Path</th><th>Size</th></tr></thead><tbody>`;
+  html += _pathParsed.map(r => {
+    const isDupe = existing.has(r.path);
+    return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td><span class="path-status ${statusClass(r.status)}">${esc(r.status || '—')}</span></td><td style="color:var(--text);word-break:break-all">${esc(r.path)}</td><td style="color:var(--muted)">${esc(r.size)}</td></tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  preview.innerHTML = html;
+  if (fresh.length > 0) { commitBtn.style.display = 'block'; commitBtn.textContent = `＋ Add ${fresh.length} new`; }
+  else { commitBtn.style.display = 'none'; preview.innerHTML += '<div class="nmap-preview-none">All paths already logged.</div>'; }
+}
+
+function commitPathParse() {
+  if (!activeSessionId || !_pathParsed.length) return;
+  if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
+  const existing = new Set(sessions[activeSessionId].paths.map(p => p.path));
+  let added = 0;
+  for (const r of _pathParsed) {
+    if (existing.has(r.path)) continue;
+    sessions[activeSessionId].paths.push({ id: 'path_' + Date.now() + '_' + added, target_id: activeTargetId || null, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
+    added++;
+  }
+  saveNotes(); renderPathTable(); updateSvcTabCounts();
+  showToast(`✓ Added ${added} path${added !== 1 ? 's' : ''}`);
+  toggleToolPaste('paths');
+}
+
+// ── Manual single path add ──
+function addPathLog() {
+  const input = document.getElementById('pathQuickInput');
+  const raw   = (input && input.value) ? input.value.trim() : '';
+  if (!raw || !activeSessionId) { if (input) input.focus(); return; }
+  // Accept: "/path"  or  "200 /path"  or  "200 /path some notes"
+  let status = '', path = '', notes = '';
+  const m = raw.match(/^(\d{3})\s+(\S+)(?:\s+(.+))?$/);
+  if (m) { status = m[1]; path = m[2]; notes = m[3] || ''; }
+  else { path = raw.split(/\s+/)[0]; notes = raw.slice(path.length).trim(); }
+  if (!path.startsWith('/') && !path.includes('.')) { input.focus(); return; }
+  if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
+  sessions[activeSessionId].paths.push({ id: 'path_' + Date.now(), target_id: activeTargetId || null, path, status, size: '', notes, added: Date.now() });
+  input.value = ''; input.focus();
+  saveNotes(); renderPathTable(); updateSvcTabCounts();
+}
+
+function deletePathLog(pathId) {
+  if (!activeSessionId) return;
+  sessions[activeSessionId].paths = (sessions[activeSessionId].paths || []).filter(p => p.id !== pathId);
+  saveNotes(); renderPathTable(); updateSvcTabCounts();
+}
+
+function updatePathNotes(pathId, val) {
+  if (!activeSessionId) return;
+  const p = (sessions[activeSessionId].paths || []).find(p => p.id === pathId);
+  if (p) { p.notes = val; saveNotes(); }
+}
+
+function getSessionPaths() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].paths || [];
+}
+
+function renderPathTable() {
+  const el = document.getElementById('pathLogTable');
+  if (!el) return;
+  updateSvcTabCounts();
+  const paths = [...getSessionPaths()].sort((a, b) => (a.path < b.path ? -1 : 1));
+  if (!paths.length) {
+    el.innerHTML = '<div class="svc-empty">No paths logged — add one above or import tool output</div>'; return;
+  }
+  el.innerHTML = `<table class="path-table">
+    <thead><tr><th>Status</th><th>Path</th><th>Notes</th><th></th></tr></thead>
+    <tbody>${paths.map(p => `<tr>
+      <td><span class="path-status ${statusClass(p.status)}">${esc(p.status || '—')}</span></td>
+      <td style="color:var(--text);word-break:break-all">${esc(p.path)}</td>
+      <td><input class="svc-notes-cell" type="text" value="${esc(p.notes || '')}" placeholder="notes…"
+        onclick="event.stopPropagation()"
+        onchange="updatePathNotes('${p.id}',this.value)" onblur="updatePathNotes('${p.id}',this.value)"></td>
+      <td><button class="svc-del-btn" onclick="event.stopPropagation();deletePathLog('${p.id}')" title="Remove">✕</button></td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function parseSvcInput(raw) {
+  const str = raw.trim();
+  if (!str) return null;
+  let port = '', proto = 'tcp', service = '', version = '', notes = '';
+  const portProtoMatch = str.match(/^(\d+)(?:\/(tcp|udp|sctp))?/i);
+  if (!portProtoMatch) { service = str; return { port, proto, service, version, notes }; }
+  port  = portProtoMatch[1];
+  proto = (portProtoMatch[2] || 'tcp').toLowerCase();
+  const tokens = str.slice(portProtoMatch[0].length).trim().split(/\s+/).filter(Boolean);
+  if (tokens.length >= 1) service = tokens[0];
+  if (tokens.length >= 2) version = tokens[1];
+  if (tokens.length >= 3) notes   = tokens.slice(2).join(' ');
+  return { port, proto, service, version, notes };
+}
+
+function getSessionServices() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].services || [];
+}
+
+function addServiceLog() {
+  const input = document.getElementById('svcQuickInput');
+  const raw   = (input && input.value) ? input.value.trim() : '';
+  if (!raw || !activeSessionId) { if (input) input.focus(); return; }
+  const parsed = parseSvcInput(raw);
+  if (!parsed) return;
+  if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
+  sessions[activeSessionId].services.push({
+    id:        'svc_' + Date.now(),
+    target_id: activeTargetId || null,
+    port:      parsed.port,
+    proto:     parsed.proto,
+    service:   parsed.service,
+    version:   parsed.version,
+    notes:     parsed.notes,
+    added:     Date.now(),
+  });
+  input.value = '';
+  input.focus();
+  saveNotes();
+  renderSvcLogTable();
+}
+
+function deleteServiceLog(svcId) {
+  if (!activeSessionId) return;
+  sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
+  saveNotes();
+  renderSvcLogTable();
+}
+
+function updateSvcNotes(svcId, val) {
+  if (!activeSessionId) return;
+  const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
+  if (svc) { svc.notes = val; saveNotes(); }
+}
+
+function renderSvcLogTable() {
+  const tableEl = document.getElementById('svcLogTable');
+  if (!tableEl) return;
+
+  const svcs   = getSessionServices();
+  const sorted = [...svcs].sort((a, b) => (parseInt(a.port) || 0) - (parseInt(b.port) || 0));
+
+  updateSvcTabCounts();
+
+  if (!sorted.length) {
+    tableEl.innerHTML = '<div class="svc-empty">No services logged — add one above</div>';
+    return;
+  }
+
+  tableEl.innerHTML = `
+    <table class="svc-table">
+      <thead><tr><th>Port</th><th>Service</th><th>Version</th><th>Notes</th><th></th></tr></thead>
+      <tbody>${sorted.map(s => `
+        <tr>
+          <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? '<span style="color:var(--muted);font-weight:400">/' + esc(s.proto) + '</span>' : ''}</td>
+          <td>${esc(s.service || '—')}</td>
+          <td style="color:var(--text2)">${esc(s.version || '')}</td>
+          <td><input class="svc-notes-cell" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
+            onclick="event.stopPropagation()"
+            onchange="updateSvcNotes('${s.id}',this.value)" onblur="updateSvcNotes('${s.id}',this.value)"></td>
+          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteServiceLog('${s.id}')" title="Remove">✕</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function toggleSvcPopover() {
+  const popover = document.getElementById('svcPopover');
+  const btn     = document.getElementById('svcTopbarBtn');
+  const isOpen  = popover.classList.contains('open');
+  if (isOpen) {
+    closeSvcPopover();
+  } else {
+    popover.classList.add('open');
+    btn.classList.add('open');
+    // Show which session this log belongs to
+    const sessLabel = document.getElementById('svcSessionLabel');
+    if (sessLabel) {
+      const sess = activeSessionId && sessions[activeSessionId];
+      sessLabel.textContent = sess ? sess.codename : '';
+    }
+    renderSvcLogTable();
+    renderPathTable();
+    updateSvcTabCounts();
+    setTimeout(() => {
+      const input = document.getElementById(_activeSvcTab === 'ports' ? 'svcQuickInput' : 'pathQuickInput');
+      if (input) input.focus();
+    }, 40);
+    // Close on outside click
+    setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+  }
+}
+
+function closeSvcPopover() {
+  document.getElementById('svcPopover')?.classList.remove('open');
+  document.getElementById('svcTopbarBtn')?.classList.remove('open');
+}
+
+function _svcOutsideClose(e) {
+  const wrap = document.getElementById('svcTopbarWrap');
+  if (!wrap) return;
+  if (wrap.contains(e.target)) {
+    // Click was inside the popover — keep it open, re-register
+    if (document.getElementById('svcPopover')?.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+    }
+  } else {
+    closeSvcPopover();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// TIMELINE VIEW
+// ═══════════════════════════════════════════════
+let notesListViewMode = 'list';
+
+function setNotesListView(mode, btn) {
+  notesListViewMode = mode;
+  document.querySelectorAll('.notes-view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const listEl     = document.getElementById('notesList');
+  const timelineEl = document.getElementById('timelineList');
+  const filterBar  = document.getElementById('notesTypeFilter');
+  const scopeBar   = document.querySelector('.notes-scope-bar');
+  const tgtBar     = document.getElementById('targetFilterBar');
+  const tlToolbar  = document.getElementById('timelineToolbar');
+
+  if (mode === 'timeline') {
+    listEl.style.display     = 'none';
+    timelineEl.style.display = 'block';
+    if (filterBar) filterBar.style.display = 'none';
+    if (scopeBar)  scopeBar.style.display  = 'none';
+    if (tgtBar)    tgtBar.style.display    = 'none';
+    if (tlToolbar) tlToolbar.style.display = 'flex';
+    renderTimeline();
+  } else {
+    listEl.style.display     = '';
+    timelineEl.style.display = 'none';
+    if (filterBar) filterBar.style.display = '';
+    if (scopeBar)  scopeBar.style.display  = '';
+    if (tlToolbar) tlToolbar.style.display = 'none';
+    renderNotesList();
+  }
+}
+
+function setTlTargetFilter(val) {
+  tlTargetFilter = val || null;
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const el = document.getElementById('timelineList');
+  if (!el) return;
+
+  const sess    = activeSessionId ? sessions[activeSessionId] : null;
+  const targets = sess ? (sess.targets || []) : [];
+
+  // ── Populate target filter dropdown ──
+  const sel = document.getElementById('tlTargetSelect');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All targets</option>' +
+      targets.map(t => {
+        const label = t.ip || t.domain || t.label || 'target';
+        return `<option value="${t.id}"${t.id === tlTargetFilter ? ' selected' : ''}>${esc(label)}</option>`;
+      }).join('');
+    if (!targets.find(t => t.id === tlTargetFilter)) tlTargetFilter = null;
+  }
+
+  // ── Collect note events ──
+  const allNotes = Object.values(notes);
+  let noteItems = activeSessionId
+    ? allNotes.filter(n => n.session_id === activeSessionId || n.session_id == null)
+    : allNotes;
+  if (!noteItems.length && activeSessionId) noteItems = allNotes;
+
+  // ── Collect session events (status changes, session created) ──
+  const sessEvents = sess ? (sess.events || []) : [];
+
+  // ── Merge into unified event list ──
+  let unified = [
+    ...noteItems.map(n => ({ ts: n.created || 0, kind: 'note', data: n })),
+    ...sessEvents.map(e => ({ ts: e.ts, kind: 'event', data: e })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  // ── Apply per-target filter ──
+  if (tlTargetFilter) {
+    unified = unified.filter(item => {
+      if (item.kind === 'note') return item.data.target_id === tlTargetFilter;
+      return true; // always show status/session events
+    });
+  }
+
+  if (!unified.length) {
+    el.innerHTML = `<div style="padding:20px 12px;font-size:12px;color:var(--muted);font-family:Inter,sans-serif;text-align:center;line-height:1.6">
+      No events yet.<br><span style="font-size:11px;opacity:0.7">Create notes or change target status to populate the timeline.</span>
+    </div>`;
+    return;
+  }
+
+  // ── Group by day, inserting idle gap markers ──
+  const IDLE_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const groups  = {}; // dayKey -> [{item|gap}]
+
+  unified.forEach((item, i) => {
+    const dayKey = new Date(item.ts).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' });
+    if (!groups[dayKey]) groups[dayKey] = [];
+
+    // Check idle gap vs previous item on same day
+    const prev = groups[dayKey].slice().reverse().find(x => x.type !== 'gap');
+    if (prev && (item.ts - prev.ts) > IDLE_MS) {
+      const hrs = Math.round((item.ts - prev.ts) / 3600000);
+      groups[dayKey].push({ type: 'gap', hrs });
+    }
+    groups[dayKey].push({ type: 'item', item });
+  });
+
+  // ── Render ──
+  const statusLabel = s => ({ active: 'Active', paused: 'Paused', complete: 'Complete' }[s] || s);
+  const statusClass = s => ({ active: 'tl-status-active', paused: 'tl-status-paused', complete: 'tl-status-complete' }[s] || '');
+
+  let html = '';
+  Object.entries(groups).forEach(([dayLabel, entries]) => {
+    html += `<div class="timeline-day-group"><div class="timeline-day-label">${esc(dayLabel)}</div>`;
+
+    entries.forEach(entry => {
+      if (entry.type === 'gap') {
+        html += `<div class="tl-idle-gap"><span class="tl-idle-label">— ${entry.hrs}h break —</span></div>`;
+        return;
+      }
+
+      const { item } = entry;
+      const time = new Date(item.ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+      if (item.kind === 'note') {
+        const n       = item.data;
+        const meta    = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+        const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
+        const tgt     = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+        const tgtBadge = tgt
+          ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
+          : '';
+        html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
+          <span class="tl-time">${esc(time)}</span>
+          <div class="tl-body">
+            <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+            ${tgtBadge}
+            <div class="tl-title">${esc(n.title || 'Untitled')}</div>
+            ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
+          </div>
+        </div>`;
+      } else {
+        // System event
+        const ev = item.data;
+        if (ev.type === 'status') {
+          html += `<div class="tl-event tl-event-status">
+            <span class="tl-time">${esc(time)}</span>
+            <span class="tl-event-label">
+              Status changed
+              <span class="tl-status-badge ${statusClass(ev.from)}">${statusLabel(ev.from)}</span>
+              <span class="tl-status-arrow">→</span>
+              <span class="tl-status-badge ${statusClass(ev.to)}">${statusLabel(ev.to)}</span>
+            </span>
+          </div>`;
+        } else if (ev.type === 'session_created') {
+          html += `<div class="tl-event tl-event-session">
+            <span class="tl-time">${esc(time)}</span>
+            <span class="tl-event-label">Session <strong>${esc(ev.name || '')}</strong> created</span>
+          </div>`;
+        } else if (ev.type === 'note_created') {
+          // note_created events are already shown as note items — skip
+        }
+      }
+    });
+
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function exportTimelineForSession(sessionId) {
+  exportTimeline(sessionId);
+}
+
+function exportTimeline(overrideSessionId) {
+  const sessId = overrideSessionId || activeSessionId;
+  const sess   = sessId ? sessions[sessId] : null;
+  if (!sess) { showToast('No active session', 'err'); return; }
+
+  const targets  = sess.targets || [];
+  const tgtLabel = t => t ? (t.ip || t.domain || t.label || 'target') : null;
+
+  const allNotes   = Object.values(notes).filter(n => n.session_id === sessId || n.session_id == null);
+  const sessEvents = sess.events || [];
+
+  let unified = [
+    ...allNotes.map(n => ({ ts: n.created || 0, kind: 'note', data: n })),
+    ...sessEvents.map(e => ({ ts: e.ts, kind: 'event', data: e })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  if (tlTargetFilter) {
+    unified = unified.filter(item =>
+      item.kind === 'event' || item.data.target_id === tlTargetFilter
+    );
+  }
+
+  const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  const IDLE_MS = 2 * 60 * 60 * 1000;
+
+  let md = `# Timeline — ${sess.codename}\n`;
+  if (sess.target_ip)     md += `**Target IP:** ${sess.target_ip}  \n`;
+  if (sess.target_domain) md += `**Domain:** ${sess.target_domain}  \n`;
+  md += `**Exported:** ${new Date().toLocaleString('en-GB')}  \n\n---\n\n`;
+
+  let currentDay = '';
+  let prevTs     = null;
+
+  unified.forEach(item => {
+    const day = fmtDate(item.ts);
+    if (day !== currentDay) {
+      currentDay = day;
+      md += `## ${day}\n\n`;
+      prevTs = null;
+    }
+
+    if (prevTs && (item.ts - prevTs) > IDLE_MS) {
+      const hrs = Math.round((item.ts - prevTs) / 3600000);
+      md += `> ⏸ ${hrs}h break\n\n`;
+    }
+
+    const time = fmtTime(item.ts);
+
+    if (item.kind === 'note') {
+      const n    = item.data;
+      const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+      const tgt  = n.target_id ? targets.find(t => t.id === n.target_id) : null;
+      md += `### ${time} — ${meta.icon} ${n.title || 'Untitled'}\n`;
+      md += `**Type:** ${meta.label}`;
+      if (tgt) md += `  |  **Target:** ${tgtLabel(tgt)}`;
+      md += `  \n\n`;
+      if (n.body && n.body.trim()) md += n.body.trim() + '\n\n';
+    } else {
+      const ev = item.data;
+      if (ev.type === 'status') {
+        md += `- \`${time}\` Status: **${ev.from}** → **${ev.to}**\n\n`;
+      } else if (ev.type === 'session_created') {
+        md += `- \`${time}\` Session created: **${ev.name}**\n\n`;
+      }
+    }
+
+    prevTs = item.ts;
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `timeline-${(sess.codename || 'session').replace(/\s+/g,'-').toLowerCase()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Timeline exported');
+}
+
+
+// ═══════════════════════════════════════════════
+// NOTE TARGET ASSIGNMENT
+// ═══════════════════════════════════════════════
+
+function getSessionTargets() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].targets || [];
+}
+
+function toggleTargetAssignDropdown() {
+  const dd  = document.getElementById('noteTargetAssignDropdown');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  document.getElementById('noteReassignDropdown')?.classList.remove('open');
+  if (isOpen) { dd.classList.remove('open'); return; }
+  renderTargetAssignDropdown();
+  dd.classList.add('open');
+  setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
+}
+
+function _tgtAssignOutside(e) {
+  const wrap = document.querySelector('.note-target-assign-wrap');
+  if (!wrap) return;
+  if (wrap.contains(e.target)) {
+    if (document.getElementById('noteTargetAssignDropdown')?.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', _tgtAssignOutside, { once: true }), 0);
+    }
+  } else {
+    document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
+  }
+}
+
+function renderTargetAssignDropdown() {
+  const dd   = document.getElementById('noteTargetAssignDropdown');
+  const note = activeNoteId && notes[activeNoteId];
+  if (!dd || !note) return;
+  const targets = getSessionTargets();
+  let html = '';
+  if (note.target_id) {
+    html += '<div class="note-target-assign-option unassign" onclick="assignNoteTarget(null)">✕ Remove target</div>';
+  }
+  if (!targets.length) {
+    html += '<div class="note-target-assign-option unassign">No targets in session</div>';
+  } else {
+    targets.forEach(t => {
+      const label = t.ip || t.domain || t.label || 'Unnamed';
+      const sub   = t.label && t.ip ? ` <span style="color:var(--muted);font-weight:400">${esc(t.label)}</span>` : '';
+      const cur   = t.id === note.target_id;
+      html += `<div class="note-target-assign-option${cur ? ' current' : ''}" onclick="assignNoteTarget('${t.id}')">${cur ? '✓ ' : '🎯 '}${esc(label)}${sub}</div>`;
+    });
+  }
+  dd.innerHTML = html;
+}
+
+function assignNoteTarget(targetId) {
+  if (!activeNoteId) return;
+  const note = notes[activeNoteId];
+  note.target_id = targetId || null;
+  note.updated   = Date.now();
+  saveNotes();
+  updateTargetAssignBtn(note);
+  document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
+  renderNotesList();
+  renderTargetFilterBar();
+}
+
+function updateTargetAssignBtn(note) {
+  const btn = document.getElementById('noteTargetAssignBtn');
+  if (!btn || !note) return;
+  const tgt = note.target_id ? getSessionTargets().find(t => t.id === note.target_id) : null;
+  if (tgt) {
+    btn.textContent = '🎯 ' + (tgt.ip || tgt.domain || tgt.label || 'target');
+    btn.classList.add('has-target');
+  } else {
+    btn.textContent = '🎯 target';
+    btn.classList.remove('has-target');
+  }
+}
+
+// ── Target filter bar ──
+function renderTargetFilterBar() {
+  const bar = document.getElementById('targetFilterBar');
+  if (!bar) return;
+  const targets = getSessionTargets();
+  if (!targets.length || activeNoteScope !== 'session') {
+    bar.style.display = 'none';
+    return;
+  }
+  const notesWithTargets = Object.values(notes).filter(n => n.session_id === activeSessionId && n.target_id);
+  if (!notesWithTargets.length) {
+    bar.style.display = 'none';
+    return;
+  }
+  const usedIds = new Set(notesWithTargets.map(n => n.target_id));
+  const chips = targets
+    .filter(t => usedIds.has(t.id))
+    .map(t => {
+      const label  = t.ip || t.domain || t.label || 'target';
+      const active = t.id === activeTargetFilter;
+      return `<span class="target-filter-chip${active ? ' active' : ''}" onclick="setTargetFilter('${t.id}')">${esc(label)}</span>`;
+    }).join('');
+  bar.innerHTML = chips;
+  bar.style.display = chips ? 'flex' : 'none';
+}
+
+function setTargetFilter(targetId) {
+  activeTargetFilter = activeTargetFilter === targetId ? null : targetId;
+  renderTargetFilterBar();
+  renderNotesList();
+}
+
+// ═══════════════════════════════════════════════
+// SESSION + NOTES EXPORT
+// ═══════════════════════════════════════════════
+
+async function exportSessionFile(sessionId) {
+  const sess = sessions[sessionId];
+  if (!sess) return;
+  const sessNotes = Object.values(notes).filter(n => n.session_id === sessionId);
+  const payload   = { pragma_version: 1, exported: Date.now(), session: sess, notes: sessNotes };
+
+  if (encryptedStorageEnabled && encryptedStoragePassword) {
+    // Encrypt the session file with the same workspace password
+    try {
+      const blob     = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+      const filename = slugify(sess.codename) + '.session.enc';
+      downloadJSON(blob, filename);
+    } catch (e) {
+      alert('Encryption failed: ' + e.message);
+    }
+  } else {
+    const filename = slugify(sess.codename) + '.session';
+    downloadJSON(payload, filename);
+  }
+
+  // Also tell server to save a copy in sessions/
+  try {
+    await fetch('/api/notes/export-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+    });
+  } catch (_) {}
+}
+
+async function exportNotesMarkdown(sessionId) {
+  const sess = sessions[sessionId];
+  if (!sess) return;
+
+  try {
+    const r = await fetch('/api/notes/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      const count = d.files?.length || 0;
+      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
+    } else {
+      showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
+    }
+  } catch (e) {
+    showToast('Export failed: ' + e.message, 'err');
+  }
+}
+
+function slugify(str) {
+  return (str || 'session').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase().slice(0, 60);
+}
+
+function showToast(msg, type = 'ok') {
+  const existing = document.getElementById('pragmaToast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'pragmaToast';
+  t.textContent = msg;
+  t.style.cssText = `
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:${type === 'err' ? 'var(--red)' : 'var(--accent)'};
+    color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;
+    padding:9px 18px; border-radius:8px; z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:toastIn 0.15s ease;
+    white-space:nowrap; max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function downloadJSON(obj, filename) {
+  downloadText(JSON.stringify(obj, null, 2), filename, 'application/json');
+}
+
+function downloadText(content, filename, mimeType = 'text/plain') {
+  const blob = new Blob([content], { type: mimeType });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+init();
+cmInitNote();
+
+// ═══════════════════════════════════════════════
+// RESIZABLE PANELS
+// ═══════════════════════════════════════════════
+(function() {
+  const NOTES_MIN  = 120, NOTES_MAX  = 520, NOTES_DEFAULT  = 320;
+  const PANEL_MIN  = 120, PANEL_MAX  = 1500, PANEL_DEFAULT  = 680;
+
+  // Restore saved widths
+  const savedNotesW = parseInt(localStorage.getItem('ops-notes-w2'))  || NOTES_DEFAULT;
+  const savedPanelW = parseInt(localStorage.getItem('ops-panel-w3'))  || PANEL_DEFAULT;
+
+  const notesList    = document.querySelector('.notes-list');
+  const contentPanel = document.getElementById('contentPanel');
+
+  notesList.style.width    = savedNotesW + 'px';
+  contentPanel.style.width = savedPanelW + 'px';
+
+  function makeDraggable(handle, getEl, getStartW, onDrag, storageKey) {
+    handle.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = getStartW();
+      handle.classList.add('dragging');
+      document.body.classList.add('is-resizing');
+
+      function onMove(e) {
+        const delta = onDrag(e.clientX - startX);
+        const newW  = Math.min(Math.max(startW + delta, getEl().minW), getEl().maxW);
+        getEl().el.style.width = newW + 'px';
+        localStorage.setItem(storageKey, newW);
+      }
+
+      function onUp() {
+        handle.classList.remove('dragging');
+        document.body.classList.remove('is-resizing');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+  }
+
+  // Notes list — dragging right edge expands list to the right
+  const notesHandle = document.getElementById('notesListHandle');
+  if (notesHandle) {
+    makeDraggable(
+      notesHandle,
+      () => ({ el: notesList, minW: NOTES_MIN, maxW: NOTES_MAX }),
+      () => notesList.offsetWidth,
+      delta => delta,
+      'ops-notes-w2'
+    );
+    notesHandle.addEventListener('dblclick', () => {
+      notesList.style.width = NOTES_DEFAULT + 'px';
+      localStorage.setItem('ops-notes-w2', NOTES_DEFAULT);
+    });
+  }
+
+  // Content panel — dragging left edge: drag left = wider, drag right = narrower
+  const panelHandle = document.getElementById('contentPanelHandle');
+  if (panelHandle) {
+    makeDraggable(
+      panelHandle,
+      () => ({ el: contentPanel, minW: PANEL_MIN, maxW: PANEL_MAX }),
+      () => contentPanel.offsetWidth,
+      delta => -delta,
+      'ops-panel-w3'
+    );
+    panelHandle.addEventListener('dblclick', () => {
+      contentPanel.style.width = PANEL_DEFAULT + 'px';
+      localStorage.setItem('ops-panel-w3', PANEL_DEFAULT);
+    });
+  }
+})();
+
+</script>
+
+<!-- ── PASSWORD / CONFIRM MODAL ── -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box" id="pwBox">
+    <div class="pw-header">
+      <span class="pw-header-icon" id="pwIcon">🔒</span>
+      <span class="pw-header-title" id="pwTitle">Password</span>
+      <button class="pw-header-close" onclick="pwCancel()">✕</button>
+    </div>
+    <div class="pw-body" id="pwBody">
+      <!-- filled dynamically -->
+    </div>
+  </div>
+</div>
+</body>
+</html>
