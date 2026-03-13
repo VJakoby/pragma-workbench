@@ -176,20 +176,13 @@ function buildIndex() {
     serviceIndex = []; searchIndex = null; return;
   }
 
-  // Only index knowledge_base/services/ — subdirectories become categories.
-  // Falls back to root-level .md files if no services/ subdir exists.
-  const SERVICES_DIR = path.join(KB_DIR, 'services');
-  const indexRoot = fs.existsSync(SERVICES_DIR) ? SERVICES_DIR : KB_DIR;
-
-  const entries = walkMdFiles(indexRoot, indexRoot).filter(({ filepath }) => {
-    // When falling back to KB_DIR root, exclude known non-service subdirs
-    if (indexRoot === KB_DIR) {
-      const rel = path.relative(KB_DIR, filepath);
-      const topDir = rel.split(path.sep)[0];
-      const excluded = ['methodologies', 'services', 'attacks'];
-      if (excluded.some(d => topDir.toLowerCase().startsWith(d))) return false;
-    }
-    return true;
+  // Index all subdirectories of KB_DIR except methodologies/.
+  // Each top-level subdir becomes the category automatically — no hardcoding needed.
+  const EXCLUDED_DIRS = ['methodologies'];
+  const entries = walkMdFiles(KB_DIR, KB_DIR).filter(({ filepath }) => {
+    const rel    = path.relative(KB_DIR, filepath);
+    const topDir = rel.split(path.sep)[0].toLowerCase().replace(/\.md$/, '');
+    return !EXCLUDED_DIRS.includes(topDir);
   });
 
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
@@ -213,7 +206,7 @@ function buildIndex() {
       { name: 'content', weight: 0.5 },
     ],
   });
-  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${indexRoot}`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR}`);
 }
 
 // ── Methodology index ──
@@ -307,9 +300,11 @@ app.get('/api/preview', (req, res) => {
   const fileParam = req.query.file;
   if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
   let resolved;
-  if (path.isAbsolute(fileParam)) { resolved = fileParam; }
-  else {
-    resolved = path.resolve(KB_DIR, path.basename(fileParam));
+  if (path.isAbsolute(fileParam)) {
+    resolved = fileParam;
+  } else {
+    // Preserve relative path so subdirectory files like tunneling/ligolo-ng.md resolve correctly
+    resolved = path.resolve(KB_DIR, fileParam);
     if (!resolved.startsWith(KB_DIR)) return res.status(403).json({ error: 'Access denied' });
   }
   if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
