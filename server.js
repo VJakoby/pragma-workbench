@@ -175,7 +175,23 @@ function buildIndex() {
     fs.mkdirSync(KB_DIR, { recursive: true });
     serviceIndex = []; searchIndex = null; return;
   }
-  const entries = walkMdFiles(KB_DIR, KB_DIR);
+
+  // Only index knowledge_base/services/ — subdirectories become categories.
+  // Falls back to root-level .md files if no services/ subdir exists.
+  const SERVICES_DIR = path.join(KB_DIR, 'services');
+  const indexRoot = fs.existsSync(SERVICES_DIR) ? SERVICES_DIR : KB_DIR;
+
+  const entries = walkMdFiles(indexRoot, indexRoot).filter(({ filepath }) => {
+    // When falling back to KB_DIR root, exclude known non-service subdirs
+    if (indexRoot === KB_DIR) {
+      const rel = path.relative(KB_DIR, filepath);
+      const topDir = rel.split(path.sep)[0];
+      const excluded = ['methodologies', 'services', 'attacks'];
+      if (excluded.some(d => topDir.toLowerCase().startsWith(d))) return false;
+    }
+    return true;
+  });
+
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
     const meta     = metaFromFilename(filename);
@@ -197,7 +213,7 @@ function buildIndex() {
       { name: 'content', weight: 0.5 },
     ],
   });
-  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR}`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${indexRoot}`);
 }
 
 // ── Methodology index ──
@@ -238,13 +254,15 @@ function buildMethodologyIndex() {
     console.log('[PRAGMA] knowledge_base/methodologies/ not found — skipping.');
     return;
   }
-  const files = fs.readdirSync(METH_DIR).filter(f => f.toLowerCase().endsWith('.md'));
-  methodologyIndex = files.map(filename => {
-    const filepath = path.join(METH_DIR, filename);
+  const entries = walkMdFiles(METH_DIR, METH_DIR);
+  methodologyIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
     const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const name     = extractTitle(content, filename);
-    const category = extractCategory(content, filename);
+    // Subdir becomes category; fall back to content/filename heuristic
+    const category = subdir
+      ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : extractCategory(content, filename);
     return {
       id, name, category, icon: METH_ICONS[category] || '📋',
       description: extractDescription(content),

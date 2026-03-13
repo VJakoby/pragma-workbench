@@ -1019,7 +1019,7 @@ body{
   flex:1; min-width:0; overflow:hidden;
 }
 .cards-area.cards-list-mode .card-port {
-  font-size:10px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
+  font-size:12px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
 }
 .cards-area.cards-list-mode .card-name {
   font-size:13px; font-weight:700;
@@ -1118,7 +1118,7 @@ body{
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(124,58,237,0.5);
     }
-    .note-type-custom { border-style: dashed; }
+    .note-type-custom { color: var(--accent); }
 
 
 /* ── Pin button ── */
@@ -2352,10 +2352,10 @@ body.enc-active-body .topbar {
       <div class="sidebar-divider"></div>
 
       <!-- Category filters (contextual) -->
-      <div class="sidebar-section">
+      <div class="sidebar-section" style="display:none">
         <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
       </div>
-      <div class="cat-scroll" id="catList"></div>
+      <div class="cat-scroll" id="catList" style="display:none"></div>
 
       <!-- Tag filter (notes view) -->
       <div class="sidebar-section" id="tagFilterSection" style="display:none">
@@ -3215,8 +3215,16 @@ function switchView(view, navEl) {
   else document.getElementById('nav-'+view)?.classList.add('active');
 
   // Update sidebar categories
-  if (view === 'services' || view === 'methodologies') buildSidebar(view);
-  else document.getElementById('catList').innerHTML = '';
+  const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
+  if (view === 'services' || view === 'methodologies') {
+    buildSidebar(view);
+    if (catSection) catSection.style.display = '';
+    document.getElementById('catList').style.display = '';
+  } else {
+    document.getElementById('catList').innerHTML = '';
+    document.getElementById('catList').style.display = 'none';
+    if (catSection) catSection.style.display = 'none';
+  }
 
   if (view === 'search') {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
