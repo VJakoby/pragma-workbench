@@ -1072,16 +1072,31 @@ body{
       text-transform: uppercase; letter-spacing: 0.08em;
     }
     .note-type-general     { color: var(--muted);   background: var(--bg4); }
-    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.2); }
-    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
-    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); border: 1px solid rgba(124,58,237,0.15); }
-    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
-    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
-    .note-type-scratch     { color: var(--muted);   background: var(--bg3); border: 1px solid var(--border); }
+    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
+    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
+    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
+    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); }
+    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
+    .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
+
+    /* Borders only on the note list item badges, not the filter bar buttons */
+    .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
+    .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
+    .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
+    .note-item-type.note-type-loot        { border: 1px solid rgba(52,211,153,0.15); }
+    .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
+    .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
 
     /* New note type picker grid */
     .new-note-type-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .new-note-type-heading {
+      grid-column: 1 / -1;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      padding: 6px 0 2px;
     }
     .new-note-type-btn {
       background: var(--bg3); border: 1px solid var(--border);
@@ -2484,6 +2499,7 @@ body.enc-active-body .topbar {
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
                 <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
+                <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note">⧉</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
@@ -3883,12 +3899,14 @@ function renderNoteTypeGrid() {
     buttons.push(`<button class="new-note-type-btn" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
   }
 
-  for (const [id, tmpl] of customs) {
-    const icon  = tmpl.icon  || '📄';
-    const label = tmpl.label || id;
-    buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+  if (customs.length) {
+    buttons.push(`<div class="new-note-type-heading">Custom</div>`);
+    for (const [id, tmpl] of customs) {
+      const icon  = tmpl.icon  || '📄';
+      const label = tmpl.label || id;
+      buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+    }
   }
-
   grid.innerHTML = buttons.join('');
 }
 
@@ -4474,6 +4492,7 @@ function newNote(type = 'general') {
     type,
     title:         tmpl.title || '',
     body:          tmpl.body  || '',
+    tags:          tmpl.default_tags ? [...tmpl.default_tags] : [],
     target_ip:     getIP()     !== '<IP>'     ? getIP()     : null,
     target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
     created:       Date.now(),
@@ -4485,14 +4504,31 @@ function newNote(type = 'general') {
   openNote(id);
   // Focus title if blank, editor body if title pre-filled
   setTimeout(() => {
-    if (type === 'scratch') {
-      if (noteEditor) noteEditor.focus();
-    } else if (tmpl.title) {
-      if (noteEditor) noteEditor.focus();
+    if (tmpl.title) {
+      document.getElementById('noteTitleInput').select();
     } else {
       document.getElementById('noteTitleInput').focus();
     }
   }, 50);
+}
+
+function duplicateCurrentNote() {
+  if (!activeNoteId || !notes[activeNoteId]) return;
+  const src = notes[activeNoteId];
+  const id  = 'note_' + Date.now();
+  notes[id] = {
+    ...src,
+    id,
+    title:   src.title ? src.title + ' (copy)' : '',
+    tags:    src.tags ? [...src.tags] : [],
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  saveNotes();
+  if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: src.type, targetId: src.target_id || null });
+  renderNotesList();
+  openNote(id);
+  showToast('Note duplicated');
 }
 
 function openNote(id) {
