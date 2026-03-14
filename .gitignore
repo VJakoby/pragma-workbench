@@ -1,7 +1,8 @@
-# Notes
-sessions/*
+# Notes and sessions
+sessions/
 
 # Personal Knowledge-base dir or symlinks
+knowledge_base/*
 /knowledge_base
 
 # Workbenches
@@ -13,5 +14,4 @@ node_modules/*
 
 # VSCode specific
 *.vscode
-*.code-workspace
-
+*.code-workspacex
