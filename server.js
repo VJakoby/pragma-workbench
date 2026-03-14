@@ -33,8 +33,9 @@ const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR     = path.join(__dirname, 'sessions');
-const SESSIONS_DIR  = path.join(__dirname, 'sessions');
+const NOTES_DIR      = path.join(__dirname, 'sessions');
+const SESSIONS_DIR   = path.join(__dirname, 'sessions');
+const TEMPLATES_FILE = path.join(__dirname, 'notes-templates.json');
 
 // ── Active workbench — defaults to "default", switchable at runtime ──
 let activeWorkbenchName = 'pragma';
@@ -174,7 +175,16 @@ function buildIndex() {
     fs.mkdirSync(KB_DIR, { recursive: true });
     serviceIndex = []; searchIndex = null; return;
   }
-  const entries = walkMdFiles(KB_DIR, KB_DIR);
+
+  // Index all subdirectories of KB_DIR except methodologies/.
+  // Each top-level subdir becomes the category automatically — no hardcoding needed.
+  const EXCLUDED_DIRS = ['methodologies'];
+  const entries = walkMdFiles(KB_DIR, KB_DIR).filter(({ filepath }) => {
+    const rel    = path.relative(KB_DIR, filepath);
+    const topDir = rel.split(path.sep)[0].toLowerCase().replace(/\.md$/, '');
+    return !EXCLUDED_DIRS.includes(topDir);
+  });
+
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
     const meta     = metaFromFilename(filename);
@@ -237,13 +247,15 @@ function buildMethodologyIndex() {
     console.log('[PRAGMA] knowledge_base/methodologies/ not found — skipping.');
     return;
   }
-  const files = fs.readdirSync(METH_DIR).filter(f => f.toLowerCase().endsWith('.md'));
-  methodologyIndex = files.map(filename => {
-    const filepath = path.join(METH_DIR, filename);
+  const entries = walkMdFiles(METH_DIR, METH_DIR);
+  methodologyIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
     const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const name     = extractTitle(content, filename);
-    const category = extractCategory(content, filename);
+    // Subdir becomes category; fall back to content/filename heuristic
+    const category = subdir
+      ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : extractCategory(content, filename);
     return {
       id, name, category, icon: METH_ICONS[category] || '📋',
       description: extractDescription(content),
@@ -288,9 +300,11 @@ app.get('/api/preview', (req, res) => {
   const fileParam = req.query.file;
   if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
   let resolved;
-  if (path.isAbsolute(fileParam)) { resolved = fileParam; }
-  else {
-    resolved = path.resolve(KB_DIR, path.basename(fileParam));
+  if (path.isAbsolute(fileParam)) {
+    resolved = fileParam;
+  } else {
+    // Preserve relative path so subdirectory files like tunneling/ligolo-ng.md resolve correctly
+    resolved = path.resolve(KB_DIR, fileParam);
     if (!resolved.startsWith(KB_DIR)) return res.status(403).json({ error: 'Access denied' });
   }
   if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
@@ -550,6 +564,21 @@ function loadNotesFile() {
     return { sessions: raw.sessions || {}, notes: raw.notes || {} };
   } catch { return { sessions: {}, notes: {} }; }
 }
+
+// ── Note templates ──────────────────────────────────────────────────────────
+app.get('/api/templates', async (req, res) => {
+  try {
+    const raw  = await fs.promises.readFile(TEMPLATES_FILE, 'utf-8');
+    const data = JSON.parse(raw);
+    const templates = Array.isArray(data.templates) ? data.templates : [];
+    console.log(`[PRAGMA] /api/templates — file: ${TEMPLATES_FILE}, parsed ${templates.length} templates`);
+    if (!templates.length) return res.json({ templates: null });
+    res.json({ templates });
+  } catch (err) {
+    console.log(`[PRAGMA] /api/templates — error: ${err.message} (file: ${TEMPLATES_FILE})`);
+    res.json({ templates: null });
+  }
+});
 
 app.get('/api/notes', (req, res) => {
   try {

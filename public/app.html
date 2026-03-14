@@ -34,6 +34,8 @@
     setOptions(o) { Object.assign(this._opts, o); },
     parse(src) {
       const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // normalize line endings
+      src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
       // stash fenced code blocks to protect them from all further processing
       const stash = [];
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
@@ -62,6 +64,15 @@
       src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
       // blockquote
       src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // checklists — must run before unordered list
+      src = src.replace(/((?:^[ \t]*[-*+] \[[ xX]\] .+\n?)+)/gm, m => {
+        const items = m.trim().split('\n').map(l => {
+          const checked = /^[ \t]*[-*+] \[[xX]\]/.test(l);
+          const text = l.replace(/^[ \t]*[-*+] \[[ xX]\] /, '');
+          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span>${text}</span></li>`;
+        }).join('');
+        return `<ul class="task-list">${items}</ul>`;
+      });
       // unordered list
       src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
         const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
@@ -72,7 +83,12 @@
         const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
         return `<ol>${items}</ol>`;
       });
-      // paragraphs
+      // paragraphs — ensure any text immediately after a block-level closing tag
+      // gets separated into its own block (fixes heading+text single-newline gap)
+      src = src.replace(/\x00STASH(\d+)\x00\n(?!\n)/g, '\x00STASH$1\x00\n\n');
+      src = src.replace(/<\/(h[1-6])>\n(?!\n)/g, '</$1>\n\n');
+      src = src.replace(/<hr>\n(?!\n)/g, '<hr>\n\n');
+      src = src.replace(/<\/blockquote>\n(?!\n)/g, '</blockquote>\n\n');
       src = src.split(/\n{2,}/).map(block => {
         block = block.trim();
         if (!block) return '';
@@ -381,7 +397,7 @@ body{
 .cards-area{
   flex:1;overflow-y:auto;padding:14px 16px;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
   align-content:start;
 }
@@ -392,42 +408,48 @@ body{
 .card{
   position:relative;
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:8px;padding:18px 14px;
-  cursor:pointer;transition:all 0.15s;overflow:hidden;
-  user-select:none;min-width:0;word-break:break-word;
+  border-radius:8px;padding:14px 12px;
+  cursor:pointer;transition:all 0.15s;
+  user-select:none;min-width:0;
+  display:flex;flex-direction:column;
 }
 .card::before{
   content:'';position:absolute;top:0;left:0;right:0;height:2px;
   background:var(--card-accent,var(--accent));opacity:0.5;
-  transition:opacity 0.15s;
+  transition:opacity 0.15s;border-radius:8px 8px 0 0;
 }
 .card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
 .card:hover::before{opacity:1}
 .card.active-card{border-color:var(--accent);background:rgba(124,58,237,0.11)}
 .card.active-card::before{opacity:1}
 
-.card-icon{font-size:22px;margin-bottom:8px;display:block;line-height:1}
+.card-icon{font-size:20px;margin-bottom:6px;display:block;line-height:1;flex-shrink:0}
 .card-port{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;
-  color:var(--text2);margin-bottom:3px;letter-spacing:0.06em;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  color:var(--text2);margin-bottom:2px;letter-spacing:0.06em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* wrapper: stacked by default, goes inline at narrow widths */
-.card-port-name-row{ display:block; min-width:0; }
-.card-desc{font-size:12px;color:var(--text2);line-height:1.6;padding-bottom:2px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-name{
+  font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;
+  line-height:1.35;word-break:break-word;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-port-name-row{ display:block;min-width:0; }
+.card-desc{
+  font-size:10px;color:var(--text2);line-height:1.45;margin-top:2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;word-break:break-word;opacity:0.8;
+}
 .card-cat{
   position:absolute;top:8px;right:8px;
   font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;
   background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);
-  border-radius:3px;padding:2px 6px;
+  border-radius:3px;padding:2px 5px;
   white-space:nowrap;
 }
 
 .card.hidden{display:none !important}
-
 /* empty state */
 .empty-state{
   grid-column:1/-1;
@@ -471,6 +493,27 @@ body{
   border-radius:4px;transition:all 0.12s;
 }
 .content-panel-close:hover{background:var(--bg4);color:var(--text)}
+
+
+/* ── Collapsible KB sections ── */
+.kb-section { }
+.kb-section-body { overflow: hidden; transition: none; }
+.kb-section.collapsed .kb-section-body { display: none; }
+
+.kb-heading-toggle {
+  cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.kb-heading-toggle::before {
+  content: '▾';
+  font-size: 11px; color: var(--muted);
+  transition: transform 0.15s; display: inline-block;
+  flex-shrink: 0; margin-top: 1px;
+}
+.kb-section.collapsed .kb-heading-toggle::before {
+  transform: rotate(-90deg);
+}
+.kb-heading-toggle:hover::before { color: var(--accent); }
 
 .content-panel-body{
   flex:1;overflow-y:auto;padding:16px;
@@ -701,7 +744,7 @@ body{
 .note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
 #notePreviewBtn.active { color: var(--accent); }
 .notes-editor-hdr{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .note-title-input{
@@ -1015,7 +1058,7 @@ body{
   flex:1; min-width:0; overflow:hidden;
 }
 .cards-area.cards-list-mode .card-port {
-  font-size:10px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
+  font-size:12px; color:var(--muted); flex-shrink:0; margin-bottom:0; letter-spacing:0;
 }
 .cards-area.cards-list-mode .card-name {
   font-size:13px; font-weight:700;
@@ -1072,24 +1115,49 @@ body{
       text-transform: uppercase; letter-spacing: 0.08em;
     }
     .note-type-general     { color: var(--muted);   background: var(--bg4); }
-    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.2); }
-    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
-    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); border: 1px solid rgba(124,58,237,0.15); }
-    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
-    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15); }
-    .note-type-scratch     { color: var(--muted);   background: var(--bg3); border: 1px solid var(--border); }
+    .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
+    .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
+    .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
+    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); }
+    .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
+    .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
+
+    /* Borders only on the note list item badges, not the filter bar buttons */
+    .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
+    .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
+    .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
+    .note-item-type.note-type-loot        { border: 1px solid rgba(52,211,153,0.15); }
+    .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
+    .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
 
     /* New note type picker grid */
     .new-note-type-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .new-note-type-heading {
+      grid-column: 1 / -1;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      padding: 6px 0 2px;
     }
     .new-note-type-btn {
       background: var(--bg3); border: 1px solid var(--border);
       border-radius: 7px; padding: 10px 8px;
       font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
+      position: relative;
     }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
+    .new-note-type-btn.template-from-file {
+      border-color: rgba(124,58,237,0.5);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.25);
+    }
+    .new-note-type-btn.template-from-file:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(124,58,237,0.5);
+    }
+    .note-type-custom { color: var(--accent); }
 
 
 /* ── Pin button ── */
@@ -1262,6 +1330,34 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
 .syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
+
+
+.task-list { list-style: none; padding-left: 4px; }
+.task-item { display: flex; align-items: baseline; gap: 7px; padding: 2px 0; }
+.task-checkbox {
+  width: 13px; height: 13px; margin: 0; flex-shrink: 0;
+  accent-color: var(--accent); cursor: pointer; margin-top: 2px;
+}
+.task-item input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+.notes-search-wrap {
+  padding: 6px 10px; border-bottom: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+.notes-search-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 5px 9px; font-size: 11px;
+  font-family: 'Inter', sans-serif; color: var(--text);
+  outline: none; box-sizing: border-box;
+}
+.notes-search-input::placeholder { color: var(--muted); }
+.notes-search-input:focus { border-color: var(--accent); }
+.session-notes-badge {
+  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700; color: var(--muted); background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 1px 5px; margin-left: 4px; flex-shrink: 0;
+}
 .target-copy-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
@@ -2266,11 +2362,6 @@ body.enc-active-body .topbar {
 
     <div class="topbar-actions">
       <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
-      <div class="syntax-theme-picker" title="Editor syntax theme">
-        <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
-        <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
-        <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
-      </div>
       <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
     </div>
   </div>
@@ -2289,6 +2380,7 @@ body.enc-active-body .topbar {
             <div class="session-active-name" id="sessionName">No session</div>
             <div class="session-active-target" id="sessionTarget">click to set</div>
           </div>
+          <span class="session-notes-badge" id="sessionNotesBadge" style="display:none"></span>
           <span class="session-active-arrow">›</span>
         </div>
         <div class="session-encrypt-row">
@@ -2323,10 +2415,10 @@ body.enc-active-body .topbar {
       <div class="sidebar-divider"></div>
 
       <!-- Category filters (contextual) -->
-      <div class="sidebar-section">
+      <div class="sidebar-section" style="display:none">
         <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
       </div>
-      <div class="cat-scroll" id="catList"></div>
+      <div class="cat-scroll" id="catList" style="display:none"></div>
 
       <!-- Tag filter (notes view) -->
       <div class="sidebar-section" id="tagFilterSection" style="display:none">
@@ -2424,6 +2516,10 @@ body.enc-active-body .topbar {
               <span>Notes</span>
               <button class="icon-btn" onclick="openNewNoteModal()" title="New note">＋</button>
             </div>
+            <div class="notes-search-wrap">
+              <input class="notes-search-input" id="noteSearchInput" type="text"
+                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
+            </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
               <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)">⏱ Timeline</button>
@@ -2474,6 +2570,13 @@ body.enc-active-body .topbar {
                 </div>
                 <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
                 <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
+                <div class="syntax-theme-picker" title="Editor syntax theme">
+                  <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+                  <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+                  <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+                </div>
+                <button class="icon-btn" onclick="exportCurrentNote()" title="Export note as .md">⬇</button>
+                <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note">⧉</button>
                 <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
@@ -2493,7 +2596,9 @@ body.enc-active-body .topbar {
                 <div class="cm-wrap" id="noteBodyWrap"></div>
                 <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
                 <div class="note-preview-pane" id="notePreviewPane" style="display:none">
-                  <div class="note-preview-label">Preview</div>
+                  <div class="note-preview-label">
+                    <span>Preview</span>
+                  </div>
                   <div class="md-content note-preview-content" id="notePreviewContent"></div>
                 </div>
               </div>
@@ -2939,14 +3044,59 @@ function deleteTarget(id) {
   refreshCodeBlocks();
 }
 
-function renameTarget(id) {
+// ── Target edit modal ──
+let _targetEditResolve = null;
+let _targetEditReject  = null;
+
+function showTargetEditModal(t) {
+  return new Promise((resolve, reject) => {
+    _targetEditResolve = resolve;
+    _targetEditReject  = reject;
+    document.getElementById('targetEditTitle').textContent = t.label || t.ip || t.domain || 'Edit Target';
+    document.getElementById('targetEditIP').value     = t.ip     || '';
+    document.getElementById('targetEditDomain').value = t.domain || '';
+    document.getElementById('targetEditLabel').value  = t.label  || '';
+    document.getElementById('targetEditOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('targetEditIP').focus(), 40);
+  });
+}
+
+function _targetEditSave() {
+  const ip     = document.getElementById('targetEditIP').value.trim();
+  const domain = document.getElementById('targetEditDomain').value.trim();
+  const label  = document.getElementById('targetEditLabel').value.trim();
+  if (!ip && !domain) {
+    document.getElementById('targetEditIP').classList.add('error');
+    document.getElementById('targetEditIP').focus();
+    setTimeout(() => document.getElementById('targetEditIP').classList.remove('error'), 1200);
+    return;
+  }
+  document.getElementById('targetEditOverlay').classList.remove('open');
+  if (_targetEditResolve) _targetEditResolve({ ip, domain, label });
+  _targetEditResolve = _targetEditReject = null;
+}
+
+function _targetEditCancel() {
+  document.getElementById('targetEditOverlay').classList.remove('open');
+  if (_targetEditReject) _targetEditReject('cancelled');
+  _targetEditResolve = _targetEditReject = null;
+}
+
+function _targetEditKey(e) {
+  if (e.key === 'Enter') _targetEditSave();
+  if (e.key === 'Escape') _targetEditCancel();
+}
+
+async function renameTarget(id) {
   if (!activeSessionId) return;
   const sess = sessions[activeSessionId];
   const t = (sess.targets || []).find(t => t.id === id);
   if (!t) return;
-  const newLabel = prompt('Target label:', t.label || '');
-  if (newLabel === null) return; // cancelled
-  t.label = newLabel.trim();
+  let result;
+  try { result = await showTargetEditModal(t); } catch { return; }
+  t.ip     = result.ip;
+  t.domain = result.domain;
+  t.label  = result.label;
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
@@ -3159,6 +3309,10 @@ async function init() {
     METHODOLOGIES = d.guides || [];
   } catch(e) { console.warn('methodologies unavailable', e); }
 
+  // Fetch note templates (falls back to hardcoded if missing)
+  await loadNoteTemplates();
+  renderNoteTypeGrid();
+
   document.getElementById('svc-count').textContent  = SERVICES.length;
   document.getElementById('meth-count').textContent = METHODOLOGIES.length;
 
@@ -3181,8 +3335,16 @@ function switchView(view, navEl) {
   else document.getElementById('nav-'+view)?.classList.add('active');
 
   // Update sidebar categories
-  if (view === 'services' || view === 'methodologies') buildSidebar(view);
-  else document.getElementById('catList').innerHTML = '';
+  const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
+  if (view === 'services' || view === 'methodologies') {
+    buildSidebar(view);
+    if (catSection) catSection.style.display = '';
+    document.getElementById('catList').style.display = '';
+  } else {
+    document.getElementById('catList').innerHTML = '';
+    document.getElementById('catList').style.display = 'none';
+    if (catSection) catSection.style.display = 'none';
+  }
 
   if (view === 'search') {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
@@ -3409,10 +3571,12 @@ function renderContent(html, icon, title, meta, query = '') {
     inner.innerHTML = injectTargets(html);
     wrapCodeBlocks(inner);
     wrapInlineCodes(inner);
+    makeCollapsible(inner);
   } else {
     el.innerHTML = injectTargets(html);
     wrapCodeBlocks(el);
     wrapInlineCodes(el);
+    makeCollapsible(el);
   }
 
   el.parentElement.scrollTop = 0;
@@ -3790,6 +3954,9 @@ function execCmd(idx) {
 // group notes into per-engagement markdown files.
 // ═══════════════════════════════════════════════
 
+// ── Templates path — change this if you move the file ──
+const TEMPLATES_PATH = '/api/templates';
+
 const NOTE_TYPE_META = {
   general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
@@ -3797,176 +3964,111 @@ const NOTE_TYPE_META = {
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
-  scratch:     { label: 'Blank',     icon: '📄',  cssClass: 'note-type-scratch'     },
+  scratch:     { label: 'Blank',       icon: '📄', cssClass: 'note-type-scratch'     },
 };
 
-const NOTE_TEMPLATES = {
-  general: {
-    title: '',
-    body: `## Overview
-
-
-## Notes
-
-
-## References
-
-`
-  },
-
-  credentials: {
-    title: 'Credentials',
-    body: `## Credentials
-
-| Username | Password | Hash | Service | Notes |
-|----------|----------|------|---------|-------|
-|          |          |      |         |       |
-
-## Password Spray / Stuffing Notes
-
-
-## Valid Sessions / Tokens
-
-`
-  },
-
-  privesc: {
-    title: 'Privilege Escalation',
-    body: `## System Info
-
-| Field     | Value |
-|-----------|-------|
-| OS        |       |
-| Kernel    |       |
-| Hostname  |       |
-| Current User |    |
-| Groups    |       |
-
-## Enumeration
-
-### SUID / SGID Binaries
-
-
-### Sudo Rights
-
-
-### Cron Jobs
-
-
-### Writable Paths / Misconfigs
-
-
-### Interesting Files
-
-
-## Vectors Attempted
-
-| Vector | Result | Notes |
-|--------|--------|-------|
-|        |        |       |
-
-## Escalation Path
-
-
-`
-  },
-
-  recon: {
-    title: 'Recon',
-    body: `## Target Overview
-
-| Field   | Value |
-|---------|-------|
-| IP      |       |
-| Domain  |       |
-| OS      |       |
-| In Scope|       |
-
-## Open Ports & Services
-
-| Port | Proto | Service | Version | Notes |
-|------|-------|---------|---------|-------|
-|      |       |         |         |       |
-
-## Web Endpoints
-
-
-## DNS / Hostnames
-
-
-## Users / Groups Discovered
-
-
-## Findings
-
-`
-  },
-
-  loot: {
-    title: 'Loot',
-    body: `## Files & Data
-
-| Path | Description | Hash / Value | Exfil Method |
-|------|-------------|--------------|--------------|
-|      |             |              |              |
-
-## Credentials Found
-
-
-## Flags / Proofs
-
-\`\`\`
-# root.txt / user.txt / proof.txt
-
-\`\`\`
-
-## Notes
-
-`
-  },
-
-  exploit: {
-    title: 'Exploit',
-    body: `## Vulnerability
-
-| Field       | Value |
-|-------------|-------|
-| Name        |       |
-| CVE         |       |
-| CVSS        |       |
-| Affected    |       |
-| Auth Required|      |
-
-## Payload
-
-\`\`\`bash
-
-\`\`\`
-
-## Steps
-
-1. 
-2. 
-3. 
-
-## Outcome
-
-
-## Cleanup / Artifacts to Remove
-
-`
-  },
-
-  scratch: {
-    title: '',
-    body:  '',
-  },
+// ── Hardcoded fallback — used only if notes-templates.json is missing/empty ──
+const NOTE_TEMPLATES_FALLBACK = {
+  general:     { title: '',                    body: `## Overview\n\n\n## Notes\n\n\n## References\n\n` },
+  credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
+  privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
+  recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
+  loot:        { title: 'Loot',                body: `## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n\`\`\`\n# root.txt / user.txt / proof.txt\n\n\`\`\`\n\n## Notes\n\n` },
+  exploit:     { title: 'Exploit',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
+  scratch:     { title: '',                    body: '' },
 };
 
+// Live templates — populated from /api/templates on init, falls back to NOTE_TEMPLATES_FALLBACK
+let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
+
+async function loadNoteTemplates() {
+  try {
+    const r = await fetch(TEMPLATES_PATH);
+    const d = await r.json();
+    if (!d.templates || !d.templates.length) {
+      console.log('[Templates] No templates file or empty — using hardcoded fallback');
+      return;
+    }
+    const loaded = {};
+    for (const t of d.templates) {
+      if (!t.id) continue;
+      loaded[t.id] = {
+        title:        t.title_prefix || '',
+        body:         t.body         || '',
+        icon:         t.icon,
+        label:        t.label,
+        default_tags: t.default_tags || [],
+        fromFile:     true,
+      };
+      if (!NOTE_TYPE_META[t.id]) {
+        NOTE_TYPE_META[t.id] = { label: t.label || t.id, icon: t.icon || '📄', cssClass: 'note-type-general' };
+      }
+    }
+    loaded.scratch = NOTE_TEMPLATES_FALLBACK.scratch;
+    NOTE_TEMPLATES = loaded;
+    console.log(`[Templates] Loaded ${Object.keys(loaded).length - 1} templates from file`);
+    renderNoteTypeGrid();
+    renderNoteFilterBar();
+  } catch (e) {
+    console.warn('[Templates] Failed to load templates file, using hardcoded fallback:', e.message);
+  }
+}
+
+function renderNoteTypeGrid() {
+  const grid = document.getElementById('newNoteTypeGrid');
+  if (!grid) return;
+
+  const builtinIds = new Set(Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch'));
+
+  // NOTE_TEMPLATES is the single source of truth — either fallback or file, never both
+  const entries = Object.entries(NOTE_TEMPLATES).filter(([id]) => id !== 'scratch');
+  const builtins = entries.filter(([id]) =>  builtinIds.has(id));
+  const customs  = entries.filter(([id]) => !builtinIds.has(id));
+
+  const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')">📄 Blank</button>`];
+
+  for (const [id, tmpl] of builtins) {
+    const icon  = tmpl.icon  || NOTE_TYPE_META[id]?.icon  || '📄';
+    const label = tmpl.label || NOTE_TYPE_META[id]?.label || id;
+    buttons.push(`<button class="new-note-type-btn" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+  }
+
+  if (customs.length) {
+    buttons.push(`<div class="new-note-type-heading">Custom</div>`);
+    for (const [id, tmpl] of customs) {
+      const icon  = tmpl.icon  || '📄';
+      const label = tmpl.label || id;
+      buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
+    }
+  }
+  grid.innerHTML = buttons.join('');
+}
+
+function renderNoteFilterBar() {
+  const bar = document.getElementById('notesTypeFilter');
+  if (!bar) return;
+  const builtinIds = Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch');
+  const customIds  = Object.keys(NOTE_TEMPLATES).filter(id => id !== 'scratch' && !builtinIds.includes(id) && NOTE_TEMPLATES[id].fromFile);
+
+  let html = `<button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>`;
+  for (const id of builtinIds) {
+    const meta = NOTE_TYPE_META[id];
+    if (!meta) continue;
+    html += `<button class="note-type-btn" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.label}</button>`;
+  }
+  html += `<button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>`;
+  for (const id of customIds) {
+    const meta = NOTE_TYPE_META[id];
+    if (!meta) continue;
+    html += `<button class="note-type-btn note-type-custom" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.icon || ''} ${meta.label}</button>`;
+  }
+  bar.innerHTML = html;
+}
 let activeNoteFilter = 'all';
 let activeNoteScope  = 'session';
 let activeTagFilter  = null; // 'session' | 'unassigned' | 'all'
 let activeTargetFilter = null; // target id or null
+let activeNoteSearch = ''; // body/title full-text search
 
 let encryptedStorageEnabled  = false;
 let encryptedStoragePassword = null; // in-memory only; never persisted
@@ -4227,11 +4329,20 @@ function renderSessionSidebar() {
       target.textContent = '—';
     }
     target.style.color = '';
+    // notes badge
+    const badge = document.getElementById('sessionNotesBadge');
+    if (badge) {
+      const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
+      badge.textContent = n + ' note' + (n !== 1 ? 's' : '');
+      badge.style.display = n > 0 ? '' : 'none';
+    }
   } else {
     dot.className = 'session-active-dot';
     name.textContent   = 'No session';
     target.textContent = '— click to set';
     target.style.color = '';
+    const badge = document.getElementById('sessionNotesBadge');
+    if (badge) badge.style.display = 'none';
   }
 }
 
@@ -4362,6 +4473,9 @@ function switchSession(id) {
   // Reset scope to session view when switching
   activeNoteScope = 'session';
   activeTargetFilter = null;
+  activeNoteSearch = '';
+  const searchEl = document.getElementById('noteSearchInput');
+  if (searchEl) searchEl.value = '';
   document.querySelectorAll('.note-scope-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.scope === 'session'));
   // Restore last active target for this session
@@ -4410,12 +4524,53 @@ async function deleteSession(id) {
   renderNotesList();
 }
 
-function renameSession(id) {
+let _sessionRenameId = null;
+let _sessionRenameResolve = null;
+let _sessionRenameReject  = null;
+
+function showSessionRenameModal(sess) {
+  return new Promise((resolve, reject) => {
+    _sessionRenameResolve = resolve;
+    _sessionRenameReject  = reject;
+    const input = document.getElementById('sessionRenameInput');
+    input.value = sess.codename || '';
+    document.getElementById('sessionRenameOverlay').classList.add('open');
+    setTimeout(() => { input.focus(); input.select(); }, 40);
+  });
+}
+
+function _sessionRenameSave() {
+  const val = document.getElementById('sessionRenameInput').value.trim();
+  if (!val) {
+    const input = document.getElementById('sessionRenameInput');
+    input.classList.add('error');
+    input.focus();
+    setTimeout(() => input.classList.remove('error'), 1200);
+    return;
+  }
+  document.getElementById('sessionRenameOverlay').classList.remove('open');
+  if (_sessionRenameResolve) _sessionRenameResolve(val);
+  _sessionRenameResolve = _sessionRenameReject = null;
+}
+
+function _sessionRenameCancel() {
+  document.getElementById('sessionRenameOverlay').classList.remove('open');
+  if (_sessionRenameReject) _sessionRenameReject('cancelled');
+  _sessionRenameResolve = _sessionRenameReject = null;
+}
+
+function _sessionRenameKey(e) {
+  if (e.key === 'Enter')  _sessionRenameSave();
+  if (e.key === 'Escape') _sessionRenameCancel();
+}
+
+async function renameSession(id) {
   const sess = sessions[id];
   if (!sess) return;
-  const newName = prompt('Rename session:', sess.codename);
-  if (!newName || !newName.trim() || newName.trim() === sess.codename) return;
-  sess.codename = newName.trim();
+  let newName;
+  try { newName = await showSessionRenameModal(sess); } catch { return; }
+  if (newName === sess.codename) return;
+  sess.codename = newName;
   saveNotes();
   renderSessionList();
   renderSessionSidebar();
@@ -4431,6 +4586,8 @@ function setNoteFilter(type, btn) {
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
   activeTargetFilter = null;
+  activeNoteSearch = '';
+  const si = document.getElementById('noteSearchInput'); if (si) si.value = '';
   document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderNotesList();
@@ -4462,11 +4619,18 @@ function renderNotesList() {
   if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
   if (activeTagFilter) items = items.filter(n => (n.tags||[]).includes(activeTagFilter));
   if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
+  if (activeNoteSearch) {
+    const q = activeNoteSearch.toLowerCase();
+    items = items.filter(n =>
+      (n.title||'').toLowerCase().includes(q) ||
+      (n.body||'').toLowerCase().includes(q)
+    );
+  }
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);
       font-family:'Inter',sans-serif;text-align:center">
-      ${activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
+      ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
     return;
   }
@@ -4494,6 +4658,59 @@ function renderNotesList() {
 
   document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
   renderTargetFilterBar();
+}
+
+function onNoteSearch(val) {
+  activeNoteSearch = val.trim();
+  renderNotesList();
+}
+
+function exportCurrentNote() {
+  if (!activeNoteId || !notes[activeNoteId]) return;
+  const n = notes[activeNoteId];
+  const lines = [
+    '---',
+    `title: ${n.title || 'Untitled'}`,
+    `type: ${n.type || 'general'}`,
+  ];
+  if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
+  if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
+  if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
+  lines.push('---', '', n.body || '');
+  const filename = slugify(n.title || 'untitled') + '.md';
+  downloadText(lines.join('\n'), filename);
+  showToast('✓ Exported ' + filename);
+}
+
+function toggleCheckbox(el) {
+  if (!activeNoteId || !notes[activeNoteId]) { el.checked = !el.checked; return; }
+  const n = notes[activeNoteId];
+  const body = n.body || '';
+  const lines = body.split('\n');
+  // Count which checkbox index this is in the preview
+  const allBoxes = el.closest('.note-preview-content, .md-content')
+    ? [...(el.closest('.note-preview-content, .md-content') || document).querySelectorAll('.task-checkbox')]
+    : [];
+  const idx = allBoxes.indexOf(el);
+  if (idx === -1) return;
+  // Find the idx-th checklist line in the source
+  let count = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^[ \t]*[-*+] \[[ xX]\]/.test(lines[i])) {
+      if (count === idx) {
+        lines[i] = el.checked
+          ? lines[i].replace(/\[ \]/, '[x]')
+          : lines[i].replace(/\[[xX]\]/, '[ ]');
+        break;
+      }
+      count++;
+    }
+  }
+  const newBody = lines.join('\n');
+  notes[activeNoteId].body = newBody;
+  notes[activeNoteId].updated = Date.now();
+  if (noteEditor) cmSetValue(noteEditor, newBody);
+  autoSaveNote();
 }
 
 function formatDate(ts) {
@@ -4525,6 +4742,7 @@ function newNote(type = 'general') {
     type,
     title:         tmpl.title || '',
     body:          tmpl.body  || '',
+    tags:          tmpl.default_tags ? [...tmpl.default_tags] : [],
     target_ip:     getIP()     !== '<IP>'     ? getIP()     : null,
     target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
     created:       Date.now(),
@@ -4533,17 +4751,36 @@ function newNote(type = 'general') {
   saveNotes();
   if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: type, targetId: activeTargetId || null });
   renderNotesList();
+  renderSessionSidebar();
   openNote(id);
   // Focus title if blank, editor body if title pre-filled
   setTimeout(() => {
-    if (type === 'scratch') {
-      if (noteEditor) noteEditor.focus();
-    } else if (tmpl.title) {
-      if (noteEditor) noteEditor.focus();
+    if (tmpl.title) {
+      document.getElementById('noteTitleInput').select();
     } else {
       document.getElementById('noteTitleInput').focus();
     }
   }, 50);
+}
+
+function duplicateCurrentNote() {
+  if (!activeNoteId || !notes[activeNoteId]) return;
+  const src = notes[activeNoteId];
+  const id  = 'note_' + Date.now();
+  notes[id] = {
+    ...src,
+    id,
+    title:   src.title ? src.title + ' (copy)' : '',
+    tags:    src.tags ? [...src.tags] : [],
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  saveNotes();
+  if (activeSessionId) tlLog(activeSessionId, { type: 'note_created', noteId: id, noteType: src.type, targetId: src.target_id || null });
+  renderNotesList();
+  renderSessionSidebar();
+  openNote(id);
+  showToast('Note duplicated');
 }
 
 function openNote(id) {
@@ -4669,6 +4906,7 @@ function autoSaveNote() {
     notes[activeNoteId].updated = Date.now();
     saveNotes();
     renderNotesList();
+    renderSessionSidebar();
     if (activeNoteId) renderBacklinks(activeNoteId);
     document.getElementById('noteSaveStatus').textContent = 'saved';
     document.getElementById('noteSaveStatus').className   = 'note-save-status saved';
@@ -4762,6 +5000,7 @@ async function deleteCurrentNote() {
   activeNoteId = null;
   saveNotes();
   renderNotesList();
+  renderSessionSidebar();
   const total = Object.keys(notes).length;
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display     = 'flex';
@@ -6753,6 +6992,55 @@ cmInitNote();
     </div>
     <div class="pw-body" id="pwBody">
       <!-- filled dynamically -->
+    </div>
+  </div>
+</div>
+
+<div class="pw-overlay" id="targetEditOverlay" onclick="if(event.target===this)_targetEditCancel()">
+  <div class="pw-box" style="width:340px">
+    <div class="pw-header">
+      <span class="pw-header-icon">🎯</span>
+      <span class="pw-header-title" id="targetEditTitle">Edit Target</span>
+      <button class="pw-header-close" onclick="_targetEditCancel()">✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-field">
+        <label>IP Address</label>
+        <input class="pw-input" id="targetEditIP" type="text" placeholder="e.g. 10.10.11.5" autocomplete="off" spellcheck="false" onkeydown="_targetEditKey(event)">
+      </div>
+      <div class="pw-field">
+        <label>Domain</label>
+        <input class="pw-input" id="targetEditDomain" type="text" placeholder="e.g. target.htb" autocomplete="off" spellcheck="false" onkeydown="_targetEditKey(event)">
+      </div>
+      <div class="pw-field">
+        <label>Label <span style="font-weight:400;font-size:10px;color:var(--muted)">(optional)</span></label>
+        <input class="pw-input" id="targetEditLabel" type="text" placeholder="e.g. DC01, Web Server…" autocomplete="off" spellcheck="false" onkeydown="_targetEditKey(event)">
+      </div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="_targetEditCancel()">Cancel</button>
+        <button class="pw-btn primary" onclick="_targetEditSave()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pw-overlay" id="sessionRenameOverlay" onclick="if(event.target===this)_sessionRenameCancel()">
+  <div class="pw-box" style="width:320px">
+    <div class="pw-header">
+      <span class="pw-header-icon">✎</span>
+      <span class="pw-header-title">Rename Session</span>
+      <button class="pw-header-close" onclick="_sessionRenameCancel()">✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-field">
+        <label>Session name</label>
+        <input class="pw-input" id="sessionRenameInput" type="text" placeholder="Session name…"
+          autocomplete="off" spellcheck="false" onkeydown="_sessionRenameKey(event)">
+      </div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="_sessionRenameCancel()">Cancel</button>
+        <button class="pw-btn primary" onclick="_sessionRenameSave()">Rename</button>
+      </div>
     </div>
   </div>
 </div>

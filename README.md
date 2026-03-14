@@ -46,12 +46,15 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - Workbench file is portable — moving to another machine is a file copy
 
 **Notes**
-- Typed notes with markdown templates (`Blank`, `Enumeration`, `Credentials`, `Recon`, `PrivEsc`, `Loot`, `Exploit`, …)
-- Tags, auto-save, session reassignment, and a Timeline view for chronological activity
+- Typed notes with structured markdown templates — see [Note Templates](#-note-templates) below
+- Full-text search across note titles and bodies, with type/tag/target/scope filters
+- Tags, pin, auto-save, per-note `.md` export with YAML frontmatter, and duplicate
+- Session reassignment, target assignment, and Timeline view for chronological activity
+- Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
 
 **Knowledge Base & Tactical Guides**
-- Indexes all `.md` files under `knowledge_base/` and `methodologies/` recursively
+- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically (only `methodologies/` is reserved for Tactical Guides)
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -61,6 +64,51 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 **Interface**
 - Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
 - Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
+
+---
+
+## 📝 Note Templates
+
+PRAGMA have six built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+
+| Template | Icon | Default Tags | Purpose |
+|---|---|---|---|
+| **General** | 📋 | — | Free-form notes with Overview / Notes / References sections |
+| **Credentials** | 🔑 | `creds` | Credential table, password spray notes, valid sessions |
+| **Recon** | 🔭 | `recon` | Target overview, open ports, web endpoints, DNS, users |
+| **PrivEsc** | ⬆ | `privesc` | System info, enumeration checklist, vectors tried, escalation path |
+| **Loot** | 💰 | `loot` | Exfiltrated files, credentials found, flags/proofs |
+| **Exploit** | 💥 | `exploit` | CVE/CVSS metadata, payload, steps, outcome, cleanup |
+
+### Custom Templates (`notes-templates.json`)
+
+You can extend or fully replace the built-in templates by placing a `notes-templates.json` file next to `server.js`. On startup, PRAGMA loads it and uses it as the sole source of templates — built-ins are replaced entirely (except `Blank`, which is always kept).
+
+**Schema:**
+
+```json
+{
+  "templates": [
+    {
+      "id": "tunneling",
+      "label": "Tunneling",
+      "icon": "🕳️",
+      "title_prefix": "Tunnel",
+      "default_tags": ["tunneling", "pivot"],
+      "body": "## Setup\n\n## Listeners\n\n## Routes\n\n"
+    }
+  ]
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `id` | ✅ | Unique identifier, lowercase, no spaces |
+| `label` | ✅ | Display name shown in the template picker |
+| `icon` | — | Emoji shown on the note type badge |
+| `title_prefix` | — | Prepended to the note title on creation |
+| `default_tags` | — | Array of tags automatically applied to the note |
+| `body` | — | Initial markdown content for the note body |
 
 ---
 

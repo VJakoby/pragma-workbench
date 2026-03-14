@@ -1,0 +1,60 @@
+{
+  "templates": [
+    {
+      "id": "general",
+      "label": "General",
+      "icon": "📋",
+      "title_prefix": "",
+      "default_tags": [],
+      "body": "## Overview\n\n\n## Notes\n\n\n## References\n\n"
+    },
+    {
+      "id": "credentials",
+      "label": "Credentials",
+      "icon": "🔑",
+      "title_prefix": "Credentials",
+      "default_tags": ["creds"],
+      "body": "## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n"
+    },
+    {
+      "id": "privesc",
+      "label": "PrivEsc",
+      "icon": "⬆",
+      "title_prefix": "Privilege Escalation",
+      "default_tags": ["privesc"],
+      "body": "## System Info\n\n| Field        | Value |\n|--------------|-------|\n| OS           |       |\n| Kernel       |       |\n| Hostname     |       |\n| Current User |       |\n| Groups       |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n"
+    },
+    {
+      "id": "recon",
+      "label": "Recon",
+      "icon": "🔭",
+      "title_prefix": "Recon",
+      "default_tags": ["recon"],
+      "body": "## Target Overview\n\n| Field    | Value |\n|----------|-------|\n| IP       |       |\n| Domain   |       |\n| OS       |       |\n| In Scope |       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n"
+    },
+    {
+      "id": "loot",
+      "label": "Loot",
+      "icon": "💰",
+      "title_prefix": "Loot",
+      "default_tags": ["loot"],
+      "body": "## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n```\n# root.txt / user.txt / proof.txt\n\n```\n\n## Notes\n\n"
+    },
+    {
+      "id": "exploit",
+      "label": "Exploit",
+      "icon": "💥",
+      "title_prefix": "Exploit",
+      "default_tags": ["exploit"],
+      "body": "## Vulnerability\n\n| Field        | Value |\n|--------------|-------|\n| Name         |       |\n| CVE          |       |\n| CVSS         |       |\n| Affected     |       |\n| Auth Required|       |\n\n## Payload\n\n```bash\n\n```\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n"
+    },
+    {
+      "id": "CTF-machine",
+      "label": "CTF-Machine",
+      "icon": "🛡️",
+      "title_prefix": "Machine_",
+      "default_tags": ["ctf", "custom"],
+      "body": "# Machine Name - [NAME]\n- **IP:** `<TARGET>`\n-**DOMAIN:** `<DOMAIN>` \n\n## 1. Enumeration\n\n### Service Scanning\n\n### Web\n\n### Other Services\n\n## 2. Exploitation\n\n## 3. Post-Exploitation\n\n## 4. Privilege Escalation\n\n## 5. Clean up & Notes"
+    }
+  ]
+}
