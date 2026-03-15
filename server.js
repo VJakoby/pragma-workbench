@@ -320,7 +320,17 @@ marked.setOptions({ gfm: true, breaks: false });
 
 const app = express();
 app.use(express.json());
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, { etag: false, lastModified: false }));
+
+// Prevent browser caching of the main HTML so updates are always picked up
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path.endsWith('.html')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 app.get('/', (req, res) => {
   if (fs.existsSync(DASHBOARD_HTML)) res.sendFile(DASHBOARD_HTML);
