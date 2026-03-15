@@ -1,70 +1,108 @@
-# 🚀 Docker Usage Workflow
+# 🚀 Docker Usage
 
-### Set environment variables
-Use default locations for the knowledge base or change the environment variables in the `docker-compose.yml` file.
-### Example Project Structure
+---
+
+## Project Structure
+
 ```
---------------------------------
- pragma/
- ├── public/
- │   └── app.html        
- ├── server.js            
- ├── package.json
- ├── sessions/                              // only created once a workbench session has been created
- │   ├── pragma.workbench                   // unencrypted default workbench    
- │   └── pragma.workbench.enc               // encrypted workbench file
- └── knowledge_base/                        // can be set to other folder using KB_DIR env
-      ├── attacks/
-      │   ├── lfi.md
-      │   ├── sqli.md
-      │   └── ...                           // any .md file becomes an attack card
-      ├── methodologies/
-      │   ├── active-directory.md
-      │   ├── pivoting.md
-      │   └── ...                           // any .md file becomes a methodology card
-      └── services/
-          ├── 22.md                         // ssh
-          ├── 80.md                         // http
-          ├── 445.md                        // smb
-          └── ...                           // any .md file becomes a service card
+pragma-workbench/
+├── public/
+│   └── app.html
+├── server.js
+├── package.json
+├── notes-templates.json          // optional — custom note templates (see README)
+├── Dockerfile
+├── docker-compose.yml
+├── sessions/                     // runtime data — created automatically
+│   ├── pragma.workbench          // unencrypted workbench
+│   └── pragma.workbench.enc      // encrypted workbench (if enabled)
+└── knowledge_base/               // optional — mount your own via KB_DIR env var
+    ├── services/
+    │   ├── ssh.md                // each .md file becomes a card
+    │   ├── http.md
+    │   └── smb.md
+    ├── attacks/                  // subdirectory name becomes the category
+    │   ├── lfi.md
+    │   └── sqli.md
+    ├── tunneling/                // any subdirectory works — fully dynamic
+    │   └── ligolo-ng.md
+    └── methodologies/            // reserved for Tactical Guides tab
+        ├── active-directory.md
+        └── pivoting.md
+```
+
+> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab — no configuration needed. Only `methodologies/` is reserved for the Tactical Guides tab.
+
+---
+
+## Environment Variables
+
+Set these in your `docker-compose.yml` to customise paths:
+
+| Variable | Default | Description |
+|---|---|---|
+| `KB_DIR` | `./knowledge_base` | Path to your knowledge base directory |
+| `METH_DIR` | `./knowledge_base/methodologies` | Path to your tactical guides directory |
+| `SEARCH_URL` | `http://engram:3002` | Default URL to ENGRAM indexer |
+
+Example `docker-compose.yml` volume + env setup:
+
+```yaml
+services:
+  pragma:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./sessions:/usr/src/app/sessions
+      - ./knowledge_base:/usr/src/app/knowledge_base:ro
+      - ./notes-templates.json:/usr/src/app/notes-templates.json:ro
+    environment:
+      - KB_DIR=/usr/src/app/knowledge_base
+      - SEARCH_URL=http://engram:3002
 ```
 
 ---
 
-### 1. First time build (only needed when code changes)
+## Commands
+
+### Build and start (first time or after code changes)
 
 ```bash
 docker compose up -d --build
 ```
 
----
-
-### 2. Start existing container
+### Start existing container
 
 ```bash
-# Either
-docker start pragma-workbench
-# Or
 docker compose up -d
 ```
 
-You can now access it on http://localhost:3000
+Access at **http://localhost:3000**
 
----
-
-### 3. Stop container
+### Stop
 
 ```bash
-# Either
-docker stop pragma-workbench
-# Or
 docker compose down
 ```
 
----
-
-### 4. View logs
+### View logs
 
 ```bash
 docker logs -f pragma-workbench
 ```
+
+### Rebuild after app.html / server.js changes
+
+```bash
+docker compose down && docker compose up -d --build
+```
+
+---
+
+## Running with ENGRAM
+
+To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network:
+
+See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.
+
