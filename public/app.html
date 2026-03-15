@@ -101,9 +101,40 @@
       return src;
     }
   };
+  // ── SVG Icon library (Lucide-style, 16x16 viewBox) ──
+  window.ICONS = {
+    notes:      '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>',
+    services:   '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+    guides:     '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+    search:     '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    lock:       '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    download:   '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    pin:        '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg>',
+    trash:      '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+    eye:        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+    duplicate:  '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    target:     '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    edit:       '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    link:       '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    clock:      '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>',
+    clipboard:  '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+    plus:       '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    close:      '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    warning:    '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    empty:      '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>',
+    searchBig:  '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  };
+  // Helper to get an icon as HTML string
+  window.icon = (name, cls='') => {
+    const svg = ICONS[name];
+    if (!svg) return '';
+    if (!cls) return svg;
+    return svg.replace('<svg ', `<svg class="${cls}" `);
+  };
+
   </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
@@ -284,7 +315,7 @@ body{
 
 .sidebar-version {
   margin-top: auto; padding: 10px 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
   color: var(--muted); letter-spacing: 0.08em;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -425,7 +456,7 @@ body{
 
 .card-icon{font-size:20px;margin-bottom:6px;display:block;line-height:1;flex-shrink:0}
 .card-port{
-  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
   color:var(--text2);margin-bottom:2px;letter-spacing:0.06em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
@@ -494,6 +525,51 @@ body{
 }
 .content-panel-close:hover{background:var(--bg4);color:var(--text)}
 
+
+
+/* ── SVG icon sizing & alignment ── */
+.nav-item-icon svg, .nav-item-icon { display:flex; align-items:center; }
+.icon-btn svg, .tb-btn svg { display:block; }
+svg { vertical-align: middle; flex-shrink: 0; }
+.nav-item-icon { width:16px; height:16px; display:flex; align-items:center; justify-content:center; }
+
+
+/* ── Preview side-by-side mode ── */
+.note-editor-split.split-side {
+  flex-direction: row;
+}
+.note-editor-split.split-side .cm-wrap {
+  flex: 0 0 var(--note-editor-w, 50%) !important;
+  min-width: 120px; max-width: calc(100% - 120px);
+  min-height: unset; max-height: unset;
+}
+.note-editor-split.split-side.preview-open .cm-wrap {
+  flex: 0 0 var(--note-editor-w, 50%) !important;
+  min-height: unset; max-height: unset;
+}
+.note-editor-split.split-side .note-preview-handle {
+  width: 6px; height: auto; cursor: ew-resize;
+  border-top: none; border-left: 1px solid var(--border);
+}
+.note-editor-split.split-side .note-preview-handle::after {
+  width: 2px; height: 32px;
+}
+.note-editor-split.split-side .note-preview-pane {
+  border-top: none; border-left: 1px solid var(--border);
+  min-height: unset; min-width: 120px;
+}
+/* Layout toggle buttons */
+.preview-layout-toggle {
+  display: none; gap: 2px; margin-left: 4px;
+}
+.preview-layout-toggle.visible { display: flex; }
+.preview-layout-btn {
+  background: none; border: 1px solid transparent; border-radius: 4px;
+  color: var(--muted); cursor: pointer; padding: 2px 5px;
+  transition: all 0.12s; display: flex; align-items: center;
+}
+.preview-layout-btn:hover { border-color: var(--border); color: var(--text2); }
+.preview-layout-btn.active { border-color: var(--border2); color: var(--accent); }
 
 /* ── Collapsible KB sections ── */
 .kb-section { }
@@ -641,7 +717,7 @@ body{
 
 /* Inline code */
 .md-content code:not(pre code){
-  font-family:'IBM Plex Mono',monospace;
+  font-family:'JetBrains Mono',monospace;
   background:var(--bg3);border:1px solid var(--border);
   border-radius:4px;padding:1px 5px;
   font-size:0.88em;color:var(--green);
@@ -744,8 +820,18 @@ body{
 .note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
 #notePreviewBtn.active { color: var(--accent); }
 .notes-editor-hdr{
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;flex-direction:column;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.notes-editor-hdr-row1{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 10px 7px 10px; min-height:0;
+}
+.notes-editor-hdr-row2{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 10px 4px 10px;
+  border-top:1px solid var(--border);
+  background:var(--bg);
 }
 .note-title-input{
   flex:1;background:none;border:none;outline:none;
@@ -798,8 +884,10 @@ body{
 .search-big input::placeholder{color:var(--muted)}
 .search-big-icon{
   position:absolute;left:11px;top:50%;transform:translateY(-50%);
-  color:var(--muted);font-size:14px;pointer-events:none;
+  color:var(--muted);pointer-events:none;
+  display:flex;align-items:center;
 }
+.search-big-icon svg { width:14px; height:14px; }
 .search-clear-btn{
   background:var(--bg3);border:1px solid var(--border);border-radius:6px;
   color:var(--muted);padding:6px 12px;cursor:pointer;transition:all 0.15s;
@@ -881,7 +969,7 @@ body{
 }
 .result-score-label{color:var(--muted);font-weight:500}
 .result-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.result-source{font-family:'IBM Plex Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
+.result-source{font-family:'JetBrains Mono',monospace;font-size: 12px;color:var(--text2);font-weight:500}
 .result-badge{
   font-family:'Inter',sans-serif;font-size:9px;
   padding:1px 6px;border-radius:3px;
@@ -889,7 +977,7 @@ body{
 .result-badge.match{color:var(--purple);background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)}
 .result-badge.local{color:#3b82f6;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2)}
 .result-snippet{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);font-weight:400;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);font-weight:400;
   line-height:1.65;white-space:pre-wrap;word-break:break-word;
   overflow:hidden;max-height:5.4em;
   margin-top:10px;
@@ -905,7 +993,8 @@ body{
   justify-content:center;padding:60px 20px;gap:10px;
   color:var(--muted);text-align:center;
 }
-.results-offline-icon{font-size:28px;opacity:0.4}
+.results-offline-icon{font-size:28px;opacity:0.4;display:flex;justify-content:center;}
+.results-offline-icon svg{width:28px;height:28px;}
 .results-offline-text{font-size:13px}
 .results-offline-hint{font-size:11px;font-family:'Inter',sans-serif}
 .results-offline.error{
@@ -1006,7 +1095,44 @@ body{
 .sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
 .sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
+/* ── Sidebar icon-only mode ── */
 .sidebar { transition: width 0.18s ease, border-color 0.4s, box-shadow 0.4s; }
+.sidebar.sidebar-icon-only {
+  width: 44px !important; min-width: 44px;
+}
+.sidebar.sidebar-icon-only .sidebar-section-hdr,
+.sidebar.sidebar-icon-only .nav-item-label,
+.sidebar.sidebar-icon-only .nav-item-count,
+.sidebar.sidebar-icon-only .session-active-info,
+.sidebar.sidebar-icon-only .session-active-arrow,
+.sidebar.sidebar-icon-only .session-notes-badge,
+.sidebar.sidebar-icon-only .session-encrypt-row,
+.sidebar.sidebar-icon-only .sidebar-divider,
+.sidebar.sidebar-icon-only .cat-scroll,
+.sidebar.sidebar-icon-only #tagFilterSection,
+.sidebar.sidebar-icon-only .notes-filter-bar,
+.sidebar.sidebar-icon-only .sidebar-version,
+.sidebar.sidebar-icon-only .target-filter-bar,
+.sidebar.sidebar-icon-only .note-filter-bar {
+  display: none !important;
+}
+.sidebar.sidebar-icon-only .nav-item {
+  padding: 9px 0; justify-content: center; gap: 0;
+}
+.sidebar.sidebar-icon-only .session-active {
+  padding: 10px 0; justify-content: center;
+}
+.sidebar.sidebar-icon-only .session-active-dot {
+  margin: 0;
+}
+.sidebar.sidebar-icon-only .nav-item-icon {
+  width: 44px; height: 20px; display: flex; align-items: center; justify-content: center;
+}
+.sidebar.sidebar-icon-only .sidebar-toggle-btn {
+  width: 100%; justify-content: center; border-radius: 0; border: none;
+  border-top: 1px solid var(--border); padding: 8px 0; margin: 0;
+}
+
 /* ── SCROLLBAR GENERAL ── */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -1080,7 +1206,7 @@ body{
       flex-shrink: 0; flex-wrap: nowrap; overflow: hidden;
     }
     .note-md-hint span {
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 10px; color: var(--muted);
       padding: 2px 8px; cursor: default;
       border-right: 1px solid var(--border);
@@ -1110,7 +1236,7 @@ body{
     /* Note type badge on list items */
     .note-item-type {
       display: inline-block;
-      font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
       padding: 1px 5px; border-radius: 3px; margin-bottom: 2px;
       text-transform: uppercase; letter-spacing: 0.08em;
     }
@@ -1144,7 +1270,7 @@ body{
     .new-note-type-btn {
       background: var(--bg3); border: 1px solid var(--border);
       border-radius: 7px; padding: 10px 8px;
-      font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
       position: relative;
     }
@@ -1173,14 +1299,14 @@ body{
 
 /* ── Note timestamps bar ── */
 .note-timestamps {
-  display: flex; gap: 14px; align-items: center;
-  padding: 3px 14px 4px;
+  display: flex; gap: 10px; align-items: center;
+  padding: 3px 14px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 .note-ts {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
   color: var(--muted); white-space: nowrap;
 }
 .note-ts strong { color: var(--text2); font-weight: 600; }
@@ -1201,13 +1327,13 @@ body{
   flex-shrink: 0; background: var(--bg);
 }
 .note-backlinks-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted); margin-bottom: 6px;
 }
 .note-backlinks-list { display: flex; flex-wrap: wrap; gap: 5px; }
 .note-backlink-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 4px; padding: 3px 8px; cursor: pointer; transition: all 0.12s;
 }
@@ -1353,12 +1479,12 @@ body.is-resizing *{cursor:col-resize!important}
 .notes-search-input::placeholder { color: var(--muted); }
 .notes-search-input:focus { border-color: var(--accent); }
 .session-notes-badge {
-  font-size: 10px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
   font-weight: 700; color: var(--muted); background: var(--bg3);
   border: 1px solid var(--border); border-radius: 3px;
   padding: 1px 5px; margin-left: 4px; flex-shrink: 0;
 }
-.target-copy-btn { font-size: 11px; font-family: 'Inter', sans-serif; font-weight: 600; padding: 0 10px; }
+.target-copy-btn { font-weight: 600; }
 .session-active-info { flex: 1; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
@@ -1367,7 +1493,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .session-active-target {
   font-size: 11px; color: var(--text2);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
@@ -1384,7 +1510,7 @@ body.is-resizing *{cursor:col-resize!important}
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 7px 12px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 11px; font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--muted);
@@ -1423,13 +1549,13 @@ body.is-resizing *{cursor:col-resize!important}
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
 }
 .session-field input {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
   color: var(--text); padding: 7px 10px;
-  font-size: 13px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-family: 'JetBrains Mono', monospace;
   outline: none; transition: border-color 0.15s;
   width: 100%; box-sizing: border-box;
 }
@@ -1449,7 +1575,7 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
 .session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .session-list-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
 }
@@ -1462,11 +1588,11 @@ body.is-resizing *{cursor:col-resize!important}
 .session-list-item:hover { border-color: var(--border2); }
 .session-list-item.active-session { border-color: var(--accent); background: rgba(124,58,237,0.15); }
 .session-list-item-name {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
   font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-list-item-meta {
-  font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-list-item-bottom {
@@ -1547,15 +1673,15 @@ body.is-resizing *{cursor:col-resize!important}
 .target-sel-info { display: flex; align-items: baseline; gap: 7px; flex: 1; min-width: 0; overflow: hidden; }
 .target-sel-domain { max-width: 100px; }
 .target-sel-ip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); white-space: nowrap;
 }
 .target-sel-domain {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
   color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .target-sel-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px;
   padding: 1px 6px; flex-shrink: 0; white-space: nowrap;
@@ -1581,15 +1707,15 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--green); box-shadow: 0 0 5px var(--green);
 }
 .target-item-ip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); min-width: 110px;
 }
 .target-item-domain {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   color: var(--text2); flex: 1;
 }
 .target-item-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 3px; padding: 1px 6px;
 }
@@ -1599,7 +1725,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item-del:hover { color: var(--red); }
 .targets-empty {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   color: var(--muted); text-align: center; padding: 14px 0;
 }
 
@@ -1613,7 +1739,7 @@ body.is-resizing *{cursor:col-resize!important}
   flex-shrink: 0; background: var(--bg2);
 }
 .cp-edit-status {
-  flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 12px;
   color: var(--muted);
 }
 .cp-edit-status.saved  { color: var(--green); }
@@ -1621,7 +1747,7 @@ body.is-resizing *{cursor:col-resize!important}
 .cp-edit-textarea {
   flex: 1; background: transparent; border: none; outline: none; resize: none;
   color: transparent; caret-color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 13px; line-height: 1.75; padding: 16px 20px;
   tab-size: 2; position: relative; z-index: 1;
   white-space: pre-wrap; word-wrap: break-word; overflow-y: auto;
@@ -1632,14 +1758,14 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* ── Note tags ── */
 .note-tags-row {
-  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
-  padding: 6px 14px 0; flex-shrink: 0;
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  padding: 4px 14px 4px; flex-shrink: 0;
 }
 .note-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.18);
   border: 1px solid rgba(124,58,237,0.25); border-radius: 3px;
-  padding: 2px 7px; cursor: pointer; transition: all 0.12s;
+  padding: 1px 6px; cursor: pointer; transition: all 0.12s;
   user-select: none;
 }
 .note-tag:hover { background: rgba(124,58,237,0.2); }
@@ -1647,7 +1773,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-tag-del:hover { opacity: 1; }
 .note-tag-input {
   background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
   color: var(--text2); min-width: 80px; flex: 1;
 }
 .note-tag-input::placeholder { color: var(--muted); }
@@ -1655,7 +1781,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Tags in note list items */
 .note-item-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .note-item-tag {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--accent); background: rgba(124,58,237,0.16);
   border: 1px solid rgba(124,58,237,0.2); border-radius: 2px; padding: 1px 5px;
 }
@@ -1665,7 +1791,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
 }
 .tag-filter-chip {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
   border-radius: 3px; padding: 2px 7px; cursor: pointer; transition: all 0.12s;
   letter-spacing: 0.03em;
@@ -1678,9 +1804,10 @@ body.is-resizing *{cursor:col-resize!important}
 .note-target-assign-btn {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 5px; padding: 3px 9px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--muted); transition: all 0.15s; white-space: nowrap;
   display: flex; align-items: center; gap: 5px;
+  box-sizing: border-box; line-height: 1;
 }
 .note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
 .note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
@@ -1694,7 +1821,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-target-assign-dropdown.open { display: flex; }
 .note-target-assign-option {
   padding: 8px 14px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); transition: background 0.1s; white-space: nowrap;
 }
 .note-target-assign-option:hover { background: var(--bg4); color: var(--text); }
@@ -1714,7 +1841,7 @@ body.is-resizing *{cursor:col-resize!important}
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 4px; padding: 2px 8px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
 }
 .target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
@@ -1732,9 +1859,11 @@ body.is-resizing *{cursor:col-resize!important}
 /* ── Note reassign dropdown ── */
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
-  background: none; border: 1px solid var(--border); border-radius: 5px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
-  color: var(--muted); padding: 3px 8px; cursor: pointer; transition: all 0.12s;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--muted); padding: 3px 9px; cursor: pointer; transition: all 0.15s;
+  white-space: nowrap; display: flex; align-items: center; gap: 5px;
+  box-sizing: border-box; line-height: 1;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
 .note-reassign-btn.assigned { color: var(--green); border-color: rgba(52,211,153,0.3); }
@@ -1747,7 +1876,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-reassign-dropdown.open { display: flex; }
 .note-reassign-option {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
   color: var(--text2); padding: 6px 10px; border-radius: 5px; cursor: pointer;
   transition: background 0.1s; white-space: nowrap;
 }
@@ -1757,7 +1886,7 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* ── .session file import feedback ── */
 .import-feedback {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   padding: 8px 10px; border-radius: 6px; margin-top: 2px;
 }
 .import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
@@ -1768,7 +1897,7 @@ body.is-resizing *{cursor:col-resize!important}
 .shortcuts-group-hdr {
   font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'JetBrains Mono', monospace;
   padding-bottom: 4px; border-bottom: 1px solid var(--border);
 }
 .shortcuts-table { display: flex; flex-direction: column; gap: 2px; }
@@ -1784,7 +1913,7 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
 kbd {
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); background: var(--bg4);
   border: 1px solid var(--border2); border-bottom-width: 2px;
   border-radius: 4px; padding: 2px 7px; line-height: 1.6;
@@ -1808,7 +1937,7 @@ kbd {
 /* ── CodeMirror 6 editor integration ── */
 .cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .cm-wrap .cm-editor {
-  flex: 1; height: 100%; font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  flex: 1; height: 100%; font-size: 14px; font-family: 'JetBrains Mono', monospace;
   background: transparent !important;
 }
 .cm-wrap.kb-editor .cm-editor { font-size: 13px; }
@@ -1821,7 +1950,7 @@ kbd {
 .result-badge.online{color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
 .result-snippet mark{background:rgba(34,197,94,0.18);color:var(--text);border-radius:2px;padding:0 2px;font-style:normal}
 .search-meta{
-  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);
   margin-top:1px;
 }
 
@@ -1909,7 +2038,7 @@ body.enc-active-body .topbar {
 .pw-description strong { color: var(--text); }
 .pw-field { display: flex; flex-direction: column; gap: 5px; }
 .pw-field label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted);
 }
@@ -1918,7 +2047,7 @@ body.enc-active-body .topbar {
   width: 100%; background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text);
   padding: 8px 36px 8px 10px;
-  font-size: 14px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; font-family: 'JetBrains Mono', monospace;
   outline: none; transition: border-color 0.15s;
   box-sizing: border-box;
 }
@@ -1944,7 +2073,7 @@ body.enc-active-body .topbar {
 .pw-strength-bar.strong  { background: var(--green); }
 .pw-strength-bar.perfect { background: var(--accent); }
 .pw-error-msg {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   color: var(--red); display: none; margin-top: 2px;
 }
 .pw-error-msg.visible { display: block; }
@@ -1971,7 +2100,7 @@ body.enc-active-body .topbar {
 .pw-btn.danger:hover { background: rgba(248,113,113,0.2); }
 
 /* Confirm variant */
-.pw-confirm-icon { font-size: 32px; text-align: center; padding: 4px 0; }
+.pw-confirm-icon { font-size: 32px; text-align: center; padding: 4px 0; display:flex; justify-content:center; color:var(--text2); }
 
 /* ── Port/Service Quick-Log ── */
 /* ── Quick-Log topbar button ── */
@@ -2011,7 +2140,7 @@ body.enc-active-body .topbar {
   background: var(--bg3);
 }
 .svc-popover-title {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   white-space: nowrap;
 }
@@ -2036,7 +2165,7 @@ body.enc-active-body .topbar {
 .svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
 .svc-popover-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
 /* ── Paths table ── */
-.path-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.path-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .path-table th {
   text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
@@ -2054,7 +2183,7 @@ body.enc-active-body .topbar {
 .path-status-x { background: var(--bg3); color: var(--muted); }
 
 .svc-log-hdr {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
   margin-bottom: 7px; display: flex; align-items: center; gap: 8px;
 }
@@ -2066,7 +2195,7 @@ body.enc-active-body .topbar {
 .svc-quick-input {
   flex: 1; background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text); padding: 7px 10px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
   outline: none; transition: border-color 0.15s;
 }
 .svc-quick-input:focus { border-color: var(--accent); }
@@ -2091,7 +2220,7 @@ body.enc-active-body .topbar {
   font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
   padding: 6px 0;
 }
-.svc-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.svc-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .svc-table th {
   text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
@@ -2109,11 +2238,11 @@ body.enc-active-body .topbar {
 .svc-del-btn:hover { color: var(--red); }
 .svc-notes-cell {
   background: none; border: none; outline: none;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
   color: var(--text2); width: 100%; resize: none; min-width: 80px;
 }
 .svc-notes-cell::placeholder { color: var(--muted); }
-.svc-empty { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
+.svc-empty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
 
 /* ── Timeline View ── */
 .notes-list-view-toggle {
@@ -2141,7 +2270,7 @@ body.enc-active-body .topbar {
 }
 .timeline-day-group { margin-bottom: 4px; }
 .timeline-day-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   padding: 6px 10px 4px 2px; display: flex; align-items: center; gap: 6px; position: relative;
 }
@@ -2165,12 +2294,12 @@ body.enc-active-body .topbar {
 }
 .timeline-entry:hover::before, .timeline-entry.tl-active::before { background: var(--accent); }
 .tl-time {
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); white-space: nowrap; flex-shrink: 0; margin-top: 2px; min-width: 38px;
 }
 .tl-body { flex: 1; min-width: 0; }
 .tl-type-badge {
-  display: inline-block; font-family: 'IBM Plex Mono', monospace;
+  display: inline-block; font-family: 'JetBrains Mono', monospace;
   font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
   text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
 }
@@ -2204,7 +2333,7 @@ body.enc-active-body .topbar {
   font-size: 10px; color: var(--muted); margin: 0 2px;
 }
 .tl-status-badge {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
   padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
 }
 .tl-status-active   { color: var(--green);  background: rgba(52,211,153,0.12); }
@@ -2222,7 +2351,7 @@ body.enc-active-body .topbar {
   background: var(--border); border: 1.5px solid var(--bg2); z-index: 1;
 }
 .tl-idle-label {
-  font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--border2);
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--border2);
   letter-spacing: 0.06em; font-style: italic;
 }
 /* ── Timeline toolbar ── */
@@ -2252,7 +2381,7 @@ body.enc-active-body .topbar {
 
   <!-- ── TOPBAR ── -->
   <div class="topbar">
-    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)"><span style="line-height:1;display:block">☰</span></button>
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (⌘B)"><span style="line-height:1;display:block"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span></button>
     <div class="topbar-logo-wrap">
       <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
@@ -2271,18 +2400,18 @@ body.enc-active-body .topbar {
       <span class="target-sel-label" id="targetSelLabel"></span>
       <span class="target-sel-arrow">⌄</span>
     </div>
-    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none">📋 Copy IP</button>
+    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Copy IP</span></button>
 
     <!-- ── Quick-Log button + popover ── -->
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
       <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
-        ⚡ Log
+        <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Log</span>
         <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
       </button>
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
           <span class="svc-popover-title">⚡ Recon Log</span>
-          <span id="svcSessionLabel" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
@@ -2299,13 +2428,13 @@ body.enc-active-body .topbar {
               autocomplete="off" spellcheck="false"
               onkeydown="if(event.key==='Enter')addServiceLog()">
             <button class="svc-quick-add-btn" onclick="addServiceLog()">＋ Add</button>
-            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output">⌨ Import</button>
+            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
           </div>
           <div id="portPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
             <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">nmap · rustscan · masscan</strong></div>
             <textarea id="portPasteInput" placeholder="Paste tool output here…" spellcheck="false"
               style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
-                     color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 10px;
+                     color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 10px;
                      outline:none;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
             <div id="portParsePreview" style="display:none"></div>
             <div style="display:flex;gap:6px">
@@ -2330,13 +2459,13 @@ body.enc-active-body .topbar {
               autocomplete="off" spellcheck="false"
               onkeydown="if(event.key==='Enter')addPathLog()">
             <button class="svc-quick-add-btn" onclick="addPathLog()">＋ Add</button>
-            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('paths')" id="pathPasteToggle" title="Paste tool output">⌨ Import</button>
+            <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('paths')" id="pathPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
           </div>
           <div id="pathPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
             <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">gobuster · ffuf · dirbuster</strong></div>
             <textarea id="pathPasteInput" placeholder="Paste tool output here…" spellcheck="false"
               style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
-                     color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 10px;
+                     color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 10px;
                      outline:none;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
             <div id="pathParsePreview" style="display:none"></div>
             <div style="display:flex;gap:6px">
@@ -2362,7 +2491,7 @@ body.enc-active-body .topbar {
 
     <div class="topbar-actions">
       <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
-      <button class="tb-btn" id="themeBtn" onclick="toggleTheme()">☀ Light</button>
+      <button class="tb-btn" id="themeBtn" onclick="toggleTheme()"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Light</span></button>
     </div>
   </div>
 
@@ -2374,7 +2503,7 @@ body.enc-active-body .topbar {
       <!-- Active session -->
       <div class="sidebar-section" id="sessionSection">
         <div class="sidebar-section-hdr">Session</div>
-        <div class="session-active" id="sessionActive" onclick="openSessionModal()">
+        <div class="session-active" id="sessionActive" onclick="openSessionModal()" title="Sessions">
           <div class="session-active-dot" id="sessionDot"></div>
           <div class="session-active-info">
             <div class="session-active-name" id="sessionName">No session</div>
@@ -2384,30 +2513,31 @@ body.enc-active-body .topbar {
           <span class="session-active-arrow">›</span>
         </div>
         <div class="session-encrypt-row">
-          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Workbench</button>
-          <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none">⬇ Backup</button>
+          <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encrypted Workbench</span></button>
+          <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Backup</span></button>
+          <button class="session-encrypt-btn" id="bakDownloadBtn" onclick="downloadBackup()" title="Download most recent auto-backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Restore backup</span></button>
         </div>
       </div>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Navigate</div>
-        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes">
-          <span class="nav-item-icon">📝</span>
+        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes" title="Session Notes">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
           <span class="nav-item-label">Session Notes</span>
           <span class="nav-item-count" id="notes-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('services',this)" id="nav-services">
-          <span class="nav-item-icon">🔌</span>
+        <div class="nav-item" onclick="switchView('services',this)" id="nav-services" title="Services">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies">
-          <span class="nav-item-icon">📋</span>
+        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactical Guides">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
           <span class="nav-item-label">Tactical Guides</span>
           <span class="nav-item-count" id="meth-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('search',this)" id="nav-search">
-          <span class="nav-item-icon">🔍</span>
+        <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <span class="nav-item-label">Search in KB</span>
         </div>
       </div>
@@ -2463,7 +2593,7 @@ body.enc-active-body .topbar {
         <div class="search-toolbar">
           <div class="search-input-row">
             <div class="search-big">
-              <span class="search-big-icon">🔍</span>
+              <span class="search-big-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
               <input type="text" id="searchInput" placeholder="Search across all indexed sources…" autocomplete="off" oninput="onSearch(this.value)">
             </div>
             <div class="score-help" style="margin-right:4px">?
@@ -2501,7 +2631,7 @@ body.enc-active-body .topbar {
         </div>
         <div class="results-list" id="resultsList">
           <div class="results-offline">
-            <div class="results-offline-icon">🔍</div>
+            <div class="results-offline-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="results-offline-text">Start typing to search</div>
             <div class="results-offline-hint">Searches the full indexed knowledge base</div>
           </div>
@@ -2514,7 +2644,7 @@ body.enc-active-body .topbar {
           <div class="notes-list">
             <div class="notes-list-hdr">
               <span>Notes</span>
-              <button class="icon-btn" onclick="openNewNoteModal()" title="New note">＋</button>
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
             <div class="notes-search-wrap">
               <input class="notes-search-input" id="noteSearchInput" type="text"
@@ -2522,7 +2652,7 @@ body.enc-active-body .topbar {
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
-              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)">⏱ Timeline</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Timeline</span></button>
             </div>
             <div class="notes-scope-bar">
               <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
@@ -2552,32 +2682,38 @@ body.enc-active-body .topbar {
           </div>
           <div class="notes-editor" id="notesEditor">
             <div class="notes-empty" id="notesEmpty">
-              <div class="notes-empty-icon">📝</div>
+              <div class="notes-empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
               <div class="notes-empty-text">No note selected</div>
               <div class="notes-empty-hint">Click ＋ to create a new note</div>
             </div>
             <div id="noteEditArea" style="display:none;flex:1;display:none;flex-direction:column;overflow:hidden">
               <div class="notes-editor-hdr">
-                <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title…">
-                <span class="note-save-status" id="noteSaveStatus">saved</span>
-                <div class="note-reassign-wrap">
-                  <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">⎘ session</button>
-                  <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                <!-- Row 1: pin · title · status · session · target -->
+                <div class="notes-editor-hdr-row1">
+                  <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg></button>
+                  <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title…">
+                  <div class="note-reassign-wrap">
+                    <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">session</button>
+                    <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                  </div>
+                  <div class="note-target-assign-wrap">
+                    <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">target</button>
+                    <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
+                  </div>
                 </div>
-                <div class="note-target-assign-wrap">
-                  <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">🎯 target</button>
-                  <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
+                <!-- Row 2: preview · syntax theme · export · duplicate · delete -->
+                <div class="notes-editor-hdr-row2">
+                  <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span></button>
+                  <div class="syntax-theme-picker" title="Editor syntax theme" style="margin-left:2px">
+                    <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+                    <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+                    <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+                  </div>
+                  <span style="flex:1"></span>
+                  <button class="icon-btn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                  <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                  <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
                 </div>
-                <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note">📌</button>
-                <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview">👁 Preview</button>
-                <div class="syntax-theme-picker" title="Editor syntax theme">
-                  <span class="syntax-dot" data-theme="monokai"   style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
-                  <span class="syntax-dot" data-theme="nord"      style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
-                  <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
-                </div>
-                <button class="icon-btn" onclick="exportCurrentNote()" title="Export note as .md">⬇</button>
-                <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note">⧉</button>
-                <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note">🗑</button>
               </div>
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
@@ -2587,6 +2723,7 @@ body.enc-active-body .topbar {
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts">Created: <strong id="noteCreatedAt">—</strong></span>
                 <span class="note-ts">Modified: <strong id="noteModifiedAt">—</strong></span>
+                <span class="note-save-status" id="noteSaveStatus" style="margin-left:auto">saved</span>
               </div>
               <div class="note-tags-row" id="noteTagsRow">
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
@@ -2596,14 +2733,18 @@ body.enc-active-body .topbar {
                 <div class="cm-wrap" id="noteBodyWrap"></div>
                 <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
                 <div class="note-preview-pane" id="notePreviewPane" style="display:none">
-                  <div class="note-preview-label">
+                  <div class="note-preview-label" style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px 4px 16px">
                     <span>Preview</span>
+                    <div class="preview-layout-toggle" id="previewLayoutToggle">
+                      <button class="preview-layout-btn active" id="layoutVertBtn" onclick="setPreviewLayout('vertical')" title="Horizontal split"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
+                      <button class="preview-layout-btn" id="layoutSideBtn" onclick="setPreviewLayout('side')" title="Vertical split (side by side)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg></button>
+                    </div>
                   </div>
                   <div class="md-content note-preview-content" id="notePreviewContent"></div>
                 </div>
               </div>
               <div class="note-backlinks" id="noteBacklinks" style="display:none">
-                <div class="note-backlinks-hdr">🔗 Linked from</div>
+                <div class="note-backlinks-hdr"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Linked from</div>
                 <div class="note-backlinks-list" id="noteBacklinksList"></div>
               </div>
             </div>
@@ -2617,10 +2758,10 @@ body.enc-active-body .topbar {
     <div class="content-panel hidden-panel" id="contentPanel">
       <div class="drag-handle drag-handle-left" id="contentPanelHandle"></div>
       <div class="content-panel-hdr">
-        <span class="content-panel-icon" id="cpIcon">📄</span>
+        <span class="content-panel-icon" id="cpIcon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></span>
         <span class="content-panel-title" id="cpTitle">—</span>
         <span class="content-panel-meta" id="cpMeta"></span>
-        <button class="icon-btn" id="cpEditBtn" onclick="toggleEditMode()" title="Edit file" style="display:none">✎</button>
+        <button class="icon-btn" id="cpEditBtn" onclick="toggleEditMode()" title="Edit file" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="content-panel-close" onclick="closeContent()">✕</button>
       </div>
       <!-- Read mode -->
@@ -2632,7 +2773,7 @@ body.enc-active-body .topbar {
         <div class="cp-edit-toolbar">
           <span class="cp-edit-status" id="cpEditStatus"></span>
           <button class="session-btn secondary" onclick="cancelEdit()" style="padding:5px 12px;font-size:11px">Cancel</button>
-          <button class="session-btn primary"   onclick="saveEdit()"   style="padding:5px 12px;font-size:11px">💾 Save</button>
+          <button class="session-btn primary"   onclick="saveEdit()"   style="padding:5px 12px;font-size:11px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13"/><polyline points="7,3 7,8 15,8"/></svg> Save</button>
         </div>
         <div class="note-md-hint">
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
@@ -2650,7 +2791,7 @@ body.enc-active-body .topbar {
 <div class="cmd-overlay" id="shortcutsOverlay" onclick="if(event.target===this)closeShortcutsModal()">
   <div class="cmd-box" style="max-width:680px;width:95vw">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">⌨</span>
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Keyboard Shortcuts</span>
       <span class="cmd-esc" onclick="closeShortcutsModal()" style="cursor:pointer">ESC</span>
     </div>
@@ -2715,7 +2856,7 @@ body.enc-active-body .topbar {
 <div class="cmd-overlay" id="sessionOverlay" onclick="closeSessionModalIfOutside(event)">
   <div class="cmd-box" style="max-width:420px">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">🎯</span>
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
       <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
     </div>
@@ -2742,7 +2883,7 @@ body.enc-active-body .topbar {
 <div class="cmd-overlay" id="targetsOverlay" onclick="closeTargetsPanelIfOutside(event)">
   <div class="cmd-box" style="max-width:440px">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">🖥</span>
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1" id="targetsPanelTitle">Targets</span>
       <span class="cmd-esc" onclick="closeTargetsPanel()" style="cursor:pointer">ESC</span>
     </div>
@@ -2777,20 +2918,20 @@ body.enc-active-body .topbar {
 <div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
   <div class="cmd-box" style="max-width:520px">
     <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
-      <span class="cmd-input-icon">📝</span>
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
       <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
     </div>
     <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
       <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
-        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    >📄 Blank</button>
-        <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    >📋 General</button>
-        <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')">🔑 Credentials</button>
+        <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Blank</button>
+        <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> General</button>
+        <button class="new-note-type-btn" data-type="credentials" onclick="newNote('credentials')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Credentials</button>
         <button class="new-note-type-btn" data-type="privesc"     onclick="newNote('privesc')"    >⬆ PrivEsc</button>
-        <button class="new-note-type-btn" data-type="recon"       onclick="newNote('recon')"      >🔭 Recon</button>
-        <button class="new-note-type-btn" data-type="loot"        onclick="newNote('loot')"       >💰 Loot</button>
-        <button class="new-note-type-btn" data-type="exploit"     onclick="newNote('exploit')"    >💥 Exploit</button>
+        <button class="new-note-type-btn" data-type="recon"       onclick="newNote('recon')"      ><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Recon</button>
+        <button class="new-note-type-btn" data-type="loot"        onclick="newNote('loot')"       ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Loot</button>
+        <button class="new-note-type-btn" data-type="exploit"     onclick="newNote('exploit')"    ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Exploit</button>
       </div>
     </div>
   </div>
@@ -2858,14 +2999,14 @@ const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 function applyTheme(t) {
   if (t === 'light') {
     document.documentElement.setAttribute('data-theme','light');
-    document.getElementById('themeBtn').textContent = '🌙 Dark';
+    document.getElementById('themeBtn').innerHTML = '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</span>';
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta');
     m.name = 'theme-color'; m.content = '#ffffff';
     document.head.appendChild(m);
   } else {
     document.documentElement.removeAttribute('data-theme');
-    document.getElementById('themeBtn').textContent = '☀ Light';
+    document.getElementById('themeBtn').innerHTML = '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Light</span>';
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const m = document.createElement('meta');
     m.name = 'theme-color'; m.content = '#363f49';
@@ -2986,7 +3127,7 @@ function renderTargetsList() {
       <div class="target-item-ip">${esc(t.ip || '—')}</div>
       <div class="target-item-domain">${esc(t.domain || '')}</div>
       ${t.label ? `<span class="target-item-label">${esc(t.label)}</span>` : ''}
-      <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label" style="margin-left:auto">✎</button>
+      <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label" style="margin-left:auto">${ICONS.edit}</button>
       <button class="target-item-del" onclick="event.stopPropagation();deleteTarget('${t.id}')" title="Remove">✕</button>
     </div>`).join('');
 }
@@ -3053,6 +3194,7 @@ function showTargetEditModal(t) {
     _targetEditResolve = resolve;
     _targetEditReject  = reject;
     document.getElementById('targetEditTitle').textContent = t.label || t.ip || t.domain || 'Edit Target';
+    const tei = document.getElementById('targetEditIcon'); if (tei) tei.innerHTML = ICONS.target;
     document.getElementById('targetEditIP').value     = t.ip     || '';
     document.getElementById('targetEditDomain').value = t.domain || '';
     document.getElementById('targetEditLabel').value  = t.label  || '';
@@ -3251,20 +3393,41 @@ function refreshCodeBlocks() {
 // ═══════════════════════════════════════════════
 let sidebarVisible = true;
 
-function toggleSidebar(force) {
+// Sidebar state: 'full' | 'icon' | 'hidden'
+let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
+
+function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
   const btn = document.getElementById('sidebarToggleBtn');
-  sidebarVisible = (force !== undefined) ? force : !sidebarVisible;
-  sidebar.classList.toggle('sidebar-hidden', !sidebarVisible);
-  btn.classList.toggle('sidebar-collapsed', !sidebarVisible);
-  localStorage.setItem('ops-sidebar-v2', sidebarVisible ? '1' : '0');
+  if (!sidebar) return;
+  sidebar.classList.toggle('sidebar-hidden',    state === 'hidden');
+  sidebar.classList.toggle('sidebar-icon-only', state === 'icon');
+  btn.classList.toggle('sidebar-collapsed', state !== 'full');
+  // Update legacy sidebarVisible for any code that checks it
+  sidebarVisible = state !== 'hidden';
+  localStorage.setItem('ops-sidebar-state', state);
+  sidebarState = state;
+}
+
+function toggleSidebar(force) {
+  // If called with force=false (legacy hide), go to 'hidden' directly
+  if (force === false) { applySidebarState('hidden'); return; }
+  if (force === true)  { applySidebarState('full');   return; }
+  // Cycle: full → icon → hidden → full
+  const next = sidebarState === 'full' ? 'icon' : sidebarState === 'icon' ? 'hidden' : 'full';
+  applySidebarState(next);
 }
 
 (function() {
-  const saved = localStorage.getItem('ops-sidebar-v2');
-  // Default: always visible — only hide if user explicitly closed it
-  const vis = saved !== null ? saved === '1' : true;
-  if (!vis) requestAnimationFrame(() => toggleSidebar(false));
+  const saved = localStorage.getItem('ops-sidebar-state');
+  // Migrate legacy ops-sidebar-v2 key
+  if (!saved) {
+    const legacy = localStorage.getItem('ops-sidebar-v2');
+    sidebarState = (legacy === '0') ? 'hidden' : 'full';
+  } else {
+    sidebarState = saved;
+  }
+  if (sidebarState !== 'full') requestAnimationFrame(() => applySidebarState(sidebarState));
 })();
 
 // ═══════════════════════════════════════════════
@@ -3282,14 +3445,14 @@ async function init() {
     document.body.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
                   height:100vh;background:#0f0f13;color:#e2e8f0;font-family:'Inter',sans-serif;gap:16px">
-        <div style="font-size:48px">🔒</div>
+        <div style="display:flex;justify-content:center;color:var(--muted);margin-bottom:8px"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <div style="font-size:18px;font-weight:700">Workspace Locked</div>
         <div style="font-size:13px;color:#94a3b8;max-width:320px;text-align:center">
           ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workspace.')}</div>
         <button onclick="location.reload()"
           style="margin-top:8px;padding:8px 24px;background:#7c3aed;border:none;border-radius:8px;
                  color:#fff;font-size:13px;font-weight:600;cursor:pointer">
-          🔓 Try Again
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Try Again
         </button>
       </div>`;
     return;
@@ -3389,7 +3552,7 @@ function renderCards(view) {
 
   if (items.length === 0) {
     grid.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">📂</div>
+      <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
       <div class="empty-state-title">No ${view} found</div>
       <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base':'methodologies'}/ folder</div>
     </div>`;
@@ -3404,7 +3567,7 @@ function renderCards(view) {
     card.style.setProperty('--card-accent', accentFor(idx));
     card.innerHTML = `
       <span class="card-cat">${esc(item.category || '')}</span>
-      <span class="card-icon">${item.icon || '📄'}</span>
+      <span class="card-icon">${item.icon || ICONS.notes}</span>
       <div class="card-port-name-row">
         ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
         <span class="card-name">${esc(item.name)}</span>
@@ -3497,8 +3660,8 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
-    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || '📄', title: d.name, meta, id, view, isLocal: true };
-    renderContent(d.html, d.icon || '📄', d.name, meta);
+    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
+    renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
@@ -3536,14 +3699,14 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
 
     const meta = filePath.split('/').pop() || sourceName || '';
     activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
-    renderContent(d.html, '🔍', title, meta, query);
+    renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch(e) {
     document.getElementById('cpContent').innerHTML = `
       <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
         <div style="font-size:22px;margin-bottom:8px">⚠</div>
         <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
-        <div style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:10px">
           Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
           <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
@@ -3552,8 +3715,42 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
   }
 }
 
+// ── Collapsible KB headings (h2–h6) ──
+function makeCollapsible(container) {
+  const LEVELS = ['H2','H3','H4','H5','H6'];
+  const headings = [...container.querySelectorAll('h2,h3,h4,h5,h6')];
+  if (!headings.length) return;
+
+  headings.forEach(heading => {
+    const level = parseInt(heading.tagName[1]);
+    const siblings = [];
+    let node = heading.nextSibling;
+    while (node) {
+      const tag = node.tagName;
+      if (tag && LEVELS.includes(tag) && parseInt(tag[1]) <= level) break;
+      siblings.push(node);
+      node = node.nextSibling;
+    }
+    if (!siblings.length) return;
+
+    const body = document.createElement('div');
+    body.className = 'kb-section-body';
+    heading.parentNode.insertBefore(body, siblings[0]);
+    siblings.forEach(s => body.appendChild(s));
+
+    const section = document.createElement('div');
+    section.className = 'kb-section';
+    heading.parentNode.insertBefore(section, heading);
+    section.appendChild(heading);
+    section.appendChild(body);
+
+    heading.classList.add('kb-heading-toggle');
+    heading.addEventListener('click', () => section.classList.toggle('collapsed'));
+  });
+}
+
 function renderContent(html, icon, title, meta, query = '') {
-  document.getElementById('cpIcon').textContent  = icon;
+  document.getElementById('cpIcon').innerHTML = icon;
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent  = meta || '';
   const el = document.getElementById('cpContent');
@@ -3563,7 +3760,7 @@ function renderContent(html, icon, title, meta, query = '') {
     el.innerHTML = `
       <div class="source-preview-frame">
         <div class="source-preview-label">
-          🔍 Source content${meta ? ' — <span>' + esc(meta) + '</span>' : ''}
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Source content${meta ? ' — <span>' + esc(meta) + '</span>' : ''}
         </div>
         <div class="source-preview-body md-content" id="cpContentInner"></div>
       </div>`;
@@ -3597,7 +3794,7 @@ function onSearch(val) {
   clearTimeout(searchDebounce);
   if (val.trim().length < 2) {
     document.getElementById('resultsList').innerHTML = `<div class="results-offline">
-      <div class="results-offline-icon">🔍</div>
+      <div class="results-offline-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="results-offline-text">Start typing to search</div>
       <div class="results-offline-hint">Searches the full indexed knowledge base</div>
     </div>`;
@@ -3824,7 +4021,7 @@ function buildCmdResults(q) {
     svcs.forEach(s => {
       cmdItems.push({ type:'service', id:s.id, label:s.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${s.icon||'📄'}</span>
+        <span class="cmd-item-icon">${s.icon||ICONS.notes}</span>
         <div class="cmd-item-main">
           <div class="cmd-item-title">${esc(s.name)}</div>
           <div class="cmd-item-sub">${esc(s.port||'')} · ${esc(s.category||'')}</div>
@@ -3844,7 +4041,7 @@ function buildCmdResults(q) {
     meths.forEach(m => {
       cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${m.icon||'📋'}</span>
+        <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
         <div class="cmd-item-main">
           <div class="cmd-item-title">${esc(m.name)}</div>
           <div class="cmd-item-sub">${esc(m.category||'')}</div>
@@ -3865,7 +4062,7 @@ function buildCmdResults(q) {
     noteList.forEach(n => {
       cmdItems.push({ type:'note', id:n.id, label:n.title });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">📝</span>
+        <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
         <div class="cmd-item-main">
           <div class="cmd-item-title">${esc(n.title||'Untitled')}</div>
           <div class="cmd-item-sub">${esc((n.body||'').slice(0,60))}</div>
@@ -3880,7 +4077,7 @@ function buildCmdResults(q) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
     html += `<div class="cmd-group-hdr">Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-      <span class="cmd-item-icon">🔍</span>
+      <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">
         <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
         <div class="cmd-item-sub">Search the full knowledge index</div>
@@ -4025,7 +4222,7 @@ function renderNoteTypeGrid() {
   const builtins = entries.filter(([id]) =>  builtinIds.has(id));
   const customs  = entries.filter(([id]) => !builtinIds.has(id));
 
-  const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')">📄 Blank</button>`];
+  const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Blank</button>`];
 
   for (const [id, tmpl] of builtins) {
     const icon  = tmpl.icon  || NOTE_TYPE_META[id]?.icon  || '📄';
@@ -4036,7 +4233,7 @@ function renderNoteTypeGrid() {
   if (customs.length) {
     buttons.push(`<div class="new-note-type-heading">Custom</div>`);
     for (const [id, tmpl] of customs) {
-      const icon  = tmpl.icon  || '📄';
+      const icon  = tmpl.icon  || '';
       const label = tmpl.label || id;
       buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
     }
@@ -4088,10 +4285,13 @@ function updateEncryptedStorageUI() {
   btn.classList.toggle('locked', locked);
   if (sidebar) sidebar.classList.toggle('enc-active', active);
   document.body.classList.toggle('enc-active-body', active);
-  if (!encryptedStorageEnabled)  btn.textContent = '🔒 Encrypted Workbench';
-  else if (locked)               btn.textContent = '🔒 Encrypted Workbench';
-  else                           btn.textContent = '🔒 Encrypted Workbench';
+  if (!encryptedStorageEnabled)  btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
+  else if (locked)               btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
+  else                           btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
   if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
+  // Backup download button is always available once a save has occurred (enc or plain)
+  const bakBtn = document.getElementById('bakDownloadBtn');
+  if (bakBtn) bakBtn.style.display = '';
 }
 
 function downloadWorkbench() {
@@ -4101,6 +4301,30 @@ function downloadWorkbench() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+async function downloadBackup() {
+  try {
+    const res = await fetch('/api/notes/download-backup');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      showToast('⚠ ' + (err.error || 'No backup available'), 'err');
+      return;
+    }
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : 'pragma.workbench.bak1';
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Backup downloaded: ' + filename);
+  } catch (err) {
+    showToast('⚠ Backup download failed: ' + err.message, 'err');
+  }
 }
 
 async function toggleEncryptedStorage(e) {
@@ -4117,10 +4341,10 @@ async function toggleEncryptedStorage(e) {
     let pw1;
     try {
       pw1 = await showPasswordPrompt({
-        icon: '🔒', title: 'Enable Encrypted Workbench',
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Enable Encrypted Workbench',
         description: 'All notes and session data will be encrypted with AES-256-GCM before being written to disk. <strong>If you lose this password, your data cannot be recovered.</strong>',
         label: 'Set Password', placeholder: 'Choose a strong password…',
-        confirm: true, submitLabel: '🔒 Enable Encryption',
+        confirm: true, submitLabel: ICONS.lock + ' Enable Encryption',
         hint: true,
       });
     } catch { return; } // cancelled
@@ -4132,8 +4356,8 @@ async function toggleEncryptedStorage(e) {
   } else {
     try {
       await showConfirmDialog({
-        icon: '🔓', title: 'Disable Encrypted Workbench',
-        bigIcon: '🔓',
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`, title: 'Disable Encrypted Workbench',
+        bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
         description: 'Encryption will be disabled. Your notes will be stored as <strong>plaintext</strong> on disk from the next save onwards.',
         confirmLabel: 'Disable Encryption', danger: true,
       });
@@ -4167,11 +4391,11 @@ async function initNotes() {
       let pw;
       try {
         pw = await showPasswordPrompt({
-          icon: '🔒', title: 'Workspace Locked',
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workspace Locked',
           description: 'This workspace is encrypted. Enter your password to unlock and load your notes.'
-            + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
+            + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
           label: 'Password', placeholder: 'Enter password…',
-          submitLabel: '🔓 Unlock',
+          submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock',
         });
       } catch { throw new Error('cancelled'); }
       // Attempt decryption — if it fails, show a clear error and do NOT fall through to the
@@ -4215,10 +4439,10 @@ async function initNotes() {
           let pw;
           try {
             pw = await showPasswordPrompt({
-              icon: '🔒', title: 'Workspace Locked',
+              icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workspace Locked',
               description: 'This workspace is encrypted. Enter your password to unlock.',
               label: 'Password', placeholder: 'Enter password…',
-              submitLabel: '🔓 Unlock',
+              submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock',
             });
           } catch { throw new Error('Password required'); }
           let plain;
@@ -4379,11 +4603,11 @@ function renderSessionList() {
           <div class="session-status-pill ${status}" onclick="toggleStatusDropdown(event,'${s.id}')">
             <span class="status-dot ${status}"></span>${statusLabel[status]}
           </div>
-          <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">✎</button>
-          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">⬇ .session</button>
-          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown files">⬇ .md</button>
-          <button class="session-item-export-btn" onclick="exportTimelineForSession('${s.id}')" title="Export timeline as markdown">⬇ timeline</button>
-          <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete">🗑</button>
+          <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
+          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export as .session file">${ICONS.download} .session</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export notes as markdown files">${ICONS.download} .md</button>
+          <button class="session-item-export-btn" onclick="exportTimelineForSession('${s.id}')" title="Export timeline as markdown">${ICONS.download} timeline</button>
+          <button class="session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
         </div>
       </div>
     </div>`}).join('');
@@ -4504,7 +4728,7 @@ async function deleteSession(id) {
   const msg   = count
     ? `Delete session "${sess?.codename}"?\n\n${count} note${count>1?'s':''} will become unassigned.`
     : `Delete session "${sess?.codename}"?`;
-  try { await showConfirmDialog({ icon: '🗑', title: 'Delete Session', bigIcon: '🗑', description: msg, confirmLabel: 'Delete', danger: true }); }
+  try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: 'Delete Session', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: msg, confirmLabel: 'Delete', danger: true }); }
   catch { return; }
 
   // Unassign notes rather than delete them
@@ -4534,6 +4758,7 @@ function showSessionRenameModal(sess) {
     _sessionRenameReject  = reject;
     const input = document.getElementById('sessionRenameInput');
     input.value = sess.codename || '';
+    const sri = document.getElementById('sessionRenameIcon'); if (sri) sri.innerHTML = ICONS.edit;
     document.getElementById('sessionRenameOverlay').classList.add('open');
     setTimeout(() => { input.focus(); input.select(); }, 40);
   });
@@ -4641,13 +4866,13 @@ function renderNotesList() {
     const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
     const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
       ? (sessions[activeSessionId].targets||[]).find(t => t.id === n.target_id) : null;
-    const tgtLabel = tgt ? `<div class="note-item-target">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</div>` : '';
+    const tgtLabel = tgt ? `<div class="note-item-target">${ICONS.target} ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</div>` : '';
     const tagsHtml = (n.tags||[]).length
       ? `<div class="note-item-tags">${(n.tags).map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
       : '';
     return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
       <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
-      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">📌</span>' : ''}</div>
+      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}</div>
       <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       ${tagsHtml}
       ${sessLabel}
@@ -4930,6 +5155,7 @@ function updateNotePreview() {
   el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible  === 'function') makeCollapsible(el);
   // preview only needs per-line copy, not the block-level copy button
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
 }
@@ -4938,6 +5164,31 @@ function toggleNotePreview() {
   notePreviewOpen = !notePreviewOpen;
   localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
   applyNotePreviewState();
+}
+
+
+// ── Preview layout (vertical / side-by-side) ──
+let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+
+function setPreviewLayout(layout) {
+  previewLayout = layout;
+  localStorage.setItem('pragma-preview-layout', layout);
+  applyPreviewLayout();
+}
+
+function applyPreviewLayout() {
+  const split = document.getElementById('noteEditorSplit');
+  const vertBtn = document.getElementById('layoutVertBtn');
+  const sideBtn = document.getElementById('layoutSideBtn');
+  if (!split) return;
+  const isSide = previewLayout === 'side';
+  split.classList.toggle('split-side', isSide);
+  if (vertBtn) vertBtn.classList.toggle('active', !isSide);
+  if (sideBtn) sideBtn.classList.toggle('active', isSide);
+
+  // Re-init drag handle since direction changed
+  const handle = document.getElementById('notePreviewHandle');
+  if (handle) { handle._dragInited = false; initPreviewDragHandle(); }
 }
 
 function applyNotePreviewState() {
@@ -4954,10 +5205,15 @@ function applyNotePreviewState() {
   btn.classList.toggle('active', open);
   btn.title = open ? 'Hide preview' : 'Toggle markdown preview';
 
+  // Show/hide layout toggle
+  const toggle = document.getElementById('previewLayoutToggle');
+  if (toggle) toggle.classList.toggle('visible', open);
+
   if (open) {
     // Restore saved split position
     const saved = localStorage.getItem('pragma-preview-split');
     if (saved) split.style.setProperty('--note-editor-h', saved);
+    applyPreviewLayout();
     updateNotePreview();
     initPreviewDragHandle();
   }
@@ -4972,14 +5228,17 @@ function initPreviewDragHandle() {
   handle.addEventListener('mousedown', e => {
     e.preventDefault();
     handle.classList.add('dragging');
-    const startY    = e.clientY;
+    const isSide    = split.classList.contains('split-side');
+    const startPos  = isSide ? e.clientX : e.clientY;
     const splitRect = split.getBoundingClientRect();
-    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue('--note-editor-h')) || 50;
+    const prop      = isSide ? '--note-editor-w' : '--note-editor-h';
+    const dim       = isSide ? splitRect.width : splitRect.height;
+    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue(prop)) || 50;
 
     const onMove = ev => {
-      const delta  = ev.clientY - startY;
-      const newPct = Math.min(85, Math.max(15, startPct + (delta / splitRect.height) * 100));
-      split.style.setProperty('--note-editor-h', newPct + '%');
+      const delta  = (isSide ? ev.clientX : ev.clientY) - startPos;
+      const newPct = Math.min(85, Math.max(15, startPct + (delta / dim) * 100));
+      split.style.setProperty(prop, newPct + '%');
       localStorage.setItem('pragma-preview-split', newPct + '%');
     };
     const onUp = () => {
@@ -4994,7 +5253,7 @@ function initPreviewDragHandle() {
 
 async function deleteCurrentNote() {
   if (!activeNoteId) return;
-  try { await showConfirmDialog({ icon: '🗑', title: 'Delete Note', bigIcon: '🗑', description: 'This note will be permanently deleted.', confirmLabel: 'Delete', danger: true }); }
+  try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: 'This note will be permanently deleted.', confirmLabel: 'Delete', danger: true }); }
   catch { return; }
   delete notes[activeNoteId];
   activeNoteId = null;
@@ -5034,7 +5293,7 @@ async function toggleEditMode() {
   const isEditing = editBody.style.display !== 'none';
   if (isEditing) {
     if (cpEditDirty) {
-      try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+      try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
       catch { return; }
     }
     exitEditMode();
@@ -5067,7 +5326,7 @@ function exitEditMode() {
 
 async function cancelEdit() {
   if (cpEditDirty) {
-    try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+    try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
     catch { return; }
   }
   exitEditMode();
@@ -5172,7 +5431,7 @@ function setTagFilter(tag) {
 function renderTagFilterSidebar() {
   const list = document.getElementById('tagFilterList');
   const tags = getAllTags();
-  if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:IBM Plex Mono,monospace">No tags yet</span>'; return; }
+  if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:JetBrains Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
@@ -5383,7 +5642,7 @@ function showPasswordPrompt(opts = {}) {
     _pwResolve = resolve;
     _pwReject  = reject;
 
-    document.getElementById('pwIcon').textContent  = opts.icon  || '🔒';
+    const pwi = document.getElementById('pwIcon'); if(pwi) pwi.innerHTML = opts.icon || '';
     document.getElementById('pwTitle').textContent = opts.title || 'Enter Password';
 
     const body = document.getElementById('pwBody');
@@ -5394,7 +5653,7 @@ function showPasswordPrompt(opts = {}) {
           <input class="pw-input" id="pwInput2" type="password"
             placeholder="Re-enter password…" autocomplete="new-password"
             oninput="_pwCheckStrength()" onkeydown="_pwKey(event)">
-          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput2')" tabindex="-1">👁</button>
+          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput2')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>` : '';
 
@@ -5424,7 +5683,7 @@ function showPasswordPrompt(opts = {}) {
             autocomplete="${opts.confirm ? 'new-password' : 'current-password'}"
             oninput="${opts.confirm ? '_pwCheckStrength()' : ''}"
             onkeydown="_pwKey(event)">
-          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput1')" tabindex="-1">👁</button>
+          <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput1')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         ${strengthMeter}
       </div>
@@ -5435,7 +5694,7 @@ function showPasswordPrompt(opts = {}) {
         <button class="pw-btn secondary" onclick="pwCancel()">Cancel</button>
         <button class="pw-btn primary" id="pwSubmitBtn"
           onclick="_pwSubmit(${opts.confirm ? 'true' : 'false'})">
-          ${opts.submitLabel || (opts.confirm ? '🔒 Enable Encryption' : 'Unlock')}
+          ${opts.submitLabel || (opts.confirm ? '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Enable Encryption' : 'Unlock')}
         </button>
       </div>`;
 
@@ -5450,12 +5709,12 @@ function showConfirmDialog(opts = {}) {
     _pwResolve = resolve;
     _pwReject  = reject;
 
-    document.getElementById('pwIcon').textContent  = opts.icon  || '⚠️';
+    const pwi2 = document.getElementById('pwIcon'); if(pwi2){ pwi2.innerHTML = opts.icon || ''; }
     document.getElementById('pwTitle').textContent = opts.title || 'Confirm';
 
     const body = document.getElementById('pwBody');
     body.innerHTML = `
-      <div class="pw-confirm-icon">${opts.bigIcon || opts.icon || '⚠️'}</div>
+      <div class="pw-confirm-icon">${opts.bigIcon || opts.icon || ''}</div>
       <div class="pw-description">${opts.description || 'Are you sure?'}</div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="pwCancel()">${opts.cancelLabel || 'Cancel'}</button>
@@ -5506,9 +5765,12 @@ function _pwSubmit(requireConfirm) {
   }
 
   _closePwModal();
-  const pw   = v1;
-  const hint = document.getElementById('pwHintInput')?.value?.trim() || null;
-  if (_pwResolve) _pwResolve(hint !== null ? { password: pw, hint } : pw);
+  const pw        = v1;
+  const hintEl    = document.getElementById('pwHintInput');
+  const hint      = hintEl ? hintEl.value.trim() : null;
+  // If the hint field was shown (opts.hint was set), always resolve with an object
+  // so the caller reliably gets { password, hint } — even if hint is empty string
+  if (_pwResolve) _pwResolve(hintEl !== null ? { password: pw, hint: hint || '' } : pw);
   _pwResolve = null; _pwReject = null;
 }
 
@@ -5631,10 +5893,10 @@ async function importSession(event) {
         let password;
         try {
           password = await showPasswordPrompt({
-            icon: '🔒', title: 'Encrypted Workbench',
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Encrypted Workbench',
             description: 'This .session file is encrypted. Enter the password used when it was exported.',
             label: 'Password', placeholder: 'Enter password…',
-            submitLabel: '🔓 Decrypt & Import',
+            submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Decrypt & Import',
           });
         } catch { fb.style.display = 'none'; event.target.value = ''; return; }
         try {
@@ -5901,7 +6163,7 @@ document.addEventListener('keydown', async e => {
     // KB edit mode
     if (document.getElementById('cpEditBody')?.style.display !== 'none') {
       if (cpEditDirty) {
-        try { await showConfirmDialog({ icon: '⚠️', title: 'Discard Changes', bigIcon: '⚠️', description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
+        try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
         catch { return; }
       }
       exitEditMode(); return;
@@ -6568,7 +6830,7 @@ function renderTimeline() {
         const preview = (n.body || '').replace(/^#+\s*/gm,'').replace(/\n/g,' ').trim().slice(0,60);
         const tgt     = n.target_id ? targets.find(t => t.id === n.target_id) : null;
         const tgtBadge = tgt
-          ? `<span class="note-item-target" style="margin-top:2px">🎯 ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
+          ? `<span class="note-item-target" style="margin-top:2px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> ${esc(tgt.ip||tgt.domain||tgt.label||'target')}</span>`
           : '';
         html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
           <span class="tl-time">${esc(time)}</span>
@@ -6742,7 +7004,7 @@ function renderTargetAssignDropdown() {
       const label = t.ip || t.domain || t.label || 'Unnamed';
       const sub   = t.label && t.ip ? ` <span style="color:var(--muted);font-weight:400">${esc(t.label)}</span>` : '';
       const cur   = t.id === note.target_id;
-      html += `<div class="note-target-assign-option${cur ? ' current' : ''}" onclick="assignNoteTarget('${t.id}')">${cur ? '✓ ' : '🎯 '}${esc(label)}${sub}</div>`;
+      html += `<div class="note-target-assign-option${cur ? ' current' : ''}" onclick="assignNoteTarget('${t.id}')">${cur ? '✓ ' : '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> '}${esc(label)}${sub}</div>`;
     });
   }
   dd.innerHTML = html;
@@ -6765,10 +7027,10 @@ function updateTargetAssignBtn(note) {
   if (!btn || !note) return;
   const tgt = note.target_id ? getSessionTargets().find(t => t.id === note.target_id) : null;
   if (tgt) {
-    btn.textContent = '🎯 ' + (tgt.ip || tgt.domain || tgt.label || 'target');
+    btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.target + ' ' + esc(tgt.ip || tgt.domain || tgt.label || 'target') + '</span>';
     btn.classList.add('has-target');
   } else {
-    btn.textContent = '🎯 target';
+    btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.target + ' target</span>';
     btn.classList.remove('has-target');
   }
 }
@@ -6874,7 +7136,7 @@ function showToast(msg, type = 'ok') {
   t.style.cssText = `
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background:${type === 'err' ? 'var(--red)' : 'var(--accent)'};
-    color:#fff; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700;
+    color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
     padding:9px 18px; border-radius:8px; z-index:9999;
     box-shadow:0 4px 20px rgba(0,0,0,0.4);
     animation:toastIn 0.15s ease;
@@ -6986,7 +7248,7 @@ cmInitNote();
 <div class="pw-overlay" id="pwOverlay">
   <div class="pw-box" id="pwBox">
     <div class="pw-header">
-      <span class="pw-header-icon" id="pwIcon">🔒</span>
+      <span class="pw-header-icon" id="pwIcon"></span>
       <span class="pw-header-title" id="pwTitle">Password</span>
       <button class="pw-header-close" onclick="pwCancel()">✕</button>
     </div>
@@ -6999,7 +7261,7 @@ cmInitNote();
 <div class="pw-overlay" id="targetEditOverlay" onclick="if(event.target===this)_targetEditCancel()">
   <div class="pw-box" style="width:340px">
     <div class="pw-header">
-      <span class="pw-header-icon">🎯</span>
+      <span class="pw-header-icon" id="targetEditIcon"></span>
       <span class="pw-header-title" id="targetEditTitle">Edit Target</span>
       <button class="pw-header-close" onclick="_targetEditCancel()">✕</button>
     </div>
@@ -7027,7 +7289,7 @@ cmInitNote();
 <div class="pw-overlay" id="sessionRenameOverlay" onclick="if(event.target===this)_sessionRenameCancel()">
   <div class="pw-box" style="width:320px">
     <div class="pw-header">
-      <span class="pw-header-icon">✎</span>
+      <span class="pw-header-icon" id="sessionRenameIcon"></span>
       <span class="pw-header-title">Rename Session</span>
       <button class="pw-header-close" onclick="_sessionRenameCancel()">✕</button>
     </div>
