@@ -43,7 +43,7 @@ Set these in your `docker-compose.yml` to customise paths:
 |---|---|---|
 | `KB_DIR` | `./knowledge_base` | Path to your knowledge base directory |
 | `METH_DIR` | `./knowledge_base/methodologies` | Path to your tactical guides directory |
-| `SEARCH_URL` | `http://localhost:3002` | ENGRAM indexer URL |
+| `SEARCH_URL` | `http://engram:3002` | Default URL to ENGRAM indexer |
 
 Example `docker-compose.yml` volume + env setup:
 
@@ -104,24 +104,5 @@ docker compose down && docker compose up -d --build
 
 To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network:
 
-```yaml
-services:
-  pragma:
-    build: .
-    ports:
-      - "127.0.0.1:3000:3000"
-    environment:
-      - SEARCH_URL=http://engram:3002
-    networks:
-      - pragma-net
-
-  engram:
-    image: engram:latest
-    networks:
-      - pragma-net
-
-networks:
-  pragma-net:
-```
-
 See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.
+
