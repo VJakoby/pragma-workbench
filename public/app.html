@@ -2386,6 +2386,7 @@ body.enc-active-body .topbar {
         <div class="session-encrypt-row">
           <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)">🔒 Encrypted Workbench</button>
           <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" style="display:none">⬇ Backup</button>
+          <button class="session-encrypt-btn" id="bakDownloadBtn" onclick="downloadBackup()" title="Download most recent auto-backup" style="display:none">⬇ Restore backup</button>
         </div>
       </div>
       <div class="sidebar-divider"></div>
@@ -4092,6 +4093,9 @@ function updateEncryptedStorageUI() {
   else if (locked)               btn.textContent = '🔒 Encrypted Workbench';
   else                           btn.textContent = '🔒 Encrypted Workbench';
   if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
+  // Backup download button is always available once a save has occurred (enc or plain)
+  const bakBtn = document.getElementById('bakDownloadBtn');
+  if (bakBtn) bakBtn.style.display = '';
 }
 
 function downloadWorkbench() {
@@ -4101,6 +4105,30 @@ function downloadWorkbench() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+async function downloadBackup() {
+  try {
+    const res = await fetch('/api/notes/download-backup');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      showToast('⚠ ' + (err.error || 'No backup available'), 'err');
+      return;
+    }
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : 'pragma.workbench.bak1';
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Backup downloaded: ' + filename);
+  } catch (err) {
+    showToast('⚠ Backup download failed: ' + err.message, 'err');
+  }
 }
 
 async function toggleEncryptedStorage(e) {
@@ -4930,6 +4958,7 @@ function updateNotePreview() {
   el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible  === 'function') makeCollapsible(el);
   // preview only needs per-line copy, not the block-level copy button
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
 }

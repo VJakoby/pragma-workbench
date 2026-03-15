@@ -33,14 +33,65 @@ const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
-const NOTES_DIR      = path.join(__dirname, 'sessions');
-const SESSIONS_DIR   = path.join(__dirname, 'sessions');
+const SESSIONS_DIR = process.env.SESSIONS_DIR || path.join(__dirname, 'sessions');
 const TEMPLATES_FILE = path.join(__dirname, 'notes-templates.json');
 
 // ── Active workbench — defaults to "default", switchable at runtime ──
 let activeWorkbenchName = 'pragma';
-function workbenchFile()    { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench`); }
-function workbenchEncFile() { return path.join(NOTES_DIR, `${activeWorkbenchName}.workbench.enc`); }
+function workbenchFile()    { return path.join(SESSIONS_DIR, `${activeWorkbenchName}.workbench`); }
+function workbenchEncFile() { return path.join(SESSIONS_DIR, `${activeWorkbenchName}.workbench.enc`); }
+
+// ── Backup helpers ──────────────────────────────────────────────────────────
+const BACKUP_COUNT = 5; // number of rolling backups to keep
+
+function bakFile(base, n) {
+  // e.g. sessions/backup/pragma.workbench.bak1
+  const dir  = path.dirname(base);
+  const name = path.basename(base);
+  const bakDir = path.join(dir, 'backup');
+  if (!fs.existsSync(bakDir)) fs.mkdirSync(bakDir, { recursive: true });
+  return path.join(bakDir, name + '.bak' + n);
+}
+
+function rotateBackups(base) {
+  // Shift bak(N-1)→bakN … bak1→bak2, then current→bak1
+  // Works for both plain and enc workbench files
+  for (let i = BACKUP_COUNT; i > 1; i--) {
+    const older = bakFile(base, i);
+    const newer = bakFile(base, i - 1);
+    try {
+      if (fs.existsSync(newer)) fs.renameSync(newer, older);
+    } catch (_) {}
+  }
+  try {
+    if (fs.existsSync(base)) fs.renameSync(base, bakFile(base, 1));
+  } catch (_) {}
+}
+
+function atomicWrite(filePath, data) {
+  // Write to a temp file first, then rename into place.
+  // Prevents a crash mid-write from leaving a corrupt file.
+  const tmp = filePath + '.tmp';
+  fs.writeFileSync(tmp, data, 'utf8');
+  fs.renameSync(tmp, filePath);
+}
+
+function loadWithFallback(base) {
+  // Try the live file, then bak1..bakN in order.
+  // Returns { data, source } where source indicates which file was used.
+  const candidates = [base, ...Array.from({ length: BACKUP_COUNT }, (_, i) => bakFile(base, i + 1))];
+  for (const f of candidates) {
+    if (!fs.existsSync(f)) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(f, 'utf8'));
+      if (f !== base) console.warn(`[PRAGMA] Loaded workbench from backup: ${path.basename(f)}`);
+      return { data: raw, source: f };
+    } catch (_) {
+      console.warn(`[PRAGMA] Skipping corrupt file: ${path.basename(f)}`);
+    }
+  }
+  return null;
+}
 
 // Keep legacy constants pointing at active workbench for existing code paths
 Object.defineProperty(global, 'NOTES_FILE',     { get: workbenchFile,    configurable: true });
@@ -557,12 +608,11 @@ async function fetchWithTimeout(url, opts = {}) {
 
 // ── Notes persistence ──
 function loadNotesFile() {
-  if (!fs.existsSync(NOTES_FILE)) return { sessions: {}, notes: {} };
-  try {
-    const raw = JSON.parse(fs.readFileSync(NOTES_FILE, 'utf8'));
-    if (!raw.sessions && !raw.notes) return { sessions: {}, notes: raw };
-    return { sessions: raw.sessions || {}, notes: raw.notes || {} };
-  } catch { return { sessions: {}, notes: {} }; }
+  const result = loadWithFallback(NOTES_FILE);
+  if (!result) return { sessions: {}, notes: {} };
+  const raw = result.data;
+  if (!raw.sessions && !raw.notes) return { sessions: {}, notes: raw };
+  return { sessions: raw.sessions || {}, notes: raw.notes || {} };
 }
 
 // ── Note templates ──────────────────────────────────────────────────────────
@@ -594,8 +644,9 @@ app.post('/api/notes/save', (req, res) => {
     if (fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE))
       return res.status(423).json({ error: 'Encrypted storage active. Use /api/notes/save-encrypted.' });
     const { sessions = {}, notes = {} } = req.body;
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
-    fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    rotateBackups(NOTES_FILE);
+    atomicWrite(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2));
     // Remove stale enc file if plain file now exists — they should never coexist
     if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
     res.json({ ok: true });
@@ -608,15 +659,23 @@ app.get('/api/notes/storage-info', (req, res) => {
   res.json({
     encrypted_storage: encExists && !plainExists,
     plain_storage:     plainExists,
-    notes_dir:         NOTES_DIR,
+    notes_dir:         SESSIONS_DIR,
     sessions_dir:      SESSIONS_DIR,
   });
 });
 
 app.get('/api/notes/encrypted', (req, res) => {
   try {
-    if (!fs.existsSync(NOTES_ENC_FILE)) return res.status(404).json({ error: 'Encrypted notes file not found' });
-    res.json(JSON.parse(fs.readFileSync(NOTES_ENC_FILE, 'utf8')));
+    const result = loadWithFallback(NOTES_ENC_FILE);
+    if (!result) return res.status(404).json({ error: 'Encrypted notes file not found' });
+    // Sanity-check: encrypted payload must have the expected structure
+    const blob = result.data;
+    if (blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data)
+      return res.status(422).json({ error: 'Encrypted file has unexpected structure.' });
+    if (result.source !== NOTES_ENC_FILE) {
+      console.warn(`[PRAGMA] Serving encrypted workbench from backup: ${path.basename(result.source)}`);
+    }
+    res.json(blob);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -630,13 +689,46 @@ app.get('/api/notes/download', (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/notes/download-backup — download the most recent backup of the active workbench.
+// Security: always serves the same storage type that is currently active.
+// If encrypted storage is active, only the .enc backup is served — never cleartext.
+// If plain storage is active, only the plain backup is served.
+app.get('/api/notes/download-backup', (req, res) => {
+  try {
+    const encActive = fs.existsSync(NOTES_ENC_FILE) && !fs.existsSync(NOTES_FILE);
+
+    if (encActive) {
+      // Encrypted mode — serve most recent enc backup
+      const bak = bakFile(NOTES_ENC_FILE, 1);
+      if (!fs.existsSync(bak)) return res.status(404).json({ error: 'No encrypted backup available yet.' });
+      const filename = path.basename(NOTES_ENC_FILE) + '.bak1';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return res.sendFile(path.resolve(bak));
+    } else {
+      // Plain mode — serve most recent plain backup
+      // Extra guard: refuse if an enc file somehow coexists (should never happen, belt+suspenders)
+      if (fs.existsSync(NOTES_ENC_FILE)) {
+        return res.status(403).json({ error: 'Encrypted workbench exists. Cannot serve plaintext backup.' });
+      }
+      const bak = bakFile(NOTES_FILE, 1);
+      if (!fs.existsSync(bak)) return res.status(404).json({ error: 'No backup available yet.' });
+      const filename = path.basename(NOTES_FILE) + '.bak1';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return res.sendFile(path.resolve(bak));
+    }
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/notes/save-encrypted', (req, res) => {
   try {
     const { blob } = req.body || {};
     if (!blob || blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data)
       return res.status(400).json({ error: 'Invalid encrypted payload' });
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
-    fs.writeFileSync(NOTES_ENC_FILE, JSON.stringify(blob, null, 2), 'utf8');
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    rotateBackups(NOTES_ENC_FILE);
+    atomicWrite(NOTES_ENC_FILE, JSON.stringify(blob, null, 2));
     if (fs.existsSync(NOTES_FILE)) { try { fs.unlinkSync(NOTES_FILE); } catch (_) { } }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -656,8 +748,9 @@ app.post('/api/notes/storage/disable-encrypted', (req, res) => {
       return res.status(400).json({ error: 'Invalid payload structure.' });
 
     // Write plaintext file first, then remove enc file — never leave both or neither
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
-    fs.writeFileSync(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2), 'utf8');
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    rotateBackups(NOTES_FILE);
+    atomicWrite(NOTES_FILE, JSON.stringify({ sessions, notes }, null, 2));
     if (fs.existsSync(NOTES_ENC_FILE)) { try { fs.unlinkSync(NOTES_ENC_FILE); } catch (_) {} }
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -668,8 +761,8 @@ app.post('/api/notes/storage/disable-encrypted', (req, res) => {
 // GET /api/workbenches — list all workbench names on disk
 app.get('/api/workbenches', (req, res) => {
   try {
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
-    const files = fs.readdirSync(NOTES_DIR);
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+    const files = fs.readdirSync(SESSIONS_DIR);
     const names = new Set();
     names.add('default'); // always include default even if file doesn't exist yet
     files.forEach(f => {
@@ -680,8 +773,8 @@ app.get('/api/workbenches', (req, res) => {
     res.json({
       workbenches: sorted,
       encrypted: Object.fromEntries(sorted.map(n => {
-        const encFile   = path.join(NOTES_DIR, `${n}.workbench.enc`);
-        const plainFile = path.join(NOTES_DIR, `${n}.workbench`);
+        const encFile   = path.join(SESSIONS_DIR, `${n}.workbench.enc`);
+        const plainFile = path.join(SESSIONS_DIR, `${n}.workbench`);
         return [n, fs.existsSync(encFile) && !fs.existsSync(plainFile)];
       })),
       active: activeWorkbenchName,
@@ -713,11 +806,11 @@ app.post('/api/workbench/create', (req, res) => {
     if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' });
     const safe = name.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64);
     if (!safe) return res.status(400).json({ error: 'Invalid workbench name' });
-    const file = path.join(NOTES_DIR, `${safe}.workbench`);
-    const enc  = path.join(NOTES_DIR, `${safe}.workbench.enc`);
+    const file = path.join(SESSIONS_DIR, `${safe}.workbench`);
+    const enc  = path.join(SESSIONS_DIR, `${safe}.workbench.enc`);
     if (fs.existsSync(file) || fs.existsSync(enc))
       return res.status(409).json({ error: `Workbench "${safe}" already exists` });
-    fs.mkdirSync(NOTES_DIR, { recursive: true });
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
     fs.writeFileSync(file, JSON.stringify({ sessions: {}, notes: {} }, null, 2), 'utf8');
     activeWorkbenchName = safe;
     res.json({ ok: true, active: activeWorkbenchName });
@@ -731,8 +824,8 @@ app.post('/api/workbench/delete', (req, res) => {
     if (!name) return res.status(400).json({ error: 'name required' });
     if (name === 'default') return res.status(403).json({ error: 'Cannot delete the default workbench' });
     if (name === activeWorkbenchName) return res.status(409).json({ error: 'Cannot delete the active workbench. Switch first.' });
-    const file = path.join(NOTES_DIR, `${name}.workbench`);
-    const enc  = path.join(NOTES_DIR, `${name}.workbench.enc`);
+    const file = path.join(SESSIONS_DIR, `${name}.workbench`);
+    const enc  = path.join(SESSIONS_DIR, `${name}.workbench.enc`);
     if (fs.existsSync(file)) fs.unlinkSync(file);
     if (fs.existsSync(enc))  fs.unlinkSync(enc);
     res.json({ ok: true });
@@ -758,7 +851,7 @@ app.post('/api/notes/export', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const sessSlug = slugify(session.codename);
-    const outDir   = path.join(NOTES_DIR, sessSlug);
+    const outDir   = path.join(SESSIONS_DIR, sessSlug);
     fs.mkdirSync(outDir, { recursive: true });
 
     const targets = session.targets || [];
@@ -1010,7 +1103,7 @@ app.post('/api/notes/export-session', (req, res) => {
 app.get('/api/notes/debug', (req, res) => {
   const { sessions, notes } = loadNotesFile();
   res.json({
-    dirs: { notes: NOTES_DIR, sessions: SESSIONS_DIR },
+    dirs: { notes: SESSIONS_DIR, sessions: SESSIONS_DIR },
     files: { workbench: NOTES_FILE, encrypted: NOTES_ENC_FILE },
     sessions: Object.values(sessions).map(s => ({
       id: s.id, codename: s.codename,
@@ -1040,6 +1133,78 @@ if (chokidar) {
   console.log('[PRAGMA] Watching knowledge_base/ for changes');
 }
 
+// ── Startup integrity check ─────────────────────────────────────────────────
+function startupIntegrityCheck() {
+  const results = [];
+
+  // Clean up any stale .tmp files left by a previous crash mid-write
+  const tmpFiles = [NOTES_FILE + '.tmp', NOTES_ENC_FILE + '.tmp'];
+  for (const tmp of tmpFiles) {
+    if (fs.existsSync(tmp)) {
+      try {
+        fs.unlinkSync(tmp);
+        results.push({ level: 'warn', msg: `Removed stale temp file: ${path.basename(tmp)}` });
+      } catch (e) {
+        results.push({ level: 'warn', msg: `Could not remove stale temp file: ${path.basename(tmp)} — ${e.message}` });
+      }
+    }
+  }
+
+  // Ensure sessions dir exists
+  if (!fs.existsSync(SESSIONS_DIR)) {
+    try {
+      fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+      results.push({ level: 'info', msg: `Created sessions directory: ${SESSIONS_DIR}` });
+    } catch (e) {
+      results.push({ level: 'error', msg: `Could not create sessions directory: ${e.message}` });
+    }
+  }
+
+  // Determine active storage type and check workbench state
+  const encExists   = fs.existsSync(NOTES_ENC_FILE);
+  const plainExists = fs.existsSync(NOTES_FILE);
+
+  if (!encExists && !plainExists) {
+    results.push({ level: 'info', msg: `No workbench file found — fresh start, will be created on first save` });
+  } else if (encExists && plainExists) {
+    results.push({ level: 'warn', msg: `Both plain and encrypted workbench files exist — plain file takes precedence` });
+  } else if (encExists) {
+    // Validate enc file is parseable and has correct structure
+    try {
+      const blob = JSON.parse(fs.readFileSync(NOTES_ENC_FILE, 'utf8'));
+      if (blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data) {
+        results.push({ level: 'warn', msg: `Encrypted workbench exists but has unexpected structure — may fail to decrypt` });
+      } else {
+        results.push({ level: 'ok', msg: `Encrypted workbench OK: ${path.basename(NOTES_ENC_FILE)}` });
+      }
+    } catch (e) {
+      results.push({ level: 'error', msg: `Encrypted workbench is corrupt (${e.message}) — will attempt fallback on load` });
+    }
+  } else if (plainExists) {
+    // Validate plain file is parseable
+    try {
+      const raw = JSON.parse(fs.readFileSync(NOTES_FILE, 'utf8'));
+      const sessionCount = Object.keys(raw.sessions || {}).length;
+      const noteCount    = Object.keys(raw.notes    || {}).length;
+      results.push({ level: 'ok', msg: `Workbench OK: ${path.basename(NOTES_FILE)} (${sessionCount} sessions, ${noteCount} notes)` });
+    } catch (e) {
+      results.push({ level: 'error', msg: `Workbench file is corrupt (${e.message}) — will attempt fallback on load` });
+    }
+  }
+
+  // Count available backups
+  const bakFiles = Array.from({ length: BACKUP_COUNT }, (_, i) => bakFile(NOTES_FILE, i + 1))
+    .filter(f => fs.existsSync(f));
+  const bakEncFiles = Array.from({ length: BACKUP_COUNT }, (_, i) => bakFile(NOTES_ENC_FILE, i + 1))
+    .filter(f => fs.existsSync(f));
+  const totalBaks = bakFiles.length + bakEncFiles.length;
+  if (totalBaks > 0) {
+    results.push({ level: 'info', msg: `Rolling backups available: ${totalBaks} file(s)` });
+  }
+
+  return results;
+}
+
 buildIndex();
 buildMethodologyIndex();
 
@@ -1052,6 +1217,16 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
-  console.log(`  sessions/ → ${NOTES_DIR}  (workbench: ${activeWorkbenchName})`);
-  console.log(`  sessions/→ ${SESSIONS_DIR}\n`);
+  console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${activeWorkbenchName})\n`);
+
+  // Run integrity check and print results
+  const checks = startupIntegrityCheck();
+  const icons  = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };
+  checks.forEach(({ level, msg }) => console.log(`${icons[level] || '  ?'} [${level.toUpperCase()}] ${msg}`));
+  if (checks.some(r => r.level === 'error')) {
+    console.log('\n  ⚠ One or more errors detected above — check workbench files before use.');
+  } else if (checks.every(r => r.level === 'ok' || r.level === 'info')) {
+    console.log('  ✓ All checks passed.');
+  }
+  console.log('');
 });
