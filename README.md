@@ -61,6 +61,12 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - Local/remote scope filter, source filter, and query-term snippet highlighting in results
 - Degrades gracefully if ENGRAM is offline, with a one-click reachability check
 
+**Workbench Reliability**
+- Atomic writes — every save is written to a temp file first, then renamed into place, preventing corruption from crashes or power loss
+- Rolling backups — the last 5 versions of your workbench are kept automatically in `sessions/backup/`
+- Automatic fallback recovery — if the live workbench file is corrupt or missing, PRAGMA silently loads from the most recent valid backup
+- Startup integrity check — on every start, PRAGMA logs the workbench state, backup count, and any issues detected
+
 **Interface**
 - Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
 - Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
@@ -69,7 +75,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 ## 📝 Note Templates
 
-PRAGMA have six built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+PRAGMA ships with six built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
 | Template | Icon | Default Tags | Purpose |
 |---|---|---|---|
@@ -110,6 +116,8 @@ You can extend or fully replace the built-in templates by placing a `notes-templ
 | `default_tags` | — | Array of tags automatically applied to the note |
 | `body` | — | Initial markdown content for the note body |
 
+Custom templates appear in the picker with a purple border and a **CUSTOM** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
+
 ---
 
 ## 🔐 Security
@@ -130,7 +138,7 @@ PRAGMA is a **single-operator, local-first tool** designed to run in a controlle
 - **Use a dedicated pentest VM** — the recommended setup is a VM used exclusively for pentesting, with PRAGMA running locally inside it. This isolates your notes from your host OS and limits exposure if the VM is compromised
 - **Do not run as root** — the Docker setup drops all capabilities and runs as a non-root user. If running with Node.js directly, use a standard user account
 - **Encrypt your workbench** — if your notes contain credentials, findings, or client-sensitive data, enable workbench encryption. The workbench file is portable and encrypted at rest, so even if the file is copied off the machine it cannot be read without the password
-- **Back up your workbench file** — the encrypted `.workbench.enc` file is the single source of truth for your data. Back it up regularly. There is no password recovery
+- **Back up your workbench file** — the rolling backup system keeps the last 5 versions automatically. For additional safety, use the **⬇ Restore backup** button in the sidebar to download a copy to your host machine
 
 ### What encryption does NOT protect against
 
