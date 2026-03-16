@@ -2255,6 +2255,7 @@ body.enc-active-body .topbar {
   color: var(--btn-color); padding: 5px 4px;
   border-bottom: 2px solid transparent; transition: all 0.12s;
   letter-spacing: 0.04em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center;
 }
 .notes-view-btn:hover { color: var(--text2); }
 .notes-view-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -2651,8 +2652,8 @@ body.enc-active-body .topbar {
                 placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
             </div>
             <div class="notes-list-view-toggle">
-              <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)">≡ List</button>
-              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Timeline</span></button>
+              <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Timeline</button>
             </div>
             <div class="notes-scope-bar">
               <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
