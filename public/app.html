@@ -32,39 +32,51 @@
   window.marked = {
     _opts: { breaks: false, gfm: true },
     setOptions(o) { Object.assign(this._opts, o); },
+
     parse(src) {
       const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // normalize line endings
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      // stash fenced code blocks to protect them from all further processing
+
+      // Stash fenced code blocks
       const stash = [];
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
-        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/,''))}</code></pre>`;
-        stash.push(html);
-        return `\x00STASH${stash.length-1}\x00`;
+        const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/, ''))}</code></pre>`;
+        stash.push(html); return `\x00STASH${stash.length-1}\x00`;
       });
-      // inline code
+
+      // Stash indented code blocks (4 spaces or 1 tab)
+      //src = src.replace(/((?:^(?:    |\t)[^\n]+\n?)+)/gm, m => {
+      //  const code = m.replace(/^(?:    |\t)/gm, '').replace(/\n$/, '');
+      //  const html = `<pre><code>${esc(code)}</code></pre>`;
+      //  stash.push(html); return `\x00STASH${stash.length-1}\x00`;
+      //});
+
+      // Inline code
       src = src.replace(/`([^`\n]+)`/g, (_,c) => `<code>${esc(c)}</code>`);
-      // headings
+
+      // Headings
       src = src.replace(/^#{6} (.+)$/gm, '<h6>$1</h6>');
       src = src.replace(/^#{5} (.+)$/gm, '<h5>$1</h5>');
       src = src.replace(/^#{4} (.+)$/gm, '<h4>$1</h4>');
-      src = src.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-      src = src.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-      src = src.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-      // bold, italic, strikethrough
+      src = src.replace(/^### (.+)$/gm,  '<h3>$1</h3>');
+      src = src.replace(/^## (.+)$/gm,   '<h2>$1</h2>');
+      src = src.replace(/^# (.+)$/gm,    '<h1>$1</h1>');
+
+      // Bold, italic, strikethrough
       src = src.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
       src = src.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       src = src.replace(/\*(.+?)\*/g, '<em>$1</em>');
       src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
-      // links & images
+
+      // Links & images
       src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
       src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-      // hr
+
+      // HR & blockquote
       src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
-      // blockquote
       src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-      // checklists — must run before unordered list
+
+      // Checklists — before unordered list processing
       src = src.replace(/((?:^[ \t]*[-*+] \[[ xX]\] .+\n?)+)/gm, m => {
         const items = m.trim().split('\n').map(l => {
           const checked = /^[ \t]*[-*+] \[[xX]\]/.test(l);
@@ -73,30 +85,62 @@
         }).join('');
         return `<ul class="task-list">${items}</ul>`;
       });
-      // unordered list
+
+      // ── Nested list builder ──
+      function buildList(lines, ordered) {
+        const tag = ordered ? 'ol' : 'ul';
+        const bulletRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*+]\s+/;
+        const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
+
+        let html = `<${tag}>`, i = 0;
+        while (i < lines.length) {
+          const line = lines[i], indent = getIndent(line);
+          const text = line.replace(bulletRe, '');
+          i++;
+
+          let extra = '';
+          while (i < lines.length) {
+            const ni = getIndent(lines[i]);
+            const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
+            if (ni > indent && !isBullet) {
+              extra += '<br>' + esc(lines[i].trim()); i++;
+            } else if (ni > indent && isBullet) {
+              const sub = [];
+              while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
+              extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
+            } else break;
+          }
+          html += `<li>${esc(text)}${extra}</li>`;
+        }
+        return html + `</${tag}>`;
+      }
+
+      // Unordered lists (including indented nested)
       src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
-        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^[ \t]*[-*+] /,'')}</li>`).join('');
-        return `<ul>${items}</ul>`;
+        const lines = m.trimEnd().split('\n').filter(l => l.trim());
+        return buildList(lines, false);
       });
-      // ordered list
-      src = src.replace(/((?:^\d+\. .+\n?)+)/gm, m => {
-        const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
-        return `<ol>${items}</ol>`;
+
+      // Ordered lists (including indented nested)
+      src = src.replace(/((?:^\s*\d+\. .+\n?)+)/gm, m => {
+        const lines = m.trimEnd().split('\n').filter(l => l.trim());
+        return buildList(lines, true);
       });
-      // paragraphs — ensure any text immediately after a block-level closing tag
-      // gets separated into its own block (fixes heading+text single-newline gap)
+
+      // Paragraphs
       src = src.replace(/\x00STASH(\d+)\x00\n(?!\n)/g, '\x00STASH$1\x00\n\n');
       src = src.replace(/<\/(h[1-6])>\n(?!\n)/g, '</$1>\n\n');
       src = src.replace(/<hr>\n(?!\n)/g, '<hr>\n\n');
       src = src.replace(/<\/blockquote>\n(?!\n)/g, '</blockquote>\n\n');
+
       src = src.split(/\n{2,}/).map(block => {
         block = block.trim();
         if (!block) return '';
         if (/^\x00STASH/.test(block)) return block;
-        if (/^<(h[1-6]|ul|ol|hr|blockquote)/.test(block)) return block;
-        return `<p>${block.replace(/\n/g,' ')}</p>`;
+        if (/^<(h[1-6]|ul|ol|hr|blockquote|pre)/.test(block)) return block;
+        return `<p>${block.replace(/\n/g,'<br>')}</p>`;
       }).join('\n');
-      // restore stashed code blocks
+
       src = src.replace(/\x00STASH(\d+)\x00/g, (_,i) => stash[+i]);
       return src;
     }
@@ -667,7 +711,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .md-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
 
 /* Code blocks with IP injection */
-.code-block-wrap{position:relative;margin:12px 0}
+.code-block-wrap{position:relative;margin:12px 0 4px}
 .code-block-wrap pre{
   background:var(--bg);border:1px solid var(--border);
   border-radius:7px;padding:14px 16px;overflow-x:auto;
