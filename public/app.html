@@ -5580,10 +5580,8 @@ function cmInitNote(initialDoc) {
         }
       }),
       CM.EditorView.lineWrapping,
-      
-      /* PLACEHOLDER. Needs rebuilding of Codemirror
       CM.indentUnit.of('  '),
-      CM.keymap.of([CM.indentWithTab]),*/
+      CM.keymap.of([CM.indentWithTab])
     ],
     parent: wrap,
   });
@@ -5606,6 +5604,8 @@ function cmInitKb(initialDoc) {
         }
       }),
       CM.EditorView.lineWrapping,
+      CM.indentUnit.of('  '),
+      CM.keymap.of([CM.indentWithTab])
     ],
     parent: wrap,
   });
