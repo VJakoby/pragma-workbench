@@ -103,14 +103,14 @@
             const ni = getIndent(lines[i]);
             const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
             if (ni > indent && !isBullet) {
-              extra += '<br>' + esc(lines[i].trim()); i++;
+              extra += '<br>' + lines[i].trim(); i++;
             } else if (ni > indent && isBullet) {
               const sub = [];
               while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
               extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
             } else break;
           }
-          html += `<li>${esc(text)}${extra}</li>`;
+          html += `<li>${text}${extra}</li>`;
         }
         return html + `</${tag}>`;
       }
