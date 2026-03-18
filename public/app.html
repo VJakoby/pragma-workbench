@@ -103,14 +103,14 @@
             const ni = getIndent(lines[i]);
             const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
             if (ni > indent && !isBullet) {
-              extra += '<br>' + lines[i].trim(); i++;
+              extra += '<br>' + esc(lines[i].trim()); i++;
             } else if (ni > indent && isBullet) {
               const sub = [];
               while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
               extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
             } else break;
           }
-          html += `<li>${text}${extra}</li>`;
+          html += `<li>${esc(text)}${extra}</li>`;
         }
         return html + `</${tag}>`;
       }
@@ -138,7 +138,7 @@
         if (!block) return '';
         if (/^\x00STASH/.test(block)) return block;
         if (/^<(h[1-6]|ul|ol|hr|blockquote|pre)/.test(block)) return block;
-        return `<p>${block.replace(/\n/g,'<br>')}</p>`;
+        return `<p>${block.replace(/\n/g,' ')}</p>`;
       }).join('\n');
 
       src = src.replace(/\x00STASH(\d+)\x00/g, (_,i) => stash[+i]);
@@ -711,7 +711,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .md-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
 
 /* Code blocks with IP injection */
-.code-block-wrap{position:relative;margin:12px 0 4px}
+.code-block-wrap{position:relative;margin:12px 0}
 .code-block-wrap pre{
   background:var(--bg);border:1px solid var(--border);
   border-radius:7px;padding:14px 16px;overflow-x:auto;
@@ -2170,14 +2170,16 @@ body.enc-active-body .topbar {
 
 /* ── Quick-Log popover panel ── */
 .svc-popover {
-  display: none; position: absolute; top: calc(100% + 8px); right: 0;
-  width: 520px; max-width: 95vw;
+  visibility: hidden; opacity: 0; pointer-events: none;
+  position: fixed; top: calc(var(--topbar-h) + 8px);
+  left: 50%; transform: translateX(-55%);
+  width: min(680px, calc(100vw - 16px));
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
   z-index: 300; overflow: hidden;
-  animation: cmdSlide 0.06s ease;
+  transition: opacity 0.08s ease, visibility 0.08s ease;
 }
-.svc-popover.open { display: block; }
+.svc-popover.open { visibility: visible; opacity: 1; pointer-events: auto; }
 .svc-popover-hdr {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px 0; border-bottom: 1px solid var(--border);
@@ -2287,6 +2289,33 @@ body.enc-active-body .topbar {
 }
 .svc-notes-cell::placeholder { color: var(--muted); }
 .svc-empty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
+
+/* ── Loot type pill buttons ── */
+.loot-type-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  padding: 3px 9px; transition: all 0.12s; white-space: nowrap;
+}
+.loot-type-btn:hover { border-color: var(--border2); color: var(--text2); }
+.loot-type-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Loot table — credential cell monospace, copyable */
+.loot-cred-cell {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--yellow); cursor: pointer; word-break: break-all;
+  transition: color 0.1s;
+}
+.loot-cred-cell:hover { color: var(--text); }
+.loot-type-badge {
+  font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.loot-type-cleartext { color: var(--green);  background: rgba(52,211,153,0.12); }
+.loot-type-hash      { color: var(--orange); background: rgba(251,146,60,0.12); }
+.loot-type-token     { color: var(--purple); background: rgba(167,139,250,0.12); }
+.loot-type-key       { color: var(--yellow); background: rgba(251,191,36,0.12); }
+.loot-type-other     { color: var(--muted);  background: var(--bg4); }
 
 /* ── Timeline View ── */
 .notes-list-view-toggle {
@@ -2455,11 +2484,12 @@ body.enc-active-body .topbar {
       </button>
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
-          <span class="svc-popover-title">⚡ Recon Log</span>
-          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <span class="svc-popover-title">⚡ Quick Log</span>
+          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--accent);background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);border-radius:3px;padding:1px 7px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;display:none"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
+            <button class="svc-tab" id="svcTabLoot" onclick="switchSvcTab('loot')">Loot <span class="svc-tab-count" id="svcTabCountLoot"></span></button>
           </div>
           <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">✕</button>
         </div>
@@ -2523,6 +2553,39 @@ body.enc-active-body .topbar {
           </div>
           <div class="svc-popover-table-wrap">
             <div id="pathLogTable"></div>
+          </div>
+        </div>
+
+        <!-- LOOT TAB -->
+        <div class="svc-popover-body" id="svcPanelLoot" style="display:none">
+          <div class="svc-hint">Log credentials, hashes, tokens and other loot found during the engagement.</div>
+          <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;align-self:center;flex-shrink:0">Type</span>
+            <button class="loot-type-btn active" data-ltype="cleartext" onclick="setLootType(this,'cleartext')">Cleartext</button>
+            <button class="loot-type-btn" data-ltype="hash"  onclick="setLootType(this,'hash')">Hash</button>
+            <button class="loot-type-btn" data-ltype="token" onclick="setLootType(this,'token')">Token</button>
+            <button class="loot-type-btn" data-ltype="key"   onclick="setLootType(this,'key')">Key</button>
+            <button class="loot-type-btn" data-ltype="other" onclick="setLootType(this,'other')">Other</button>
+          </div>
+          <div class="svc-quick-input-row" style="margin-bottom:6px">
+            <input class="svc-quick-input" id="lootCredInput" type="text"
+              placeholder="username:password  /  hash  /  token  /  key…"
+              autocomplete="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter')document.getElementById('lootHostInput').focus()">
+          </div>
+          <div class="svc-quick-input-row">
+            <input class="svc-quick-input" id="lootHostInput" type="text"
+              placeholder="Host / IP"
+              autocomplete="off" spellcheck="false" style="flex:0 0 150px"
+              onkeydown="if(event.key==='Enter')document.getElementById('lootNoteInput').focus()">
+            <input class="svc-quick-input" id="lootNoteInput" type="text"
+              placeholder="Context — SMB share, /etc/shadow, .env…"
+              autocomplete="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter')addLootEntry()">
+            <button class="svc-quick-add-btn" onclick="addLootEntry()">+ Add</button>
+          </div>
+          <div class="svc-popover-table-wrap">
+            <div id="lootLogTable"></div>
           </div>
         </div>
       </div>
@@ -3146,6 +3209,7 @@ function openTargetsPanel() {
   renderTargetsList();
   renderSvcLogTable();
   renderPathTable();
+  renderLootTable();
   updateSvcTabCounts();
   document.getElementById('targetsOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newTargetIP').focus(), 50);
@@ -4546,6 +4610,7 @@ async function initNotes() {
   updateTargetSelector();
   renderSvcLogTable();
   renderPathTable();
+  renderLootTable();
   updateSvcTabCounts();
 }
 
@@ -6164,6 +6229,20 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
+  // ── Arrow Left/Right — cycle Quick Log tabs when popover is open ──
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const popover = document.getElementById('svcPopover');
+    if (popover && popover.classList.contains('open')) {
+      const focused = document.activeElement;
+      const inInput = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA');
+      if (!inInput) {
+        e.preventDefault();
+        switchSvcTabByArrow(e.key === 'ArrowRight' ? 1 : -1);
+        return;
+      }
+    }
+  }
+
   // ── Alt+T — Toggle Timeline view (switches to Notes first if needed) ──
   if (e.altKey && e.key === 't') {
     e.preventDefault();
@@ -6259,26 +6338,51 @@ let _pathParsed = [];  // staging: path results
 let _activeSvcTab = 'ports';
 
 // ── Tab switching ──
+// ── Tab order for arrow key cycling ──
+const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
+
+function switchSvcTabByArrow(dir) {
+  // Only fire if the popover is open and no text input is focused inside it
+  const popover = document.getElementById('svcPopover');
+  if (!popover || !popover.classList.contains('open')) return;
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  const cur = SVC_TAB_ORDER.indexOf(_activeSvcTab);
+  if (cur === -1) return;
+  const next = (cur + dir + SVC_TAB_ORDER.length) % SVC_TAB_ORDER.length;
+  switchSvcTab(SVC_TAB_ORDER[next]);
+}
+
 function switchSvcTab(tab) {
   _activeSvcTab = tab;
   document.getElementById('svcTabPorts').classList.toggle('active', tab === 'ports');
   document.getElementById('svcTabPaths').classList.toggle('active', tab === 'paths');
+  document.getElementById('svcTabLoot').classList.toggle('active',  tab === 'loot');
   document.getElementById('svcPanelPorts').style.display = tab === 'ports' ? 'block' : 'none';
   document.getElementById('svcPanelPaths').style.display = tab === 'paths' ? 'block' : 'none';
+  document.getElementById('svcPanelLoot').style.display  = tab === 'loot'  ? 'block' : 'none';
   if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
   if (tab === 'paths') { renderPathTable();  setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
+  if (tab === 'loot')  { renderLootTable();  setTimeout(() => {
+    const hi = document.getElementById('lootHostInput');
+    if (hi && !hi.value) { const ip = getIP(); if (ip !== '<IP>') hi.value = ip; }
+    document.getElementById('lootCredInput')?.focus();
+  }, 40); }
 }
 
 function updateSvcTabCounts() {
   const ports = getSessionServices().length;
   const paths = getSessionPaths().length;
+  const loot  = getSessionLoot().length;
   const cp = document.getElementById('svcTabCountPorts');
   const ch = document.getElementById('svcTabCountPaths');
+  const cl = document.getElementById('svcTabCountLoot');
   if (cp) cp.textContent = ports || '';
   if (ch) ch.textContent = paths || '';
+  if (cl) cl.textContent = loot  || '';
   // topbar button count — total
   const btn = document.getElementById('svcTopbarCount');
-  if (btn) { btn.textContent = ports + paths || ''; btn.classList.toggle('has-entries', (ports + paths) > 0); }
+  if (btn) { btn.textContent = ports + paths + loot || ''; btn.classList.toggle('has-entries', (ports + paths + loot) > 0); }
 }
 
 // ── Toggle import panel ──
@@ -6704,6 +6808,144 @@ function renderSvcLogTable() {
     </table>`;
 }
 
+// ═══════════════════════════════════════════════
+// LOOT LOG
+// Stored per session: sessions[id].loot = [{id,type,credential,host,note,added}]
+// Types: cleartext | hash | token | key | other
+// ═══════════════════════════════════════════════
+let _activeLootType = 'cleartext';
+
+function setLootType(btn, type) {
+  _activeLootType = type;
+  document.querySelectorAll('.loot-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function getSessionLoot() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].loot || [];
+}
+
+function addLootEntry() {
+  const credEl = document.getElementById('lootCredInput');
+  const hostEl = document.getElementById('lootHostInput');
+  const noteEl = document.getElementById('lootNoteInput');
+  const cred   = credEl?.value.trim();
+  const host   = hostEl?.value.trim();
+  const note   = noteEl?.value.trim();
+  if (!cred || !activeSessionId) { credEl?.focus(); return; }
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  // Auto-fill host from active target if left blank
+  const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
+
+  sessions[activeSessionId].loot.push({
+    id:         'loot_' + Date.now(),
+    type:       _activeLootType,
+    credential: cred,
+    host:       autoHost,
+    note:       note,
+    added:      Date.now(),
+  });
+
+  credEl.value = '';
+  noteEl.value = '';
+  // Keep host value so user can add multiple creds from same host without retyping
+  credEl.focus();
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+}
+
+function deleteLootEntry(lootId) {
+  if (!activeSessionId) return;
+  sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+}
+
+function updateLootNote(lootId, val) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
+  if (entry) { entry.note = val; saveNotes(); }
+}
+
+const LOOT_TYPE_CSS = {
+  cleartext: 'loot-type-cleartext',
+  hash:      'loot-type-hash',
+  token:     'loot-type-token',
+  key:       'loot-type-key',
+  other:     'loot-type-other',
+};
+
+function renderLootTable() {
+  const el = document.getElementById('lootLogTable');
+  if (!el) return;
+  updateSvcTabCounts();
+  const entries = [...getSessionLoot()].sort((a, b) => (a.added || 0) - (b.added || 0));
+  if (!entries.length) {
+    el.innerHTML = '<div class="svc-empty">No loot logged yet — add credentials, hashes or tokens above</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="svc-table">
+      <thead><tr><th>Type</th><th>Credential</th><th>Host</th><th>Context</th><th></th></tr></thead>
+      <tbody>${entries.map(l => {
+        const typeCss = LOOT_TYPE_CSS[l.type] || 'loot-type-other';
+        return `<tr>
+          <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
+          <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
+          <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
+          <td style="min-width:160px;width:35%"><input class="svc-notes-cell" type="text" value="${esc(l.note || '')}" placeholder="context…"
+            onclick="event.stopPropagation()"
+            onchange="updateLootNote('${l.id}',this.value)"
+            onblur="updateLootNote('${l.id}',this.value)"></td>
+          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteLootEntry('${l.id}')" title="Remove">✕</button></td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function copyLootCred(lootId) {
+  const entry = (sessions[activeSessionId]?.loot || []).find(l => l.id === lootId);
+  if (!entry) return;
+  navigator.clipboard.writeText(entry.credential).then(() => {
+    showToast('✓ Copied: ' + entry.credential.slice(0, 40) + (entry.credential.length > 40 ? '…' : ''));
+  });
+}
+
+// ── Loot markdown export helper (called from exportNotesMarkdown) ──
+function buildLootMarkdown(sessionId) {
+  const loot = (sessions[sessionId]?.loot || []);
+  if (!loot.length) return null;
+
+  // Group by host
+  const byHost = {};
+  loot.forEach(l => {
+    const h = l.host || 'Unknown';
+    if (!byHost[h]) byHost[h] = [];
+    byHost[h].push(l);
+  });
+
+  let md = '# Loot\n\n';
+  md += `*Exported: ${new Date().toLocaleString('en-GB')}*\n\n`;
+
+  for (const [host, entries] of Object.entries(byHost)) {
+    md += `## ${host}\n\n`;
+    md += '| Type | Credential | Context |\n';
+    md += '|------|------------|----------|\n';
+    entries.forEach(l => {
+      const cred = l.credential.replace(/\|/g, '\|');
+      const note = (l.note || '').replace(/\|/g, '\|');
+      md += `| ${l.type} | \`${cred}\` | ${note} |\n`;
+    });
+    md += '\n';
+  }
+  return md;
+}
+
 function toggleSvcPopover() {
   const popover = document.getElementById('svcPopover');
   const btn     = document.getElementById('svcTopbarBtn');
@@ -6717,14 +6959,24 @@ function toggleSvcPopover() {
     const sessLabel = document.getElementById('svcSessionLabel');
     if (sessLabel) {
       const sess = activeSessionId && sessions[activeSessionId];
-      sessLabel.textContent = sess ? sess.codename : '';
+      if (sess) {
+        sessLabel.textContent = sess.codename;
+        sessLabel.style.display = '';
+      } else {
+        sessLabel.textContent = '';
+        sessLabel.style.display = 'none';
+      }
     }
     renderSvcLogTable();
     renderPathTable();
+    renderLootTable();
     updateSvcTabCounts();
     setTimeout(() => {
-      const input = document.getElementById(_activeSvcTab === 'ports' ? 'svcQuickInput' : 'pathQuickInput');
-      if (input) input.focus();
+      // Pre-fill loot host with active target IP if blank
+      const hi = document.getElementById('lootHostInput');
+      if (hi && !hi.value) { const ip = getIP(); if (ip !== '<IP>') hi.value = ip; }
+      const inputId = _activeSvcTab === 'ports' ? 'svcQuickInput' : _activeSvcTab === 'loot' ? 'lootCredInput' : 'pathQuickInput';
+      document.getElementById(inputId)?.focus();
     }, 40);
     // Close on outside click
     setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
@@ -7154,16 +7406,24 @@ async function exportNotesMarkdown(sessionId) {
   const sess = sessions[sessionId];
   if (!sess) return;
 
+  // ── Always download loot.md client-side (server may not handle it yet) ──
+  const lootMd = buildLootMarkdown(sessionId);
+  if (lootMd) {
+    downloadText(lootMd, slugify(sess.codename) + '-loot.md');
+  }
+
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // Pass loot entries so server-side export can write loot.md if supported
       body: JSON.stringify({ session_id: sessionId, sessions, notes }),
     });
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
+      const lootNote = lootMd ? ' + loot.md' : '';
+      showToast(`✓ Exported ${count} files${lootNote} → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }
