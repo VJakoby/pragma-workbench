@@ -193,9 +193,11 @@
   --text2:    #96abbe;
   --muted:    #7a95aa;
   --btn-color:#a8bfd0;
-  --accent:   #8b5cf6;
-  --accent2:  #7c3aed;
+  --accent:   #8575c0;
+  --accent2:  #7060a8;
+  --accent-rgb: 133, 117, 192;
   --green:    #34d399;
+  --green-rgb: 52, 211, 153;
   --purple:   #a78bfa;
   --red:      #f87171;
   --orange:   #fb923c;
@@ -219,7 +221,9 @@
   --btn-color:#4a6580;
   --accent:   #5b21b6;
   --accent2:  #6d28d9;
+  --accent-rgb: 91, 33, 182;
   --green:    #059669;
+  --green-rgb: 5, 150, 105;
   --purple:   #7c3aed;
   --red:      #dc2626;
   --orange:   #ea580c;
@@ -757,7 +761,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   pointer-events:none;white-space:nowrap;
 }
 .code-line:hover .code-line-copy{display:block}
-.code-line.flash{background:rgba(52,211,153,0.18);transition:background 0s}
+.code-line.flash{background:rgba(var(--green-rgb),0.18);transition:background 0s}
 
 /* Inline code */
 .md-content code:not(pre code){
@@ -1006,8 +1010,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .result-score{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
-  background:rgba(52,211,153,0.15);color:var(--green);
-  border:1px solid rgba(52,211,153,0.3);
+  background:rgba(var(--green-rgb),0.15);color:var(--green);
+  border:1px solid rgba(var(--green-rgb),0.3);
   padding:2px 8px;border-radius:4px;flex-shrink:0;
   display:flex;align-items:center;gap:4px;
 }
@@ -1288,7 +1292,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
     .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
-    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); }
+    .note-type-loot        { color: var(--green);   background: rgba(var(--green-rgb),0.08); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
 
@@ -1296,7 +1300,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
     .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
     .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
-    .note-item-type.note-type-loot        { border: 1px solid rgba(52,211,153,0.15); }
+    .note-item-type.note-type-loot        { border: 1px solid rgba(var(--green-rgb),0.15); }
     .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
     .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
 
@@ -1449,7 +1453,7 @@ body.is-resizing *{cursor:col-resize!important}
   cursor: pointer; border: 1px solid transparent; flex-shrink: 0;
   transition: all 0.12s; user-select: none;
 }
-.session-status-pill.active   { color: var(--green);  background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.25); }
+.session-status-pill.active   { color: var(--green);  background: rgba(var(--green-rgb),0.1);  border-color: rgba(var(--green-rgb),0.25); }
 .session-status-pill.paused   { color: var(--yellow); background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.25); }
 .session-status-pill.complete { color: var(--muted);  background: var(--bg4);            border-color: var(--border); }
 .session-status-pill:hover { filter: brightness(1.2); border-color: currentColor; }
@@ -1569,14 +1573,14 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--bg4);
 }
 .session-encrypt-btn.on {
-  border-color: rgba(52,211,153,0.5);
+  border-color: rgba(var(--green-rgb),0.5);
   color: var(--green);
-  background: rgba(52,211,153,0.1);
-  box-shadow: 0 0 8px rgba(52,211,153,0.12);
+  background: rgba(var(--green-rgb),0.1);
+  box-shadow: 0 0 8px rgba(var(--green-rgb),0.12);
 }
 .session-encrypt-btn.on:hover {
-  background: rgba(52,211,153,0.16);
-  border-color: rgba(52,211,153,0.7);
+  background: rgba(var(--green-rgb),0.16);
+  border-color: rgba(var(--green-rgb),0.7);
 }
 .session-encrypt-btn.locked {
   border-color: rgba(248,113,113,0.5);
@@ -1741,7 +1745,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item:hover { border-color: var(--border2); }
 .target-item.active-target {
-  border-color: var(--green); background: rgba(52,211,153,0.06);
+  border-color: var(--green); background: rgba(var(--green-rgb),0.06);
 }
 .target-item-dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -1854,7 +1858,7 @@ body.is-resizing *{cursor:col-resize!important}
   box-sizing: border-box; line-height: 1;
 }
 .note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
-.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
+.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(var(--green-rgb),0.35); }
 .note-target-assign-dropdown {
   display: none; position: absolute; top: calc(100% + 5px); right: 0;
   background: var(--bg3); border: 1px solid var(--border2);
@@ -1889,14 +1893,14 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
 }
 .target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
-.target-filter-chip.active { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+.target-filter-chip.active { color: var(--green); border-color: rgba(var(--green-rgb),0.4); background: rgba(var(--green-rgb),0.08); }
 
 /* Target badge on note list items */
 .note-item-target {
   display: inline-flex; align-items: center; gap: 3px;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-  color: var(--green); background: rgba(52,211,153,0.08);
-  border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
+  color: var(--green); background: rgba(var(--green-rgb),0.08);
+  border: 1px solid rgba(var(--green-rgb),0.2); border-radius: 3px;
   padding: 1px 5px; margin-top: 3px;
 }
 
@@ -1910,7 +1914,7 @@ body.is-resizing *{cursor:col-resize!important}
   box-sizing: border-box; line-height: 1;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
-.note-reassign-btn.assigned { color: var(--green); border-color: rgba(52,211,153,0.3); }
+.note-reassign-btn.assigned { color: var(--green); border-color: rgba(var(--green-rgb),0.3); }
 .note-reassign-dropdown {
   display: none; position: absolute; top: calc(100% + 5px); right: 0;
   background: var(--bg4); border: 1px solid var(--border2);
@@ -1933,7 +1937,7 @@ body.is-resizing *{cursor:col-resize!important}
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   padding: 8px 10px; border-radius: 6px; margin-top: 2px;
 }
-.import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
+.import-feedback.ok  { color: var(--green);  background: rgba(var(--green-rgb),0.08);  border: 1px solid rgba(var(--green-rgb),0.2);  }
 .import-feedback.err { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
 
 /* ── Shortcuts modal ── */
@@ -2001,8 +2005,8 @@ kbd {
 /* ── Encrypted session indicator ── */
 /* Green left border + subtle sweep animation when encrypted session active */
 .sidebar.enc-active {
-  border-right-color: rgba(52,211,153,0.35);
-  box-shadow: inset -2px 0 18px rgba(52,211,153,0.07);
+  border-right-color: rgba(var(--green-rgb),0.35);
+  box-shadow: inset -2px 0 18px rgba(var(--green-rgb),0.07);
 }
 
 /* Pulsing green bar down the left edge of sidebar */
@@ -2031,14 +2035,14 @@ kbd {
 
 /* Session block gets subtle green tint */
 .sidebar.enc-active #sessionSection {
-  background: rgba(52,211,153,0.04);
-  border-bottom: 1px solid rgba(52,211,153,0.15);
+  background: rgba(var(--green-rgb),0.04);
+  border-bottom: 1px solid rgba(var(--green-rgb),0.15);
 }
 
 /* Topbar gets a hairline green glow at the bottom when enc active */
 body.enc-active-body .topbar {
-  border-bottom-color: rgba(52,211,153,0.3);
-  box-shadow: 0 1px 0 rgba(52,211,153,0.15);
+  border-bottom-color: rgba(var(--green-rgb),0.3);
+  box-shadow: 0 1px 0 rgba(var(--green-rgb),0.15);
 }
 
 /* ── Custom password / confirm modal ── */
@@ -2161,7 +2165,7 @@ body.enc-active-body .topbar {
 .svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
 .svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
 .svc-topbar-btn-count {
-  background: var(--accent); color: #fff;
+  background: rgba(var(--green-rgb),0.2); color: var(--green);
   font-size: 9px; font-weight: 700;
   border-radius: 3px; padding: 1px 5px; min-width: 16px; text-align: center;
   display: none;
@@ -2201,11 +2205,15 @@ body.enc-active-body .topbar {
 .svc-tab:hover { color: var(--text2); }
 .svc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .svc-tab-count {
-  display: inline-block; background: var(--bg); border-radius: 8px;
+  display: inline-block; background: var(--bg4); border-radius: 3px;
   font-size: 9px; font-weight: 700; padding: 1px 5px; margin-left: 4px;
-  color: var(--text2); vertical-align: middle;
+  color: var(--muted); vertical-align: middle;
 }
-.svc-tab.active .svc-tab-count { background: rgba(124,58,237,0.2); color: var(--accent); }
+.svc-tab-count:empty { display: none; }
+.svc-tab.active .svc-tab-count { background: rgba(var(--green-rgb),0.15); color: var(--green); }
+[data-theme="light"] .svc-tab-count { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
+[data-theme="light"] .svc-tab.active .svc-tab-count { background: rgba(var(--green-rgb),0.15); color: var(--green); }
+[data-theme="light"] .svc-topbar-btn-count { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
 .svc-popover-body { padding: 12px 14px; }
 .svc-popover-table-wrap { max-height: 260px; overflow-y: auto; margin-top: 10px; }
 .svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
@@ -2223,7 +2231,7 @@ body.enc-active-body .topbar {
 .path-table td:first-child { white-space: nowrap; }
 .path-status { font-size: 10px; font-weight: 700; font-family: 'Inter', sans-serif;
   padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
-.path-status-2 { background: rgba(52,211,153,0.15); color: var(--green); }
+.path-status-2 { background: rgba(var(--green-rgb),0.15); color: var(--green); }
 .path-status-3 { background: rgba(251,191,36,0.15); color: #f59e0b; }
 .path-status-4 { background: rgba(239,68,68,0.15); color: var(--red); }
 .path-status-x { background: var(--bg3); color: var(--muted); }
@@ -2311,7 +2319,7 @@ body.enc-active-body .topbar {
   letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px;
   text-transform: uppercase; white-space: nowrap;
 }
-.loot-type-cleartext { color: var(--green);  background: rgba(52,211,153,0.12); }
+.loot-type-cleartext { color: var(--green);  background: rgba(var(--green-rgb),0.12); }
 .loot-type-hash      { color: var(--orange); background: rgba(251,146,60,0.12); }
 .loot-type-token     { color: var(--purple); background: rgba(167,139,250,0.12); }
 .loot-type-key       { color: var(--yellow); background: rgba(251,191,36,0.12); }
@@ -2410,7 +2418,7 @@ body.enc-active-body .topbar {
   font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
   padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
 }
-.tl-status-active   { color: var(--green);  background: rgba(52,211,153,0.12); }
+.tl-status-active   { color: var(--green);  background: rgba(var(--green-rgb),0.12); }
 .tl-status-paused   { color: var(--yellow); background: rgba(251,191,36,0.12); }
 .tl-status-complete { color: var(--muted);  background: rgba(150,171,190,0.12); }
 /* ── Idle gap ── */
@@ -6364,6 +6372,9 @@ function switchSvcTab(tab) {
   if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
   if (tab === 'paths') { renderPathTable();  setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
   if (tab === 'loot')  { renderLootTable();  setTimeout(() => {
+    // Sync type pills to current _activeLootType
+    document.querySelectorAll('.loot-type-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.ltype === _activeLootType));
     const hi = document.getElementById('lootHostInput');
     if (hi && !hi.value) { const ip = getIP(); if (ip !== '<IP>') hi.value = ip; }
     document.getElementById('lootCredInput')?.focus();
@@ -6840,7 +6851,7 @@ function addLootEntry() {
   const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
 
   sessions[activeSessionId].loot.push({
-    id:         'loot_' + Date.now(),
+    id:         'loot_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
     type:       _activeLootType,
     credential: cred,
     host:       autoHost,
@@ -6909,7 +6920,8 @@ function renderLootTable() {
 }
 
 function copyLootCred(lootId) {
-  const entry = (sessions[activeSessionId]?.loot || []).find(l => l.id === lootId);
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
   if (!entry) return;
   navigator.clipboard.writeText(entry.credential).then(() => {
     showToast('✓ Copied: ' + entry.credential.slice(0, 40) + (entry.credential.length > 40 ? '…' : ''));
@@ -6937,7 +6949,7 @@ function buildLootMarkdown(sessionId) {
     md += '| Type | Credential | Context |\n';
     md += '|------|------------|----------|\n';
     entries.forEach(l => {
-      const cred = l.credential.replace(/\|/g, '\|');
+      const cred = l.credential.replace(/`/g, "'").replace(/\|/g, '\|');
       const note = (l.note || '').replace(/\|/g, '\|');
       md += `| ${l.type} | \`${cred}\` | ${note} |\n`;
     });
@@ -6971,6 +6983,9 @@ function toggleSvcPopover() {
     renderPathTable();
     renderLootTable();
     updateSvcTabCounts();
+    // Sync loot type pill buttons to current _activeLootType
+    document.querySelectorAll('.loot-type-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.ltype === _activeLootType));
     setTimeout(() => {
       // Pre-fill loot host with active target IP if blank
       const hi = document.getElementById('lootHostInput');
