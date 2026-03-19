@@ -4002,7 +4002,7 @@ async function checkEngramStatus() {
   try {
     const r = await fetch('/api/search-ping', { signal: AbortSignal.timeout(3000) });
     const d = await r.json();
-    if (d.ok) {
+    if (d.reachable === true) {
       pill.className = 'engram-pill online';
       label.textContent = 'ENGRAM';
     } else {
@@ -4010,6 +4010,7 @@ async function checkEngramStatus() {
       label.textContent = 'ENGRAM';
     }
   } catch {
+    // fetch throws only on network failure / timeout — genuinely offline
     pill.className = 'engram-pill offline';
     label.textContent = 'ENGRAM';
   }
