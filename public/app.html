@@ -2697,10 +2697,13 @@ body.enc-active-body .topbar {
 
       <!-- ── SERVICES VIEW ── -->
       <div class="panel-view" id="view-services">
-        <div class="cards-toolbar">
+                <div class="cards-toolbar">
+          <button class="tb-btn" onclick="openNewKbFileModal('services')" title="New service file" style="flex-shrink:0;gap:5px;display:flex;align-items:center">
+            <svg ...plus icon...></svg> New
+          </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="svcSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('services',this.value)">
+            <input type="text" id="svcSearch" ...>
           </div>
           <span class="toolbar-count" id="svc-toolbar-count"></span>
         </div>
@@ -2709,12 +2712,15 @@ body.enc-active-body .topbar {
 
       <!-- ── TACTICS VIEW ── -->
       <div class="panel-view" id="view-methodologies">
-        <div class="cards-toolbar">
+                <div class="cards-toolbar">
+          <button class="tb-btn" onclick="openNewKbFileModal('methodologies')" title="New tactic file" style="flex-shrink:0;gap:5px;display:flex;align-items:center">
+            <svg ...plus icon...></svg> New
+          </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="methSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('methodologies',this.value)">
+            <input type="text" id="svcSearch" ...>
           </div>
-          <span class="toolbar-count" id="meth-toolbar-count"></span>
+          <span class="toolbar-count" id="svc-toolbar-count"></span>
         </div>
         <div class="cards-area" id="methGrid"></div>
       </div>
@@ -2777,13 +2783,15 @@ body.enc-active-body .topbar {
       <div class="panel-view active" id="view-notes">
         <div class="notes-layout">
           <div class="notes-list">
-            <div class="notes-list-hdr">
+                        <div class="notes-list-hdr">
               <span>Notes</span>
-              <button class="icon-btn" onclick="openNewNoteModal()" title="New note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
             <div class="notes-search-wrap">
-              <input class="notes-search-input" id="noteSearchInput" type="text"
-                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
+              <div style="display:flex;align-items:center;gap:5px">
+                <button class="icon-btn" onclick="openNewNoteModal()" title="New note" style="flex-shrink:0;padding:3px 5px">...svg...</button>
+                <input class="notes-search-input" id="noteSearchInput" type="text"
+                  placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false" style="margin:0">
+              </div>
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
@@ -6361,6 +6369,8 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     // Session modal
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
+    // New KB file modal
+    if (document.getElementById('newKbFileOverlay')?.classList.contains('open')) { closeNewKbFileModal(); return; }
     // New note modal
     if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }
     // Command palette
@@ -7555,6 +7565,90 @@ function downloadText(content, filename, mimeType = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+let _newKbView = 'services';
+
+function openNewKbFileModal(view) {
+  _newKbView = view || activeView;
+  const isServices = _newKbView === 'services';
+  document.getElementById('newKbFileTitle').textContent = isServices ? 'New Service File' : 'New Tactics File';
+  document.getElementById('newKbFileInput').value = '';
+  document.getElementById('newKbFileError').style.display = 'none';
+
+  const catRow   = document.getElementById('newKbFileCategoryRow');
+  const catLabel = document.getElementById('newKbFileCategoryLabel');
+  if (activeCat && activeCat !== 'all') {
+    catLabel.textContent = activeCat;
+    catRow.style.display = '';
+  } else {
+    catRow.style.display = 'none';
+  }
+
+  document.getElementById('newKbFileOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('newKbFileInput').focus(), 50);
+}
+
+function closeNewKbFileModal() {
+  document.getElementById('newKbFileOverlay').classList.remove('open');
+}
+
+function closeNewKbFileModalIfOutside(e) {
+  if (e.target === document.getElementById('newKbFileOverlay')) closeNewKbFileModal();
+}
+
+async function submitNewKbFile() {
+  const filename = document.getElementById('newKbFileInput').value.trim();
+  const errEl    = document.getElementById('newKbFileError');
+  errEl.style.display = 'none';
+
+  if (!filename) {
+    errEl.textContent = 'Please enter a filename.';
+    errEl.style.display = '';
+    document.getElementById('newKbFileInput').focus();
+    return;
+  }
+
+  const category = (activeCat && activeCat !== 'all') ? activeCat : null;
+
+  try {
+    const r = await fetch('/api/kb/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ view: _newKbView, category, filename }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Create failed');
+
+    closeNewKbFileModal();
+    showToast('✓ Created: ' + d.file);
+
+    if (_newKbView === 'services') {
+      const res2 = await fetch('/api/services');
+      const d2   = await res2.json();
+      SERVICES   = d2.services || [];
+      document.getElementById('svc-count').textContent = SERVICES.length;
+      renderCards('services');
+      buildSidebar('services');
+    } else {
+      const res2 = await fetch('/api/methodologies');
+      const d2   = await res2.json();
+      METHODOLOGIES = d2.guides || [];
+      document.getElementById('meth-count').textContent = METHODOLOGIES.length;
+      renderCards('methodologies');
+      buildSidebar('methodologies');
+    }
+
+    setTimeout(() => {
+      const newId = filename.replace(/[^a-zA-Z0-9 _\-]/g, '').trim().replace(/\s+/g, '-').toLowerCase();
+      openItem(_newKbView, newId);
+      setTimeout(() => { if (activeDoc?.isLocal) enterEditMode(); }, 300);
+    }, 100);
+
+  } catch (err) {
+    errEl.textContent = '✗ ' + err.message;
+    errEl.style.display = '';
+  }
+}
+
 init();
 cmInitNote();
 
@@ -7636,6 +7730,40 @@ cmInitNote();
 })();
 
 </script>
+<div class="cmd-overlay" id="newKbFileOverlay" onclick="closeNewKbFileModalIfOutside(event)">
+  <div class="cmd-box" style="max-width:420px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon"><!-- file+ svg --></span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600;flex:1" id="newKbFileTitle">New File</span>
+      <span class="cmd-esc" onclick="closeNewKbFileModal()" style="cursor:pointer">ESC</span>
+    </div>
+    <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px">
+      <div class="session-field">
+        <label>Filename</label>
+        <input id="newKbFileInput" type="text" placeholder="e.g. sql-injection"
+          autocomplete="off" spellcheck="false"
+          onkeydown="if(event.key==='Enter')submitNewKbFile()"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);
+                 padding:7px 10px;font-size:13px;font-family:'JetBrains Mono',monospace;
+                 outline:none;width:100%;box-sizing:border-box">
+      </div>
+      <div id="newKbFileCategoryRow" style="display:none">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+                    letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Category</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);
+                    background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);
+                    border-radius:5px;padding:6px 10px" id="newKbFileCategoryLabel"></div>
+      </div>
+      <div id="newKbFileError" style="display:none;font-family:'JetBrains Mono',monospace;font-size:12px;
+           color:var(--red);background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
+           border-radius:5px;padding:6px 10px"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="session-btn secondary" onclick="closeNewKbFileModal()">Cancel</button>
+        <button class="session-btn primary" onclick="submitNewKbFile()">Create File</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ── PASSWORD / CONFIRM MODAL ── -->
 <div class="pw-overlay" id="pwOverlay">
