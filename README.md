@@ -53,8 +53,18 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
 
+**Quick Log (`Ctrl+L`)**
+
+A persistent in-session log accessible from the topbar, organised into three tabs:
+
+- **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
+- **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
+- **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
+
+All three tabs persist per session alongside notes and are included in session exports. Loot entries are exported as a separate `loot.md` file (grouped by host) when exporting notes as markdown.
+
 **Knowledge Base & Tactical Guides**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically (only `methodologies/` is reserved for Tactical Guides)
+- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically (only `tactics/` is reserved for Tactical Guides)
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -69,7 +79,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 **Interface**
 - Command palette (`⌘K`), keyboard shortcuts for all major actions, dark/light mode
-- Quick Log (`Ctrl+L`) for fast port/service capture during enumeration
+- Quick Log (`Ctrl+L`) — see above
 
 ---
 

@@ -2,32 +2,22 @@ name: pragma-workbench
 services:
   app:
     build: .
-
     container_name: pragma-workbench
-    
-    user: "${UID}:${GID}"
-  
     ports:
       - "127.0.0.1:3000:3000"                               # App only accessible from local machine
-
     volumes:
       # Format: [Host Path]:[Container Path]
       - ./knowledge_base:/usr/src/app/knowledge_base         # Link local KB folder to the container's app path
-      - ./sessions:/usr/src/app/sessions                     # Keeps session data alive even if the container is deleted
-  
+      - ./sessions:/usr/src/app/sessions                     # Keeps session data alive even if the container is deleted  
     environment:
       # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - METH_DIR=/usr/src/app/knowledge_base/methodologies   # Sub-folder specifically for methodology files
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
-      # Networking
       - SEARCH_URL=http://engram:3002                        # Points to the internal Docker service 'engram' on port 3002
-
     restart: unless-stopped
-
     networks:
       - pragma-net
-
     # ── Security hardening ──────────────────────────────────────────────────
     tmpfs:
       - /tmp                                                 # Node/Express needs a writable /tmp
@@ -35,14 +25,12 @@ services:
       - ALL                                                  # Drop all Linux capabilities
     security_opt:
       - no-new-privileges:true                               # Prevent privilege escalation
-
     # ── Resource limits ─────────────────────────────────────────────────────
     deploy:
       resources:
         limits:
           memory: 512m
           cpus: '0.50'
-
 networks:
   pragma-net:
     driver: bridge
