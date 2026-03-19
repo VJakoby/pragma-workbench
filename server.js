@@ -27,9 +27,10 @@ const Fuse = require('fuse.js');
 let chokidar;
 try { chokidar = require('chokidar'); } catch (_) { }
 
-const PORT     = process.env.PORT || 3000;
+const PORT     = process.env.PORT || 3002;
 const KB_DIR   = process.env.KB_DIR || path.join(__dirname, 'knowledge_base');
-const METH_DIR = process.env.METH_DIR || path.join(KB_DIR, 'methodologies');
+const SERVICES_DIR = path.join(KB_DIR, 'services');
+const TACTICS_DIR = path.join(KB_DIR, 'tactics');
 const PUBLIC_DIR    = path.join(__dirname, 'public');
 const DASHBOARD_HTML = path.join(PUBLIC_DIR, 'app.html');
 
@@ -199,6 +200,38 @@ function noteFilename(note) {
   return slug ? `${slug}.md` : `${note.type}.md`;
 }
 
+function normalizeKbFilename(filename) {
+  const base = path.basename(String(filename || '').trim(), '.md');
+  const safe = base
+    .replace(/[^a-zA-Z0-9 _.-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+  return safe ? `${safe}.md` : null;
+}
+
+function safeCategoryPath(category) {
+  if (!category || category === 'all') return '';
+  return String(category)
+    .split(/[\\/]+/)
+    .map(part => part.replace(/[^a-zA-Z0-9 _.-]/g, '').trim())
+    .filter(Boolean)
+    .join(path.sep);
+}
+
+function normalizeFolderName(name) {
+  const safe = String(name || '')
+    .replace(/[\\/]+/g, ' ')
+    .replace(/[^a-zA-Z0-9 _.-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .toLowerCase()
+    .slice(0, 80);
+  return safe || null;
+}
+
 // ── Service index ──
 let serviceIndex = [];
 let searchIndex  = null;
@@ -221,20 +254,14 @@ function walkMdFiles(dir, rootDir) {
 }
 
 function buildIndex() {
-  if (!fs.existsSync(KB_DIR)) {
-    console.warn(`[PRAGMA] knowledge_base/ not found at ${KB_DIR}. Creating empty dir.`);
-    fs.mkdirSync(KB_DIR, { recursive: true });
+  if (!fs.existsSync(SERVICES_DIR)) {
+    console.warn(`[PRAGMA] services/ not found at ${SERVICES_DIR}. Creating empty dir.`);
+    fs.mkdirSync(SERVICES_DIR, { recursive: true });
     serviceIndex = []; searchIndex = null; return;
   }
 
-  // Index all subdirectories of KB_DIR except methodologies/.
-  // Each top-level subdir becomes the category automatically — no hardcoding needed.
-  const EXCLUDED_DIRS = ['methodologies'];
-  const entries = walkMdFiles(KB_DIR, KB_DIR).filter(({ filepath }) => {
-    const rel    = path.relative(KB_DIR, filepath);
-    const topDir = rel.split(path.sep)[0].toLowerCase().replace(/\.md$/, '');
-    return !EXCLUDED_DIRS.includes(topDir);
-  });
+  // Each top-level subdir under services/ becomes the category automatically.
+  const entries = walkMdFiles(SERVICES_DIR, SERVICES_DIR);
 
   serviceIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
@@ -245,7 +272,7 @@ function buildIndex() {
     return {
       id: meta.id, name: meta.name, port: meta.port, category,
       icon: meta.icon, description: extractDescription(content),
-      file: filename, filepath, content, wordCount: content.split(/\s+/).length,
+      file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder: subdir || '',
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -257,11 +284,11 @@ function buildIndex() {
       { name: 'content', weight: 0.5 },
     ],
   });
-  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${KB_DIR}`);
+  console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${SERVICES_DIR}`);
 }
 
-// ── Methodology index ──
-let methodologyIndex = [];
+// ── Tactics index ──
+let tacticsIndex = [];
 
 function extractTitle(content, filename) {
   const match = content.match(/^#\s+(.+)$/m);
@@ -286,20 +313,20 @@ function extractCategory(content, filename) {
   return 'General';
 }
 
-const METH_ICONS = {
+const TACTICS_ICONS = {
   'Active Directory': '🏰', 'Linux': '🐧', 'Windows': '🪟', 'Web': '🌐',
   'Network': '📡', 'Mobile': '📱', 'Cloud': '☁️', 'Cryptography': '🔑',
   'Recon': '🔭', 'Forensics': '🔬', 'General': '📋',
 };
 
-function buildMethodologyIndex() {
-  if (!fs.existsSync(METH_DIR)) {
-    methodologyIndex = [];
-    console.log('[PRAGMA] knowledge_base/methodologies/ not found — skipping.');
+function buildTacticsIndex() {
+  if (!fs.existsSync(TACTICS_DIR)) {
+    tacticsIndex = [];
+    console.log('[PRAGMA] knowledge_base/tactics/ not found — skipping.');
     return;
   }
-  const entries = walkMdFiles(METH_DIR, METH_DIR);
-  methodologyIndex = entries.map(({ filename, filepath, subdir }) => {
+  const entries = walkMdFiles(TACTICS_DIR, TACTICS_DIR);
+  tacticsIndex = entries.map(({ filename, filepath, subdir }) => {
     const content  = fs.readFileSync(filepath, 'utf8');
     const id       = path.basename(filename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const name     = extractTitle(content, filename);
@@ -308,12 +335,12 @@ function buildMethodologyIndex() {
       ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
       : extractCategory(content, filename);
     return {
-      id, name, category, icon: METH_ICONS[category] || '📋',
+      id, name, category, icon: TACTICS_ICONS[category] || '📋',
       description: extractDescription(content),
-      file: filename, filepath, content, wordCount: content.split(/\s+/).length,
+      file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder: subdir || '',
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
-  console.log(`[PRAGMA] Indexed ${methodologyIndex.length} methodology guide(s)`);
+  console.log(`[PRAGMA] Indexed ${tacticsIndex.length} tactic file(s)`);
 }
 
 marked.setOptions({ gfm: true, breaks: false });
@@ -340,8 +367,8 @@ app.get('/', (req, res) => {
 app.get('/api/services', (req, res) => {
   res.json({
     total: serviceIndex.length,
-    services: serviceIndex.map(({ id, name, port, category, icon, description, file, wordCount }) =>
-      ({ id, name, port, category, icon, description, file, wordCount })),
+    services: serviceIndex.map(({ id, name, port, category, icon, description, file, wordCount, folder }) =>
+      ({ id, name, port, category, icon, description, file, wordCount, folder })),
   });
 });
 
@@ -365,8 +392,8 @@ app.get('/api/preview', (req, res) => {
     resolved = fileParam;
   } else {
     // Preserve relative path so subdirectory files like tunneling/ligolo-ng.md resolve correctly
-    resolved = path.resolve(KB_DIR, fileParam);
-    if (!resolved.startsWith(KB_DIR)) return res.status(403).json({ error: 'Access denied' });
+    resolved = path.resolve(SERVICES_DIR, fileParam);
+    if (!resolved.startsWith(SERVICES_DIR)) return res.status(403).json({ error: 'Access denied' });
   }
   if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
   try {
@@ -418,17 +445,17 @@ app.get('/api/service/:id', (req, res) => {
   });
 });
 
-app.get('/api/methodologies', (req, res) => {
+app.get('/api/tactics', (req, res) => {
   res.json({
-    total: methodologyIndex.length,
-    guides: methodologyIndex.map(({ id, name, category, icon, description, file, wordCount }) =>
-      ({ id, name, category, icon, description, file, wordCount })),
+    total: tacticsIndex.length,
+    tactics: tacticsIndex.map(({ id, name, category, icon, description, file, wordCount, folder }) =>
+      ({ id, name, category, icon, description, file, wordCount, folder })),
   });
 });
 
-app.get('/api/methodology/:id', (req, res) => {
-  const guide = methodologyIndex.find(g => g.id === req.params.id);
-  if (!guide) return res.status(404).json({ error: 'Methodology not found' });
+app.get('/api/tactic/:id', (req, res) => {
+  const guide = tacticsIndex.find(g => g.id === req.params.id);
+  if (!guide) return res.status(404).json({ error: 'Tactic not found' });
   res.json({
     id: guide.id, name: guide.name, category: guide.category, icon: guide.icon,
     description: guide.description, file: guide.file, wordCount: guide.wordCount,
@@ -441,7 +468,7 @@ app.post('/api/kb/save', (req, res) => {
     const { id, view, content } = req.body;
     if (!id || !view || typeof content !== 'string')
       return res.status(400).json({ error: 'id, view, and content are required' });
-    const index = view === 'services' ? serviceIndex : methodologyIndex;
+    const index = view === 'services' ? serviceIndex : tacticsIndex;
     const entry = index.find(e => e.id === id);
     if (!entry) return res.status(404).json({ error: 'File not found in index' });
     fs.writeFileSync(entry.filepath, content, 'utf8');
@@ -449,6 +476,92 @@ app.post('/api/kb/save', (req, res) => {
     console.log(`[PRAGMA] Saved edit: ${entry.filepath}`);
     res.json({ ok: true, file: entry.file });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/kb/create', (req, res) => {
+  try {
+    const { view, filename, category } = req.body || {};
+    const isServices = view === 'services';
+    const isTactics = view === 'tactics';
+    if (!isServices && !isTactics)
+      return res.status(400).json({ error: 'view must be services or tactics' });
+
+    const safeFilename = normalizeKbFilename(filename);
+    if (!safeFilename) return res.status(400).json({ error: 'A valid filename is required' });
+
+    const rootDir = isServices ? SERVICES_DIR : TACTICS_DIR;
+    const categoryDir = safeCategoryPath(category);
+    const targetDir = path.resolve(rootDir, categoryDir || '.');
+    const rootResolved = path.resolve(rootDir);
+    if (!targetDir.startsWith(rootResolved))
+      return res.status(403).json({ error: 'Invalid category path' });
+
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const filePath = path.join(targetDir, safeFilename);
+    if (fs.existsSync(filePath))
+      return res.status(409).json({ error: 'File already exists' });
+
+    const title = path.basename(safeFilename, '.md')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+    const initialContent = `# ${title}\n\n## Overview\n\n`;
+    fs.writeFileSync(filePath, initialContent, 'utf8');
+
+    if (isServices) buildIndex();
+    else buildTacticsIndex();
+
+    const id = isServices
+      ? metaFromFilename(safeFilename).id
+      : path.basename(safeFilename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+    const relativeBase = path.relative(rootDir, filePath);
+    console.log(`[PRAGMA] Created KB file: ${filePath}`);
+    res.json({ ok: true, file: relativeBase, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/category/rename', (req, res) => {
+  try {
+    const { view, folder, nextName } = req.body || {};
+    const isServices = view === 'services';
+    const isTactics = view === 'tactics';
+    if (!isServices && !isTactics)
+      return res.status(400).json({ error: 'view must be services or tactics' });
+
+    const safeFolder = safeCategoryPath(folder);
+    if (!safeFolder) return res.status(400).json({ error: 'A folder-backed category is required' });
+    if (safeFolder.includes(path.sep))
+      return res.status(400).json({ error: 'Only top-level categories can be renamed' });
+
+    const safeNext = normalizeFolderName(nextName);
+    if (!safeNext) return res.status(400).json({ error: 'A valid category name is required' });
+    if (safeNext === safeFolder) return res.json({ ok: true, folder: safeFolder });
+
+    const rootDir = isServices ? SERVICES_DIR : TACTICS_DIR;
+    const srcDir = path.resolve(rootDir, safeFolder);
+    const dstDir = path.resolve(rootDir, safeNext);
+    const rootResolved = path.resolve(rootDir);
+    if (!srcDir.startsWith(rootResolved) || !dstDir.startsWith(rootResolved))
+      return res.status(403).json({ error: 'Invalid category path' });
+    if (!fs.existsSync(srcDir))
+      return res.status(404).json({ error: 'Category folder not found' });
+    if (!fs.statSync(srcDir).isDirectory())
+      return res.status(400).json({ error: 'Category path is not a directory' });
+    if (fs.existsSync(dstDir))
+      return res.status(409).json({ error: 'A category with that name already exists' });
+
+    fs.renameSync(srcDir, dstDir);
+    if (isServices) buildIndex();
+    else buildTacticsIndex();
+
+    console.log(`[PRAGMA] Renamed category: ${srcDir} -> ${dstDir}`);
+    res.json({ ok: true, folder: safeNext });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Search proxy ──
@@ -1128,19 +1241,19 @@ app.get('/api/notes/debug', (req, res) => {
 
 // ── File watcher ──
 if (chokidar) {
-  chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
+  chokidar.watch(SERVICES_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
       console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding index…`);
       buildIndex();
     }
   });
-  chokidar.watch(METH_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
+  chokidar.watch(TACTICS_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
     if (filePath.endsWith('.md')) {
-      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding methodology index…`);
-      buildMethodologyIndex();
+      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding tactics index…`);
+      buildTacticsIndex();
     }
   });
-  console.log('[PRAGMA] Watching knowledge_base/ for changes');
+  console.log('[PRAGMA] Watching services/ and tactics/ for changes');
 }
 
 // ── Startup integrity check ─────────────────────────────────────────────────
@@ -1216,7 +1329,7 @@ function startupIntegrityCheck() {
 }
 
 buildIndex();
-buildMethodologyIndex();
+buildTacticsIndex();
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n  ██████╗ ██████╗  █████╗  ██████╗ ███╗   ███╗ █████╗`);
@@ -1226,7 +1339,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
-  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${methodologyIndex.length} guides)`);
+  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${tacticsIndex.length} tactics)`);
+  console.log(`  Services → ${SERVICES_DIR}`);
+  console.log(`  Tactics  → ${TACTICS_DIR}`);
   console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${activeWorkbenchName})\n`);
 
   // Run integrity check and print results

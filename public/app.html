@@ -344,7 +344,6 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
-
 /* ── BODY SPLIT ── */
 .body-split{
   display:flex;flex:1;overflow:hidden;
@@ -375,6 +374,12 @@ body{
   font-size:9px;font-weight:700;
   letter-spacing:0.14em;text-transform:uppercase;
   color:var(--text2);
+}
+.sidebar-section-hdr-row{
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sidebar-section-hdr-row .sidebar-section-hdr{
+  padding-right:6px;
 }
 
 .nav-item{
@@ -1530,10 +1535,12 @@ body.is-resizing *{cursor:col-resize!important}
 .task-item input:checked + span { color: var(--muted); text-decoration: line-through; }
 
 .notes-search-wrap {
+  display:flex; align-items:center; gap:6px;
   padding: 6px 10px; border-bottom: 1px solid var(--border);
   background: var(--bg2); flex-shrink: 0;
 }
 .notes-search-input {
+  flex:1;
   width: 100%; background: var(--bg3); border: 1px solid var(--border);
   border-radius: 5px; padding: 5px 9px; font-size: 11px;
   font-family: 'Inter', sans-serif; color: var(--text);
@@ -2662,14 +2669,15 @@ body.enc-active-body .topbar {
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactics">
+        <div class="nav-item" onclick="switchView('tactics',this)" id="nav-tactics" title="Tactics">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
           <span class="nav-item-label">Tactics</span>
-          <span class="nav-item-count" id="meth-count">—</span>
+          <span class="nav-item-count" id="tactics-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <span class="nav-item-label">Search in KB</span>
+          <span class="nav-item-count" id="search-count">—</span>
         </div>
       </div>
 
@@ -2677,7 +2685,10 @@ body.enc-active-body .topbar {
 
       <!-- Category filters (contextual) -->
       <div class="sidebar-section" style="display:none">
-        <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
+        <div class="sidebar-section-hdr-row">
+          <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
+          <button class="icon-btn" id="catRenameBtn" onclick="renameActiveCategory()" title="Rename category" aria-label="Rename category" style="display:none;margin-right:8px;padding:2px 5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        </div>
       </div>
       <div class="cat-scroll" id="catList" style="display:none"></div>
 
@@ -2697,13 +2708,13 @@ body.enc-active-body .topbar {
 
       <!-- ── SERVICES VIEW ── -->
       <div class="panel-view" id="view-services">
-                <div class="cards-toolbar">
-          <button class="tb-btn" onclick="openNewKbFileModal('services')" title="New service file" style="flex-shrink:0;gap:5px;display:flex;align-items:center">
-            <svg ...plus icon...></svg> New
+        <div class="cards-toolbar">
+          <button class="icon-btn" onclick="openNewKbFileModal('services')" title="New service file" aria-label="New service file" style="flex-shrink:0;padding:3px 5px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="svcSearch" ...>
+            <input type="text" id="svcSearch" placeholder="Filter services…" oninput="filterCards('services', this.value)" autocomplete="off" spellcheck="false">
           </div>
           <span class="toolbar-count" id="svc-toolbar-count"></span>
         </div>
@@ -2711,18 +2722,18 @@ body.enc-active-body .topbar {
       </div>
 
       <!-- ── TACTICS VIEW ── -->
-      <div class="panel-view" id="view-methodologies">
-                <div class="cards-toolbar">
-          <button class="tb-btn" onclick="openNewKbFileModal('methodologies')" title="New tactic file" style="flex-shrink:0;gap:5px;display:flex;align-items:center">
-            <svg ...plus icon...></svg> New
+      <div class="panel-view" id="view-tactics">
+        <div class="cards-toolbar">
+          <button class="icon-btn" onclick="openNewKbFileModal('tactics')" title="New tactic file" aria-label="New tactic file" style="flex-shrink:0;padding:3px 5px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="svcSearch" ...>
+            <input type="text" id="tacticsSearch" placeholder="Filter tactics…" oninput="filterCards('tactics', this.value)" autocomplete="off" spellcheck="false">
           </div>
-          <span class="toolbar-count" id="svc-toolbar-count"></span>
+          <span class="toolbar-count" id="tactics-toolbar-count"></span>
         </div>
-        <div class="cards-area" id="methGrid"></div>
+        <div class="cards-area" id="tacticsGrid"></div>
       </div>
 
       <!-- ── SEARCH VIEW ── -->
@@ -2787,11 +2798,11 @@ body.enc-active-body .topbar {
               <span>Notes</span>
             </div>
             <div class="notes-search-wrap">
-              <div style="display:flex;align-items:center;gap:5px">
-                <button class="icon-btn" onclick="openNewNoteModal()" title="New note" style="flex-shrink:0;padding:3px 5px">...svg...</button>
-                <input class="notes-search-input" id="noteSearchInput" type="text"
-                  placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false" style="margin:0">
-              </div>
+              <input class="notes-search-input" id="noteSearchInput" type="text"
+                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false" style="margin:0">
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note" aria-label="New note" style="flex-shrink:0;padding:3px 5px">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
@@ -3111,10 +3122,11 @@ body.enc-active-body .topbar {
 // STATE
 // ═══════════════════════════════════════════════
 let SERVICES      = [];
-let METHODOLOGIES = [];
+let TACTICS       = [];
 let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
+let categoryFolderMap = { services: {}, tactics: {} };
 let searchScope   = 'all';
 let fuzzyMode     = 'normal';
 let knownSources  = [];          // [{id, name}] fetched from ENGRAM via /api/search-sources
@@ -3609,11 +3621,11 @@ async function init() {
     SERVICES = d.services || [];
   } catch(e) { console.warn('services unavailable', e); }
 
-  // Fetch methodologies
+  // Fetch tactics
   try {
-    const r = await fetch('/api/methodologies');
+    const r = await fetch('/api/tactics');
     const d = await r.json();
-    METHODOLOGIES = d.guides || [];
+    TACTICS = d.tactics || [];
   } catch(e) { console.warn('tactics unavailable', e); }
 
   // Fetch note templates (falls back to hardcoded if missing)
@@ -3621,10 +3633,10 @@ async function init() {
   renderNoteTypeGrid();
 
   document.getElementById('svc-count').textContent  = SERVICES.length;
-  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
+  document.getElementById('tactics-count').textContent = TACTICS.length;
 
   renderCards('services');
-  renderCards('methodologies');
+  renderCards('tactics');
   buildSidebar('services');
   // Set initial card layout mode after render
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
@@ -3643,14 +3655,15 @@ function switchView(view, navEl) {
 
   // Update sidebar categories
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
-  if (view === 'services' || view === 'methodologies') {
-    buildSidebar(view);
+  if (view === 'services' || view === 'tactics') {
+    buildSidebar(view, activeCat);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
   } else {
     document.getElementById('catList').innerHTML = '';
     document.getElementById('catList').style.display = 'none';
     if (catSection) catSection.style.display = 'none';
+    updateCategoryActions(view);
   }
 
   if (view === 'search') {
@@ -3663,35 +3676,70 @@ function switchView(view, navEl) {
 // ═══════════════════════════════════════════════
 // SIDEBAR CATEGORIES
 // ═══════════════════════════════════════════════
-function buildSidebar(view) {
-  const items = view === 'services' ? SERVICES : METHODOLOGIES;
+function buildSidebar(view, preferredCat = 'all') {
+  const items = view === 'services' ? SERVICES : TACTICS;
   const cats  = ['all', ...new Set(items.map(i => i.category))].filter(Boolean);
   const list  = document.getElementById('catList');
   document.getElementById('cat-hdr').textContent = 'Categories';
-  activeCat = 'all';
+  categoryFolderMap[view] = {};
+  items.forEach(item => {
+    if (item.category && item.folder && !categoryFolderMap[view][item.category]) {
+      categoryFolderMap[view][item.category] = item.folder;
+    }
+  });
+  activeCat = cats.includes(preferredCat) ? preferredCat : 'all';
 
   list.innerHTML = cats.map(cat => `
-    <div class="nav-item${cat==='all'?' active':''}" data-cat="${esc(cat)}"
+    <div class="nav-item${cat===activeCat?' active':''}" data-cat="${esc(cat)}"
          onclick="setCat('${esc(cat)}', this, '${view}')">
       <span class="nav-item-icon">${cat==='all'?'◈':'·'}</span>
       <span class="nav-item-label">${cat==='all'?'All':esc(cat)}</span>
       ${cat!=='all'?`<span class="nav-item-count">${items.filter(i=>i.category===cat).length}</span>`:''}
     </div>`).join('');
+  updateCategoryActions(view);
 }
 
 function setCat(cat, el, view) {
   activeCat = cat;
   document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
-  filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
+  updateCategoryActions(view);
+  filterCards(view, document.getElementById(view==='services'?'svcSearch':'tacticsSearch').value);
+}
+
+function updateCategoryActions(view = activeView) {
+  const btn = document.getElementById('catRenameBtn');
+  if (!btn) return;
+  const folder = categoryFolderMap[view]?.[activeCat];
+  btn.style.display = (view === 'services' || view === 'tactics') && activeCat !== 'all' && folder ? '' : 'none';
+}
+
+function categoryFolderFor(view, cat = activeCat) {
+  return categoryFolderMap[view]?.[cat] || '';
+}
+
+async function reloadKbView(view, preferredCat = activeCat) {
+  if (view === 'services') {
+    const res = await fetch('/api/services');
+    const data = await res.json();
+    SERVICES = data.services || [];
+    document.getElementById('svc-count').textContent = SERVICES.length;
+  } else {
+    const res = await fetch('/api/tactics');
+    const data = await res.json();
+    TACTICS = data.tactics || [];
+    document.getElementById('tactics-count').textContent = TACTICS.length;
+  }
+  renderCards(view);
+  buildSidebar(view, preferredCat);
 }
 
 // ═══════════════════════════════════════════════
 // CARDS RENDERING
 // ═══════════════════════════════════════════════
 function renderCards(view) {
-  const items  = view === 'services' ? SERVICES : METHODOLOGIES;
-  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const items  = view === 'services' ? SERVICES : TACTICS;
+  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
   const grid   = document.getElementById(gridId);
   grid.innerHTML = '';
 
@@ -3783,7 +3831,7 @@ function renderCards(view) {
 })();
 
 function filterCards(view, query) {
-  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
   const q      = query.toLowerCase().trim();
   const cards  = document.querySelectorAll(`#${gridId} .card`);
   let vis      = 0;
@@ -3804,8 +3852,8 @@ function filterCards(view, query) {
 }
 
 function updateToolbarCount(view, n) {
-  const total = (view === 'services' ? SERVICES : METHODOLOGIES).length;
-  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
+  const total = (view === 'services' ? SERVICES : TACTICS).length;
+  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'tactics-toolbar-count');
   el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
 }
 
@@ -3823,7 +3871,7 @@ async function openItem(view, id) {
   document.getElementById('cpTitle').textContent = 'Loading…';
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
-  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/methodology/${encodeURIComponent(id)}`;
+  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/tactic/${encodeURIComponent(id)}`;
   try {
     const r = await fetch(endpoint);
     const d = await r.json();
@@ -3961,6 +4009,12 @@ function closeContent() {
 // ═══════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════
+function updateSearchCountBadge(count = null) {
+  const el = document.getElementById('search-count');
+  if (!el) return;
+  el.textContent = Number.isFinite(count) ? String(count) : '—';
+}
+
 function onSearch(val) {
   clearTimeout(searchDebounce);
   if (val.trim().length < 2) {
@@ -3970,6 +4024,7 @@ function onSearch(val) {
       <div class="results-offline-hint">Searches the full indexed knowledge base</div>
     </div>`;
     document.getElementById('searchStatus').textContent = '';
+    updateSearchCountBadge(null);
     return;
   }
   document.getElementById('searchStatus').textContent = 'searching…';
@@ -4117,6 +4172,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   if (meta) meta.textContent = '';
   if (offline) {
     stat.textContent = '⚠ offline';
+    updateSearchCountBadge(null);
     list.innerHTML = `<div class="results-offline error">
       <div class="results-offline-icon">⚠</div>
       <div class="results-offline-text">Search indexer not reachable</div>
@@ -4126,6 +4182,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   }
 
   stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+  updateSearchCountBadge(results.length);
   if (meta) {
     meta.textContent = (docsSearched != null && timeMs != null)
       ? `${docsSearched} pages · ${Math.round(timeMs)}ms`
@@ -4225,15 +4282,15 @@ function buildCmdResults(q) {
     });
   }
 
-  // Methodologies
-  const meths = METHODOLOGIES.filter(m =>
+  // Tactics
+  const tactics = TACTICS.filter(m =>
     !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
   ).slice(0, 5);
 
-  if (meths.length) {
+  if (tactics.length) {
     html += `<div class="cmd-group-hdr">Tactics</div>`;
-    meths.forEach(m => {
-      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
+    tactics.forEach(m => {
+      cmdItems.push({ type:'tactic', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
         <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
         <div class="cmd-item-main">
@@ -4312,9 +4369,9 @@ function execCmd(idx) {
   if (item.type === 'service') {
     switchView('services', document.getElementById('nav-services'));
     openItem('services', item.id);
-  } else if (item.type === 'methodology') {
-    switchView('methodologies', document.getElementById('nav-methodologies'));
-    openItem('methodologies', item.id);
+  } else if (item.type === 'tactic') {
+    switchView('tactics', document.getElementById('nav-tactics'));
+    openItem('tactics', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
@@ -4996,6 +5053,85 @@ async function renameSession(id) {
   renderSessionSidebar();
 }
 
+let _categoryRenameResolve = null;
+let _categoryRenameReject  = null;
+
+function showCategoryRenameModal(categoryName) {
+  return new Promise((resolve, reject) => {
+    _categoryRenameResolve = resolve;
+    _categoryRenameReject  = reject;
+    document.getElementById('categoryRenameTitle').textContent = `Rename ${activeView === 'services' ? 'Service' : 'Tactics'} Category`;
+    document.getElementById('categoryRenameInput').value = categoryName || '';
+    document.getElementById('categoryRenameOverlay').classList.add('open');
+    setTimeout(() => {
+      const input = document.getElementById('categoryRenameInput');
+      input.focus();
+      input.select();
+    }, 40);
+  });
+}
+
+function _categoryRenameSave() {
+  const input = document.getElementById('categoryRenameInput');
+  const val = input.value.trim();
+  if (!val) {
+    input.classList.add('error');
+    input.focus();
+    setTimeout(() => input.classList.remove('error'), 1200);
+    return;
+  }
+  document.getElementById('categoryRenameOverlay').classList.remove('open');
+  if (_categoryRenameResolve) _categoryRenameResolve(val);
+  _categoryRenameResolve = _categoryRenameReject = null;
+}
+
+function _categoryRenameCancel() {
+  document.getElementById('categoryRenameOverlay').classList.remove('open');
+  if (_categoryRenameReject) _categoryRenameReject('cancelled');
+  _categoryRenameResolve = _categoryRenameReject = null;
+}
+
+function _categoryRenameKey(e) {
+  if (e.key === 'Enter') _categoryRenameSave();
+  if (e.key === 'Escape') _categoryRenameCancel();
+}
+
+async function renameActiveCategory() {
+  const view = activeView;
+  if (view !== 'services' && view !== 'tactics') return;
+  if (!activeCat || activeCat === 'all') return;
+  const folder = categoryFolderFor(view, activeCat);
+  if (!folder) {
+    showToast('Only folder-backed categories can be renamed.', 'err');
+    return;
+  }
+
+  let nextName;
+  try { nextName = await showCategoryRenameModal(activeCat); } catch { return; }
+  if (!nextName || nextName === activeCat) return;
+
+  try {
+    const r = await fetch('/api/category/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ view, folder, nextName }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Rename failed');
+
+    await reloadKbView(view, 'all');
+    const newItems = view === 'services' ? SERVICES : TACTICS;
+    const renamed = newItems.find(item => item.folder === d.folder);
+    const nextCat = renamed?.category || 'all';
+    buildSidebar(view, nextCat);
+    renderCards(view);
+    filterCards(view, document.getElementById(view === 'services' ? 'svcSearch' : 'tacticsSearch').value);
+    showToast(`✓ Renamed category to ${nextCat}`);
+  } catch (err) {
+    showToast(`Rename failed: ${err.message}`, 'err');
+  }
+}
+
 function setNoteFilter(type, btn) {
   activeNoteFilter = type;
   document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
@@ -5549,7 +5685,7 @@ async function saveEdit() {
     try {
       const endpoint = activeDoc.view === 'services'
         ? `/api/service/${encodeURIComponent(activeDoc.id)}`
-        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
+        : `/api/tactic/${encodeURIComponent(activeDoc.id)}`;
       const r2 = await fetch(endpoint);
       const d2 = await r2.json();
       activeDoc.html = d2.html;
@@ -6289,7 +6425,7 @@ document.addEventListener('keydown', async e => {
     const viewMap = {
       '1': ['notes',         'nav-notes'],
       '2': ['services',      'nav-services'],
-      '3': ['methodologies', 'nav-methodologies'],
+      '3': ['tactics',       'nav-tactics'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -6369,6 +6505,8 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     // Session modal
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
+    // Category rename modal
+    if (document.getElementById('categoryRenameOverlay')?.classList.contains('open')) { _categoryRenameCancel(); return; }
     // New KB file modal
     if (document.getElementById('newKbFileOverlay')?.classList.contains('open')) { closeNewKbFileModal(); return; }
     // New note modal
@@ -6391,9 +6529,9 @@ document.addEventListener('keydown', async e => {
 // ── Show shortcut hints in tooltips ──
 document.addEventListener('DOMContentLoaded', () => {
   const hints = [
-    ['nav-services',      '⌘1'],
-    ['nav-methodologies', '⌘2'],
-    ['nav-notes',         '⌘3'],
+    ['nav-services',      '⌘2'],
+    ['nav-tactics',       '⌘3'],
+    ['nav-notes',         '⌘1'],
     ['nav-search',        '⌘4'],
   ];
   hints.forEach(([id, key]) => {
@@ -7574,15 +7712,6 @@ function openNewKbFileModal(view) {
   document.getElementById('newKbFileInput').value = '';
   document.getElementById('newKbFileError').style.display = 'none';
 
-  const catRow   = document.getElementById('newKbFileCategoryRow');
-  const catLabel = document.getElementById('newKbFileCategoryLabel');
-  if (activeCat && activeCat !== 'all') {
-    catLabel.textContent = activeCat;
-    catRow.style.display = '';
-  } else {
-    catRow.style.display = 'none';
-  }
-
   document.getElementById('newKbFileOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newKbFileInput').focus(), 50);
 }
@@ -7607,13 +7736,15 @@ async function submitNewKbFile() {
     return;
   }
 
-  const category = (activeCat && activeCat !== 'all') ? activeCat : null;
-
   try {
     const r = await fetch('/api/kb/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ view: _newKbView, category, filename }),
+      body: JSON.stringify({
+        view: _newKbView,
+        category: (activeCat && activeCat !== 'all') ? activeCat : null,
+        filename
+      }),
     });
     const d = await r.json();
     if (!d.ok) throw new Error(d.error || 'Create failed');
@@ -7621,25 +7752,10 @@ async function submitNewKbFile() {
     closeNewKbFileModal();
     showToast('✓ Created: ' + d.file);
 
-    if (_newKbView === 'services') {
-      const res2 = await fetch('/api/services');
-      const d2   = await res2.json();
-      SERVICES   = d2.services || [];
-      document.getElementById('svc-count').textContent = SERVICES.length;
-      renderCards('services');
-      buildSidebar('services');
-    } else {
-      const res2 = await fetch('/api/methodologies');
-      const d2   = await res2.json();
-      METHODOLOGIES = d2.guides || [];
-      document.getElementById('meth-count').textContent = METHODOLOGIES.length;
-      renderCards('methodologies');
-      buildSidebar('methodologies');
-    }
+    await reloadKbView(_newKbView);
 
     setTimeout(() => {
-      const newId = filename.replace(/[^a-zA-Z0-9 _\-]/g, '').trim().replace(/\s+/g, '-').toLowerCase();
-      openItem(_newKbView, newId);
+      openItem(_newKbView, d.id);
       setTimeout(() => { if (activeDoc?.isLocal) enterEditMode(); }, 300);
     }, 100);
 
@@ -7747,13 +7863,6 @@ cmInitNote();
                  padding:7px 10px;font-size:13px;font-family:'JetBrains Mono',monospace;
                  outline:none;width:100%;box-sizing:border-box">
       </div>
-      <div id="newKbFileCategoryRow" style="display:none">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
-                    letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Category</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);
-                    background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);
-                    border-radius:5px;padding:6px 10px" id="newKbFileCategoryLabel"></div>
-      </div>
       <div id="newKbFileError" style="display:none;font-family:'JetBrains Mono',monospace;font-size:12px;
            color:var(--red);background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
            border-radius:5px;padding:6px 10px"></div>
@@ -7823,6 +7932,27 @@ cmInitNote();
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="_sessionRenameCancel()">Cancel</button>
         <button class="pw-btn primary" onclick="_sessionRenameSave()">Rename</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pw-overlay" id="categoryRenameOverlay" onclick="if(event.target===this)_categoryRenameCancel()">
+  <div class="pw-box" style="width:320px">
+    <div class="pw-header">
+      <span class="pw-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+      <span class="pw-header-title" id="categoryRenameTitle">Rename Category</span>
+      <button class="pw-header-close" onclick="_categoryRenameCancel()">✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-field">
+        <label>Category name</label>
+        <input class="pw-input" id="categoryRenameInput" type="text" placeholder="Category name…"
+          autocomplete="off" spellcheck="false" onkeydown="_categoryRenameKey(event)">
+      </div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="_categoryRenameCancel()">Cancel</button>
+        <button class="pw-btn primary" onclick="_categoryRenameSave()">Rename</button>
       </div>
     </div>
   </div>
