@@ -15,23 +15,22 @@ pragma-workbench/
 ├── docker-compose.yml
 ├── sessions/                     // runtime data — created automatically
 │   ├── pragma.workbench          // unencrypted workbench
-│   └── pragma.workbench.enc      // encrypted workbench (if enabled)
+│   ├── pragma.workbench.enc      // encrypted workbench (if enabled)
+│   └── backup/                   // rolling backups — last 5 versions kept automatically
 └── knowledge_base/               // optional — mount your own via KB_DIR env var
-    ├── services/
-    │   ├── ssh.md                // each .md file becomes a card
+    ├── services/                 // each .md file becomes a card in the Services tab
+    │   ├── ssh.md
     │   ├── http.md
     │   └── smb.md
     ├── attacks/                  // subdirectory name becomes the category
     │   ├── lfi.md
     │   └── sqli.md
-    ├── tunneling/                // any subdirectory works — fully dynamic
-    │   └── ligolo-ng.md
-    └── methodologies/            // reserved for Tactical Guides tab
+    └── tactics/                  // reserved for the Tactics tab
         ├── active-directory.md
         └── pivoting.md
 ```
 
-> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab — no configuration needed. Only `methodologies/` is reserved for the Tactical Guides tab.
+> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab — no configuration needed. Only `tactics/` is reserved for the Tactics tab.
 
 ---
 
@@ -42,7 +41,7 @@ Set these in your `docker-compose.yml` to customise paths:
 | Variable | Default | Description |
 |---|---|---|
 | `KB_DIR` | `./knowledge_base` | Path to your knowledge base directory |
-| `METH_DIR` | `./knowledge_base/methodologies` | Path to your tactical guides directory |
+| `METH_DIR` | `./knowledge_base/tactics` | Path to your tactics directory |
 | `SEARCH_URL` | `http://engram:3002` | Default URL to ENGRAM indexer |
 
 Example `docker-compose.yml` volume + env setup:
@@ -105,4 +104,3 @@ docker compose down && docker compose up -d --build
 To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network:
 
 See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.
-

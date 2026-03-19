@@ -2647,9 +2647,9 @@ body.enc-active-body .topbar {
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactical Guides">
+        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactics">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-          <span class="nav-item-label">Tactical Guides</span>
+          <span class="nav-item-label">Tactics</span>
           <span class="nav-item-count" id="meth-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
@@ -2692,7 +2692,7 @@ body.enc-active-body .topbar {
         <div class="cards-area" id="svcGrid"></div>
       </div>
 
-      <!-- ── METHODOLOGIES VIEW ── -->
+      <!-- ── TACTICS VIEW ── -->
       <div class="panel-view" id="view-methodologies">
         <div class="cards-toolbar">
           <div class="local-search">
@@ -2921,7 +2921,7 @@ body.enc-active-body .topbar {
             <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactics</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
@@ -3587,7 +3587,7 @@ async function init() {
     const r = await fetch('/api/methodologies');
     const d = await r.json();
     METHODOLOGIES = d.guides || [];
-  } catch(e) { console.warn('methodologies unavailable', e); }
+  } catch(e) { console.warn('tactics unavailable', e); }
 
   // Fetch note templates (falls back to hardcoded if missing)
   await loadNoteTemplates();
@@ -3668,10 +3668,36 @@ function renderCards(view) {
   grid.innerHTML = '';
 
   if (items.length === 0) {
-    grid.innerHTML = `<div class="empty-state">
+    const isSvc = view === 'services';
+    const tree = isSvc
+      ? `# Recommended content structure (folder name set by env)
+<your_kb_dir>/
+└── services/
+    ├── web/
+    │   ├── http.md
+    │   └── sqli.md
+    ├── network/
+    │   ├── smb.md
+    │   └── ftp.md
+    └── active-directory/
+        └── kerberoast.md`
+      : `# Recommended content structure (folder name set by env)
+<your_kb_dir>/
+└── tactics/
+    ├── web-app/
+    │   ├── recon.md
+    │   └── exploitation.md
+    ├── active-directory/
+    │   └── initial-access.md
+    └── privesc/
+        ├── linux.md
+        └── windows.md`;
+    const label = isSvc ? 'knowledge_base/' : 'tactics/';
+    grid.innerHTML = `<div class="empty-state" style="flex-direction:column;gap:16px;padding:40px 20px">
       <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-      <div class="empty-state-title">No ${view} found</div>
-      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base':'methodologies'}/ folder</div>
+      <div class="empty-state-title">No files found in <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--accent)">${label}</code></div>
+      <div class="empty-state-hint" style="max-width:360px;line-height:1.7">Drop <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green)">.md</code> files into the folder — subfolders become categories automatically.</div>
+      <pre style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:14px 18px;text-align:left;white-space:pre">${tree.replace(/^(# .+)/m, '<span style="color:var(--border2);font-style:italic">$1</span>')}</pre>
     </div>`;
     return;
   }
@@ -4154,7 +4180,7 @@ function buildCmdResults(q) {
   ).slice(0, 5);
 
   if (meths.length) {
-    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
+    html += `<div class="cmd-group-hdr">Tactics</div>`;
     meths.forEach(m => {
       cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
