@@ -4,7 +4,9 @@ services:
     build: .
 
     container_name: pragma-workbench
-
+    
+    user: "${UID}:${GID}"
+  
     ports:
       - "127.0.0.1:3000:3000"                               # App only accessible from local machine
 
@@ -27,7 +29,6 @@ services:
       - pragma-net
 
     # ── Security hardening ──────────────────────────────────────────────────
-    read_only: true                                          # Root filesystem is read-only
     tmpfs:
       - /tmp                                                 # Node/Express needs a writable /tmp
     cap_drop:
