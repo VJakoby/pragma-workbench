@@ -103,14 +103,14 @@
             const ni = getIndent(lines[i]);
             const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
             if (ni > indent && !isBullet) {
-              extra += '<br>' + esc(lines[i].trim()); i++;
+              extra += '<br>' + lines[i].trim(); i++;
             } else if (ni > indent && isBullet) {
               const sub = [];
               while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
               extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
             } else break;
           }
-          html += `<li>${esc(text)}${extra}</li>`;
+          html += `<li>${text}${extra}</li>`;
         }
         return html + `</${tag}>`;
       }
@@ -193,11 +193,9 @@
   --text2:    #96abbe;
   --muted:    #7a95aa;
   --btn-color:#a8bfd0;
-  --accent:   #8575c0;
-  --accent2:  #7060a8;
-  --accent-rgb: 133, 117, 192;
+  --accent:   #8b5cf6;
+  --accent2:  #7c3aed;
   --green:    #34d399;
-  --green-rgb: 52, 211, 153;
   --purple:   #a78bfa;
   --red:      #f87171;
   --orange:   #fb923c;
@@ -221,9 +219,7 @@
   --btn-color:#4a6580;
   --accent:   #5b21b6;
   --accent2:  #6d28d9;
-  --accent-rgb: 91, 33, 182;
   --green:    #059669;
-  --green-rgb: 5, 150, 105;
   --purple:   #7c3aed;
   --red:      #dc2626;
   --orange:   #ea580c;
@@ -344,6 +340,7 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
+
 /* ── BODY SPLIT ── */
 .body-split{
   display:flex;flex:1;overflow:hidden;
@@ -374,12 +371,6 @@ body{
   font-size:9px;font-weight:700;
   letter-spacing:0.14em;text-transform:uppercase;
   color:var(--text2);
-}
-.sidebar-section-hdr-row{
-  display:flex;align-items:center;justify-content:space-between;
-}
-.sidebar-section-hdr-row .sidebar-section-hdr{
-  padding-right:6px;
 }
 
 .nav-item{
@@ -766,7 +757,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   pointer-events:none;white-space:nowrap;
 }
 .code-line:hover .code-line-copy{display:block}
-.code-line.flash{background:rgba(var(--green-rgb),0.18);transition:background 0s}
+.code-line.flash{background:rgba(52,211,153,0.18);transition:background 0s}
 
 /* Inline code */
 .md-content code:not(pre code){
@@ -983,23 +974,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
 
 .search-status{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
-  color:var(--text2);
+  color:var(--text2);margin-left:auto;
 }
-.engram-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.05em; border-radius: 4px; padding: 2px 8px;
-  border: 1px solid transparent; flex-shrink: 0; margin-left: auto;
-}
-.engram-pill.online  { color: var(--green);  background: rgba(var(--green-rgb),0.1);  border-color: rgba(var(--green-rgb),0.3); }
-.engram-pill.offline { color: var(--red);    background: rgba(248,113,113,0.1);        border-color: rgba(248,113,113,0.3); }
-.engram-pill.checking{ color: var(--muted);  background: var(--bg3);                   border-color: var(--border); }
-.engram-pill-dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-}
-.engram-pill.online  .engram-pill-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.engram-pill.offline .engram-pill-dot { background: var(--red); }
-.engram-pill.checking .engram-pill-dot { background: var(--muted); }
 
 .results-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
 .results-list::-webkit-scrollbar{width:4px}
@@ -1030,8 +1006,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .result-score{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
-  background:rgba(var(--green-rgb),0.15);color:var(--green);
-  border:1px solid rgba(var(--green-rgb),0.3);
+  background:rgba(52,211,153,0.15);color:var(--green);
+  border:1px solid rgba(52,211,153,0.3);
   padding:2px 8px;border-radius:4px;flex-shrink:0;
   display:flex;align-items:center;gap:4px;
 }
@@ -1312,7 +1288,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
     .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
-    .note-type-loot        { color: var(--green);   background: rgba(var(--green-rgb),0.08); }
+    .note-type-loot        { color: var(--green);   background: rgba(52,211,153,0.08); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
 
@@ -1320,7 +1296,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
     .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
     .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
-    .note-item-type.note-type-loot        { border: 1px solid rgba(var(--green-rgb),0.15); }
+    .note-item-type.note-type-loot        { border: 1px solid rgba(52,211,153,0.15); }
     .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
     .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
 
@@ -1473,7 +1449,7 @@ body.is-resizing *{cursor:col-resize!important}
   cursor: pointer; border: 1px solid transparent; flex-shrink: 0;
   transition: all 0.12s; user-select: none;
 }
-.session-status-pill.active   { color: var(--green);  background: rgba(var(--green-rgb),0.1);  border-color: rgba(var(--green-rgb),0.25); }
+.session-status-pill.active   { color: var(--green);  background: rgba(52,211,153,0.1);  border-color: rgba(52,211,153,0.25); }
 .session-status-pill.paused   { color: var(--yellow); background: rgba(251,191,36,0.1);  border-color: rgba(251,191,36,0.25); }
 .session-status-pill.complete { color: var(--muted);  background: var(--bg4);            border-color: var(--border); }
 .session-status-pill:hover { filter: brightness(1.2); border-color: currentColor; }
@@ -1535,12 +1511,10 @@ body.is-resizing *{cursor:col-resize!important}
 .task-item input:checked + span { color: var(--muted); text-decoration: line-through; }
 
 .notes-search-wrap {
-  display:flex; align-items:center; gap:6px;
   padding: 6px 10px; border-bottom: 1px solid var(--border);
   background: var(--bg2); flex-shrink: 0;
 }
 .notes-search-input {
-  flex:1;
   width: 100%; background: var(--bg3); border: 1px solid var(--border);
   border-radius: 5px; padding: 5px 9px; font-size: 11px;
   font-family: 'Inter', sans-serif; color: var(--text);
@@ -1595,14 +1569,14 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--bg4);
 }
 .session-encrypt-btn.on {
-  border-color: rgba(var(--green-rgb),0.5);
+  border-color: rgba(52,211,153,0.5);
   color: var(--green);
-  background: rgba(var(--green-rgb),0.1);
-  box-shadow: 0 0 8px rgba(var(--green-rgb),0.12);
+  background: rgba(52,211,153,0.1);
+  box-shadow: 0 0 8px rgba(52,211,153,0.12);
 }
 .session-encrypt-btn.on:hover {
-  background: rgba(var(--green-rgb),0.16);
-  border-color: rgba(var(--green-rgb),0.7);
+  background: rgba(52,211,153,0.16);
+  border-color: rgba(52,211,153,0.7);
 }
 .session-encrypt-btn.locked {
   border-color: rgba(248,113,113,0.5);
@@ -1767,7 +1741,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .target-item:hover { border-color: var(--border2); }
 .target-item.active-target {
-  border-color: var(--green); background: rgba(var(--green-rgb),0.06);
+  border-color: var(--green); background: rgba(52,211,153,0.06);
 }
 .target-item-dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -1880,7 +1854,7 @@ body.is-resizing *{cursor:col-resize!important}
   box-sizing: border-box; line-height: 1;
 }
 .note-target-assign-btn:hover { border-color: var(--accent); color: var(--accent); }
-.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(var(--green-rgb),0.35); }
+.note-target-assign-btn.has-target { color: var(--green); border-color: rgba(52,211,153,0.35); }
 .note-target-assign-dropdown {
   display: none; position: absolute; top: calc(100% + 5px); right: 0;
   background: var(--bg3); border: 1px solid var(--border2);
@@ -1915,14 +1889,14 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--muted); white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
 }
 .target-filter-chip:hover { border-color: var(--border2); color: var(--text); }
-.target-filter-chip.active { color: var(--green); border-color: rgba(var(--green-rgb),0.4); background: rgba(var(--green-rgb),0.08); }
+.target-filter-chip.active { color: var(--green); border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
 
 /* Target badge on note list items */
 .note-item-target {
   display: inline-flex; align-items: center; gap: 3px;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-  color: var(--green); background: rgba(var(--green-rgb),0.08);
-  border: 1px solid rgba(var(--green-rgb),0.2); border-radius: 3px;
+  color: var(--green); background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.2); border-radius: 3px;
   padding: 1px 5px; margin-top: 3px;
 }
 
@@ -1936,7 +1910,7 @@ body.is-resizing *{cursor:col-resize!important}
   box-sizing: border-box; line-height: 1;
 }
 .note-reassign-btn:hover { border-color: var(--accent); color: var(--accent); }
-.note-reassign-btn.assigned { color: var(--green); border-color: rgba(var(--green-rgb),0.3); }
+.note-reassign-btn.assigned { color: var(--green); border-color: rgba(52,211,153,0.3); }
 .note-reassign-dropdown {
   display: none; position: absolute; top: calc(100% + 5px); right: 0;
   background: var(--bg4); border: 1px solid var(--border2);
@@ -1959,7 +1933,7 @@ body.is-resizing *{cursor:col-resize!important}
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   padding: 8px 10px; border-radius: 6px; margin-top: 2px;
 }
-.import-feedback.ok  { color: var(--green);  background: rgba(var(--green-rgb),0.08);  border: 1px solid rgba(var(--green-rgb),0.2);  }
+.import-feedback.ok  { color: var(--green);  background: rgba(52,211,153,0.08);  border: 1px solid rgba(52,211,153,0.2);  }
 .import-feedback.err { color: var(--red);    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
 
 /* ── Shortcuts modal ── */
@@ -2027,8 +2001,8 @@ kbd {
 /* ── Encrypted session indicator ── */
 /* Green left border + subtle sweep animation when encrypted session active */
 .sidebar.enc-active {
-  border-right-color: rgba(var(--green-rgb),0.35);
-  box-shadow: inset -2px 0 18px rgba(var(--green-rgb),0.07);
+  border-right-color: rgba(52,211,153,0.35);
+  box-shadow: inset -2px 0 18px rgba(52,211,153,0.07);
 }
 
 /* Pulsing green bar down the left edge of sidebar */
@@ -2057,14 +2031,14 @@ kbd {
 
 /* Session block gets subtle green tint */
 .sidebar.enc-active #sessionSection {
-  background: rgba(var(--green-rgb),0.04);
-  border-bottom: 1px solid rgba(var(--green-rgb),0.15);
+  background: rgba(52,211,153,0.04);
+  border-bottom: 1px solid rgba(52,211,153,0.15);
 }
 
 /* Topbar gets a hairline green glow at the bottom when enc active */
 body.enc-active-body .topbar {
-  border-bottom-color: rgba(var(--green-rgb),0.3);
-  box-shadow: 0 1px 0 rgba(var(--green-rgb),0.15);
+  border-bottom-color: rgba(52,211,153,0.3);
+  box-shadow: 0 1px 0 rgba(52,211,153,0.15);
 }
 
 /* ── Custom password / confirm modal ── */
@@ -2187,7 +2161,7 @@ body.enc-active-body .topbar {
 .svc-topbar-btn:hover { border-color: var(--border2); color: var(--text); }
 .svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
 .svc-topbar-btn-count {
-  background: rgba(var(--green-rgb),0.2); color: var(--green);
+  background: var(--accent); color: #fff;
   font-size: 9px; font-weight: 700;
   border-radius: 3px; padding: 1px 5px; min-width: 16px; text-align: center;
   display: none;
@@ -2196,16 +2170,14 @@ body.enc-active-body .topbar {
 
 /* ── Quick-Log popover panel ── */
 .svc-popover {
-  visibility: hidden; opacity: 0; pointer-events: none;
-  position: fixed; top: calc(var(--topbar-h) + 8px);
-  left: 50%; transform: translateX(-55%);
-  width: min(680px, calc(100vw - 16px));
+  display: none; position: absolute; top: calc(100% + 8px); right: 0;
+  width: 520px; max-width: 95vw;
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
   z-index: 300; overflow: hidden;
-  transition: opacity 0.08s ease, visibility 0.08s ease;
+  animation: cmdSlide 0.06s ease;
 }
-.svc-popover.open { visibility: visible; opacity: 1; pointer-events: auto; }
+.svc-popover.open { display: block; }
 .svc-popover-hdr {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px 0; border-bottom: 1px solid var(--border);
@@ -2227,15 +2199,11 @@ body.enc-active-body .topbar {
 .svc-tab:hover { color: var(--text2); }
 .svc-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .svc-tab-count {
-  display: inline-block; background: var(--bg4); border-radius: 3px;
+  display: inline-block; background: var(--bg); border-radius: 8px;
   font-size: 9px; font-weight: 700; padding: 1px 5px; margin-left: 4px;
-  color: var(--muted); vertical-align: middle;
+  color: var(--text2); vertical-align: middle;
 }
-.svc-tab-count:empty { display: none; }
-.svc-tab.active .svc-tab-count { background: rgba(var(--green-rgb),0.15); color: var(--green); }
-[data-theme="light"] .svc-tab-count { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
-[data-theme="light"] .svc-tab.active .svc-tab-count { background: rgba(var(--green-rgb),0.15); color: var(--green); }
-[data-theme="light"] .svc-topbar-btn-count { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
+.svc-tab.active .svc-tab-count { background: rgba(124,58,237,0.2); color: var(--accent); }
 .svc-popover-body { padding: 12px 14px; }
 .svc-popover-table-wrap { max-height: 260px; overflow-y: auto; margin-top: 10px; }
 .svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
@@ -2253,7 +2221,7 @@ body.enc-active-body .topbar {
 .path-table td:first-child { white-space: nowrap; }
 .path-status { font-size: 10px; font-weight: 700; font-family: 'Inter', sans-serif;
   padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
-.path-status-2 { background: rgba(var(--green-rgb),0.15); color: var(--green); }
+.path-status-2 { background: rgba(52,211,153,0.15); color: var(--green); }
 .path-status-3 { background: rgba(251,191,36,0.15); color: #f59e0b; }
 .path-status-4 { background: rgba(239,68,68,0.15); color: var(--red); }
 .path-status-x { background: var(--bg3); color: var(--muted); }
@@ -2319,33 +2287,6 @@ body.enc-active-body .topbar {
 }
 .svc-notes-cell::placeholder { color: var(--muted); }
 .svc-empty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
-
-/* ── Loot type pill buttons ── */
-.loot-type-btn {
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-  padding: 3px 9px; transition: all 0.12s; white-space: nowrap;
-}
-.loot-type-btn:hover { border-color: var(--border2); color: var(--text2); }
-.loot-type-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-/* Loot table — credential cell monospace, copyable */
-.loot-cred-cell {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px;
-  color: var(--yellow); cursor: pointer; word-break: break-all;
-  transition: color 0.1s;
-}
-.loot-cred-cell:hover { color: var(--text); }
-.loot-type-badge {
-  font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700;
-  letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px;
-  text-transform: uppercase; white-space: nowrap;
-}
-.loot-type-cleartext { color: var(--green);  background: rgba(var(--green-rgb),0.12); }
-.loot-type-hash      { color: var(--orange); background: rgba(251,146,60,0.12); }
-.loot-type-token     { color: var(--purple); background: rgba(167,139,250,0.12); }
-.loot-type-key       { color: var(--yellow); background: rgba(251,191,36,0.12); }
-.loot-type-other     { color: var(--muted);  background: var(--bg4); }
 
 /* ── Timeline View ── */
 .notes-list-view-toggle {
@@ -2440,7 +2381,7 @@ body.enc-active-body .topbar {
   font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
   padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
 }
-.tl-status-active   { color: var(--green);  background: rgba(var(--green-rgb),0.12); }
+.tl-status-active   { color: var(--green);  background: rgba(52,211,153,0.12); }
 .tl-status-paused   { color: var(--yellow); background: rgba(251,191,36,0.12); }
 .tl-status-complete { color: var(--muted);  background: rgba(150,171,190,0.12); }
 /* ── Idle gap ── */
@@ -2514,12 +2455,11 @@ body.enc-active-body .topbar {
       </button>
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
-          <span class="svc-popover-title">⚡ Quick Log</span>
-          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--accent);background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);border-radius:3px;padding:1px 7px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;display:none"></span>
+          <span class="svc-popover-title">⚡ Recon Log</span>
+          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);font-weight:600;flex:1;padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
-            <button class="svc-tab" id="svcTabLoot" onclick="switchSvcTab('loot')">Loot <span class="svc-tab-count" id="svcTabCountLoot"></span></button>
           </div>
           <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">✕</button>
         </div>
@@ -2585,39 +2525,6 @@ body.enc-active-body .topbar {
             <div id="pathLogTable"></div>
           </div>
         </div>
-
-        <!-- LOOT TAB -->
-        <div class="svc-popover-body" id="svcPanelLoot" style="display:none">
-          <div class="svc-hint">Log credentials, hashes, tokens and other loot found during the engagement.</div>
-          <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
-            <span style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;align-self:center;flex-shrink:0">Type</span>
-            <button class="loot-type-btn active" data-ltype="cleartext" onclick="setLootType(this,'cleartext')">Cleartext</button>
-            <button class="loot-type-btn" data-ltype="hash"  onclick="setLootType(this,'hash')">Hash</button>
-            <button class="loot-type-btn" data-ltype="token" onclick="setLootType(this,'token')">Token</button>
-            <button class="loot-type-btn" data-ltype="key"   onclick="setLootType(this,'key')">Key</button>
-            <button class="loot-type-btn" data-ltype="other" onclick="setLootType(this,'other')">Other</button>
-          </div>
-          <div class="svc-quick-input-row" style="margin-bottom:6px">
-            <input class="svc-quick-input" id="lootCredInput" type="text"
-              placeholder="username:password  /  hash  /  token  /  key…"
-              autocomplete="off" spellcheck="false"
-              onkeydown="if(event.key==='Enter')document.getElementById('lootHostInput').focus()">
-          </div>
-          <div class="svc-quick-input-row">
-            <input class="svc-quick-input" id="lootHostInput" type="text"
-              placeholder="Host / IP"
-              autocomplete="off" spellcheck="false" style="flex:0 0 150px"
-              onkeydown="if(event.key==='Enter')document.getElementById('lootNoteInput').focus()">
-            <input class="svc-quick-input" id="lootNoteInput" type="text"
-              placeholder="Context — SMB share, /etc/shadow, .env…"
-              autocomplete="off" spellcheck="false"
-              onkeydown="if(event.key==='Enter')addLootEntry()">
-            <button class="svc-quick-add-btn" onclick="addLootEntry()">+ Add</button>
-          </div>
-          <div class="svc-popover-table-wrap">
-            <div id="lootLogTable"></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2669,15 +2576,14 @@ body.enc-active-body .topbar {
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('tactics',this)" id="nav-tactics" title="Tactics">
+        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactical Guides">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-          <span class="nav-item-label">Tactics</span>
-          <span class="nav-item-count" id="tactics-count">—</span>
+          <span class="nav-item-label">Tactical Guides</span>
+          <span class="nav-item-count" id="meth-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
           <span class="nav-item-label">Search in KB</span>
-          <span class="nav-item-count" id="search-count">—</span>
         </div>
       </div>
 
@@ -2685,10 +2591,7 @@ body.enc-active-body .topbar {
 
       <!-- Category filters (contextual) -->
       <div class="sidebar-section" style="display:none">
-        <div class="sidebar-section-hdr-row">
-          <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
-          <button class="icon-btn" id="catRenameBtn" onclick="renameActiveCategory()" title="Rename category" aria-label="Rename category" style="display:none;margin-right:8px;padding:2px 5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        </div>
+        <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>
       </div>
       <div class="cat-scroll" id="catList" style="display:none"></div>
 
@@ -2709,31 +2612,25 @@ body.enc-active-body .topbar {
       <!-- ── SERVICES VIEW ── -->
       <div class="panel-view" id="view-services">
         <div class="cards-toolbar">
-          <button class="icon-btn" onclick="openNewKbFileModal('services')" title="New service file" aria-label="New service file" style="flex-shrink:0;padding:3px 5px">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="svcSearch" placeholder="Filter services…" oninput="filterCards('services', this.value)" autocomplete="off" spellcheck="false">
+            <input type="text" id="svcSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('services',this.value)">
           </div>
           <span class="toolbar-count" id="svc-toolbar-count"></span>
         </div>
         <div class="cards-area" id="svcGrid"></div>
       </div>
 
-      <!-- ── TACTICS VIEW ── -->
-      <div class="panel-view" id="view-tactics">
+      <!-- ── METHODOLOGIES VIEW ── -->
+      <div class="panel-view" id="view-methodologies">
         <div class="cards-toolbar">
-          <button class="icon-btn" onclick="openNewKbFileModal('tactics')" title="New tactic file" aria-label="New tactic file" style="flex-shrink:0;padding:3px 5px">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="tacticsSearch" placeholder="Filter tactics…" oninput="filterCards('tactics', this.value)" autocomplete="off" spellcheck="false">
+            <input type="text" id="methSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('methodologies',this.value)">
           </div>
-          <span class="toolbar-count" id="tactics-toolbar-count"></span>
+          <span class="toolbar-count" id="meth-toolbar-count"></span>
         </div>
-        <div class="cards-area" id="tacticsGrid"></div>
+        <div class="cards-area" id="methGrid"></div>
       </div>
 
       <!-- ── SEARCH VIEW ── -->
@@ -2771,10 +2668,6 @@ body.enc-active-body .topbar {
             </div>
             <span class="search-status" id="searchStatus"></span>
             <span class="search-meta" id="searchMeta"></span>
-            <span class="engram-pill checking" id="engramPill" style="margin-left:auto">
-              <span class="engram-pill-dot"></span>
-              <span id="engramPillLabel">ENGRAM</span>
-            </span>
           </div>
           <div class="source-filter-row" id="sourceFilterRow" style="display:none">
             <span class="ctrl-label">Sources</span>
@@ -2794,15 +2687,13 @@ body.enc-active-body .topbar {
       <div class="panel-view active" id="view-notes">
         <div class="notes-layout">
           <div class="notes-list">
-                        <div class="notes-list-hdr">
+            <div class="notes-list-hdr">
               <span>Notes</span>
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
             <div class="notes-search-wrap">
               <input class="notes-search-input" id="noteSearchInput" type="text"
-                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false" style="margin:0">
-              <button class="icon-btn" onclick="openNewNoteModal()" title="New note" aria-label="New note" style="flex-shrink:0;padding:3px 5px">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
+                placeholder="Search notes…" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
@@ -2959,7 +2850,7 @@ body.enc-active-body .topbar {
             <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Tactics</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
@@ -3122,11 +3013,10 @@ body.enc-active-body .topbar {
 // STATE
 // ═══════════════════════════════════════════════
 let SERVICES      = [];
-let TACTICS       = [];
+let METHODOLOGIES = [];
 let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
-let categoryFolderMap = { services: {}, tactics: {} };
 let searchScope   = 'all';
 let fuzzyMode     = 'normal';
 let knownSources  = [];          // [{id, name}] fetched from ENGRAM via /api/search-sources
@@ -3256,7 +3146,6 @@ function openTargetsPanel() {
   renderTargetsList();
   renderSvcLogTable();
   renderPathTable();
-  renderLootTable();
   updateSvcTabCounts();
   document.getElementById('targetsOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newTargetIP').focus(), 50);
@@ -3621,22 +3510,22 @@ async function init() {
     SERVICES = d.services || [];
   } catch(e) { console.warn('services unavailable', e); }
 
-  // Fetch tactics
+  // Fetch methodologies
   try {
-    const r = await fetch('/api/tactics');
+    const r = await fetch('/api/methodologies');
     const d = await r.json();
-    TACTICS = d.tactics || [];
-  } catch(e) { console.warn('tactics unavailable', e); }
+    METHODOLOGIES = d.guides || [];
+  } catch(e) { console.warn('methodologies unavailable', e); }
 
   // Fetch note templates (falls back to hardcoded if missing)
   await loadNoteTemplates();
   renderNoteTypeGrid();
 
   document.getElementById('svc-count').textContent  = SERVICES.length;
-  document.getElementById('tactics-count').textContent = TACTICS.length;
+  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
 
   renderCards('services');
-  renderCards('tactics');
+  renderCards('methodologies');
   buildSidebar('services');
   // Set initial card layout mode after render
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
@@ -3655,125 +3544,62 @@ function switchView(view, navEl) {
 
   // Update sidebar categories
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
-  if (view === 'services' || view === 'tactics') {
-    buildSidebar(view, activeCat);
+  if (view === 'services' || view === 'methodologies') {
+    buildSidebar(view);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
   } else {
     document.getElementById('catList').innerHTML = '';
     document.getElementById('catList').style.display = 'none';
     if (catSection) catSection.style.display = 'none';
-    updateCategoryActions(view);
   }
 
   if (view === 'search') {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
     if (!knownSources.length) loadSearchSources();
-    checkEngramStatus();
   }
 }
 
 // ═══════════════════════════════════════════════
 // SIDEBAR CATEGORIES
 // ═══════════════════════════════════════════════
-function buildSidebar(view, preferredCat = 'all') {
-  const items = view === 'services' ? SERVICES : TACTICS;
+function buildSidebar(view) {
+  const items = view === 'services' ? SERVICES : METHODOLOGIES;
   const cats  = ['all', ...new Set(items.map(i => i.category))].filter(Boolean);
   const list  = document.getElementById('catList');
   document.getElementById('cat-hdr').textContent = 'Categories';
-  categoryFolderMap[view] = {};
-  items.forEach(item => {
-    if (item.category && item.folder && !categoryFolderMap[view][item.category]) {
-      categoryFolderMap[view][item.category] = item.folder;
-    }
-  });
-  activeCat = cats.includes(preferredCat) ? preferredCat : 'all';
+  activeCat = 'all';
 
   list.innerHTML = cats.map(cat => `
-    <div class="nav-item${cat===activeCat?' active':''}" data-cat="${esc(cat)}"
+    <div class="nav-item${cat==='all'?' active':''}" data-cat="${esc(cat)}"
          onclick="setCat('${esc(cat)}', this, '${view}')">
       <span class="nav-item-icon">${cat==='all'?'◈':'·'}</span>
       <span class="nav-item-label">${cat==='all'?'All':esc(cat)}</span>
       ${cat!=='all'?`<span class="nav-item-count">${items.filter(i=>i.category===cat).length}</span>`:''}
     </div>`).join('');
-  updateCategoryActions(view);
 }
 
 function setCat(cat, el, view) {
   activeCat = cat;
   document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
-  updateCategoryActions(view);
-  filterCards(view, document.getElementById(view==='services'?'svcSearch':'tacticsSearch').value);
-}
-
-function updateCategoryActions(view = activeView) {
-  const btn = document.getElementById('catRenameBtn');
-  if (!btn) return;
-  const folder = categoryFolderMap[view]?.[activeCat];
-  btn.style.display = (view === 'services' || view === 'tactics') && activeCat !== 'all' && folder ? '' : 'none';
-}
-
-function categoryFolderFor(view, cat = activeCat) {
-  return categoryFolderMap[view]?.[cat] || '';
-}
-
-async function reloadKbView(view, preferredCat = activeCat) {
-  if (view === 'services') {
-    const res = await fetch('/api/services');
-    const data = await res.json();
-    SERVICES = data.services || [];
-    document.getElementById('svc-count').textContent = SERVICES.length;
-  } else {
-    const res = await fetch('/api/tactics');
-    const data = await res.json();
-    TACTICS = data.tactics || [];
-    document.getElementById('tactics-count').textContent = TACTICS.length;
-  }
-  renderCards(view);
-  buildSidebar(view, preferredCat);
+  filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
 }
 
 // ═══════════════════════════════════════════════
 // CARDS RENDERING
 // ═══════════════════════════════════════════════
 function renderCards(view) {
-  const items  = view === 'services' ? SERVICES : TACTICS;
-  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
+  const items  = view === 'services' ? SERVICES : METHODOLOGIES;
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
   const grid   = document.getElementById(gridId);
   grid.innerHTML = '';
 
   if (items.length === 0) {
-    const isSvc = view === 'services';
-    const tree = isSvc
-      ? `# Recommended content structure (folder name set by env)
-<your_kb_dir>/
-└── services/
-    ├── web/
-    │   ├── http.md
-    │   └── sqli.md
-    ├── network/
-    │   ├── smb.md
-    │   └── ftp.md
-    └── active-directory/
-        └── kerberoast.md`
-      : `# Recommended content structure (folder name set by env)
-<your_kb_dir>/
-└── tactics/
-    ├── web-app/
-    │   ├── recon.md
-    │   └── exploitation.md
-    ├── active-directory/
-    │   └── initial-access.md
-    └── privesc/
-        ├── linux.md
-        └── windows.md`;
-    const label = isSvc ? 'knowledge_base/' : 'tactics/';
-    grid.innerHTML = `<div class="empty-state" style="flex-direction:column;gap:16px;padding:40px 20px">
+    grid.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-      <div class="empty-state-title">No files found in <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--accent)">${label}</code></div>
-      <div class="empty-state-hint" style="max-width:360px;line-height:1.7">Drop <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green)">.md</code> files into the folder — subfolders become categories automatically.</div>
-      <pre style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:14px 18px;text-align:left;white-space:pre">${tree.replace(/^(# .+)/m, '<span style="color:var(--border2);font-style:italic">$1</span>')}</pre>
+      <div class="empty-state-title">No ${view} found</div>
+      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base':'methodologies'}/ folder</div>
     </div>`;
     return;
   }
@@ -3831,7 +3657,7 @@ function renderCards(view) {
 })();
 
 function filterCards(view, query) {
-  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
+  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
   const q      = query.toLowerCase().trim();
   const cards  = document.querySelectorAll(`#${gridId} .card`);
   let vis      = 0;
@@ -3852,8 +3678,8 @@ function filterCards(view, query) {
 }
 
 function updateToolbarCount(view, n) {
-  const total = (view === 'services' ? SERVICES : TACTICS).length;
-  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'tactics-toolbar-count');
+  const total = (view === 'services' ? SERVICES : METHODOLOGIES).length;
+  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
   el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
 }
 
@@ -3871,7 +3697,7 @@ async function openItem(view, id) {
   document.getElementById('cpTitle').textContent = 'Loading…';
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
-  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/tactic/${encodeURIComponent(id)}`;
+  const endpoint = view === 'services' ? `/api/service/${encodeURIComponent(id)}` : `/api/methodology/${encodeURIComponent(id)}`;
   try {
     const r = await fetch(endpoint);
     const d = await r.json();
@@ -4009,12 +3835,6 @@ function closeContent() {
 // ═══════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════
-function updateSearchCountBadge(count = null) {
-  const el = document.getElementById('search-count');
-  if (!el) return;
-  el.textContent = Number.isFinite(count) ? String(count) : '—';
-}
-
 function onSearch(val) {
   clearTimeout(searchDebounce);
   if (val.trim().length < 2) {
@@ -4024,7 +3844,6 @@ function onSearch(val) {
       <div class="results-offline-hint">Searches the full indexed knowledge base</div>
     </div>`;
     document.getElementById('searchStatus').textContent = '';
-    updateSearchCountBadge(null);
     return;
   }
   document.getElementById('searchStatus').textContent = 'searching…';
@@ -4056,29 +3875,6 @@ function setFuzzy(f, btn) {
 }
 
 // ── Source filter ──
-async function checkEngramStatus() {
-  const pill  = document.getElementById('engramPill');
-  const label = document.getElementById('engramPillLabel');
-  if (!pill) return;
-  pill.className = 'engram-pill checking';
-  label.textContent = 'ENGRAM…';
-  try {
-    const r = await fetch('/api/search-ping', { signal: AbortSignal.timeout(3000) });
-    const d = await r.json();
-    if (d.reachable === true) {
-      pill.className = 'engram-pill online';
-      label.textContent = 'ENGRAM';
-    } else {
-      pill.className = 'engram-pill offline';
-      label.textContent = 'ENGRAM';
-    }
-  } catch {
-    // fetch throws only on network failure / timeout — genuinely offline
-    pill.className = 'engram-pill offline';
-    label.textContent = 'ENGRAM';
-  }
-}
-
 async function loadSearchSources() {
   try {
     const r = await fetch('/api/search-sources');
@@ -4172,7 +3968,6 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   if (meta) meta.textContent = '';
   if (offline) {
     stat.textContent = '⚠ offline';
-    updateSearchCountBadge(null);
     list.innerHTML = `<div class="results-offline error">
       <div class="results-offline-icon">⚠</div>
       <div class="results-offline-text">Search indexer not reachable</div>
@@ -4182,7 +3977,6 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   }
 
   stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
-  updateSearchCountBadge(results.length);
   if (meta) {
     meta.textContent = (docsSearched != null && timeMs != null)
       ? `${docsSearched} pages · ${Math.round(timeMs)}ms`
@@ -4282,15 +4076,15 @@ function buildCmdResults(q) {
     });
   }
 
-  // Tactics
-  const tactics = TACTICS.filter(m =>
+  // Methodologies
+  const meths = METHODOLOGIES.filter(m =>
     !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
   ).slice(0, 5);
 
-  if (tactics.length) {
-    html += `<div class="cmd-group-hdr">Tactics</div>`;
-    tactics.forEach(m => {
-      cmdItems.push({ type:'tactic', id:m.id, label:m.name });
+  if (meths.length) {
+    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
+    meths.forEach(m => {
+      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
         <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
         <div class="cmd-item-main">
@@ -4369,9 +4163,9 @@ function execCmd(idx) {
   if (item.type === 'service') {
     switchView('services', document.getElementById('nav-services'));
     openItem('services', item.id);
-  } else if (item.type === 'tactic') {
-    switchView('tactics', document.getElementById('nav-tactics'));
-    openItem('tactics', item.id);
+  } else if (item.type === 'methodology') {
+    switchView('methodologies', document.getElementById('nav-methodologies'));
+    openItem('methodologies', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
@@ -4752,7 +4546,6 @@ async function initNotes() {
   updateTargetSelector();
   renderSvcLogTable();
   renderPathTable();
-  renderLootTable();
   updateSvcTabCounts();
 }
 
@@ -5051,85 +4844,6 @@ async function renameSession(id) {
   saveNotes();
   renderSessionList();
   renderSessionSidebar();
-}
-
-let _categoryRenameResolve = null;
-let _categoryRenameReject  = null;
-
-function showCategoryRenameModal(categoryName) {
-  return new Promise((resolve, reject) => {
-    _categoryRenameResolve = resolve;
-    _categoryRenameReject  = reject;
-    document.getElementById('categoryRenameTitle').textContent = `Rename ${activeView === 'services' ? 'Service' : 'Tactics'} Category`;
-    document.getElementById('categoryRenameInput').value = categoryName || '';
-    document.getElementById('categoryRenameOverlay').classList.add('open');
-    setTimeout(() => {
-      const input = document.getElementById('categoryRenameInput');
-      input.focus();
-      input.select();
-    }, 40);
-  });
-}
-
-function _categoryRenameSave() {
-  const input = document.getElementById('categoryRenameInput');
-  const val = input.value.trim();
-  if (!val) {
-    input.classList.add('error');
-    input.focus();
-    setTimeout(() => input.classList.remove('error'), 1200);
-    return;
-  }
-  document.getElementById('categoryRenameOverlay').classList.remove('open');
-  if (_categoryRenameResolve) _categoryRenameResolve(val);
-  _categoryRenameResolve = _categoryRenameReject = null;
-}
-
-function _categoryRenameCancel() {
-  document.getElementById('categoryRenameOverlay').classList.remove('open');
-  if (_categoryRenameReject) _categoryRenameReject('cancelled');
-  _categoryRenameResolve = _categoryRenameReject = null;
-}
-
-function _categoryRenameKey(e) {
-  if (e.key === 'Enter') _categoryRenameSave();
-  if (e.key === 'Escape') _categoryRenameCancel();
-}
-
-async function renameActiveCategory() {
-  const view = activeView;
-  if (view !== 'services' && view !== 'tactics') return;
-  if (!activeCat || activeCat === 'all') return;
-  const folder = categoryFolderFor(view, activeCat);
-  if (!folder) {
-    showToast('Only folder-backed categories can be renamed.', 'err');
-    return;
-  }
-
-  let nextName;
-  try { nextName = await showCategoryRenameModal(activeCat); } catch { return; }
-  if (!nextName || nextName === activeCat) return;
-
-  try {
-    const r = await fetch('/api/category/rename', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ view, folder, nextName }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Rename failed');
-
-    await reloadKbView(view, 'all');
-    const newItems = view === 'services' ? SERVICES : TACTICS;
-    const renamed = newItems.find(item => item.folder === d.folder);
-    const nextCat = renamed?.category || 'all';
-    buildSidebar(view, nextCat);
-    renderCards(view);
-    filterCards(view, document.getElementById(view === 'services' ? 'svcSearch' : 'tacticsSearch').value);
-    showToast(`✓ Renamed category to ${nextCat}`);
-  } catch (err) {
-    showToast(`Rename failed: ${err.message}`, 'err');
-  }
 }
 
 function setNoteFilter(type, btn) {
@@ -5685,7 +5399,7 @@ async function saveEdit() {
     try {
       const endpoint = activeDoc.view === 'services'
         ? `/api/service/${encodeURIComponent(activeDoc.id)}`
-        : `/api/tactic/${encodeURIComponent(activeDoc.id)}`;
+        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
       const r2 = await fetch(endpoint);
       const d2 = await r2.json();
       activeDoc.html = d2.html;
@@ -6425,7 +6139,7 @@ document.addEventListener('keydown', async e => {
     const viewMap = {
       '1': ['notes',         'nav-notes'],
       '2': ['services',      'nav-services'],
-      '3': ['tactics',       'nav-tactics'],
+      '3': ['methodologies', 'nav-methodologies'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -6448,20 +6162,6 @@ document.addEventListener('keydown', async e => {
     e.preventDefault();
     toggleSvcPopover();
     return;
-  }
-
-  // ── Arrow Left/Right — cycle Quick Log tabs when popover is open ──
-  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-    const popover = document.getElementById('svcPopover');
-    if (popover && popover.classList.contains('open')) {
-      const focused = document.activeElement;
-      const inInput = focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA');
-      if (!inInput) {
-        e.preventDefault();
-        switchSvcTabByArrow(e.key === 'ArrowRight' ? 1 : -1);
-        return;
-      }
-    }
   }
 
   // ── Alt+T — Toggle Timeline view (switches to Notes first if needed) ──
@@ -6505,10 +6205,6 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     // Session modal
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
-    // Category rename modal
-    if (document.getElementById('categoryRenameOverlay')?.classList.contains('open')) { _categoryRenameCancel(); return; }
-    // New KB file modal
-    if (document.getElementById('newKbFileOverlay')?.classList.contains('open')) { closeNewKbFileModal(); return; }
     // New note modal
     if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }
     // Command palette
@@ -6529,9 +6225,9 @@ document.addEventListener('keydown', async e => {
 // ── Show shortcut hints in tooltips ──
 document.addEventListener('DOMContentLoaded', () => {
   const hints = [
-    ['nav-services',      '⌘2'],
-    ['nav-tactics',       '⌘3'],
-    ['nav-notes',         '⌘1'],
+    ['nav-services',      '⌘1'],
+    ['nav-methodologies', '⌘2'],
+    ['nav-notes',         '⌘3'],
     ['nav-search',        '⌘4'],
   ];
   hints.forEach(([id, key]) => {
@@ -6563,54 +6259,26 @@ let _pathParsed = [];  // staging: path results
 let _activeSvcTab = 'ports';
 
 // ── Tab switching ──
-// ── Tab order for arrow key cycling ──
-const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
-
-function switchSvcTabByArrow(dir) {
-  // Only fire if the popover is open and no text input is focused inside it
-  const popover = document.getElementById('svcPopover');
-  if (!popover || !popover.classList.contains('open')) return;
-  const active = document.activeElement;
-  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-  const cur = SVC_TAB_ORDER.indexOf(_activeSvcTab);
-  if (cur === -1) return;
-  const next = (cur + dir + SVC_TAB_ORDER.length) % SVC_TAB_ORDER.length;
-  switchSvcTab(SVC_TAB_ORDER[next]);
-}
-
 function switchSvcTab(tab) {
   _activeSvcTab = tab;
   document.getElementById('svcTabPorts').classList.toggle('active', tab === 'ports');
   document.getElementById('svcTabPaths').classList.toggle('active', tab === 'paths');
-  document.getElementById('svcTabLoot').classList.toggle('active',  tab === 'loot');
   document.getElementById('svcPanelPorts').style.display = tab === 'ports' ? 'block' : 'none';
   document.getElementById('svcPanelPaths').style.display = tab === 'paths' ? 'block' : 'none';
-  document.getElementById('svcPanelLoot').style.display  = tab === 'loot'  ? 'block' : 'none';
   if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
   if (tab === 'paths') { renderPathTable();  setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
-  if (tab === 'loot')  { renderLootTable();  setTimeout(() => {
-    // Sync type pills to current _activeLootType
-    document.querySelectorAll('.loot-type-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.ltype === _activeLootType));
-    const hi = document.getElementById('lootHostInput');
-    if (hi && !hi.value) { const ip = getIP(); if (ip !== '<IP>') hi.value = ip; }
-    document.getElementById('lootCredInput')?.focus();
-  }, 40); }
 }
 
 function updateSvcTabCounts() {
   const ports = getSessionServices().length;
   const paths = getSessionPaths().length;
-  const loot  = getSessionLoot().length;
   const cp = document.getElementById('svcTabCountPorts');
   const ch = document.getElementById('svcTabCountPaths');
-  const cl = document.getElementById('svcTabCountLoot');
   if (cp) cp.textContent = ports || '';
   if (ch) ch.textContent = paths || '';
-  if (cl) cl.textContent = loot  || '';
   // topbar button count — total
   const btn = document.getElementById('svcTopbarCount');
-  if (btn) { btn.textContent = ports + paths + loot || ''; btn.classList.toggle('has-entries', (ports + paths + loot) > 0); }
+  if (btn) { btn.textContent = ports + paths || ''; btn.classList.toggle('has-entries', (ports + paths) > 0); }
 }
 
 // ── Toggle import panel ──
@@ -7036,145 +6704,6 @@ function renderSvcLogTable() {
     </table>`;
 }
 
-// ═══════════════════════════════════════════════
-// LOOT LOG
-// Stored per session: sessions[id].loot = [{id,type,credential,host,note,added}]
-// Types: cleartext | hash | token | key | other
-// ═══════════════════════════════════════════════
-let _activeLootType = 'cleartext';
-
-function setLootType(btn, type) {
-  _activeLootType = type;
-  document.querySelectorAll('.loot-type-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function getSessionLoot() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].loot || [];
-}
-
-function addLootEntry() {
-  const credEl = document.getElementById('lootCredInput');
-  const hostEl = document.getElementById('lootHostInput');
-  const noteEl = document.getElementById('lootNoteInput');
-  const cred   = credEl?.value.trim();
-  const host   = hostEl?.value.trim();
-  const note   = noteEl?.value.trim();
-  if (!cred || !activeSessionId) { credEl?.focus(); return; }
-  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
-
-  // Auto-fill host from active target if left blank
-  const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
-
-  sessions[activeSessionId].loot.push({
-    id:         'loot_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-    type:       _activeLootType,
-    credential: cred,
-    host:       autoHost,
-    note:       note,
-    added:      Date.now(),
-  });
-
-  credEl.value = '';
-  noteEl.value = '';
-  // Keep host value so user can add multiple creds from same host without retyping
-  credEl.focus();
-  saveNotes();
-  renderLootTable();
-  updateSvcTabCounts();
-}
-
-function deleteLootEntry(lootId) {
-  if (!activeSessionId) return;
-  sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
-  saveNotes();
-  renderLootTable();
-  updateSvcTabCounts();
-}
-
-function updateLootNote(lootId, val) {
-  if (!activeSessionId) return;
-  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
-  if (entry) { entry.note = val; saveNotes(); }
-}
-
-const LOOT_TYPE_CSS = {
-  cleartext: 'loot-type-cleartext',
-  hash:      'loot-type-hash',
-  token:     'loot-type-token',
-  key:       'loot-type-key',
-  other:     'loot-type-other',
-};
-
-function renderLootTable() {
-  const el = document.getElementById('lootLogTable');
-  if (!el) return;
-  updateSvcTabCounts();
-  const entries = [...getSessionLoot()].sort((a, b) => (a.added || 0) - (b.added || 0));
-  if (!entries.length) {
-    el.innerHTML = '<div class="svc-empty">No loot logged yet — add credentials, hashes or tokens above</div>';
-    return;
-  }
-  el.innerHTML = `
-    <table class="svc-table">
-      <thead><tr><th>Type</th><th>Credential</th><th>Host</th><th>Context</th><th></th></tr></thead>
-      <tbody>${entries.map(l => {
-        const typeCss = LOOT_TYPE_CSS[l.type] || 'loot-type-other';
-        return `<tr>
-          <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
-          <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
-          <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
-          <td style="min-width:160px;width:35%"><input class="svc-notes-cell" type="text" value="${esc(l.note || '')}" placeholder="context…"
-            onclick="event.stopPropagation()"
-            onchange="updateLootNote('${l.id}',this.value)"
-            onblur="updateLootNote('${l.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteLootEntry('${l.id}')" title="Remove">✕</button></td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>`;
-}
-
-function copyLootCred(lootId) {
-  if (!activeSessionId || !sessions[activeSessionId]) return;
-  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
-  if (!entry) return;
-  navigator.clipboard.writeText(entry.credential).then(() => {
-    showToast('✓ Copied: ' + entry.credential.slice(0, 40) + (entry.credential.length > 40 ? '…' : ''));
-  });
-}
-
-// ── Loot markdown export helper (called from exportNotesMarkdown) ──
-function buildLootMarkdown(sessionId) {
-  const loot = (sessions[sessionId]?.loot || []);
-  if (!loot.length) return null;
-
-  // Group by host
-  const byHost = {};
-  loot.forEach(l => {
-    const h = l.host || 'Unknown';
-    if (!byHost[h]) byHost[h] = [];
-    byHost[h].push(l);
-  });
-
-  let md = '# Loot\n\n';
-  md += `*Exported: ${new Date().toLocaleString('en-GB')}*\n\n`;
-
-  for (const [host, entries] of Object.entries(byHost)) {
-    md += `## ${host}\n\n`;
-    md += '| Type | Credential | Context |\n';
-    md += '|------|------------|----------|\n';
-    entries.forEach(l => {
-      const cred = l.credential.replace(/`/g, "'").replace(/\|/g, '\|');
-      const note = (l.note || '').replace(/\|/g, '\|');
-      md += `| ${l.type} | \`${cred}\` | ${note} |\n`;
-    });
-    md += '\n';
-  }
-  return md;
-}
-
 function toggleSvcPopover() {
   const popover = document.getElementById('svcPopover');
   const btn     = document.getElementById('svcTopbarBtn');
@@ -7188,27 +6717,14 @@ function toggleSvcPopover() {
     const sessLabel = document.getElementById('svcSessionLabel');
     if (sessLabel) {
       const sess = activeSessionId && sessions[activeSessionId];
-      if (sess) {
-        sessLabel.textContent = sess.codename;
-        sessLabel.style.display = '';
-      } else {
-        sessLabel.textContent = '';
-        sessLabel.style.display = 'none';
-      }
+      sessLabel.textContent = sess ? sess.codename : '';
     }
     renderSvcLogTable();
     renderPathTable();
-    renderLootTable();
     updateSvcTabCounts();
-    // Sync loot type pill buttons to current _activeLootType
-    document.querySelectorAll('.loot-type-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.ltype === _activeLootType));
     setTimeout(() => {
-      // Pre-fill loot host with active target IP if blank
-      const hi = document.getElementById('lootHostInput');
-      if (hi && !hi.value) { const ip = getIP(); if (ip !== '<IP>') hi.value = ip; }
-      const inputId = _activeSvcTab === 'ports' ? 'svcQuickInput' : _activeSvcTab === 'loot' ? 'lootCredInput' : 'pathQuickInput';
-      document.getElementById(inputId)?.focus();
+      const input = document.getElementById(_activeSvcTab === 'ports' ? 'svcQuickInput' : 'pathQuickInput');
+      if (input) input.focus();
     }, 40);
     // Close on outside click
     setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
@@ -7638,24 +7154,16 @@ async function exportNotesMarkdown(sessionId) {
   const sess = sessions[sessionId];
   if (!sess) return;
 
-  // ── Always download loot.md client-side (server may not handle it yet) ──
-  const lootMd = buildLootMarkdown(sessionId);
-  if (lootMd) {
-    downloadText(lootMd, slugify(sess.codename) + '-loot.md');
-  }
-
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Pass loot entries so server-side export can write loot.md if supported
       body: JSON.stringify({ session_id: sessionId, sessions, notes }),
     });
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      const lootNote = lootMd ? ' + loot.md' : '';
-      showToast(`✓ Exported ${count} files${lootNote} → sessions/${slugify(sess.codename)}/`);
+      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }
@@ -7701,68 +7209,6 @@ function downloadText(content, filename, mimeType = 'text/plain') {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-let _newKbView = 'services';
-
-function openNewKbFileModal(view) {
-  _newKbView = view || activeView;
-  const isServices = _newKbView === 'services';
-  document.getElementById('newKbFileTitle').textContent = isServices ? 'New Service File' : 'New Tactics File';
-  document.getElementById('newKbFileInput').value = '';
-  document.getElementById('newKbFileError').style.display = 'none';
-
-  document.getElementById('newKbFileOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('newKbFileInput').focus(), 50);
-}
-
-function closeNewKbFileModal() {
-  document.getElementById('newKbFileOverlay').classList.remove('open');
-}
-
-function closeNewKbFileModalIfOutside(e) {
-  if (e.target === document.getElementById('newKbFileOverlay')) closeNewKbFileModal();
-}
-
-async function submitNewKbFile() {
-  const filename = document.getElementById('newKbFileInput').value.trim();
-  const errEl    = document.getElementById('newKbFileError');
-  errEl.style.display = 'none';
-
-  if (!filename) {
-    errEl.textContent = 'Please enter a filename.';
-    errEl.style.display = '';
-    document.getElementById('newKbFileInput').focus();
-    return;
-  }
-
-  try {
-    const r = await fetch('/api/kb/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        view: _newKbView,
-        category: (activeCat && activeCat !== 'all') ? activeCat : null,
-        filename
-      }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Create failed');
-
-    closeNewKbFileModal();
-    showToast('✓ Created: ' + d.file);
-
-    await reloadKbView(_newKbView);
-
-    setTimeout(() => {
-      openItem(_newKbView, d.id);
-      setTimeout(() => { if (activeDoc?.isLocal) enterEditMode(); }, 300);
-    }, 100);
-
-  } catch (err) {
-    errEl.textContent = '✗ ' + err.message;
-    errEl.style.display = '';
-  }
 }
 
 init();
@@ -7846,33 +7292,6 @@ cmInitNote();
 })();
 
 </script>
-<div class="cmd-overlay" id="newKbFileOverlay" onclick="closeNewKbFileModalIfOutside(event)">
-  <div class="cmd-box" style="max-width:420px">
-    <div class="cmd-input-row">
-      <span class="cmd-input-icon"><!-- file+ svg --></span>
-      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600;flex:1" id="newKbFileTitle">New File</span>
-      <span class="cmd-esc" onclick="closeNewKbFileModal()" style="cursor:pointer">ESC</span>
-    </div>
-    <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:10px">
-      <div class="session-field">
-        <label>Filename</label>
-        <input id="newKbFileInput" type="text" placeholder="e.g. sql-injection"
-          autocomplete="off" spellcheck="false"
-          onkeydown="if(event.key==='Enter')submitNewKbFile()"
-          style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);
-                 padding:7px 10px;font-size:13px;font-family:'JetBrains Mono',monospace;
-                 outline:none;width:100%;box-sizing:border-box">
-      </div>
-      <div id="newKbFileError" style="display:none;font-family:'JetBrains Mono',monospace;font-size:12px;
-           color:var(--red);background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
-           border-radius:5px;padding:6px 10px"></div>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button class="session-btn secondary" onclick="closeNewKbFileModal()">Cancel</button>
-        <button class="session-btn primary" onclick="submitNewKbFile()">Create File</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ── PASSWORD / CONFIRM MODAL ── -->
 <div class="pw-overlay" id="pwOverlay">
@@ -7932,27 +7351,6 @@ cmInitNote();
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="_sessionRenameCancel()">Cancel</button>
         <button class="pw-btn primary" onclick="_sessionRenameSave()">Rename</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="pw-overlay" id="categoryRenameOverlay" onclick="if(event.target===this)_categoryRenameCancel()">
-  <div class="pw-box" style="width:320px">
-    <div class="pw-header">
-      <span class="pw-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
-      <span class="pw-header-title" id="categoryRenameTitle">Rename Category</span>
-      <button class="pw-header-close" onclick="_categoryRenameCancel()">✕</button>
-    </div>
-    <div class="pw-body">
-      <div class="pw-field">
-        <label>Category name</label>
-        <input class="pw-input" id="categoryRenameInput" type="text" placeholder="Category name…"
-          autocomplete="off" spellcheck="false" onkeydown="_categoryRenameKey(event)">
-      </div>
-      <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="_categoryRenameCancel()">Cancel</button>
-        <button class="pw-btn primary" onclick="_categoryRenameSave()">Rename</button>
       </div>
     </div>
   </div>
