@@ -8,6 +8,11 @@
 pragma-workbench/
 ├── public/
 │   └── app.html
+├── server/
+│   ├── index.js
+│   ├── config/
+│   ├── lib/
+│   └── routes/
 ├── server.js
 ├── package.json
 ├── notes-templates.json          // optional — custom note templates (see README)
@@ -41,7 +46,6 @@ Set these in your `docker-compose.yml` to customise paths:
 | Variable | Default | Description |
 |---|---|---|
 | `KB_DIR` | `./knowledge_base` | Path to your knowledge base directory |
-| `METH_DIR` | `./knowledge_base/tactics` | Path to your tactics directory |
 | `SEARCH_URL` | `http://engram:3002` | Default URL to ENGRAM indexer |
 
 Example `docker-compose.yml` volume + env setup:
@@ -91,7 +95,7 @@ docker compose down
 docker logs -f pragma-workbench
 ```
 
-### Rebuild after app.html / server.js changes
+### Rebuild after app.html / backend changes
 
 ```bash
 docker compose down && docker compose up -d --build

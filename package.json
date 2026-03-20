@@ -1,8 +1,12 @@
 {
   "name": "pragma",
   "version": "1.0.0",
-  "description": "Tactical methodology note-takingworkbench",
+  "description": "Tactical note-taking workbench",
   "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:server": "node server/index.js"
+  },
   "bin": {
     "pragma": "./server.js"
   },
