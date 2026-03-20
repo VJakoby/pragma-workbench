@@ -222,10 +222,10 @@
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">—</span>
         </div>
-        <div class="nav-item" onclick="switchView('methodologies',this)" id="nav-methodologies" title="Tactical Guides">
+        <div class="nav-item" onclick="switchView('tactics',this)" id="nav-tactics" title="Tactics">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-          <span class="nav-item-label">Tactical Guides</span>
-          <span class="nav-item-count" id="meth-count">—</span>
+          <span class="nav-item-label">Tactics</span>
+          <span class="nav-item-count" id="tactics-count">—</span>
         </div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -268,17 +268,17 @@
         <div class="cards-area" id="svcGrid"></div>
       </div>
 
-      <!-- ── METHODOLOGIES VIEW ── -->
-      <div class="panel-view" id="view-methodologies">
+      <!-- ── TACTICS VIEW ── -->
+      <div class="panel-view" id="view-tactics">
         <div class="cards-toolbar">
-          <button class="icon-btn" onclick="openKbCreateModal('methodologies')" title="New tactic"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="icon-btn" onclick="openKbCreateModal('tactics')" title="New tactic"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
           <div class="local-search">
             <span class="local-search-icon">⌕</span>
-            <input type="text" id="methSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('methodologies',this.value)">
+            <input type="text" id="tacticsSearch" placeholder="filter…" autocomplete="off" oninput="filterCards('tactics',this.value)">
           </div>
-          <span class="toolbar-count" id="meth-toolbar-count"></span>
+          <span class="toolbar-count" id="tactics-toolbar-count"></span>
         </div>
-        <div class="cards-area" id="methGrid"></div>
+        <div class="cards-area" id="tacticsGrid"></div>
       </div>
 
       <!-- ── SEARCH VIEW ── -->
@@ -502,7 +502,7 @@
             <div class="shortcut-row"><span class="shortcut-desc">Command palette</span>  <span class="shortcut-keys"><kbd>⌘</kbd><kbd>K</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Session Notes</span>     <span class="shortcut-keys"><kbd>⌘</kbd><kbd>1</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>⌘</kbd><kbd>2</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Tactical Guides</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Tactics</span>   <span class="shortcut-keys"><kbd>⌘</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search in KB</span>      <span class="shortcut-keys"><kbd>⌘</kbd><kbd>4</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>F</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>⌘</kbd><kbd>B</kbd></span></div>
@@ -648,7 +648,7 @@
   <div class="cmd-box">
     <div class="cmd-input-row">
       <span class="cmd-input-icon">⌘</span>
-      <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
+      <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, tactics, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
       <span class="cmd-esc">ESC</span>
     </div>
     <div class="cmd-results" id="cmdResults"></div>

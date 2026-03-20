@@ -135,7 +135,7 @@ function refreshCodeBlocks() {
 let kbCreateView = 'services';
 
 function getKbCollection(view) {
-  return view === 'services' ? SERVICES : METHODOLOGIES;
+  return view === 'services' ? SERVICES : TACTICS;
 }
 
 function getKbBackendView(view) {
@@ -159,21 +159,21 @@ async function refreshKbView(view) {
     const countEl = document.getElementById('svc-count');
     if (countEl) countEl.textContent = SERVICES.length;
   } else {
-    METHODOLOGIES = items;
-    const countEl = document.getElementById('meth-count');
-    if (countEl) countEl.textContent = METHODOLOGIES.length;
+    TACTICS = items;
+    const countEl = document.getElementById('tactics-count');
+    if (countEl) countEl.textContent = TACTICS.length;
   }
 
   renderCards(view);
   if (activeView === view) {
     buildSidebar(view);
-    const input = document.getElementById(view === 'services' ? 'svcSearch' : 'methSearch');
+    const input = document.getElementById(view === 'services' ? 'svcSearch' : 'tacticsSearch');
     if (input) filterCards(view, input.value || '');
   }
 }
 
 function openKbCreateModal(view) {
-  kbCreateView = view === 'services' ? 'services' : 'methodologies';
+  kbCreateView = view === 'services' ? 'services' : 'tactics';
   const isServices = kbCreateView === 'services';
   const title = isServices ? 'Create Service' : 'Create Tactic';
   const categoryLabel = activeCat && activeCat !== 'all' ? ` in ${activeCat}` : '';
@@ -231,7 +231,7 @@ async function submitKbCreate() {
     return;
   }
 
-  const clientView = kbCreateView === 'services' ? 'services' : 'methodologies';
+  const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
   const backendView = getKbBackendView(clientView);
   const category = activeView === clientView && activeCat !== 'all' ? activeCat : '';
 
@@ -291,7 +291,7 @@ function setCat(cat, el, view) {
   activeCat = cat;
   document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
-  filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
+  filterCards(view, document.getElementById(view==='services'?'svcSearch':'tacticsSearch').value);
 }
 
 // ═══════════════════════════════════════════════
@@ -299,7 +299,7 @@ function setCat(cat, el, view) {
 // ═══════════════════════════════════════════════
 function renderCards(view) {
   const items  = getKbCollection(view);
-  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
   const grid   = document.getElementById(gridId);
   grid.innerHTML = '';
 
@@ -361,7 +361,7 @@ function renderCards(view) {
 })();
 
 function filterCards(view, query) {
-  const gridId = view === 'services' ? 'svcGrid' : 'methGrid';
+  const gridId = view === 'services' ? 'svcGrid' : 'tacticsGrid';
   const q      = query.toLowerCase().trim();
   const cards  = document.querySelectorAll(`#${gridId} .card`);
   let vis      = 0;
@@ -383,7 +383,7 @@ function filterCards(view, query) {
 
 function updateToolbarCount(view, n) {
   const total = getKbCollection(view).length;
-  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
+  const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'tactics-toolbar-count');
   el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
 }
 
