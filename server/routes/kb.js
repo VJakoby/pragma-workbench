@@ -141,7 +141,33 @@ function registerKbRoutes(app, deps) {
     });
   });
 
+  app.get('/api/methodologies', (req, res) => {
+    const tacticsIndex = kbIndex.getTacticsIndex();
+    res.json({
+      total: tacticsIndex.length,
+      guides: tacticsIndex.map(({ id, name, category, icon, description, file, wordCount, folder }) =>
+        ({ id, name, category, icon, description, file, wordCount, folder })),
+    });
+  });
+
   app.get('/api/tactic/:id', (req, res) => {
+    const tacticsIndex = kbIndex.getTacticsIndex();
+    const guide = tacticsIndex.find(g => g.id === req.params.id);
+    if (!guide) return res.status(404).json({ error: 'Tactic not found' });
+    res.json({
+      id: guide.id,
+      name: guide.name,
+      category: guide.category,
+      icon: guide.icon,
+      description: guide.description,
+      file: guide.file,
+      wordCount: guide.wordCount,
+      html: marked.parse(guide.content),
+      raw: guide.content,
+    });
+  });
+
+  app.get('/api/methodology/:id', (req, res) => {
     const tacticsIndex = kbIndex.getTacticsIndex();
     const guide = tacticsIndex.find(g => g.id === req.params.id);
     if (!guide) return res.status(404).json({ error: 'Tactic not found' });
