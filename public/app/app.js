@@ -2,7 +2,7 @@
 // STATE
 // ═══════════════════════════════════════════════
 let SERVICES      = [];
-let TACTICS       = [];
+let METHODOLOGIES = [];
 let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
@@ -144,22 +144,22 @@ async function init() {
     SERVICES = d.services || [];
   } catch(e) { console.warn('services unavailable', e); }
 
-  // Fetch tactics
+  // Fetch methodologies
   try {
-    const r = await fetch('/api/tactics');
+    const r = await fetch('/api/methodologies');
     const d = await r.json();
-    TACTICS = d.tactics || d.guides || [];
-  } catch(e) { console.warn('tactics unavailable', e); }
+    METHODOLOGIES = d.guides || [];
+  } catch(e) { console.warn('methodologies unavailable', e); }
 
   // Fetch note templates (falls back to hardcoded if missing)
   await loadNoteTemplates();
   renderNoteTypeGrid();
 
   document.getElementById('svc-count').textContent  = SERVICES.length;
-  document.getElementById('tactics-count').textContent = TACTICS.length;
+  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
 
   renderCards('services');
-  renderCards('tactics');
+  renderCards('methodologies');
   buildSidebar('services');
   // Set initial card layout mode after render
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
@@ -178,7 +178,7 @@ function switchView(view, navEl) {
 
   // Update sidebar categories
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
-  if (view === 'services' || view === 'tactics') {
+  if (view === 'services' || view === 'methodologies') {
     buildSidebar(view);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
@@ -241,22 +241,22 @@ function buildCmdResults(q) {
     });
   }
 
-  // Tactics
-  const tactics = TACTICS.filter(m =>
+  // Methodologies
+  const meths = METHODOLOGIES.filter(m =>
     !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
   ).slice(0, 5);
 
-  if (tactics.length) {
-    html += `<div class="cmd-group-hdr">Tactics</div>`;
-    tactics.forEach(m => {
-      cmdItems.push({ type:'tactic', id:m.id, label:m.name });
+  if (meths.length) {
+    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
+    meths.forEach(m => {
+      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
         <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
         <div class="cmd-item-main">
           <div class="cmd-item-title">${esc(m.name)}</div>
           <div class="cmd-item-sub">${esc(m.category||'')}</div>
         </div>
-        <span class="cmd-item-tag">tactic</span>
+        <span class="cmd-item-tag">guide</span>
       </div>`;
     });
   }
@@ -297,7 +297,7 @@ function buildCmdResults(q) {
 
   if (!html) {
     html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, tactics and notes…
+      Type to search services, guides and notes…
     </div>`;
   }
 
@@ -328,9 +328,9 @@ function execCmd(idx) {
   if (item.type === 'service') {
     switchView('services', document.getElementById('nav-services'));
     openItem('services', item.id);
-  } else if (item.type === 'tactic') {
-    switchView('tactics', document.getElementById('nav-tactics'));
-    openItem('tactics', item.id);
+  } else if (item.type === 'methodology') {
+    switchView('methodologies', document.getElementById('nav-methodologies'));
+    openItem('methodologies', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
@@ -1565,7 +1565,7 @@ async function saveEdit() {
     try {
       const endpoint = activeDoc.view === 'services'
         ? `/api/service/${encodeURIComponent(activeDoc.id)}`
-        : `/api/tactic/${encodeURIComponent(activeDoc.id)}`;
+        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
       const r2 = await fetch(endpoint);
       const d2 = await r2.json();
       activeDoc.html = d2.html;
@@ -2252,7 +2252,7 @@ function closeShortcutsModal() {
 //   ⌘/Ctrl + N        — New note
 //   ⌘/Ctrl + S        — Save current note (force)
 //   ⌘/Ctrl + F        — Jump to search view
-//   ⌘/Ctrl + 1-5      — Switch views (services/tactics/notes/search)
+//   ⌘/Ctrl + 1-5      — Switch views (services/guides/notes/search)
 //   ⌘/Ctrl + E        — Edit current KB file (if content panel open)
 //   ESC               — Close topmost modal / panel / dropdown
 
@@ -2305,7 +2305,7 @@ document.addEventListener('keydown', async e => {
     const viewMap = {
       '1': ['notes',         'nav-notes'],
       '2': ['services',      'nav-services'],
-      '3': ['tactics', 'nav-tactics'],
+      '3': ['methodologies', 'nav-methodologies'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -2406,7 +2406,7 @@ document.addEventListener('keydown', async e => {
 document.addEventListener('DOMContentLoaded', () => {
   const hints = [
     ['nav-services',      '⌘1'],
-    ['nav-tactics', '⌘2'],
+    ['nav-methodologies', '⌘2'],
     ['nav-notes',         '⌘3'],
     ['nav-search',        '⌘4'],
   ];
@@ -3516,11 +3516,6 @@ async function exportNotesMarkdown(sessionId) {
   const sess = sessions[sessionId];
   if (!sess) return;
 
-  const lootMd = buildLootMarkdown(sessionId);
-  if (lootMd) {
-    downloadText(lootMd, slugify(sess.codename) + '-loot.md');
-  }
-
   try {
     const r = await fetch('/api/notes/export', {
       method: 'POST',
@@ -3530,8 +3525,7 @@ async function exportNotesMarkdown(sessionId) {
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      const lootNote = lootMd ? ' + loot.md' : '';
-      showToast(`✓ Exported ${count} files${lootNote} → sessions/${slugify(sess.codename)}/`);
+      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
       showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
     }

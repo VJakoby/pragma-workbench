@@ -40,7 +40,6 @@ const {
   SERVICES_DIR,
   TACTICS_DIR,
   PUBLIC_DIR,
-  DASHBOARD_HTML,
   SESSIONS_DIR,
   TEMPLATES_FILE,
   SEARCH_URL,
@@ -58,6 +57,8 @@ const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkb
 marked.setOptions({ gfm: true, breaks: false });
 
 const app = express();
+app.set('views', path.join(__dirname, '..', 'views'));
+app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.static(PUBLIC_DIR, { etag: false, lastModified: false }));
 
@@ -71,8 +72,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  if (fs.existsSync(DASHBOARD_HTML)) res.sendFile(DASHBOARD_HTML);
-  else res.status(404).send('public/app.html not found');
+  res.render('app');
+});
+
+app.get('/app.html', (req, res) => {
+  res.render('app');
 });
 
 registerKbRoutes(app, {

@@ -1,0 +1,191 @@
+    <div class="main-panel">
+
+      <div class="panel-view" id="view-services">
+        <div class="cards-toolbar">
+          <button class="icon-btn" onclick="openKbCreateModal('services')" title="New service"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <div class="local-search">
+            <span class="local-search-icon">&#8981;</span>
+            <input type="text" id="svcSearch" placeholder="filter&hellip;" autocomplete="off" oninput="filterCards('services',this.value)">
+          </div>
+          <span class="toolbar-count" id="svc-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="svcGrid"></div>
+      </div>
+
+      <div class="panel-view" id="view-methodologies">
+        <div class="cards-toolbar">
+          <button class="icon-btn" onclick="openKbCreateModal('methodologies')" title="New tactic"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <div class="local-search">
+            <span class="local-search-icon">&#8981;</span>
+            <input type="text" id="methSearch" placeholder="filter&hellip;" autocomplete="off" oninput="filterCards('methodologies',this.value)">
+          </div>
+          <span class="toolbar-count" id="meth-toolbar-count"></span>
+        </div>
+        <div class="cards-area" id="methGrid"></div>
+      </div>
+
+      <div class="panel-view" id="view-search">
+        <div class="search-toolbar">
+          <div class="search-input-row">
+            <div class="search-big">
+              <span class="search-big-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" id="searchInput" placeholder="Search across all indexed sources&hellip;" autocomplete="off" oninput="onSearch(this.value)">
+            </div>
+            <div class="score-help" style="margin-right:4px">?
+              <div class="score-help-tip">
+                <strong style="color:var(--text)">Relevance Score</strong><br>
+                0&ndash;100 scale. Higher = stronger match.<br><br>
+                <span style="color:var(--green)">90&ndash;100</span> &mdash; exact title or phrase match<br>
+                <span style="color:var(--accent)">60&ndash;89</span> &mdash; strong content match<br>
+                <span style="color:var(--muted)">below 60</span> &mdash; fuzzy / partial match<br><br>
+                Calculated by the search indexer using TF-IDF weighted full-text scoring across the indexed source content.
+              </div>
+            </div>
+            <button class="search-clear-btn" onclick="clearSearch()">&times; Clear</button>
+          </div>
+          <div class="search-controls-row">
+            <span class="ctrl-label">Scope</span>
+            <div class="btn-group" id="scopeGroup">
+              <button class="btn-group-item active" data-scope="all" onclick="setScope('all',this)">All</button>
+              <button class="btn-group-item" data-scope="local" onclick="setScope('local',this)">Local</button>
+              <button class="btn-group-item" data-scope="online" onclick="setScope('online',this)">Online</button>
+            </div>
+            <span class="ctrl-label">Fuzzy</span>
+            <div class="btn-group" id="fuzzyGroup">
+              <button class="btn-group-item" data-fuzzy="off" onclick="setFuzzy('off',this)">Off</button>
+              <button class="btn-group-item fuzzy-active" data-fuzzy="normal" onclick="setFuzzy('normal',this)">On</button>
+              <button class="btn-group-item" data-fuzzy="prefer" onclick="setFuzzy('prefer',this)">Max</button>
+            </div>
+            <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
+              <span class="engram-pill-dot"></span>
+              <span id="engramPillLabel">ENGRAM&hellip;</span>
+            </div>
+            <span class="search-status" id="searchStatus"></span>
+            <span class="search-meta" id="searchMeta"></span>
+          </div>
+          <div class="source-filter-row" id="sourceFilterRow" style="display:none">
+            <span class="ctrl-label">Sources</span>
+            <div class="source-chips" id="sourceChips"></div>
+          </div>
+        </div>
+        <div class="results-list" id="resultsList">
+          <div class="results-offline">
+            <div class="results-offline-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <div class="results-offline-text">Start typing to search</div>
+            <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-view active" id="view-notes">
+        <div class="notes-layout">
+          <div class="notes-list">
+            <div class="notes-list-hdr">
+              <span>Notes</span>
+              <button class="icon-btn" onclick="openNewNoteModal()" title="New note"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            </div>
+            <div class="notes-search-wrap">
+              <input class="notes-search-input" id="noteSearchInput" type="text"
+                placeholder="Search notes&hellip;" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="notes-list-view-toggle">
+              <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
+              <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Timeline</button>
+            </div>
+            <div class="notes-scope-bar">
+              <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
+              <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
+              <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
+            </div>
+            <div class="target-filter-bar" id="targetFilterBar"></div>
+            <div class="notes-type-filter" id="notesTypeFilter">
+              <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
+              <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
+              <button class="note-type-btn" data-type="credentials" onclick="setNoteFilter('credentials',this)">Creds</button>
+              <button class="note-type-btn" data-type="privesc" onclick="setNoteFilter('privesc',this)">PrivEsc</button>
+              <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
+              <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
+              <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
+              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
+            </div>
+            <div class="notes-list-items" id="notesList"></div>
+            <div class="timeline-toolbar" id="timelineToolbar" style="display:none">
+              <select class="tl-filter-select" id="tlTargetSelect" onchange="setTlTargetFilter(this.value)">
+                <option value="">All targets</option>
+              </select>
+              <button class="tl-export-btn" onclick="exportTimeline()" title="Export timeline as markdown">&#8595; Export</button>
+            </div>
+            <div class="timeline-list" id="timelineList"></div>
+            <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
+          </div>
+          <div class="notes-editor" id="notesEditor">
+            <div class="notes-empty" id="notesEmpty">
+              <div class="notes-empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+              <div class="notes-empty-text">No note selected</div>
+              <div class="notes-empty-hint">Click + to create a new note</div>
+            </div>
+            <div id="noteEditArea" style="display:none;flex:1;display:none;flex-direction:column;overflow:hidden">
+              <div class="notes-editor-hdr">
+                <div class="notes-editor-hdr-row1">
+                  <button class="note-pin-btn" id="notePinBtn" onclick="togglePinNote()" title="Pin note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg></button>
+                  <input class="note-title-input" id="noteTitleInput" type="text" placeholder="Note title&hellip;">
+                  <div class="note-reassign-wrap">
+                    <button class="note-reassign-btn" id="noteReassignBtn" onclick="toggleReassignDropdown()" title="Assign to session">session</button>
+                    <div class="note-reassign-dropdown" id="noteReassignDropdown"></div>
+                  </div>
+                  <div class="note-target-assign-wrap">
+                    <button class="note-target-assign-btn" id="noteTargetAssignBtn" onclick="toggleTargetAssignDropdown()" title="Assign to target">target</button>
+                    <div class="note-target-assign-dropdown" id="noteTargetAssignDropdown"></div>
+                  </div>
+                </div>
+                <div class="notes-editor-hdr-row2">
+                  <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span></button>
+                  <div class="syntax-theme-picker" title="Editor syntax theme" style="margin-left:2px">
+                    <span class="syntax-dot" data-theme="monokai" style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
+                    <span class="syntax-dot" data-theme="nord" style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
+                    <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+                  </div>
+                  <span style="flex:1"></span>
+                  <button class="icon-btn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                  <button class="icon-btn" onclick="duplicateCurrentNote()" title="Duplicate note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                  <button class="icon-btn danger" onclick="deleteCurrentNote()" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                </div>
+              </div>
+              <div class="note-md-hint">
+                <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
+                <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>&gt; quote</span>
+                <span title="Wiki link to another note">[[link]]</span>
+              </div>
+              <div class="note-timestamps" id="noteTimestamps">
+                <span class="note-ts">Created: <strong id="noteCreatedAt">&mdash;</strong></span>
+                <span class="note-ts">Modified: <strong id="noteModifiedAt">&mdash;</strong></span>
+                <span class="note-save-status" id="noteSaveStatus" style="margin-left:auto">saved</span>
+              </div>
+              <div class="note-tags-row" id="noteTagsRow">
+                <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
+                  onkeydown="noteTagKeydown(event)" spellcheck="false">
+              </div>
+              <div class="note-editor-split" id="noteEditorSplit">
+                <div class="cm-wrap" id="noteBodyWrap"></div>
+                <div class="note-preview-handle" id="notePreviewHandle" style="display:none"></div>
+                <div class="note-preview-pane" id="notePreviewPane" style="display:none">
+                  <div class="note-preview-label" style="display:flex;align-items:center;justify-content:space-between;padding:4px 10px 4px 16px">
+                    <span>Preview</span>
+                    <div class="preview-layout-toggle" id="previewLayoutToggle">
+                      <button class="preview-layout-btn active" id="layoutVertBtn" onclick="setPreviewLayout('vertical')" title="Horizontal split"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
+                      <button class="preview-layout-btn" id="layoutSideBtn" onclick="setPreviewLayout('side')" title="Vertical split (side by side)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg></button>
+                    </div>
+                  </div>
+                  <div class="md-content note-preview-content" id="notePreviewContent"></div>
+                </div>
+              </div>
+              <div class="note-backlinks" id="noteBacklinks" style="display:none">
+                <div class="note-backlinks-hdr"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Linked from</div>
+                <div class="note-backlinks-list" id="noteBacklinksList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main-panel -->
