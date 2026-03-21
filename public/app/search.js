@@ -31,7 +31,7 @@ function onSearch(val) {
     document.getElementById('resultsList').innerHTML = `<div class="results-offline">
       <div class="results-offline-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
       <div class="results-offline-text">Start typing to search</div>
-      <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+      <div class="results-offline-hint">Searches across indexed knowledge bases and sources</div>
     </div>`;
     document.getElementById('searchStatus').textContent = '';
     return;

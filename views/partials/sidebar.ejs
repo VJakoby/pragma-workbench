@@ -1,6 +1,6 @@
     <div class="sidebar">
       <div class="sidebar-section" id="sessionSection">
-        <div class="sidebar-section-hdr">Session</div>
+        <div class="sidebar-section-hdr">Active Session</div>
         <div class="session-active" id="sessionActive" onclick="openSessionModal()" title="Sessions">
           <div class="session-active-dot" id="sessionDot"></div>
           <div class="session-active-info">
@@ -18,12 +18,16 @@
       </div>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
-        <div class="sidebar-section-hdr">Navigate</div>
+        <div class="sidebar-section-hdr">Engagement</div>
         <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes" title="Session Notes">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
           <span class="nav-item-label">Session Notes</span>
           <span class="nav-item-count" id="notes-count">&mdash;</span>
         </div>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr">Knowledge Base</div>
         <div class="nav-item" onclick="switchView('services',this)" id="nav-services" title="Services">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
           <span class="nav-item-label">Services</span>
@@ -34,13 +38,11 @@
           <span class="nav-item-label">Tactics</span>
           <span class="nav-item-count" id="meth-count">&mdash;</span>
         </div>
-        <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search KB">
+        <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search Indexed KBs">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <span class="nav-item-label">Search in KB</span>
+          <span class="nav-item-label">Search Indexed KBs</span>
         </div>
       </div>
-
-      <div class="sidebar-divider"></div>
 
       <div class="sidebar-section" style="display:none">
         <div class="sidebar-section-hdr" id="cat-hdr">Categories</div>

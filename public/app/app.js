@@ -247,7 +247,7 @@ function buildCmdResults(q) {
   ).slice(0, 5);
 
   if (meths.length) {
-    html += `<div class="cmd-group-hdr">Tactical Guides</div>`;
+    html += `<div class="cmd-group-hdr">Tactics</div>`;
     meths.forEach(m => {
       cmdItems.push({ type:'methodology', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
@@ -290,7 +290,7 @@ function buildCmdResults(q) {
       <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">
         <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
-        <div class="cmd-item-sub">Search the full knowledge index</div>
+        <div class="cmd-item-sub">Search across indexed knowledge bases and sources</div>
       </div>
     </div>`;
   }

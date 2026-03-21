@@ -29,7 +29,7 @@
           <div class="search-input-row">
             <div class="search-big">
               <span class="search-big-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" id="searchInput" placeholder="Search across all indexed sources&hellip;" autocomplete="off" oninput="onSearch(this.value)">
+              <input type="text" id="searchInput" placeholder="Search indexed knowledge bases and sources&hellip;" autocomplete="off" oninput="onSearch(this.value)">
             </div>
             <div class="score-help" style="margin-right:4px">?
               <div class="score-help-tip">
@@ -38,7 +38,7 @@
                 <span style="color:var(--green)">90&ndash;100</span> &mdash; exact title or phrase match<br>
                 <span style="color:var(--accent)">60&ndash;89</span> &mdash; strong content match<br>
                 <span style="color:var(--muted)">below 60</span> &mdash; fuzzy / partial match<br><br>
-                Calculated by the search indexer using TF-IDF weighted full-text scoring across the indexed source content.
+                Calculated by the search indexer using TF-IDF weighted full-text scoring across indexed knowledge-base and source content.
               </div>
             </div>
             <button class="search-clear-btn" onclick="clearSearch()">&times; Clear</button>
@@ -72,7 +72,7 @@
           <div class="results-offline">
             <div class="results-offline-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="results-offline-text">Start typing to search</div>
-            <div class="results-offline-hint">Searches the full indexed knowledge base</div>
+            <div class="results-offline-hint">Searches across all indexed knowledge bases and sources</div>
           </div>
         </div>
       </div>
