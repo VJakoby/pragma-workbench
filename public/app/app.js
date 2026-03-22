@@ -1,25 +1,4 @@
-// ═══════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════
-let SERVICES      = [];
-let TACTICS       = [];
-let activeView    = 'services';
-let activeDoc     = null;
-let activeCat     = 'all';
-let searchScope   = 'all';
-let fuzzyMode     = 'normal';
-let knownSources  = [];          // [{id, name}] fetched from ENGRAM via /api/search-sources
-let disabledSources = new Set(JSON.parse(localStorage.getItem('pragma-disabled-sources') || '[]'));
-let searchDebounce;
-let cmdSelected   = 0;
-let cmdItems      = [];
-let notes         = {};
-let sessions      = {};
-let activeSessionId = null;
-let activeTargetId  = null;
-let activeNoteId  = null;
-let noteSaveTimer;
-let tlTargetFilter = null; // timeline per-target filter
+// Shared runtime state is initialized in state.js.
 
 // ═══════════════════════════════════════════════
 // COMMAND PALETTE

@@ -25,9 +25,6 @@ const NOTE_TEMPLATES_FALLBACK = {
 
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 
-let encryptedStorageEnabled  = false;
-let encryptedStoragePassword = null;
-let encryptedStorageHint     = '';
 let workbenchUnlocked        = true;
 
 async function loadNoteTemplates() {
@@ -147,7 +144,7 @@ async function toggleEncryptedStorage(e) {
   try { e?.stopPropagation?.(); } catch (_) {}
 
   if (encryptedStorageEnabled && !encryptedStoragePassword) {
-    showToast('⚠ Workspace is locked — unlock it first before changing encryption settings');
+    showToast('⚠ Workbench is locked — unlock it first before changing encryption settings');
     return;
   }
 
@@ -168,6 +165,21 @@ async function toggleEncryptedStorage(e) {
     updateEncryptedStorageUI();
     saveNotes();
   } else {
+    let confirmPw;
+    try {
+      confirmPw = await showPasswordPrompt({
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+        title: 'Disable Encrypted Workbench',
+        description: 'Enter your current workbench password to disable encryption. Future saves will be stored as <strong>plaintext</strong> on disk.',
+        label: 'Current Password',
+        placeholder: 'Re-enter current password…',
+        submitLabel: 'Disable Encryption',
+      });
+    } catch { return; }
+    if (confirmPw !== encryptedStoragePassword) {
+      showToast('⚠ Incorrect password — encryption stays enabled', 'err');
+      return;
+    }
     try {
       await showConfirmDialog({
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`, title: 'Disable Encrypted Workbench',
@@ -202,8 +214,8 @@ async function initNotes() {
       let pw;
       try {
         pw = await showPasswordPrompt({
-          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workspace Locked',
-          description: 'This workspace is encrypted. Enter your password to unlock and load your notes.'
+          icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workbench Locked',
+          description: 'This workbench is encrypted. Enter your password to unlock and load your notes.'
             + (encObj.hint ? `<div style="margin-top:10px;padding:8px 12px;background:var(--bg1);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)">Hint: ${encObj.hint}</div>` : ''),
           label: 'Password', placeholder: 'Enter password…',
           submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock',
@@ -246,8 +258,8 @@ async function initNotes() {
           let pw;
           try {
             pw = await showPasswordPrompt({
-              icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workspace Locked',
-              description: 'This workspace is encrypted. Enter your password to unlock.',
+              icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, title: 'Workbench Locked',
+              description: 'This workbench is encrypted. Enter your password to unlock.',
               label: 'Password', placeholder: 'Enter password…',
               submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unlock',
             });
@@ -311,32 +323,45 @@ async function initNotes() {
   updateSvcTabCounts();
 }
 
-function saveNotes() {
+async function executeAppSave() {
   const payload = { notes, sessions };
   if (encryptedStorageEnabled) {
-    (async () => {
-      try {
-        if (!encryptedStoragePassword) return;
-        const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
-        if (encryptedStorageHint) blob.hint = encryptedStorageHint;
-        localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
-        localStorage.removeItem('ops-notes-v2');
-        await fetch('/api/notes/save-encrypted', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ blob }),
-        });
-      } catch (_) {}
-    })();
-  } else {
+    try {
+      if (!encryptedStoragePassword) throw new Error('Workbench is locked');
+      const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
+      if (encryptedStorageHint) blob.hint = encryptedStorageHint;
+      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
+      localStorage.removeItem('ops-notes-v2');
+      const res = await fetch('/api/notes/save-encrypted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blob }),
+      });
+      if (!res.ok) throw new Error('Encrypted save failed');
+      return true;
+    } catch (err) {
+      appSaveState.lastError = err;
+      return false;
+    }
+  }
+  try {
     localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
     localStorage.removeItem('ops-notes-v2-encrypted');
-    fetch('/api/notes/save', {
+    const res = await fetch('/api/notes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }).catch(() => {});
+    });
+    if (!res.ok) throw new Error('Save failed');
+    return true;
+  } catch (err) {
+    appSaveState.lastError = err;
+    return false;
   }
+}
+
+function saveNotes(opts = {}) {
+  return queueAppSave(opts);
 }
 
 function renderSessionSidebar() {

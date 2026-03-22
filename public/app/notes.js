@@ -247,8 +247,7 @@ function openNote(id) {
   updateReassignBtn(n);
   renderBacklinks(id);
   if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
-  document.getElementById('noteSaveStatus').textContent = 'saved';
-  document.getElementById('noteSaveStatus').className = 'note-save-status saved';
+  setNoteSaveIndicator('saved', 'saved');
 
   renderNotesList();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
@@ -302,26 +301,36 @@ function renderBacklinks(noteId) {
   }).join('');
 }
 
+function syncActiveNoteDraft() {
+  if (!activeNoteId || !notes[activeNoteId]) return false;
+  notes[activeNoteId].title = document.getElementById('noteTitleInput').value;
+  notes[activeNoteId].body = cmGetValue(noteEditor);
+  notes[activeNoteId].updated = Date.now();
+  return true;
+}
+
+async function persistActiveNote(opts = {}) {
+  if (!syncActiveNoteDraft()) return false;
+  const ok = await saveNotes({
+    reason: opts.reason || 'note-edit',
+    immediate: !!opts.immediate,
+    delay: opts.delay,
+  });
+  renderNotesList();
+  renderSessionSidebar();
+  if (activeNoteId) renderBacklinks(activeNoteId);
+  const moEl = document.getElementById('noteModifiedAt');
+  if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  updateNotePreview();
+  return ok;
+}
+
 function autoSaveNote() {
   if (!activeNoteId) return;
-  document.getElementById('noteSaveStatus').textContent = '…saving';
-  document.getElementById('noteSaveStatus').className = 'note-save-status';
+  setNoteSaveIndicator('saving', '...saving');
   clearTimeout(noteSaveTimer);
-  noteSaveTimer = setTimeout(() => {
-    notes[activeNoteId].title = document.getElementById('noteTitleInput').value;
-    notes[activeNoteId].body = cmGetValue(noteEditor);
-    notes[activeNoteId].updated = Date.now();
-    saveNotes();
-    renderNotesList();
-    renderSessionSidebar();
-    if (activeNoteId) renderBacklinks(activeNoteId);
-    document.getElementById('noteSaveStatus').textContent = 'saved';
-    document.getElementById('noteSaveStatus').className = 'note-save-status saved';
-    const moEl = document.getElementById('noteModifiedAt');
-    if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
-      day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    updateNotePreview();
-  }, 600);
+  noteSaveTimer = setTimeout(() => { persistActiveNote({ reason: 'note-autosave' }); }, 600);
 }
 
 async function deleteCurrentNote() {

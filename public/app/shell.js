@@ -95,9 +95,9 @@ async function init() {
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
                   height:100vh;background:#0f0f13;color:#e2e8f0;font-family:'Inter',sans-serif;gap:16px">
         <div style="display:flex;justify-content:center;color:var(--muted);margin-bottom:8px"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <div style="font-size:18px;font-weight:700">Workspace Locked</div>
+        <div style="font-size:18px;font-weight:700">Workbench Locked</div>
         <div style="font-size:13px;color:#94a3b8;max-width:320px;text-align:center">
-          ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workspace.')}</div>
+          ${err.message === 'cancelled' ? 'Password entry was cancelled.' : (err.message || 'Could not unlock workbench.')}</div>
         <button id="lockedRetryBtn" onclick="location.reload()"
           style="margin-top:8px;padding:8px 24px;background:#7c3aed;border:none;border-radius:8px;
                  color:#fff;font-size:13px;font-weight:600;cursor:pointer">
@@ -194,12 +194,9 @@ document.addEventListener('keydown', async e => {
   if (ctrl && e.key === 's') {
     if (activeNoteId) {
       e.preventDefault();
-      autoSaveNote();
-      const status = document.getElementById('noteSaveStatus');
-      if (status) {
-        status.textContent = '✓ saved';
-        setTimeout(() => { status.textContent = 'saved'; }, 1500);
-      }
+      clearTimeout(noteSaveTimer);
+      setNoteSaveIndicator('saving', '...saving');
+      await persistActiveNote({ reason: 'note-manual-save', immediate: true });
     }
     return;
   }
