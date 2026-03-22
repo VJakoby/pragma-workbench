@@ -279,7 +279,7 @@ function showConfirmDialog(opts = {}) {
       <div class="pw-description">${opts.description || 'Are you sure?'}</div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="pwCancel()">${opts.cancelLabel || 'Cancel'}</button>
-        <button class="pw-btn ${opts.danger ? 'danger' : 'primary'}"
+        <button class="pw-btn ${opts.danger ? 'danger' : 'primary'}" id="pwConfirmBtn"
           onclick="_pwConfirmOk()">${opts.confirmLabel || 'Confirm'}</button>
       </div>`;
 
@@ -294,6 +294,19 @@ function _pwConfirmOk() {
   if (_pwResolve) _pwResolve(true);
   _pwResolve = null; _pwReject = null;
 }
+
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('pwOverlay');
+  if (!overlay?.classList.contains('open')) return;
+  const confirmBtn = document.getElementById('pwConfirmBtn');
+  const active = document.activeElement;
+  const inPasswordFlow = !!document.getElementById('pwInput1');
+
+  if (e.key === 'Enter' && confirmBtn && !inPasswordFlow && active !== confirmBtn) {
+    e.preventDefault();
+    _pwConfirmOk();
+  }
+});
 
 function _pwSubmit(requireConfirm) {
   const v1 = document.getElementById('pwInput1')?.value || '';
