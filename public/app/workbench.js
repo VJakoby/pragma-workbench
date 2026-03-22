@@ -100,6 +100,8 @@ function updateEncryptedStorageUI() {
   if (sidebar) sidebar.classList.toggle('enc-active', active);
   document.body.classList.toggle('enc-active-body', active);
   btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
+  btn.title = locked ? 'Encrypted Workbench (Locked)' : active ? 'Encrypted Workbench (Enabled)' : 'Encrypted Workbench';
+  btn.setAttribute('aria-label', btn.title);
   if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
   const bakBtn = document.getElementById('bakDownloadBtn');
   if (bakBtn) bakBtn.style.display = '';
