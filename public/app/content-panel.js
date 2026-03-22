@@ -68,19 +68,19 @@ function wrapCodeBlocks(container) {
     });
 
     const codeEl = pre.querySelector('code') || pre;
-    const rawText = codeEl.innerText || '';
+    const rawText = codeEl.textContent || '';
     const lines = rawText.replace(/\n$/, '').split('\n');
 
     wrap.appendChild(btn);
 
     codeEl.innerHTML = lines.map((line) => {
-      if (!line.trim()) return '<span class="code-line-blank"> </span>';
+      if (!line.trim()) return '<span class="code-line-blank">&nbsp;</span>';
       const injected = injectTargets(esc(line));
       return '<span class="code-line">' +
              injected +
              '<span class="code-line-copy">\u2398 copy</span>' +
              '</span>';
-    }).join('\n');
+    }).join('');
 
     codeEl.querySelectorAll('.code-line').forEach(lineEl => {
       lineEl.addEventListener('click', (e) => {

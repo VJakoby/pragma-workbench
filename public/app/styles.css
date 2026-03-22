@@ -616,12 +616,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .notes-layout.notes-list-hidden #notesListHandle{
   display:none;
 }
-.notes-layout.notes-list-hidden .notes-list-reopen-btn{
-  opacity:1;
-  pointer-events:auto;
-  transform:translateX(0);
-}
-
 .notes-list{
   width:200px;flex-shrink:0;
   border-right:1px solid var(--border);
@@ -638,27 +632,31 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .notes-list-hdr-actions{display:flex;align-items:center;gap:2px}
 .notes-list-reopen-btn{
   position:absolute;
-  top:16px;
-  left:14px;
-  z-index:6;
+  left:0;
+  top:50%;
+  z-index:7;
   display:flex;
   align-items:center;
-  gap:7px;
-  padding:7px 10px;
+  justify-content:center;
+  width:28px;
+  height:56px;
+  padding:0;
   border:1px solid rgba(167,139,250,0.5);
-  border-radius:10px;
+  border-left:none;
+  border-radius:0 10px 10px 0;
   background:linear-gradient(180deg, rgba(91,33,182,0.28), rgba(76,29,149,0.22));
   color:#ddd6fe;
   box-shadow:0 10px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(167,139,250,0.12);
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:0.06em;
-  text-transform:uppercase;
   cursor:pointer;
   opacity:0;
   pointer-events:none;
-  transform:translateX(-8px);
-  transition:opacity 0.16s ease, transform 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  transform:translate(-4px, -50%);
+  transition:border-color 0.16s ease, color 0.16s ease, background 0.16s ease, opacity 0.16s ease, transform 0.16s ease;
+}
+.notes-layout.notes-list-hidden .notes-list-reopen-btn{
+  opacity:1;
+  pointer-events:auto;
+  transform:translate(0, -50%);
 }
 .notes-list-reopen-btn:hover{
   border-color:rgba(196,181,253,0.8);
