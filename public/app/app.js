@@ -2,7 +2,7 @@
 // STATE
 // ═══════════════════════════════════════════════
 let SERVICES      = [];
-let METHODOLOGIES = [];
+let TACTICS       = [];
 let activeView    = 'services';
 let activeDoc     = null;
 let activeCat     = 'all';
@@ -144,22 +144,22 @@ async function init() {
     SERVICES = d.services || [];
   } catch(e) { console.warn('services unavailable', e); }
 
-  // Fetch methodologies
+  // Fetch tactics
   try {
-    const r = await fetch('/api/methodologies');
+    const r = await fetch('/api/tactics');
     const d = await r.json();
-    METHODOLOGIES = d.guides || [];
-  } catch(e) { console.warn('methodologies unavailable', e); }
+    TACTICS = d.tactics || d.guides || [];
+  } catch(e) { console.warn('tactics unavailable', e); }
 
   // Fetch note templates (falls back to hardcoded if missing)
   await loadNoteTemplates();
   renderNoteTypeGrid();
 
   document.getElementById('svc-count').textContent  = SERVICES.length;
-  document.getElementById('meth-count').textContent = METHODOLOGIES.length;
+  document.getElementById('tactics-count').textContent = TACTICS.length;
 
   renderCards('services');
-  renderCards('methodologies');
+  renderCards('tactics');
   buildSidebar('services');
   // Set initial card layout mode after render
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
@@ -178,7 +178,7 @@ function switchView(view, navEl) {
 
   // Update sidebar categories
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
-  if (view === 'services' || view === 'methodologies') {
+  if (view === 'services' || view === 'tactics') {
     buildSidebar(view);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
@@ -241,22 +241,22 @@ function buildCmdResults(q) {
     });
   }
 
-  // Methodologies
-  const meths = METHODOLOGIES.filter(m =>
+  // Tactics
+  const meths = TACTICS.filter(m =>
     !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
   ).slice(0, 5);
 
   if (meths.length) {
     html += `<div class="cmd-group-hdr">Tactics</div>`;
     meths.forEach(m => {
-      cmdItems.push({ type:'methodology', id:m.id, label:m.name });
+      cmdItems.push({ type:'tactic', id:m.id, label:m.name });
       html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
         <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
         <div class="cmd-item-main">
           <div class="cmd-item-title">${esc(m.name)}</div>
           <div class="cmd-item-sub">${esc(m.category||'')}</div>
         </div>
-        <span class="cmd-item-tag">guide</span>
+        <span class="cmd-item-tag">tactic</span>
       </div>`;
     });
   }
@@ -297,7 +297,7 @@ function buildCmdResults(q) {
 
   if (!html) {
     html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, guides and notes…
+      Type to search services, tactics and notes…
     </div>`;
   }
 
@@ -328,9 +328,9 @@ function execCmd(idx) {
   if (item.type === 'service') {
     switchView('services', document.getElementById('nav-services'));
     openItem('services', item.id);
-  } else if (item.type === 'methodology') {
-    switchView('methodologies', document.getElementById('nav-methodologies'));
-    openItem('methodologies', item.id);
+  } else if (item.type === 'tactic') {
+    switchView('tactics', document.getElementById('nav-tactics'));
+    openItem('tactics', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => openNote(item.id), 50);
@@ -1354,114 +1354,6 @@ function autoSaveNote() {
   }, 600);
 }
 
-// ── Note preview ──────────────────────────────────────────
-let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
-
-function updateNotePreview() {
-  const pane = document.getElementById('notePreviewPane');
-  if (!pane || pane.style.display === 'none') return;
-  const md = noteEditor ? cmGetValue(noteEditor) : '';
-  const el = document.getElementById('notePreviewContent');
-  if (!el) return;
-  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  if (typeof wrapCodeBlocks   === 'function') wrapCodeBlocks(el);
-  if (typeof wrapInlineCodes  === 'function') wrapInlineCodes(el);
-  if (typeof makeCollapsible  === 'function') makeCollapsible(el);
-  // preview only needs per-line copy, not the block-level copy button
-  el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
-}
-
-function toggleNotePreview() {
-  notePreviewOpen = !notePreviewOpen;
-  localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
-  applyNotePreviewState();
-}
-
-
-// ── Preview layout (vertical / side-by-side) ──
-let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
-
-function setPreviewLayout(layout) {
-  previewLayout = layout;
-  localStorage.setItem('pragma-preview-layout', layout);
-  applyPreviewLayout();
-}
-
-function applyPreviewLayout() {
-  const split = document.getElementById('noteEditorSplit');
-  const vertBtn = document.getElementById('layoutVertBtn');
-  const sideBtn = document.getElementById('layoutSideBtn');
-  if (!split) return;
-  const isSide = previewLayout === 'side';
-  split.classList.toggle('split-side', isSide);
-  if (vertBtn) vertBtn.classList.toggle('active', !isSide);
-  if (sideBtn) sideBtn.classList.toggle('active', isSide);
-
-  // Re-init drag handle since direction changed
-  const handle = document.getElementById('notePreviewHandle');
-  if (handle) { handle._dragInited = false; initPreviewDragHandle(); }
-}
-
-function applyNotePreviewState() {
-  const split  = document.getElementById('noteEditorSplit');
-  const handle = document.getElementById('notePreviewHandle');
-  const pane   = document.getElementById('notePreviewPane');
-  const btn    = document.getElementById('notePreviewBtn');
-  if (!split || !handle || !pane || !btn) return;
-
-  const open = notePreviewOpen;
-  split.classList.toggle('preview-open', open);
-  handle.style.display = open ? '' : 'none';
-  pane.style.display   = open ? 'flex' : 'none';
-  btn.classList.toggle('active', open);
-  btn.title = open ? 'Hide preview' : 'Toggle markdown preview';
-
-  // Show/hide layout toggle
-  const toggle = document.getElementById('previewLayoutToggle');
-  if (toggle) toggle.classList.toggle('visible', open);
-
-  if (open) {
-    // Restore saved split position
-    const saved = localStorage.getItem('pragma-preview-split');
-    if (saved) split.style.setProperty('--note-editor-h', saved);
-    applyPreviewLayout();
-    updateNotePreview();
-    initPreviewDragHandle();
-  }
-}
-
-function initPreviewDragHandle() {
-  const handle = document.getElementById('notePreviewHandle');
-  const split  = document.getElementById('noteEditorSplit');
-  if (!handle || handle._dragInited) return;
-  handle._dragInited = true;
-
-  handle.addEventListener('mousedown', e => {
-    e.preventDefault();
-    handle.classList.add('dragging');
-    const isSide    = split.classList.contains('split-side');
-    const startPos  = isSide ? e.clientX : e.clientY;
-    const splitRect = split.getBoundingClientRect();
-    const prop      = isSide ? '--note-editor-w' : '--note-editor-h';
-    const dim       = isSide ? splitRect.width : splitRect.height;
-    const startPct  = parseFloat(getComputedStyle(split).getPropertyValue(prop)) || 50;
-
-    const onMove = ev => {
-      const delta  = (isSide ? ev.clientX : ev.clientY) - startPos;
-      const newPct = Math.min(85, Math.max(15, startPct + (delta / dim) * 100));
-      split.style.setProperty(prop, newPct + '%');
-      localStorage.setItem('pragma-preview-split', newPct + '%');
-    };
-    const onUp = () => {
-      handle.classList.remove('dragging');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-}
-
 async function deleteCurrentNote() {
   if (!activeNoteId) return;
   try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: 'This note will be permanently deleted.', confirmLabel: 'Delete', danger: true }); }
@@ -1475,110 +1367,6 @@ async function deleteCurrentNote() {
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display     = 'flex';
   document.getElementById('noteEditArea').style.display   = 'none';
-}
-
-// ═══════════════════════════════════════════════
-// CONTENT PANEL EDIT MODE
-// ═══════════════════════════════════════════════
-let cpEditDirty = false;
-
-function cpEditTabHandler(e) {
-  if (e.key !== 'Tab') return;
-  e.preventDefault();
-  const ta = e.target;
-  const s  = ta.selectionStart, end = ta.selectionEnd;
-  ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = s + 2;
-  setCpEditStatus('unsaved', '● unsaved');
-  cpEditDirty = true;
-}
-
-function setCpEditStatus(cls, msg) {
-  const el = document.getElementById('cpEditStatus');
-  el.className = 'cp-edit-status ' + cls;
-  el.textContent = msg;
-}
-
-async function toggleEditMode() {
-  const editBody = document.getElementById('cpEditBody');
-  const isEditing = editBody.style.display !== 'none';
-  if (isEditing) {
-    if (cpEditDirty) {
-      try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
-      catch { return; }
-    }
-    exitEditMode();
-  } else {
-    enterEditMode();
-  }
-}
-
-function enterEditMode() {
-  if (!activeDoc || !activeDoc.raw) return;
-  document.getElementById('cpReadBody').style.display  = 'none';
-  document.getElementById('cpEditBody').style.display  = 'flex';
-  document.getElementById('cpEditBtn').classList.add('editing');
-  document.getElementById('cpEditBtn').title = 'Exit edit mode';
-  cmInitKb();
-  cmSetValue(kbEditor, activeDoc.raw);
-  cpEditDirty = false;
-  setCpEditStatus('', activeDoc.meta || '');
-  setTimeout(() => kbEditor && kbEditor.focus(), 30);
-  // KB dirty tracking wired in cmInitKb
-}
-
-function exitEditMode() {
-  document.getElementById('cpReadBody').style.display  = '';
-  document.getElementById('cpEditBody').style.display  = 'none';
-  document.getElementById('cpEditBtn').classList.remove('editing');
-  document.getElementById('cpEditBtn').title = 'Edit file';
-  cpEditDirty = false;
-}
-
-async function cancelEdit() {
-  if (cpEditDirty) {
-    try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
-    catch { return; }
-  }
-  exitEditMode();
-}
-
-async function saveEdit() {
-  if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
-  const raw = cmGetValue(kbEditor);
-  setCpEditStatus('', '⏳ Saving…');
-  try {
-    const r = await fetch('/api/kb/save', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id: activeDoc.id, view: activeDoc.view, content: raw }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Save failed');
-
-    // Update activeDoc raw + re-render preview in background
-    activeDoc.raw = raw;
-    cpEditDirty   = false;
-    setCpEditStatus('saved', '✓ saved');
-
-    // Re-render the read view with updated content so it's fresh when you exit
-    try {
-      const endpoint = activeDoc.view === 'services'
-        ? `/api/service/${encodeURIComponent(activeDoc.id)}`
-        : `/api/methodology/${encodeURIComponent(activeDoc.id)}`;
-      const r2 = await fetch(endpoint);
-      const d2 = await r2.json();
-      activeDoc.html = d2.html;
-      activeDoc.raw  = d2.raw;
-      document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
-      wrapCodeBlocks(document.getElementById('cpContent'));
-      wrapInlineCodes(document.getElementById('cpContent'));
-    } catch(_) {}
-
-    setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
-  } catch(e) {
-    setCpEditStatus('unsaved', '✗ ' + e.message);
-  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1647,182 +1435,6 @@ function renderTagFilterSidebar() {
     `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
   ).join('');
 }
-
-
-// ═══════════════════════════════════════════════
-// CODEMIRROR 6 EDITORS
-// ═══════════════════════════════════════════════
-let noteEditor = null;
-let kbEditor   = null;
-
-function cmGetValue(editor) {
-  return editor ? editor.state.doc.toString() : '';
-}
-
-function cmSetValue(editor, value) {
-  if (!editor) return;
-  editor.dispatch({
-    changes: { from: 0, to: editor.state.doc.length, insert: value || '' }
-  });
-}
-
-/* ── Syntax highlight themes ── */
-const SYNTAX_THEMES = {
-  monokai: (dark) => [
-    { tag: CM.tags.heading1,              color: '#f92672', fontWeight: '700' },
-    { tag: CM.tags.heading2,              color: '#f92672', fontWeight: '600' },
-    { tag: CM.tags.heading3,              color: '#fd971f', fontWeight: '600' },
-    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#fd971f' },
-    { tag: CM.tags.strong,                color: '#fd971f', fontWeight: '700' },
-    { tag: CM.tags.emphasis,              color: '#a6e22e', fontStyle: 'italic' },
-    { tag: CM.tags.strikethrough,         color: '#75715e', textDecoration: 'line-through' },
-    { tag: [CM.tags.link, CM.tags.url],   color: '#66d9e8' },
-    { tag: CM.tags.monospace,             color: '#ae81ff' },
-    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#75715e', fontStyle: 'italic' },
-    { tag: CM.tags.punctuation,           color: dark ? '#555566' : '#aaaacc' },
-    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#ae81ff' },
-    { tag: [CM.tags.keyword, CM.tags.operator], color: '#f92672' },
-    { tag: CM.tags.string,                color: '#e6db74' },
-  ],
-  nord: (dark) => [
-    { tag: CM.tags.heading1,              color: '#bf616a', fontWeight: '700' },
-    { tag: CM.tags.heading2,              color: '#d08770', fontWeight: '600' },
-    { tag: CM.tags.heading3,              color: '#ebcb8b', fontWeight: '600' },
-    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#ebcb8b' },
-    { tag: CM.tags.strong,                color: '#d08770', fontWeight: '700' },
-    { tag: CM.tags.emphasis,              color: '#a3be8c', fontStyle: 'italic' },
-    { tag: CM.tags.strikethrough,         color: '#4c566a', textDecoration: 'line-through' },
-    { tag: [CM.tags.link, CM.tags.url],   color: '#88c0d0' },
-    { tag: CM.tags.monospace,             color: '#b48ead' },
-    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#616e88', fontStyle: 'italic' },
-    { tag: CM.tags.punctuation,           color: dark ? '#4c566a' : '#9aa0b0' },
-    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#b48ead' },
-    { tag: [CM.tags.keyword, CM.tags.operator], color: '#81a1c1' },
-    { tag: CM.tags.string,                color: '#a3be8c' },
-  ],
-  solarized: (dark) => [
-    { tag: CM.tags.heading1,              color: '#dc322f', fontWeight: '700' },
-    { tag: CM.tags.heading2,              color: '#cb4b16', fontWeight: '600' },
-    { tag: CM.tags.heading3,              color: '#b58900', fontWeight: '600' },
-    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: '#b58900' },
-    { tag: CM.tags.strong,                color: '#cb4b16', fontWeight: '700' },
-    { tag: CM.tags.emphasis,              color: '#2aa198', fontStyle: 'italic' },
-    { tag: CM.tags.strikethrough,         color: '#586e75', textDecoration: 'line-through' },
-    { tag: [CM.tags.link, CM.tags.url],   color: '#268bd2' },
-    { tag: CM.tags.monospace,             color: '#6c71c4' },
-    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: '#586e75', fontStyle: 'italic' },
-    { tag: CM.tags.punctuation,           color: dark ? '#586e75' : '#839496' },
-    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: '#6c71c4' },
-    { tag: [CM.tags.keyword, CM.tags.operator], color: '#859900' },
-    { tag: CM.tags.string,                color: '#2aa198' },
-  ],
-};
-
-let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
-
-function setSyntaxTheme(name) {
-  activeSyntaxTheme = name;
-  localStorage.setItem('pragma-syntax-theme', name);
-  document.querySelectorAll('.syntax-dot').forEach(d =>
-    d.classList.toggle('active', d.dataset.theme === name));
-
-  // Capture current content BEFORE destroying editors
-  const noteContent = noteEditor ? cmGetValue(noteEditor) : null;
-  const kbContent   = kbEditor   ? cmGetValue(kbEditor)   : null;
-
-  // Rebuild with new theme, passing saved content so doc is never empty
-  if (typeof cmInitNote === 'function') cmInitNote(noteContent);
-  if (typeof cmInitKb   === 'function') cmInitKb(kbContent);
-}
-
-function initSyntaxThemePicker() {
-  document.querySelectorAll('.syntax-dot').forEach(d =>
-    d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
-}
-
-function cmThemeVars() {
-  // Read CSS vars at runtime so theme matches dark/light mode
-  const s = getComputedStyle(document.documentElement);
-  const bg    = s.getPropertyValue('--bg').trim()    || '#1a1a1f';
-  const text  = s.getPropertyValue('--text').trim()  || '#e2e8f0';
-  const text2 = s.getPropertyValue('--text2').trim() || '#94a3b8';
-  const muted = s.getPropertyValue('--muted').trim() || '#4a5568';
-  const bg3   = s.getPropertyValue('--bg3').trim()   || '#26262f';
-  return { bg, text, text2, muted, bg3 };
-}
-
-function buildCmTheme() {
-  if (!window.CM) return [];
-  const v    = cmThemeVars();
-  const dark = !document.documentElement.classList.contains('light');
-
-  const editorTheme = CM.EditorView.theme({
-    '&':                          { background: 'transparent', height: '100%' },
-    '.cm-content':                { color: v.text2, caretColor: v.text, padding: '0' },
-    '.cm-cursor':                 { borderLeftColor: v.text },
-    '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },
-    '.cm-activeLine':             { background: 'rgba(124,58,237,0.06)' },
-    '.cm-gutters':                { display: 'none' },
-    '.cm-placeholder':            { color: v.muted },
-    '.cm-line':                   { padding: '0' },
-  }, { dark });
-
-  const highlightStyle = CM.HighlightStyle.define(SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.monokai(dark));
-
-  return [editorTheme, CM.syntaxHighlighting(highlightStyle)];
-}
-
-function cmInitNote(initialDoc) {
-  const wrap = document.getElementById('noteBodyWrap');
-  if (!wrap || !CM) return;
-  if (noteEditor) { noteEditor.destroy(); }
-
-  noteEditor = new CM.EditorView({
-    doc: initialDoc ?? '',
-    extensions: [
-      CM.basicSetup,
-      CM.markdown(),
-      ...buildCmTheme(),
-      CM.EditorView.updateListener.of(update => {
-        if (update.docChanged && activeNoteId) {
-          autoSaveNote();
-          updateNotePreview();
-        }
-      }),
-      CM.EditorView.lineWrapping,
-      CM.indentUnit.of('  '),
-      CM.keymap.of([CM.indentWithTab])
-    ],
-    parent: wrap,
-  });
-}
-
-function cmInitKb(initialDoc) {
-  const wrap = document.getElementById('cpEditWrap');
-  if (!wrap || !CM) return;
-  if (kbEditor) { kbEditor.destroy(); }
-
-  kbEditor = new CM.EditorView({
-    doc: initialDoc ?? '',
-    extensions: [
-      CM.basicSetup,
-      CM.markdown(),
-      ...buildCmTheme(),
-      CM.EditorView.updateListener.of(update => {
-        if (update.docChanged) {
-          if (!cpEditDirty) { cpEditDirty = true; setCpEditStatus('unsaved', '● unsaved'); }
-        }
-      }),
-      CM.EditorView.lineWrapping,
-      CM.indentUnit.of('  '),
-      CM.keymap.of([CM.indentWithTab])
-    ],
-    parent: wrap,
-  });
-}
-
-// Reinit editors on theme toggle to pick up new CSS vars
-const _origToggleTheme = typeof toggleTheme === 'function' ? toggleTheme : null;
 
 
 // ═══════════════════════════════════════════════
@@ -2305,7 +1917,7 @@ document.addEventListener('keydown', async e => {
     const viewMap = {
       '1': ['notes',         'nav-notes'],
       '2': ['services',      'nav-services'],
-      '3': ['methodologies', 'nav-methodologies'],
+      '3': ['tactics', 'nav-tactics'],
       '4': ['search',        'nav-search'],
     };
     const v = viewMap[e.key];
@@ -2406,7 +2018,7 @@ document.addEventListener('keydown', async e => {
 document.addEventListener('DOMContentLoaded', () => {
   const hints = [
     ['nav-services',      '⌘1'],
-    ['nav-methodologies', '⌘2'],
+    ['nav-tactics', '⌘2'],
     ['nav-notes',         '⌘3'],
     ['nav-search',        '⌘4'],
   ];

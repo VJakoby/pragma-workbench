@@ -135,7 +135,7 @@ function refreshCodeBlocks() {
 let kbCreateView = 'services';
 
 function getKbCollection(view) {
-  return view === 'services' ? SERVICES : METHODOLOGIES;
+  return view === 'services' ? SERVICES : TACTICS;
 }
 
 function getKbBackendView(view) {
@@ -159,9 +159,9 @@ async function refreshKbView(view) {
     const countEl = document.getElementById('svc-count');
     if (countEl) countEl.textContent = SERVICES.length;
   } else {
-    METHODOLOGIES = items;
-    const countEl = document.getElementById('meth-count');
-    if (countEl) countEl.textContent = METHODOLOGIES.length;
+    TACTICS = items;
+    const countEl = document.getElementById('tactics-count');
+    if (countEl) countEl.textContent = TACTICS.length;
   }
 
   renderCards(view);
@@ -173,7 +173,7 @@ async function refreshKbView(view) {
 }
 
 function openKbCreateModal(view) {
-  kbCreateView = view === 'services' ? 'services' : 'methodologies';
+  kbCreateView = view === 'services' ? 'services' : 'tactics';
   const isServices = kbCreateView === 'services';
   const title = isServices ? 'Create Service' : 'Create Tactic';
   const categoryLabel = activeCat && activeCat !== 'all' ? ` in ${activeCat}` : '';
@@ -231,7 +231,7 @@ async function submitKbCreate() {
     return;
   }
 
-  const clientView = kbCreateView === 'services' ? 'services' : 'methodologies';
+  const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
   const backendView = getKbBackendView(clientView);
   const category = activeView === clientView && activeCat !== 'all' ? activeCat : '';
 
