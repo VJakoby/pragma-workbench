@@ -1,18 +1,34 @@
 # 🚀 Docker Usage
 
----
 
 ## Project Structure
 
 ```
 pragma-workbench/
 ├── public/
-│   └── app.html
+│   ├── app.html                  // static mirror/reference page
+│   └── app/
+│       ├── app.js
+│       ├── content-panel.js
+│       ├── editor-theme.js
+│       ├── kb-editor.js
+│       ├── kb.js
+│       ├── note-editor.js
+│       ├── notes.js
+│       ├── quick-log.js
+│       ├── search.js
+│       ├── shell.js
+│       ├── targets.js
+│       ├── timeline.js
+│       └── workbench.js
 ├── server/
 │   ├── index.js
 │   ├── config/
 │   ├── lib/
 │   └── routes/
+├── views/
+│   ├── app.ejs                  // live server-rendered app entrypoint
+│   └── partials/
 ├── server.js
 ├── package.json
 ├── notes-templates.json          // optional — custom note templates (see README)
@@ -35,7 +51,9 @@ pragma-workbench/
         └── pivoting.md
 ```
 
-> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab — no configuration needed. Only `tactics/` is reserved for the Tactics tab.
+> **Live UI note:** The application is served through `views/app.ejs`. `public/app.html` is kept as a static mirror/reference page, but it is not the main runtime entrypoint when the Node server is used.
+
+> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab. Only `tactics/` is reserved for the Tactics tab.
 
 ---
 
@@ -95,7 +113,7 @@ docker compose down
 docker logs -f pragma-workbench
 ```
 
-### Rebuild after app.html / backend changes
+### Rebuild after frontend or backend changes
 
 ```bash
 docker compose down && docker compose up -d --build

@@ -1,6 +1,6 @@
 # #️ PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware KB — no cloud, no clutter.
+> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
 
 ---
 ## 🚩 My Problem
@@ -19,24 +19,14 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in docker-network) to enable full-text knowledge base lookups from defined online sources directly inside the app
-
-## 📸 Screenshots
-<p align="left">
-  <a href="./screenshots/pragma-session-notes.png" target="_blank"><img src="./screenshots/pragma-session-notes.png" width="24%"></a>
-  <a href="./screenshots/pragma-sessions.png" target="_blank"><img src="./screenshots/pragma-sessions.png" width="24%"></a>
-  <a href="./screenshots/pragma-kb.png" target="_blank"><img src="./screenshots/pragma-kb.png" width="24%"></a>
-</p>
-<p align="left">
-  <a href="./screenshots/pragma-encrypted-workbench.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
-  <a href="./screenshots/pragma-workbench-locked.png" target="_blank"><img src="./screenshots/pragma-encrypted-workbench.png" width="24%"></a>
+- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 </p>
 
 ## 🏷️ Features
 
 **Sessions & Targets**
 - Named sessions with multi-target tracking (IP, domain, label)
-- Active target auto-injects into all code blocks at copy time across KB and Tactical Guides
+- Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
 - Export/import sessions as JSON for portability; notes export as structured markdown
 
@@ -63,8 +53,8 @@ A persistent in-session log accessible from the topbar, organised into three tab
 
 All three tabs persist per session alongside notes and are included in session exports. Loot entries are exported as a separate `loot.md` file (grouped by host) when exporting notes as markdown.
 
-**Knowledge Base & Tactical Guides**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically (only `tactics/` is reserved for Tactical Guides)
+**Knowledge Base & Tactics**
+- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -162,7 +152,7 @@ These are outside the threat model for a local single-operator tool. If your VM 
 
 ## 🎯 Target Injection Reference
 
-When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and Tactical Guides with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
+When a session has an active target set, PRAGMA automatically replaces placeholder variables in KB documents and tactics with the target's IP and domain — highlighted in yellow on render, and injected at copy time in code blocks.
 
 Write your KB docs using any of the supported placeholder styles below.
 
@@ -224,6 +214,26 @@ npm start
 # 3. Open in browser
 http://localhost:3000
 ```
+
+## Frontend Layout
+
+The live UI is rendered from [views/app.ejs](./views/app.ejs). The older [public/app.html](./public/app.html) is kept as a static mirror/reference page, but the server-rendered EJS view is what the application actually serves.
+
+The frontend is now split into smaller browser modules under [public/app](./public/app):
+
+- `shell.js` — theme, sidebar state, app bootstrap, global shortcuts, view switching
+- `content-panel.js` — KB/tactics preview rendering, copy helpers, source preview panel
+- `editor-theme.js` — shared editor state and syntax theme handling
+- `note-editor.js` — note editor initialization and preview layout behavior
+- `kb-editor.js` — in-place KB/tactics editing logic
+- `workbench.js` — workbench/session storage, encryption flow, template loading
+- `notes.js` — note CRUD, filters, tags, targets, exports
+- `quick-log.js` — ports, paths, loot, and the topbar quick-log popover
+- `timeline.js` — timeline view, timeline export, toast helpers, shared download utilities
+- `kb.js`, `search.js`, `targets.js` — KB browsing, search integration, target management
+- `app.js` — remaining app coordinator logic, command palette, and modal helpers
+
+This means most new frontend work should target one of those focused modules instead of growing `app.js` back into a monolith.
 
 ---
 Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
