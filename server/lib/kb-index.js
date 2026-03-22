@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Fuse = require('fuse.js');
 
-function createKbIndex({ servicesDir, tacticsDir }) {
+function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   const PORT_MAP = {
     '21': { name: 'FTP', port: '21/tcp', category: 'File Transfer', icon: '📤' },
     '22': { name: 'SSH', port: '22/tcp', category: 'Remote Access', icon: '🔒' },
@@ -84,6 +84,8 @@ function createKbIndex({ servicesDir, tacticsDir }) {
 
   let serviceIndex = [];
   let tacticsIndex = [];
+  let serviceCategories = [];
+  let tacticsCategories = [];
   let searchIndex = null;
 
   function metaFromFilename(filename) {
@@ -121,6 +123,10 @@ function createKbIndex({ servicesDir, tacticsDir }) {
     return safe || null;
   }
 
+  function humanizeCategory(name) {
+    return String(name || '').replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || 'General';
+  }
+
   function walkMdFiles(dir, rootDir) {
     let results = [];
     let entries;
@@ -139,25 +145,69 @@ function createKbIndex({ servicesDir, tacticsDir }) {
   }
 
   function buildIndex() {
-    if (!fs.existsSync(servicesDir)) {
-      console.warn(`[PRAGMA] services/ not found at ${servicesDir}. Creating empty dir.`);
-      fs.mkdirSync(servicesDir, { recursive: true });
-      serviceIndex = [];
-      searchIndex = null;
-      return;
+    const entries = [];
+    const categoryMap = new Map();
+
+    function addCategory(label, folder = '') {
+      if (!label || label === 'All') return;
+      const key = String(label).toLowerCase();
+      if (!categoryMap.has(key)) categoryMap.set(key, { label, folder });
     }
 
-    const entries = walkMdFiles(servicesDir, servicesDir);
-    serviceIndex = entries.map(({ filename, filepath, subdir }) => {
+    if (fs.existsSync(servicesDir)) {
+      let serviceRootEntries = [];
+      try { serviceRootEntries = fs.readdirSync(servicesDir, { withFileTypes: true }); } catch (_) {}
+      for (const entry of serviceRootEntries) {
+        if (!entry.isDirectory()) continue;
+        addCategory(humanizeCategory(entry.name), normalizeFolderName(entry.name) || entry.name);
+      }
+      entries.push(...walkMdFiles(servicesDir, servicesDir).map(entry => ({
+        ...entry,
+        sourceRoot: servicesDir,
+        categoryLabel: entry.subdir ? humanizeCategory(entry.subdir) : null,
+        folder: entry.subdir || '',
+      })));
+    }
+
+    if (fs.existsSync(kbDir)) {
+      let rootEntries = [];
+      try { rootEntries = fs.readdirSync(kbDir, { withFileTypes: true }); } catch (_) {}
+      for (const entry of rootEntries) {
+        if (entry.name === 'tactics' || entry.name === 'services') continue;
+        const fullPath = path.join(kbDir, entry.name);
+        if (entry.isDirectory()) {
+          addCategory(humanizeCategory(entry.name), normalizeFolderName(entry.name) || entry.name);
+          entries.push(...walkMdFiles(fullPath, fullPath).map(fileEntry => ({
+            ...fileEntry,
+            sourceRoot: fullPath,
+            categoryLabel: humanizeCategory(entry.name),
+            folder: normalizeFolderName(entry.name) || entry.name,
+          })));
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+          entries.push({
+            filename: entry.name,
+            filepath: fullPath,
+            subdir: '',
+            sourceRoot: kbDir,
+            categoryLabel: 'General',
+            folder: '',
+          });
+        }
+      }
+    }
+
+    serviceIndex = entries.map(({ filename, filepath, categoryLabel, folder }) => {
       const content = fs.readFileSync(filepath, 'utf8');
       const meta = metaFromFilename(filename);
-      const category = subdir ? subdir.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : meta.category;
+      const category = categoryLabel || meta.category || 'General';
+      addCategory(category, folder || '');
       return {
         id: meta.id, name: meta.name, port: meta.port, category,
         icon: meta.icon, description: extractDescription(content),
-        file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder: subdir || '',
+        file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder,
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
+    serviceCategories = Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
 
     searchIndex = new Fuse(serviceIndex, {
       includeScore: true, threshold: 0.4, ignoreLocation: true,
@@ -167,7 +217,7 @@ function createKbIndex({ servicesDir, tacticsDir }) {
         { name: 'content', weight: 0.5 },
       ],
     });
-    console.log(`[PRAGMA] Indexed ${serviceIndex.length} service(s) from ${servicesDir}`);
+    console.log(`[PRAGMA] Indexed ${serviceIndex.length} knowledge file(s) from ${kbDir}`);
   }
 
   function extractTitle(content, filename) {
@@ -211,6 +261,7 @@ function createKbIndex({ servicesDir, tacticsDir }) {
         file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder: subdir || '',
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
+    tacticsCategories = [...new Set(tacticsIndex.map(item => item.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     console.log(`[PRAGMA] Indexed ${tacticsIndex.length} tactic file(s)`);
   }
 
@@ -218,7 +269,9 @@ function createKbIndex({ servicesDir, tacticsDir }) {
     buildIndex,
     buildTacticsIndex,
     getServiceIndex: () => serviceIndex,
+    getServiceCategories: () => serviceCategories,
     getTacticsIndex: () => tacticsIndex,
+    getTacticsCategories: () => tacticsCategories,
     getSearchIndex: () => searchIndex,
     metaFromFilename,
     normalizeKbFilename,

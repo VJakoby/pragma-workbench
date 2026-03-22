@@ -131,7 +131,7 @@ function execCmd(idx) {
   if (!item) return;
   closeCmd();
   if (item.type === 'service') {
-    switchView('services', document.getElementById('nav-services'));
+    switchView('services');
     openItem('services', item.id);
   } else if (item.type === 'tactic') {
     switchView('tactics', document.getElementById('nav-tactics'));
@@ -430,6 +430,30 @@ async function decryptPayload(obj, password) {
 // ═══════════════════════════════════════════════
 // RESIZABLE PANELS
 // ═══════════════════════════════════════════════
+let notesListHidden = localStorage.getItem('ops-notes-list-hidden') === '1';
+
+function applyNotesListVisibility() {
+  const layout = document.querySelector('.notes-layout');
+  const editorBtn = document.getElementById('notesListToggleBtnEditor');
+  const listBtn = document.getElementById('notesListToggleBtn');
+  const reopenBtn = document.getElementById('notesListReopenBtn');
+  if (layout) layout.classList.toggle('notes-list-hidden', notesListHidden);
+  if (editorBtn) {
+    editorBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
+    editorBtn.innerHTML = notesListHidden
+      ? '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><polyline points="13,9 16,12 13,15"/></svg> Show List</span>'
+      : '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><polyline points="15,9 12,12 15,15"/></svg> Hide List</span>';
+  }
+  if (listBtn) listBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
+  if (reopenBtn) reopenBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
+  localStorage.setItem('ops-notes-list-hidden', notesListHidden ? '1' : '0');
+}
+
+function toggleNotesList() {
+  notesListHidden = !notesListHidden;
+  applyNotesListVisibility();
+}
+
 (function() {
   const NOTES_MIN  = 120, NOTES_MAX  = 520, NOTES_DEFAULT  = 320;
   const PANEL_MIN  = 120, PANEL_MAX  = 1500, PANEL_DEFAULT  = 680;
@@ -443,6 +467,7 @@ async function decryptPayload(obj, password) {
 
   notesList.style.width    = savedNotesW + 'px';
   contentPanel.style.width = savedPanelW + 'px';
+  applyNotesListVisibility();
 
   function makeDraggable(handle, getEl, getStartW, onDrag, storageKey) {
     handle.addEventListener('mousedown', function(e) {

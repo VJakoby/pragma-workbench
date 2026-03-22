@@ -45,7 +45,7 @@ const {
   SEARCH_URL,
 } = createPaths(path.resolve(__dirname, '..'));
 
-const kbIndex = createKbIndex({ servicesDir: SERVICES_DIR, tacticsDir: TACTICS_DIR });
+const kbIndex = createKbIndex({ kbDir: KB_DIR, servicesDir: SERVICES_DIR, tacticsDir: TACTICS_DIR });
 const buildIndex = kbIndex.buildIndex;
 const buildTacticsIndex = kbIndex.buildTacticsIndex;
 const metaFromFilename = kbIndex.metaFromFilename;
@@ -82,6 +82,7 @@ app.get('/app.html', (req, res) => {
 registerKbRoutes(app, {
   marked,
   kbIndex,
+  kbDir: KB_DIR,
   servicesDir: SERVICES_DIR,
   tacticsDir: TACTICS_DIR,
   buildIndex,
@@ -97,19 +98,14 @@ registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
 registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage });
 
 if (chokidar) {
-  chokidar.watch(SERVICES_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
-    if (filePath.endsWith('.md')) {
-      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding index…`);
+  chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
+    console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding KB indexes…`);
+    if (event === 'addDir' || event === 'unlinkDir' || event === 'add' || event === 'change' || event === 'unlink') {
       buildIndex();
-    }
-  });
-  chokidar.watch(TACTICS_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {
-    if (filePath.endsWith('.md')) {
-      console.log(`[PRAGMA] ${event}: ${path.basename(filePath)} — rebuilding tactics index…`);
       buildTacticsIndex();
     }
   });
-  console.log('[PRAGMA] Watching services/ and tactics/ for changes');
+  console.log('[PRAGMA] Watching KB directory for changes');
 }
 
 buildIndex();
@@ -118,6 +114,14 @@ buildTacticsIndex();
 app.listen(PORT, '0.0.0.0', () => {
   const serviceIndex = kbIndex.getServiceIndex();
   const tacticsIndex = kbIndex.getTacticsIndex();
+  let kbSubdirs = [];
+  try {
+    kbSubdirs = fs.readdirSync(KB_DIR, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name)
+      .sort((a, b) => a.localeCompare(b));
+  } catch (_) {}
+
   console.log(`\n  ██████╗ ██████╗  █████╗  ██████╗ ███╗   ███╗ █████╗`);
   console.log(`  ██╔══██╗██╔══██╗██╔══██╗██╔════╝ ████╗ ████║██╔══██╗`);
   console.log(`  ██████╔╝██████╔╝███████║██║  ███╗██╔████╔██║███████║`);
@@ -125,10 +129,13 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://localhost:${PORT}/`);
-  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} services, ${tacticsIndex.length} tactics)`);
-  console.log(`  Services → ${SERVICES_DIR}`);
-  console.log(`  Tactics  → ${TACTICS_DIR}`);
+  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
   console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})\n`);
+  if (kbSubdirs.length) {
+    console.log('  ============= KB Subdirectories =============');
+    kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));
+    console.log('');
+  }
 
   const checks = runStartupIntegrityCheck({ sessionsDir: SESSIONS_DIR, storage });
   const icons = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };

@@ -20,6 +20,7 @@
   --red:      #f87171;
   --orange:   #fb923c;
   --yellow:   #fbbf24;
+  --editor-font-size: 13px;
   --sidebar-w: 220px;
   --topbar-h:  42px;
   --logo-icon-color: #8b5cf6;
@@ -604,7 +605,22 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .ip-injected{color:var(--yellow);font-weight:600}
 
 /* ── NOTES VIEW ── */
-.notes-layout{display:flex;flex:1;overflow:hidden}
+.notes-layout{display:flex;flex:1;overflow:hidden;position:relative}
+.notes-layout.notes-list-hidden .notes-list{
+  width:0 !important;
+  min-width:0;
+  border-right:none;
+  opacity:0;
+  pointer-events:none;
+}
+.notes-layout.notes-list-hidden #notesListHandle{
+  display:none;
+}
+.notes-layout.notes-list-hidden .notes-list-reopen-btn{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateX(0);
+}
 
 .notes-list{
   width:200px;flex-shrink:0;
@@ -618,6 +634,45 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding:10px 12px;border-bottom:1px solid var(--border);
   font-size:11px;font-weight:600;color:var(--muted);
   font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:0.1em;
+}
+.notes-list-hdr-actions{display:flex;align-items:center;gap:2px}
+.notes-list-reopen-btn{
+  position:absolute;
+  top:16px;
+  left:14px;
+  z-index:6;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border:1px solid rgba(167,139,250,0.5);
+  border-radius:10px;
+  background:linear-gradient(180deg, rgba(91,33,182,0.28), rgba(76,29,149,0.22));
+  color:#ddd6fe;
+  box-shadow:0 10px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(167,139,250,0.12);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  cursor:pointer;
+  opacity:0;
+  pointer-events:none;
+  transform:translateX(-8px);
+  transition:opacity 0.16s ease, transform 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.notes-list-reopen-btn:hover{
+  border-color:rgba(196,181,253,0.8);
+  color:#faf5ff;
+}
+[data-theme="light"] .notes-list-reopen-btn{
+  color:#4c1d95;
+  border-color:rgba(124,58,237,0.32);
+  background:linear-gradient(180deg, rgba(196,181,253,0.3), rgba(167,139,250,0.22));
+  box-shadow:0 10px 22px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.55), 0 0 0 1px rgba(124,58,237,0.08);
+}
+[data-theme="light"] .notes-list-reopen-btn:hover{
+  color:#3b0764;
+  border-color:rgba(124,58,237,0.46);
 }
 .notes-list-items{flex:1;overflow-y:auto}
 .notes-list-items::-webkit-scrollbar{width:3px}
@@ -1175,9 +1230,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   color: var(--muted); transition: all 0.12s; line-height: 1;
   flex-shrink: 0;
 }
-.note-pin-btn:hover { color: var(--yellow); background: rgba(251,191,36,0.1); }
-.note-pin-btn.pinned { color: var(--yellow); }
-.note-item-pin { display: inline-block; font-size: 10px; margin-left: 3px; color: var(--yellow); vertical-align: middle; }
+.note-pin-btn:hover { color: #fb923c; background: rgba(251,146,60,0.12); }
+.note-pin-btn.pinned {
+  color: #f97316;
+  background: rgba(249,115,22,0.16);
+  box-shadow: inset 0 0 0 1px rgba(249,115,22,0.22);
+}
+.note-item-pin { display: inline-block; font-size: 10px; margin-left: 3px; color: #f97316; vertical-align: middle; }
 
 /* ── Note timestamps bar ── */
 .note-timestamps {
@@ -1338,6 +1397,34 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .syntax-dot:hover { opacity: 0.8; border-color: var(--border); color: var(--text2); }
 .syntax-dot.active { opacity: 1; border-color: var(--border2); color: var(--text); background: var(--bg3); }
+.editor-font-controls {
+  display: flex; align-items: center; gap: 4px;
+  margin-left: 4px;
+}
+.editor-font-btn, .editor-font-label {
+  height: 22px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.editor-font-btn {
+  min-width: 28px;
+  padding: 0 7px;
+}
+.editor-font-label {
+  min-width: 44px;
+  padding: 0 8px;
+}
+.editor-font-btn:hover, .editor-font-label:hover {
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--bg3);
+}
 
 
 .task-list { list-style: none; padding-left: 4px; }
@@ -1819,10 +1906,9 @@ kbd {
 /* ── CodeMirror 6 editor integration ── */
 .cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .cm-wrap .cm-editor {
-  flex: 1; height: 100%; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+  flex: 1; height: 100%; font-size: var(--editor-font-size, 13px); font-family: 'JetBrains Mono', monospace;
   background: transparent !important;
 }
-.cm-wrap.kb-editor .cm-editor { font-size: 13px; }
 .cm-editor.cm-focused { outline: none !important; }
 .cm-editor .cm-scroller { padding: 16px; line-height: 1.8; overflow-y: auto; }
 .cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }

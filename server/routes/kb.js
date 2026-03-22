@@ -7,6 +7,7 @@ function registerKbRoutes(app, deps) {
   const {
     marked,
     kbIndex,
+    kbDir,
     servicesDir,
     tacticsDir,
     buildIndex,
@@ -17,10 +18,41 @@ function registerKbRoutes(app, deps) {
     normalizeFolderName,
   } = deps;
 
+  function getServiceCategoryRoots() {
+    return [kbDir, servicesDir].filter((dir, idx, arr) => dir && arr.indexOf(dir) === idx);
+  }
+
+  function resolveServiceCategoryDir(folder) {
+    const roots = getServiceCategoryRoots();
+    const matches = roots
+      .map(root => ({ root, dir: path.resolve(root, folder) }))
+      .filter(({ root, dir }) => dir.startsWith(path.resolve(root)) && fs.existsSync(dir) && fs.statSync(dir).isDirectory());
+    if (matches.length > 1) {
+      return { error: 'Category exists in multiple knowledge roots; rename manually to avoid ambiguity.' };
+    }
+    return matches[0] || null;
+  }
+
+  function getServiceWriteRoot(categoryDir) {
+    const roots = getServiceCategoryRoots();
+    if (!categoryDir) {
+      return fs.existsSync(servicesDir) ? servicesDir : kbDir;
+    }
+    for (const root of roots) {
+      const target = path.resolve(root, categoryDir);
+      if (target.startsWith(path.resolve(root)) && fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+        return root;
+      }
+    }
+    return kbDir;
+  }
+
   app.get('/api/services', (req, res) => {
     const serviceIndex = kbIndex.getServiceIndex();
+    const categories = kbIndex.getServiceCategories ? kbIndex.getServiceCategories() : [];
     res.json({
       total: serviceIndex.length,
+      categories,
       services: serviceIndex.map(({ id, name, port, category, icon, description, file, wordCount, folder }) =>
         ({ id, name, port, category, icon, description, file, wordCount, folder })),
     });
@@ -216,8 +248,8 @@ function registerKbRoutes(app, deps) {
       const safeFilename = normalizeKbFilename(filename);
       if (!safeFilename) return res.status(400).json({ error: 'A valid filename is required' });
 
-      const rootDir = isServices ? servicesDir : tacticsDir;
       const categoryDir = safeCategoryPath(category);
+      const rootDir = isServices ? getServiceWriteRoot(categoryDir) : tacticsDir;
       const targetDir = path.resolve(rootDir, categoryDir || '.');
       const rootResolved = path.resolve(rootDir);
       if (!targetDir.startsWith(rootResolved)) {
@@ -269,16 +301,30 @@ function registerKbRoutes(app, deps) {
       if (!safeNext) return res.status(400).json({ error: 'A valid category name is required' });
       if (safeNext === safeFolder) return res.json({ ok: true, folder: safeFolder });
 
-      const rootDir = isServices ? servicesDir : tacticsDir;
-      const srcDir = path.resolve(rootDir, safeFolder);
-      const dstDir = path.resolve(rootDir, safeNext);
-      const rootResolved = path.resolve(rootDir);
+      const rootDir = isServices ? null : tacticsDir;
+      let srcDir;
+      let dstDir;
+      let rootResolved;
+
+      if (isServices) {
+        const resolved = resolveServiceCategoryDir(safeFolder);
+        if (resolved?.error) return res.status(409).json({ error: resolved.error });
+        if (!resolved) return res.status(404).json({ error: 'Category folder not found' });
+        srcDir = resolved.dir;
+        rootResolved = path.resolve(resolved.root);
+        dstDir = path.resolve(resolved.root, safeNext);
+      } else {
+        srcDir = path.resolve(rootDir, safeFolder);
+        dstDir = path.resolve(rootDir, safeNext);
+        rootResolved = path.resolve(rootDir);
+        if (!fs.existsSync(srcDir)) return res.status(404).json({ error: 'Category folder not found' });
+        if (!fs.statSync(srcDir).isDirectory()) {
+          return res.status(400).json({ error: 'Category path is not a directory' });
+        }
+      }
+
       if (!srcDir.startsWith(rootResolved) || !dstDir.startsWith(rootResolved)) {
         return res.status(403).json({ error: 'Invalid category path' });
-      }
-      if (!fs.existsSync(srcDir)) return res.status(404).json({ error: 'Category folder not found' });
-      if (!fs.statSync(srcDir).isDirectory()) {
-        return res.status(400).json({ error: 'Category path is not a directory' });
       }
       if (fs.existsSync(dstDir)) {
         return res.status(409).json({ error: 'A category with that name already exists' });

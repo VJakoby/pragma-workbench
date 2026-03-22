@@ -2,6 +2,8 @@
 // SIDEBAR CATEGORIES
 // ═══════════════════════════════════════════════
 let kbCreateView = 'services';
+let activeCatFolder = '';
+let serviceCategoryMeta = [];
 
 function getKbCollection(view) {
   return view === 'services' ? SERVICES : TACTICS;
@@ -25,8 +27,10 @@ async function refreshKbView(view) {
 
   if (view === 'services') {
     SERVICES = items;
+    serviceCategoryMeta = d.categories || [];
     const countEl = document.getElementById('svc-count');
     if (countEl) countEl.textContent = SERVICES.length;
+    renderKnowledgeFolderNav();
   } else {
     TACTICS = items;
     const countEl = document.getElementById('tactics-count');
@@ -35,10 +39,37 @@ async function refreshKbView(view) {
 
   renderCards(view);
   if (activeView === view) {
-    buildSidebar(view);
+    if (view === 'services') renderKnowledgeFolderNav();
+    else buildSidebar(view);
     const input = document.getElementById(view === 'services' ? 'svcSearch' : 'methSearch');
     if (input) filterCards(view, input.value || '');
   }
+}
+
+function renderKnowledgeFolderNav() {
+  const list = document.getElementById('kbNavList');
+  if (!list) return;
+  const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
+  const currentFolder = activeView === 'services' ? (activeCatFolder || '') : '';
+  const isKnowledgeActive = activeView === 'services';
+
+  list.innerHTML = `
+    ${folderCats.map(cat => `
+      <div class="nav-item${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${esc(cat.label)}', '${esc(cat.folder || '')}', this)" title="${esc(cat.label)}">
+        <span class="nav-item-icon">·</span>
+        <span class="nav-item-label">${esc(cat.label)}</span>
+        <span class="nav-item-count">${SERVICES.filter(item => item.folder === cat.folder).length || '—'}</span>
+      </div>`).join('')}
+  `;
+}
+
+function openKnowledgeCategory(cat, folder, navEl) {
+  activeCat = 'all';
+  activeCatFolder = folder || '';
+  switchView('services', navEl);
+  renderKnowledgeFolderNav();
+  const input = document.getElementById('svcSearch');
+  filterCards('services', input ? input.value || '' : '');
 }
 
 function openKbCreateModal(view) {
@@ -102,7 +133,9 @@ async function submitKbCreate() {
 
   const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
   const backendView = getKbBackendView(clientView);
-  const category = activeView === clientView && activeCat !== 'all' ? activeCat : '';
+  const category = activeView === clientView && activeCat !== 'all'
+    ? (activeCatFolder || activeCat)
+    : '';
 
   try {
     if (err) {
@@ -142,22 +175,47 @@ async function submitKbCreate() {
 
 function buildSidebar(view) {
   const items = getKbCollection(view);
-  const cats  = ['all', ...new Set(items.map(i => i.category))].filter(Boolean);
+  const scopedItems = view === 'services' && activeCatFolder
+    ? items.filter(i => (i.folder || '') === activeCatFolder)
+    : items;
+  const selectedFolderMeta = view === 'services' && activeCatFolder
+    ? serviceCategoryMeta.find(c => (c.folder || '') === activeCatFolder)
+    : null;
+  const selectedFolderLabel = selectedFolderMeta?.label || '';
+  const serviceCats = view === 'services' && !activeCatFolder
+    ? serviceCategoryMeta.map(c => ({ label: c.label, folder: c.folder || '' }))
+    : [];
+  const derivedCats = scopedItems
+    .map(i => ({ label: i.category, folder: i.folder || '' }))
+    .filter(i => i.label)
+    .filter(i => !activeCatFolder || String(i.label).toLowerCase() !== String(selectedFolderLabel).toLowerCase());
+  const catMap = new Map();
+  [...serviceCats, ...derivedCats].forEach(cat => {
+    if (!cat?.label) return;
+    const key = String(cat.label).toLowerCase();
+    if (!catMap.has(key)) catMap.set(key, cat);
+  });
+  const derivedList = Array.from(catMap.values());
+  const cats = derivedList.length ? [{ label: 'all', folder: activeCatFolder || '' }, ...derivedList] : [];
   const list  = document.getElementById('catList');
   document.getElementById('cat-hdr').textContent = 'Categories';
-  activeCat = 'all';
+  const currentExists = cats.some(cat => cat.label === activeCat);
+  if (!currentExists) {
+    activeCat = 'all';
+  }
 
   list.innerHTML = cats.map(cat => `
-    <div class="nav-item${cat==='all'?' active':''}" data-cat="${esc(cat)}"
-         onclick="setCat('${esc(cat)}', this, '${view}')">
-      <span class="nav-item-icon">${cat==='all'?'◈':'·'}</span>
-      <span class="nav-item-label">${cat==='all'?'All':esc(cat)}</span>
-      ${cat!=='all'?`<span class="nav-item-count">${items.filter(i=>i.category===cat).length}</span>`:''}
+    <div class="nav-item${cat.label===activeCat?' active':''}" data-cat="${esc(cat.label)}" data-folder="${esc(cat.folder || '')}"
+         onclick="setCat('${esc(cat.label)}', this, '${view}', '${esc(cat.folder || '')}')">
+      <span class="nav-item-icon">${cat.label==='all'?'◈':'·'}</span>
+      <span class="nav-item-label">${cat.label==='all'?'All':esc(cat.label)}</span>
+      ${cat.label!=='all'?`<span class="nav-item-count">${scopedItems.filter(i => i.category===cat.label).length}</span>`:''}
     </div>`).join('');
 }
 
-function setCat(cat, el, view) {
+function setCat(cat, el, view, folder = '') {
   activeCat = cat;
+  activeCatFolder = folder || '';
   document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   filterCards(view, document.getElementById(view==='services'?'svcSearch':'methSearch').value);
@@ -176,7 +234,7 @@ function renderCards(view) {
     grid.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
       <div class="empty-state-title">No ${view} found</div>
-      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base/services':'knowledge_base/tactics'}/ folder</div>
+      <div class="empty-state-hint">Add .md files to the ${view==='services'?'knowledge_base/, knowledge_base/services/, or any top-level category folder':'knowledge_base/tactics/'}</div>
     </div>`;
     return;
   }
@@ -186,6 +244,7 @@ function renderCards(view) {
     card.className = 'card';
     card.dataset.id  = item.id;
     card.dataset.cat = item.category || '';
+    card.dataset.folder = item.folder || '';
     card.style.setProperty('--card-accent', accentFor(idx));
     card.innerHTML = `
       <span class="card-cat">${esc(item.category || '')}</span>
@@ -240,9 +299,11 @@ function filterCards(view, query) {
     const desc  = card.querySelector('.card-desc')?.textContent.toLowerCase() || '';
     const port  = card.querySelector('.card-port')?.textContent.toLowerCase() || '';
     const cat   = card.dataset.cat || '';
+    const folder = card.dataset.folder || '';
     const catOk = activeCat === 'all' || cat === activeCat;
+    const folderOk = view !== 'services' || !activeCatFolder || folder === activeCatFolder;
     const qOk   = !q || name.includes(q) || desc.includes(q) || port.includes(q) || cat.toLowerCase().includes(q);
-    const show  = catOk && qOk;
+    const show  = catOk && folderOk && qOk;
     card.classList.toggle('hidden', !show);
     if (show) vis++;
   });

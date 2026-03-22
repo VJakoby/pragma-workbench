@@ -68,6 +68,27 @@ const SYNTAX_THEMES = {
 };
 
 let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
+let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '13', 10) || 13));
+
+function applyEditorFontSize(size = activeEditorFontSize) {
+  activeEditorFontSize = Math.min(22, Math.max(11, size));
+  localStorage.setItem('pragma-editor-font-size', String(activeEditorFontSize));
+  document.documentElement.style.setProperty('--editor-font-size', `${activeEditorFontSize}px`);
+  const label = document.getElementById('editorFontSizeLabel');
+  if (label) label.textContent = `${activeEditorFontSize}px`;
+}
+
+function increaseEditorFont() {
+  applyEditorFontSize(activeEditorFontSize + 1);
+}
+
+function decreaseEditorFont() {
+  applyEditorFontSize(activeEditorFontSize - 1);
+}
+
+function resetEditorFont() {
+  applyEditorFontSize(13);
+}
 
 function setSyntaxTheme(name) {
   activeSyntaxTheme = name;
@@ -85,6 +106,7 @@ function setSyntaxTheme(name) {
 function initSyntaxThemePicker() {
   document.querySelectorAll('.syntax-dot').forEach(d =>
     d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
+  applyEditorFontSize(activeEditorFontSize);
 }
 
 function cmThemeVars() {
@@ -104,6 +126,7 @@ function buildCmTheme() {
 
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
+    '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)' },
     '.cm-content': { color: v.text2, caretColor: v.text, padding: '0' },
     '.cm-cursor': { borderLeftColor: v.text },
     '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },

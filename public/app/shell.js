@@ -112,6 +112,7 @@ async function init() {
     const response = await fetch('/api/services');
     const data = await response.json();
     SERVICES = data.services || [];
+    if (typeof serviceCategoryMeta !== 'undefined') serviceCategoryMeta = data.categories || [];
   } catch (e) {
     console.warn('services unavailable', e);
   }
@@ -132,7 +133,8 @@ async function init() {
 
   renderCards('services');
   renderCards('tactics');
-  buildSidebar('services');
+  renderKnowledgeFolderNav();
+  buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
 }
 
@@ -145,7 +147,12 @@ function switchView(view, navEl) {
   else document.getElementById(`nav-${view}`)?.classList.add('active');
 
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
-  if (view === 'services' || view === 'tactics') {
+  if (view === 'tactics') {
+    buildSidebar(view);
+    if (catSection) catSection.style.display = '';
+    document.getElementById('catList').style.display = '';
+  } else if (view === 'services') {
+    if (typeof renderKnowledgeFolderNav === 'function') renderKnowledgeFolderNav();
     buildSidebar(view);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
@@ -216,12 +223,12 @@ document.addEventListener('keydown', async e => {
     e.preventDefault();
     const viewMap = {
       '1': ['notes', 'nav-notes'],
-      '2': ['services', 'nav-services'],
+      '2': ['services', null],
       '3': ['tactics', 'nav-tactics'],
       '4': ['search', 'nav-search'],
     };
     const viewConfig = viewMap[e.key];
-    if (viewConfig) switchView(viewConfig[0], document.getElementById(viewConfig[1]));
+    if (viewConfig) switchView(viewConfig[0], viewConfig[1] ? document.getElementById(viewConfig[1]) : null);
     return;
   }
 
@@ -293,13 +300,12 @@ document.addEventListener('keydown', async e => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const hints = [
-    ['nav-services', '⌘1'],
-    ['nav-tactics', '⌘2'],
-    ['nav-notes', '⌘3'],
-    ['nav-search', '⌘4'],
+    [document.getElementById('nav-notes'), '⌘1'],
+    [document.getElementById('nav-services'), '⌘2'],
+    [document.getElementById('nav-tactics'), '⌘3'],
+    [document.getElementById('nav-search'), '⌘4'],
   ];
-  hints.forEach(([id, key]) => {
-    const el = document.getElementById(id);
+  hints.forEach(([el, key]) => {
     if (el) el.title = key;
   });
 });
