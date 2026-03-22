@@ -58,7 +58,7 @@ body{
 }
 
 /* ── LAYOUT ── */
-.layout{display:flex;flex-direction:column;height:100vh}
+.layout{display:flex;flex-direction:column;height:100vh;position:relative}
 
 /* ── TOPBAR ── */
 .topbar{
@@ -165,7 +165,7 @@ body{
 
 /* ── BODY SPLIT ── */
 .body-split{
-  display:flex;flex:1;overflow:hidden;
+  display:flex;flex:1;overflow:hidden;position:relative;
 }
 
 /* ── SIDEBAR ── */
@@ -1838,8 +1838,8 @@ kbd {
 /* ── Encrypted session indicator ── */
 /* Green left border + subtle sweep animation when encrypted session active */
 .sidebar.enc-active {
-  border-right-color: rgba(var(--green-rgb),0.35);
-  box-shadow: inset -2px 0 18px rgba(var(--green-rgb),0.07);
+  border-right-color: rgba(var(--green-rgb),0.52);
+  box-shadow: inset -3px 0 22px rgba(var(--green-rgb),0.12);
 }
 
 /* Pulsing green bar down the left edge of sidebar */
@@ -1847,7 +1847,7 @@ kbd {
   content: '';
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  width: 3px;
+  width: 4px;
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -1858,6 +1858,39 @@ kbd {
   animation: encPulse 2.4s ease-in-out infinite;
   pointer-events: none;
   z-index: 10;
+}
+
+body.enc-active-body .layout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(var(--green-rgb),0.5);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--green-rgb),0.12),
+    inset 0 0 40px rgba(var(--green-rgb),0.05),
+    0 0 26px rgba(var(--green-rgb),0.16);
+  pointer-events: none;
+  z-index: 120;
+}
+
+body.enc-active-body .body-split::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--green-rgb),0) 0%,
+    rgba(var(--green-rgb),0.95) 18%,
+    rgba(var(--green-rgb),0.95) 82%,
+    rgba(var(--green-rgb),0) 100%
+  );
+  box-shadow: 0 0 18px rgba(var(--green-rgb),0.45);
+  animation: encPulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 20;
 }
 
 @keyframes encPulse {
@@ -1874,8 +1907,13 @@ kbd {
 
 /* Topbar gets a hairline green glow at the bottom when enc active */
 body.enc-active-body .topbar {
-  border-bottom-color: rgba(var(--green-rgb),0.3);
-  box-shadow: 0 1px 0 rgba(var(--green-rgb),0.15);
+  border-bottom-color: rgba(var(--green-rgb),0.42);
+  box-shadow: 0 1px 0 rgba(var(--green-rgb),0.2), inset 0 -8px 22px rgba(var(--green-rgb),0.04);
+}
+
+body.enc-active-body .main-panel,
+body.enc-active-body .content-panel {
+  box-shadow: inset 0 1px 0 rgba(var(--green-rgb),0.08);
 }
 
 /* ── Custom password / confirm modal ── */
