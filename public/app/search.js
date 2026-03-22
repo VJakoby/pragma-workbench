@@ -1,6 +1,23 @@
 // ═══════════════════════════════════════════════
 // SEARCH
 // ═══════════════════════════════════════════════
+function updateSearchNavBadge(status = 'checking') {
+  const badge = document.getElementById('search-index-badge');
+  if (!badge) return;
+  const count = Array.isArray(knownSources) ? knownSources.length : 0;
+  badge.textContent = count > 0 ? String(count) : '0';
+  badge.className = `nav-item-count search-nav-badge ${status}`;
+  badge.title = count > 0
+    ? `${count} indexed source${count === 1 ? '' : 's'} · ENGRAM ${status}`
+    : `No indexed sources loaded · ENGRAM ${status}`;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => updateSearchNavBadge('checking'), { once: true });
+} else {
+  updateSearchNavBadge('checking');
+}
+
 async function checkEngramStatus() {
   const pill = document.getElementById('engramPill');
   const label = document.getElementById('engramPillLabel');
@@ -8,6 +25,7 @@ async function checkEngramStatus() {
 
   pill.className = 'engram-pill checking';
   label.textContent = 'ENGRAM…';
+  updateSearchNavBadge('checking');
 
   try {
     const r = await fetch('/api/search-ping', { signal: AbortSignal.timeout(3000) });
@@ -15,13 +33,16 @@ async function checkEngramStatus() {
     if (d.reachable === true) {
       pill.className = 'engram-pill online';
       label.textContent = 'ENGRAM';
+      updateSearchNavBadge('online');
     } else {
       pill.className = 'engram-pill offline';
       label.textContent = 'ENGRAM';
+      updateSearchNavBadge('offline');
     }
   } catch (e) {
     pill.className = 'engram-pill offline';
     label.textContent = 'ENGRAM';
+    updateSearchNavBadge('offline');
   }
 }
 
@@ -68,10 +89,14 @@ async function loadSearchSources() {
   try {
     const r = await fetch('/api/search-sources');
     const d = await r.json();
-    if (!d.sources || !d.sources.length) return;
-    knownSources = d.sources.map(s => ({ id: s.id, name: s.name }));
+    knownSources = (d.sources || []).map(s => ({ id: s.id, name: s.name }));
+    updateSearchNavBadge(document.getElementById('engramPill')?.classList.contains('online') ? 'online'
+      : document.getElementById('engramPill')?.classList.contains('offline') ? 'offline'
+      : 'checking');
+    if (!knownSources.length) return;
     renderSourceChips();
   } catch(e) {
+    updateSearchNavBadge(document.getElementById('engramPill')?.classList.contains('online') ? 'online' : 'offline');
   }
 }
 
@@ -158,6 +183,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
       pill.className = 'engram-pill offline';
       label.textContent = 'ENGRAM';
     }
+    updateSearchNavBadge('offline');
     stat.textContent = '⚠ offline';
     list.innerHTML = `<div class="results-offline error">
       <div class="results-offline-icon">⚠</div>
@@ -173,6 +199,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
     pill.className = 'engram-pill online';
     label.textContent = 'ENGRAM';
   }
+  updateSearchNavBadge('online');
   stat.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
   if (meta) {
     meta.textContent = (docsSearched != null && timeMs != null)
