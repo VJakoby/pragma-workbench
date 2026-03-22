@@ -63,6 +63,8 @@ async function cancelEdit() {
 
 async function saveEdit() {
   if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
+  const savedView = activeDoc.view;
+  const savedId = activeDoc.id;
   const raw = cmGetValue(kbEditor);
   setCpEditStatus('', '⏳ Saving…');
   try {
@@ -78,14 +80,22 @@ async function saveEdit() {
     cpEditDirty   = false;
     setCpEditStatus('saved', '✓ saved');
 
+    if (typeof refreshKbView === 'function') {
+      await refreshKbView(savedView);
+    }
+
     try {
-      const endpoint = activeDoc.view === 'services'
-        ? `/api/service/${encodeURIComponent(activeDoc.id)}`
-        : `/api/tactic/${encodeURIComponent(activeDoc.id)}`;
+      const endpoint = savedView === 'services'
+        ? `/api/service/${encodeURIComponent(savedId)}`
+        : `/api/tactic/${encodeURIComponent(savedId)}`;
       const r2 = await fetch(endpoint);
       const d2 = await r2.json();
       activeDoc.html = d2.html;
       activeDoc.raw  = d2.raw;
+      activeDoc.meta = savedView === 'services'
+        ? `${d2.port} · ${d2.category}`
+        : `${d2.category} · ${d2.wordCount} words`;
+      activeDoc.title = d2.name || activeDoc.title;
       document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
       wrapCodeBlocks(document.getElementById('cpContent'));
       wrapInlineCodes(document.getElementById('cpContent'));

@@ -162,8 +162,14 @@ function switchView(view, navEl) {
   document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
-  if (navEl) navEl.classList.add('active');
-  else document.getElementById(`nav-${view}`)?.classList.add('active');
+  if (view === 'services' && navEl?.id === 'nav-services' && typeof activeCatFolder !== 'undefined') {
+    activeCatFolder = '';
+  }
+  if (navEl) {
+    navEl.classList.add('active');
+  } else {
+    document.getElementById(`nav-${view}`)?.classList.add('active');
+  }
 
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
   if (view === 'tactics') {

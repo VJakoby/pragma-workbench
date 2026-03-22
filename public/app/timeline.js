@@ -119,13 +119,15 @@ function renderTimeline() {
         const preview = (n.body || '').replace(/^#+\s*/gm, '').replace(/\n/g, ' ').trim().slice(0, 60);
         const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
         const tgtBadge = tgt
-          ? `<span class="note-item-target" style="margin-top:2px"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> ${esc(tgt.ip || tgt.domain || tgt.label || 'target')}</span>`
+          ? `<span class="note-item-target"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> ${esc(tgt.ip || tgt.domain || tgt.label || 'target')}</span>`
           : '';
         html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
           <span class="tl-time">${esc(time)}</span>
           <div class="tl-body">
-            <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
-            ${tgtBadge}
+            <div class="tl-badge-row">
+              <span class="tl-type-badge ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+              ${tgtBadge}
+            </div>
             <div class="tl-title">${esc(n.title || 'Untitled')}</div>
             ${preview ? `<div class="tl-preview">${esc(preview)}</div>` : ''}
           </div>
