@@ -95,6 +95,54 @@ function targetLabel(target) {
   return [target.ip, target.domain, target.label].filter(Boolean).join(' · ');
 }
 
+function replaceAllPatterns(input, patterns, replacement) {
+  let output = String(input || '');
+  patterns.forEach((pattern) => {
+    output = output.replace(pattern, replacement);
+  });
+  return output;
+}
+
+function injectTargetPlaceholders(text, target) {
+  if (!target || !text) return text || '';
+
+  const ip = String(target.ip || '').trim();
+  const domain = String(target.domain || '').trim();
+  let output = String(text);
+
+  if (ip) {
+    const ipPatterns = [
+      /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
+      /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
+      /<rhost>/g, /<HOST>/g, /<host>/g,
+      /\bTARGET_IP\b/g, /\bRHOST\b/g, /\bTARGET\b/g,
+      /\$IP\b/g, /\$RHOST\b/g, /\$TARGET\b/g, /\$TARGET_IP\b/g,
+      /\$HOST\b/g,
+      /\{IP\}/g, /\{ip\}/g, /\{RHOST\}/g, /\{rhost\}/g, /\{TARGET\}/g,
+      /\{\{ip\}\}/g, /\{\{IP\}\}/g, /\{\{target\}\}/g, /\{\{rhost\}\}/g,
+      /\{HOST\}/g, /\{host\}/g, /\{\{host\}\}/g, /\{\{HOST\}\}/g,
+      /\bTARGET_IP_ADDRESS\b/g, /<MACHINE_IP>/g, /\bMACHINE_IP\b/g,
+      /\b10\.10\.10\.X\b/g, /\b10\.10\.X\.X\b/g,
+    ];
+    output = replaceAllPatterns(output, ipPatterns, ip);
+    output = output.replace(/\bIP\b/g, ip).replace(/\bHOST\b/g, ip);
+  }
+
+  if (domain) {
+    const domainPatterns = [
+      /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
+      /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
+      /\bTARGET_DOMAIN\b/g, /\bDOMAIN\b/g,
+      /\$DOMAIN\b/g, /\$FQDN\b/g, /\$DC\b/g,
+      /\{DOMAIN\}/g, /\{domain\}/g, /\{FQDN\}/g, /\{\{domain\}\}/g,
+      /<WORKGROUP>/g, /\bWORKGROUP\b/g,
+    ];
+    output = replaceAllPatterns(output, domainPatterns, domain);
+  }
+
+  return output;
+}
+
 function buildTypeBuckets(notes, templateMeta) {
   const grouped = new Map();
   notes.forEach((note) => {
@@ -194,7 +242,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
 }
 
 function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
-  const title = noteTitle(note, storage);
+  const title = injectTargetPlaceholders(noteTitle(note, storage), target);
   const label = targetLabel(target);
   return [
     `# ${title}`,
@@ -206,7 +254,7 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
     '',
     '---',
     '',
-    note.body || '',
+    injectTargetPlaceholders(note.body || '', target),
   ].join('\n');
 }
 
@@ -355,14 +403,16 @@ function renderNoteEntries(bucket, model, includeTarget) {
   const lines = [`### ${bucket.label}`, ''];
   bucket.notes.forEach((note) => {
     const target = note.target_id ? model.targetById[note.target_id] : null;
-    lines.push(`#### ${noteTitle(note, model.storage)}`);
+    const resolvedTitle = target ? injectTargetPlaceholders(noteTitle(note, model.storage), target) : noteTitle(note, model.storage);
+    const resolvedBody = target ? injectTargetPlaceholders(note.body || '', target) : (note.body || '');
+    lines.push(`#### ${resolvedTitle}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
     lines.push(`- Created: ${formatTimestamp(noteTimestamp(note))}`);
     if (includeTarget && target) lines.push(`- Target: ${targetLabel(target)}`);
     lines.push('');
-    if (note.body && note.body.trim()) {
-      lines.push(note.body.trimEnd());
+    if (resolvedBody && resolvedBody.trim()) {
+      lines.push(resolvedBody.trimEnd());
       lines.push('');
     }
   });
@@ -396,9 +446,9 @@ function renderConsolidatedSession(model) {
   const lines = [
     `# ${model.session.codename}`,
     '',
-    `Exported: ${formatTimestamp(model.exportedAt)}`,
-    `Duration: ${model.stats.durationLabel}`,
-    `Targets: ${model.stats.targetCount}`,
+    `**Exported:** ${formatTimestamp(model.exportedAt)} - `,
+    `**Duration:** ${model.stats.durationLabel} - `,
+    `**Targets:** ${model.stats.targetCount}`,
   ];
 
   if (model.targets.length) {
