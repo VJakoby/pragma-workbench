@@ -54,7 +54,28 @@
       "icon": "🛡️",
       "title_prefix": "Machine_",
       "default_tags": ["ctf", "custom"],
-      "body": "# Machine Name - [NAME]\n- **IP:** `<TARGET>`\n-**DOMAIN:** `<DOMAIN>` \n\n## 1. Enumeration\n\n### Service Scanning\n\n### Web\n\n### Other Services\n\n## 2. Exploitation\n\n## 3. Post-Exploitation\n\n## 4. Privilege Escalation\n\n## 5. Clean up & Notes"
+      "body_lines": [
+        "# Machine Name - [NAME]",
+        "",
+        "- **IP:** `<TARGET>`",
+        "- **DOMAIN:** `<DOMAIN>`",
+        "",
+        "## 1. Enumeration",
+        "",
+        "### Service Scanning",
+        "",
+        "### Web",
+        "",
+        "### Other Services",
+        "",
+        "## 2. Exploitation",
+        "",
+        "## 3. Post-Exploitation",
+        "",
+        "## 4. Privilege Escalation",
+        "",
+        "## 5. Clean up & Notes"
+      ]
     }
   ]
 }

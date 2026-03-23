@@ -159,4 +159,6 @@ Currently the Notes section is unified across all targets. A future option could
 ---
 
 *Last updated: 2026-03-23*
-*Status: Spec — not yet implemented*
+*Status:*
+*1. Implemented!*
+*2. Not yet implemented.*

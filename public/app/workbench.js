@@ -38,9 +38,10 @@ async function loadNoteTemplates() {
     const loaded = {};
     for (const t of d.templates) {
       if (!t.id) continue;
+      const body = Array.isArray(t.body_lines) ? t.body_lines.join('\n') : (t.body || '');
       loaded[t.id] = {
         title:        t.title_prefix || '',
-        body:         t.body         || '',
+        body,
         icon:         t.icon,
         label:        t.label,
         default_tags: t.default_tags || [],

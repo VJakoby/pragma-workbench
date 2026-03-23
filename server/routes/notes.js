@@ -18,7 +18,10 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
     try {
       const raw = await fs.promises.readFile(templatesFile, 'utf-8');
       const data = JSON.parse(raw);
-      const templates = Array.isArray(data.templates) ? data.templates : [];
+      const templates = Array.isArray(data.templates) ? data.templates.map((template) => ({
+        ...template,
+        body: Array.isArray(template?.body_lines) ? template.body_lines.join('\n') : (template?.body || ''),
+      })) : [];
       console.log(`[PRAGMA] /api/templates — file: ${templatesFile}, parsed ${templates.length} templates`);
       if (!templates.length) return res.json({ templates: null });
       res.json({ templates });
