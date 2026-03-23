@@ -2,6 +2,16 @@
 
 const fs = require('fs');
 const path = require('path');
+const {
+  loadTemplateMeta,
+  resolveNoteType,
+  buildSessionExportModel,
+  renderTargetNoteFile,
+  renderSessionNoteFile,
+  renderExportIndex,
+  renderTimelineSummary,
+  renderConsolidatedSession,
+} = require('../lib/session-export');
 
 function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
   app.get('/api/templates', async (req, res) => {
@@ -171,6 +181,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
       const sessSlug = storage.slugify(session.codename);
       const outDir = path.join(sessionsDir, sessSlug);
       fs.mkdirSync(outDir, { recursive: true });
+      const templateMeta = loadTemplateMeta(templatesFile);
 
       const targets = session.targets || [];
       const sessionNotes = Object.values(notes).filter(n =>
@@ -180,20 +191,21 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
 
       const allServices = session.services || [];
       const allPaths = session.paths || [];
-      if (!sessionNotes.length && !allServices.length && !allPaths.length) {
+      const allLoot = session.loot || [];
+      const allEvents = session.events || [];
+      if (!sessionNotes.length && !allServices.length && !allPaths.length && !allLoot.length && !allEvents.length) {
         return res.json({ ok: true, path: outDir, files: [], message: 'Nothing to export in this session.' });
       }
 
+      const model = buildSessionExportModel({ session, notes: sessionNotes, storage, templateMeta });
       const written = [];
       const byTarget = {};
-      const unassigned = [];
+      const unassigned = [...model.notes.unassigned];
 
       sessionNotes.forEach(note => {
         if (note.target_id && targets.find(target => target.id === note.target_id)) {
           if (!byTarget[note.target_id]) byTarget[note.target_id] = [];
           byTarget[note.target_id].push(note);
-        } else {
-          unassigned.push(note);
         }
       });
 
@@ -243,27 +255,19 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
 
         targetReadme.push('## Notes', '');
         targetReadme.push(...targetNotes
-          .sort((a, b) => (a.created || 0) - (b.created || 0))
-          .map(note => `- [${note.title || storage.noteFilename(note).replace('.md', '')}](./${storage.noteFilename(note)}) — \`${note.type}\``));
+          .sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0)))
+          .map(note => {
+            const typeMeta = resolveNoteType(note.type, templateMeta);
+            return `- [${note.title || storage.noteFilename(note).replace('.md', '')}](./${storage.noteFilename(note)}) — \`${typeMeta.label}\``;
+          }));
 
         fs.writeFileSync(path.join(targetDir, 'README.md'), targetReadme.join('\n'), 'utf8');
         written.push(`${dirName}/README.md`);
 
-        targetNotes.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(note => {
+        targetNotes.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
-          const ts = new Date(note.updated || note.created || 0).toISOString().replace('T', ' ').slice(0, 19);
-          const body = [
-            `# ${note.title || fname.replace('.md', '')}`,
-            '',
-            `> **Type:** \`${note.type}\``,
-            `> **Target:** \`${label}\``,
-            `> **Session:** ${session.codename}`,
-            `> **Created:** ${ts}`,
-            '',
-            '---',
-            '',
-            note.body || '',
-          ].join('\n');
+          const typeMeta = resolveNoteType(note.type, templateMeta);
+          const body = renderTargetNoteFile({ note, session, target, typeMeta, storage });
           fs.writeFileSync(path.join(targetDir, fname), body, 'utf8');
           written.push(`${dirName}/${fname}`);
         });
@@ -272,115 +276,24 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
       if (unassigned.length) {
         const sessionDir = path.join(outDir, 'session');
         fs.mkdirSync(sessionDir, { recursive: true });
-        unassigned.sort((a, b) => (a.created || 0) - (b.created || 0)).forEach(note => {
+        unassigned.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
-          const ts = new Date(note.updated || note.created || 0).toISOString().replace('T', ' ').slice(0, 19);
-          const body = [
-            `# ${note.title || fname.replace('.md', '')}`,
-            '',
-            `> **Type:** \`${note.type}\``,
-            `> **Session:** ${session.codename}`,
-            `> **Created:** ${ts}`,
-            '',
-            '---',
-            '',
-            note.body || '',
-          ].join('\n');
+          const typeMeta = resolveNoteType(note.type, templateMeta);
+          const body = renderSessionNoteFile({ note, session, typeMeta, storage });
           fs.writeFileSync(path.join(sessionDir, fname), body, 'utf8');
           written.push(`session/${fname}`);
         });
       }
 
-      const index = [
-        `# ${session.codename}`,
-        '',
-        `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
-        `**Total notes:** ${sessionNotes.length}`,
-        '',
-        '## Targets',
-        '',
-        ...targets
-          .filter(target => byTarget[target.id]?.length)
-          .map(target => {
-            const dir = storage.slugify(target.ip || target.domain || target.label || target.id);
-            const label = [target.ip, target.domain, target.label].filter(Boolean).join(' · ');
-            return `- [${label}](./${dir}/) — ${byTarget[target.id]?.length || 0} notes`;
-          }),
-        unassigned.length ? `- [Session-wide notes](./session/) — ${unassigned.length} notes` : null,
-      ].filter(line => line !== null).join('\n');
-
-      fs.writeFileSync(path.join(outDir, 'README.md'), index, 'utf8');
+      fs.writeFileSync(path.join(outDir, 'README.md'), renderExportIndex(model), 'utf8');
       written.unshift('README.md');
 
-      const typeIcons = {
-        general: '📋',
-        credentials: '🔑',
-        privesc: '⬆',
-        recon: '🔭',
-        loot: '💰',
-        exploit: '💥',
-        scratch: '📄',
-      };
-
-      const sorted = [...sessionNotes].sort((a, b) => (a.created || 0) - (b.created || 0));
-      const byDay = {};
-      sorted.forEach(note => {
-        const date = new Date(note.created || 0);
-        const dayKey = date.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: '2-digit' });
-        if (!byDay[dayKey]) byDay[dayKey] = [];
-        byDay[dayKey].push(note);
-      });
-
-      const typeCount = {};
-      sorted.forEach(note => {
-        typeCount[note.type] = (typeCount[note.type] || 0) + 1;
-      });
-
-      const summaryLines = [
-        `# ${session.codename} — Timeline Summary`,
-        '',
-        `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
-        `**Total events:** ${sorted.length}`,
-        `**Duration:** ${sorted.length > 1
-          ? (() => {
-              const ms = (sorted[sorted.length - 1].created || 0) - (sorted[0].created || 0);
-              const hrs = Math.floor(ms / 3600000);
-              const min = Math.floor((ms % 3600000) / 60000);
-              return hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
-            })()
-          : '—'}`,
-        '',
-        '**Activity breakdown:**',
-        ...Object.entries(typeCount).map(([type, count]) =>
-          `- ${typeIcons[type] || '📄'} ${type.charAt(0).toUpperCase() + type.slice(1)}: ${count}`
-        ),
-        '',
-        '---',
-        '',
-      ];
-
-      Object.entries(byDay).forEach(([day, dayNotes]) => {
-        summaryLines.push(`## ${day}`);
-        summaryLines.push('');
-        dayNotes.forEach(note => {
-          const time = new Date(note.created || 0).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-          const icon = typeIcons[note.type] || '📄';
-          const target = note.target_id ? targets.find(entry => entry.id === note.target_id) : null;
-          const targetStr = target ? ` \`${target.ip || target.domain || target.label}\`` : '';
-          const title = note.title || `(${note.type})`;
-          const preview = (note.body || '')
-            .split('\n')
-            .map(line => line.trim())
-            .find(line => line && !line.startsWith('#') && !line.startsWith('---') && line.length > 3);
-          const previewStr = preview ? `\n  > ${preview.slice(0, 120)}${preview.length > 120 ? '…' : ''}` : '';
-
-          summaryLines.push(`**${time}** ${icon} **${title}**${targetStr}${previewStr}`);
-          summaryLines.push('');
-        });
-      });
-
-      fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), summaryLines.join('\n'), 'utf8');
+      fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), renderTimelineSummary(model), 'utf8');
       written.push('SUMMARY.md');
+
+      const consolidatedName = `${sessSlug}.md`;
+      fs.writeFileSync(path.join(outDir, consolidatedName), renderConsolidatedSession(model), 'utf8');
+      written.push(consolidatedName);
 
       console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
       res.json({ ok: true, path: outDir, files: written, session: session.codename });

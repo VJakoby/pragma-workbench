@@ -616,11 +616,11 @@ async function exportNotesMarkdown(sessionId) {
     const d = await r.json();
     if (d.ok) {
       const count = d.files?.length || 0;
-      showToast(`✓ Exported ${count} files → sessions/${slugify(sess.codename)}/`);
+      showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {
-      showToast('Export failed: ' + (d.error || 'unknown error'), 'err');
+      showToast('Markdown export failed: ' + (d.error || 'unknown error'), 'err');
     }
   } catch (e) {
-    showToast('Export failed: ' + e.message, 'err');
+    showToast('Markdown export failed: ' + e.message, 'err');
   }
 }
