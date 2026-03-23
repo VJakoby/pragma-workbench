@@ -87,21 +87,27 @@ function renderNotesList() {
   list.innerHTML = items.map(n => {
     const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
     const sess = n.session_id && sessions[n.session_id];
-    const sessLabel = sess && sess.id !== activeSessionId ? `<div class="note-item-session">${esc(sess.codename)}</div>` : '';
+    const sessLabel = sess && sess.id !== activeSessionId ? `<span class="note-item-session">${esc(sess.codename)}</span>` : '';
     const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
       ? (sessions[activeSessionId].targets || []).find(t => t.id === n.target_id) : null;
-    const tgtLabel = tgt ? `<div class="note-item-target">${ICONS.target} ${esc(tgt.ip || tgt.domain || tgt.label || 'target')}</div>` : '';
+    const tgtLabel = tgt ? `<span class="note-item-target">${ICONS.target} ${esc(tgt.ip || tgt.domain || tgt.label || 'target')}</span>` : '';
     const tagsHtml = (n.tags || []).length
-      ? `<div class="note-item-tags">${n.tags.map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')}</div>`
+      ? n.tags.map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')
       : '';
     return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
-      <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+      <div class="note-item-head">
+        <span class="note-item-date">${formatDate(n.updated)}</span>
+      </div>
+      <div class="note-item-meta-row">
+        <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
+        ${tgtLabel}
+        ${tagsHtml}
+        ${sessLabel}
+      </div>
       <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}</div>
-      <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
-      ${tagsHtml}
-      ${sessLabel}
-      ${tgtLabel}
-      <div class="note-item-date">${formatDate(n.updated)}</div>
+      <div class="note-item-content">
+        <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
+      </div>
     </div>`;
   }).join('');
 

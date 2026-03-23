@@ -1,12 +1,7 @@
   <div class="topbar">
-    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (&#8984;B)"><span style="line-height:1;display:block"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span></button>
-    <div class="topbar-logo-wrap">
-      <svg class="topbar-logo-icon" viewBox="0 0 103.41 122.88" aria-hidden="true" focusable="false">
-        <path fill="currentColor" d="M23.12,51.51L18.3,74.86H0v18.31h14.87L8.7,122.88H27.5l6.08-29.71h23.48l-5.91,29.71h18.98l5.99-29.71h27.28V74.86H79.76l5.3-26.34h18.35V30.23H88.79L94.7,0H75.79l-6.08,30.23H46.15L52.32,0H33.36l-5.99,30.23H0v18.29h23.74L23.12,51.51L23.12,51.51z M58.74,74.86H37.17l5.55-26.34h23.46l-5.4,26.34H58.74L58.74,74.86z"/>
-      </svg>
-    </div>
-    <div class="topbar-logo">PRAGMA<span>// Workbench</span>
-      <div class="topbar-logo-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
+    <div class="topbar-brand">
+      <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle sidebar (&#8984;B)" aria-label="Toggle sidebar"><span class="sidebar-toggle-mark">#</span></button>
+      <div class="topbar-logo">PRAGMA<span>// Workbench</span></div>
     </div>
 
     <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
