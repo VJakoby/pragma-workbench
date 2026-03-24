@@ -17,6 +17,22 @@ function cmSetValue(editor, value) {
 }
 
 const SYNTAX_THEMES = {
+  quietlight: (dark) => [
+    { tag: CM.tags.heading1, color: dark ? '#c586c0' : '#795e26', fontWeight: '700' },
+    { tag: CM.tags.heading2, color: dark ? '#c586c0' : '#795e26', fontWeight: '600' },
+    { tag: CM.tags.heading3, color: dark ? '#569cd6' : '#001080', fontWeight: '600' },
+    { tag: [CM.tags.heading4, CM.tags.heading5, CM.tags.heading6], color: dark ? '#569cd6' : '#001080' },
+    { tag: CM.tags.strong, color: dark ? '#d19a66' : '#795e26', fontWeight: '700' },
+    { tag: CM.tags.emphasis, color: dark ? '#4ec9b0' : '#af00db', fontStyle: 'italic' },
+    { tag: CM.tags.strikethrough, color: dark ? '#7f848e' : '#999999', textDecoration: 'line-through' },
+    { tag: [CM.tags.link, CM.tags.url], color: dark ? '#4fc1ff' : '#0451a5' },
+    { tag: CM.tags.monospace, color: dark ? '#ce9178' : '#a31515' },
+    { tag: [CM.tags.quote, CM.tags.comment, CM.tags.meta], color: dark ? '#6a9955' : '#008000', fontStyle: 'italic' },
+    { tag: CM.tags.punctuation, color: dark ? '#808080' : '#444444' },
+    { tag: [CM.tags.atom, CM.tags.processingInstruction, CM.tags.number, CM.tags.bool, CM.tags.null], color: dark ? '#b5cea8' : '#098658' },
+    { tag: [CM.tags.keyword, CM.tags.operator], color: dark ? '#569cd6' : '#0000ff' },
+    { tag: CM.tags.string, color: dark ? '#ce9178' : '#a31515' },
+  ],
   monokai: (dark) => [
     { tag: CM.tags.heading1, color: '#f92672', fontWeight: '700' },
     { tag: CM.tags.heading2, color: '#f92672', fontWeight: '600' },
@@ -116,28 +132,49 @@ function cmThemeVars() {
   const text2 = s.getPropertyValue('--text2').trim() || '#94a3b8';
   const muted = s.getPropertyValue('--muted').trim() || '#4a5568';
   const bg3   = s.getPropertyValue('--bg3').trim() || '#26262f';
-  return { bg, text, text2, muted, bg3 };
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  if (theme === 'light') {
+    return {
+      bg: '#ffffff',
+      text: '#333333',
+      text2: '#333333',
+      muted: '#6a737d',
+      bg3: '#f3f3f3',
+      selection: 'rgba(173, 214, 255, 0.45)',
+      activeLine: '#f5f5f5',
+    };
+  }
+  return {
+    bg,
+    text,
+    text2,
+    muted,
+    bg3,
+    selection: 'rgba(124,58,237,0.25)',
+    activeLine: 'rgba(124,58,237,0.06)',
+  };
 }
 
 function buildCmTheme() {
   if (!window.CM) return [];
   const v = cmThemeVars();
-  const dark = !document.documentElement.classList.contains('light');
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const dark = theme !== 'light';
 
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
     '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)' },
     '.cm-content': { color: v.text2, caretColor: v.text, padding: '0' },
     '.cm-cursor': { borderLeftColor: v.text },
-    '.cm-selectionBackground, ::selection': { background: 'rgba(124,58,237,0.25) !important' },
-    '.cm-activeLine': { background: 'rgba(124,58,237,0.06)' },
+    '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },
+    '.cm-activeLine': { background: v.activeLine },
     '.cm-gutters': { display: 'none' },
     '.cm-placeholder': { color: v.muted },
     '.cm-line': { padding: '0' },
   }, { dark });
 
   const highlightStyle = CM.HighlightStyle.define(
-    SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.monokai(dark)
+    SYNTAX_THEMES[activeSyntaxTheme]?.(dark) || SYNTAX_THEMES.quietlight(dark)
   );
 
   return [editorTheme, CM.syntaxHighlighting(highlightStyle)];

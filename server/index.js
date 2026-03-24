@@ -60,6 +60,12 @@ const app = express();
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'ejs');
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'DENY');
+  next();
+});
 app.use(express.static(PUBLIC_DIR, { etag: false, lastModified: false }));
 
 app.use((req, res, next) => {

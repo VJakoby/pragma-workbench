@@ -26,6 +26,30 @@ const NOTE_TEMPLATES_FALLBACK = {
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 
 let workbenchUnlocked        = true;
+const ENCRYPTED_CACHE_KEY    = 'ops-notes-v2-encrypted';
+
+function setEncryptedCache(blob) {
+  sessionStorage.setItem(ENCRYPTED_CACHE_KEY, JSON.stringify(blob));
+  localStorage.removeItem(ENCRYPTED_CACHE_KEY);
+}
+
+function clearEncryptedCache() {
+  sessionStorage.removeItem(ENCRYPTED_CACHE_KEY);
+  localStorage.removeItem(ENCRYPTED_CACHE_KEY);
+}
+
+function getEncryptedCache() {
+  const current = sessionStorage.getItem(ENCRYPTED_CACHE_KEY);
+  if (current) return current;
+
+  const legacy = localStorage.getItem(ENCRYPTED_CACHE_KEY);
+  if (legacy) {
+    sessionStorage.setItem(ENCRYPTED_CACHE_KEY, legacy);
+    localStorage.removeItem(ENCRYPTED_CACHE_KEY);
+    return legacy;
+  }
+  return null;
+}
 
 async function loadNoteTemplates() {
   try {
@@ -236,13 +260,13 @@ async function initNotes() {
       const parsed = JSON.parse(plain);
       notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
       sessions = parsed.sessions || {};
-      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(encObj));
+      setEncryptedCache(encObj);
       localStorage.removeItem('ops-notes-v2');
     } else {
       notes    = (d.notes !== undefined ? d.notes : d) || {};
       sessions = d.sessions || {};
       localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
-      localStorage.removeItem('ops-notes-v2-encrypted');
+      clearEncryptedCache();
       encryptedStorageEnabled  = false;
       encryptedStoragePassword = null;
       updateEncryptedStorageUI();
@@ -252,7 +276,7 @@ async function initNotes() {
       throw outerErr;
     }
     try {
-      const encCached = localStorage.getItem('ops-notes-v2-encrypted');
+      const encCached = getEncryptedCache();
       if (encCached) {
         const encObj = JSON.parse(encCached);
         if (encObj && encObj.encrypted === true) {
@@ -279,6 +303,7 @@ async function initNotes() {
           const parsed = JSON.parse(plain);
           notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
           sessions = parsed.sessions || {};
+          setEncryptedCache(encObj);
         }
       }
       if (!encryptedStorageEnabled) {
@@ -333,7 +358,7 @@ async function executeAppSave() {
       if (!encryptedStoragePassword) throw new Error('Workbench is locked');
       const blob = await encryptPayload(JSON.stringify(payload), encryptedStoragePassword);
       if (encryptedStorageHint) blob.hint = encryptedStorageHint;
-      localStorage.setItem('ops-notes-v2-encrypted', JSON.stringify(blob));
+      setEncryptedCache(blob);
       localStorage.removeItem('ops-notes-v2');
       const res = await fetch('/api/notes/save-encrypted', {
         method: 'POST',
@@ -349,7 +374,7 @@ async function executeAppSave() {
   }
   try {
     localStorage.setItem('ops-notes-v2', JSON.stringify(payload));
-    localStorage.removeItem('ops-notes-v2-encrypted');
+    clearEncryptedCache();
     const res = await fetch('/api/notes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
