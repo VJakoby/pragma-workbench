@@ -171,6 +171,14 @@ function openNewNoteModal() { document.getElementById('newNoteOverlay').classLis
 function closeNewNoteModal() { document.getElementById('newNoteOverlay').classList.remove('open'); }
 function closeNewNoteModalIfOutside(e) { if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal(); }
 
+function buildNoteBodyFromTemplate(tmpl) {
+  const body = tmpl?.body || '';
+  const title = (tmpl?.title || '').trim();
+  if (!title) return body;
+  if (/^\s*#\s+/.test(body)) return body;
+  return `# ${title}\n\n${body}`;
+}
+
 function newNote(type = 'general') {
   closeNewNoteModal();
   const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.general;
@@ -181,7 +189,7 @@ function newNote(type = 'general') {
     target_id: activeTargetId || null,
     type,
     title: tmpl.title || '',
-    body: tmpl.body || '',
+    body: buildNoteBodyFromTemplate(tmpl),
     tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
     target_ip: getIP() !== '<IP>' ? getIP() : null,
     target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,

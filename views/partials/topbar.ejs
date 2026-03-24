@@ -23,12 +23,13 @@
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
           <span class="svc-popover-title">&#9889; Quick Log</span>
-          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--accent);background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);border-radius:3px;padding:1px 7px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;display:none"></span>
+          <span class="svc-popover-session-label" id="svcSessionLabel"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
             <button class="svc-tab" id="svcTabLoot" onclick="switchSvcTab('loot')">Loot <span class="svc-tab-count" id="svcTabCountLoot"></span></button>
           </div>
+          <button class="svc-clear-btn" id="svcClearBtn" onclick="clearActiveQuickLog()" disabled>Clear All</button>
           <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">&times;</button>
         </div>
 

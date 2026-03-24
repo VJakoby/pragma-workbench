@@ -126,15 +126,20 @@ function updateCmdSelection() {
   });
 }
 
+function shouldOpenCmdItemInSidePanel() {
+  const noteArea = document.getElementById('noteEditArea');
+  return activeView === 'notes' && !!noteArea && noteArea.style.display !== 'none';
+}
+
 function execCmd(idx) {
   const item = cmdItems[idx];
   if (!item) return;
   closeCmd();
   if (item.type === 'service') {
-    switchView('services');
+    if (!shouldOpenCmdItemInSidePanel()) switchView('services');
     openItem('services', item.id);
   } else if (item.type === 'tactic') {
-    switchView('tactics', document.getElementById('nav-tactics'));
+    if (!shouldOpenCmdItemInSidePanel()) switchView('tactics', document.getElementById('nav-tactics'));
     openItem('tactics', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
