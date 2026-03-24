@@ -63,8 +63,9 @@ Set these in your `docker-compose.yml` to customise paths:
 
 | Variable | Default | Description |
 |---|---|---|
-| `KB_DIR` | `./knowledge_base` | Path to your knowledge base directory |
-| `SEARCH_URL` | `http://engram:3002` | Default URL to ENGRAM indexer |
+| `KB_DIR` | App default: `./knowledge_base` | Path to your knowledge base directory inside the app runtime |
+| `SEARCH_URL` | App default: `http://localhost:3002` | URL to the ENGRAM indexer |
+| `SESSIONS_DIR` | App default: `./sessions` | Path where PRAGMA stores the workbench and backups |
 
 Example `docker-compose.yml` volume + env setup:
 
@@ -77,11 +78,16 @@ services:
     volumes:
       - ./sessions:/usr/src/app/sessions
       - ./knowledge_base:/usr/src/app/knowledge_base:ro
-      - ./notes-templates.json:/usr/src/app/notes-templates.json:ro
+      - ./notes-templates.json:/usr/src/app/notes-templates.json:ro # optional, only if you use custom templates
     environment:
       - KB_DIR=/usr/src/app/knowledge_base
+      - SESSIONS_DIR=/usr/src/app/sessions
       - SEARCH_URL=http://engram:3002
 ```
+
+> **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
+
+> **Templates note:** The checked-in `docker-compose.yml` does not currently mount `notes-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
 
 ---
 
@@ -123,6 +129,6 @@ docker compose down && docker compose up -d --build
 
 ## Running with ENGRAM
 
-To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network:
+To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network. The default `SEARCH_URL` in the checked-in compose file already points at `http://engram:3002`, but you still need to provide the ENGRAM container separately.
 
 See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.

@@ -20,7 +20,6 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
-</p>
 
 ## 🏷️ Features
 
@@ -38,7 +37,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 **Notes**
 - Typed notes with structured markdown templates — see [Note Templates](#-note-templates) below
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
-- Tags, pin, auto-save, per-note `.md` export with YAML frontmatter, and duplicate
+- Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -51,7 +50,7 @@ A persistent in-session log accessible from the topbar, organised into three tab
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
 
-All three tabs persist per session alongside notes and are included in session exports. Loot entries are exported as a separate `loot.md` file (grouped by host) when exporting notes as markdown.
+All three tabs persist per session alongside notes and are included in markdown exports. In the consolidated session export, loot is rendered in a `## Loot Summary` section.
 
 **Knowledge Base & Tactics**
 - Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
@@ -101,7 +100,14 @@ You can extend or fully replace the built-in templates by placing a `notes-templ
       "icon": "🕳️",
       "title_prefix": "Tunnel",
       "default_tags": ["tunneling", "pivot"],
-      "body": "## Setup\n\n## Listeners\n\n## Routes\n\n"
+      "body_lines": [
+        "## Setup",
+        "",
+        "## Listeners",
+        "",
+        "## Routes",
+        ""
+      ]
     }
   ]
 }
@@ -114,9 +120,12 @@ You can extend or fully replace the built-in templates by placing a `notes-templ
 | `icon` | — | Emoji shown on the note type badge |
 | `title_prefix` | — | Prepended to the note title on creation |
 | `default_tags` | — | Array of tags automatically applied to the note |
-| `body` | — | Initial markdown content for the note body |
+| `body` | — | Initial markdown content for the note body as a single JSON string |
+| `body_lines` | — | Multi-line template body as an array of strings; joined with `\n` on load |
 
-Custom templates appear in the picker with a purple border and a **CUSTOM** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
+Use either `body` or `body_lines`. `body_lines` is easier to read and maintain for longer markdown templates.
+
+Custom templates appear in the picker with a purple border and a **Custom** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
 
 ---
 
@@ -189,7 +198,7 @@ Write your KB docs using any of the supported placeholder styles below.
     - docker & docker-compose
     - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
 
-See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run both PRAGMA and ENGRAM together over a shared Docker network.
+See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
 ## 🚀 Quick Start
 
@@ -229,7 +238,7 @@ The frontend is now split into smaller browser modules under [public/app](./publ
 - `workbench.js` — workbench/session storage, encryption flow, template loading
 - `notes.js` — note CRUD, filters, tags, targets, exports
 - `quick-log.js` — ports, paths, loot, and the topbar quick-log popover
-- `timeline.js` — timeline view, timeline export, toast helpers, shared download utilities
+- `timeline.js` — timeline view, chronology rendering, toast helpers, shared timeline helpers
 - `kb.js`, `search.js`, `targets.js` — KB browsing, search integration, target management
 - `app.js` — remaining app coordinator logic, command palette, and modal helpers
 
