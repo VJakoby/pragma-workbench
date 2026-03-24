@@ -459,6 +459,15 @@ function toggleNotesList() {
   applyNotesListVisibility();
 }
 
+function applyNotesListDensity(el) {
+  if (!el) return;
+  const width = el.getBoundingClientRect().width;
+  const nextCompact = width > 0 && width < 270;
+  if (el.classList.contains('notes-list-compact') === nextCompact) return false;
+  el.classList.toggle('notes-list-compact', nextCompact);
+  return true;
+}
+
 (function() {
   const NOTES_MIN  = 120, NOTES_MAX  = 520, NOTES_DEFAULT  = 320;
   const PANEL_MIN  = 120, PANEL_MAX  = 1500, PANEL_DEFAULT  = 680;
@@ -472,6 +481,7 @@ function toggleNotesList() {
 
   notesList.style.width    = savedNotesW + 'px';
   contentPanel.style.width = savedPanelW + 'px';
+  applyNotesListDensity(notesList);
   applyNotesListVisibility();
 
   function makeDraggable(handle, getEl, getStartW, onDrag, storageKey) {
@@ -514,6 +524,7 @@ function toggleNotesList() {
     notesHandle.addEventListener('dblclick', () => {
       notesList.style.width = NOTES_DEFAULT + 'px';
       localStorage.setItem('ops-notes-w2', NOTES_DEFAULT);
+      applyNotesListDensity(notesList);
     });
   }
 
@@ -531,5 +542,17 @@ function toggleNotesList() {
       contentPanel.style.width = PANEL_DEFAULT + 'px';
       localStorage.setItem('ops-panel-w3', PANEL_DEFAULT);
     });
+  }
+
+  if (notesList && typeof ResizeObserver !== 'undefined') {
+    let notesDensityFrame = 0;
+    const ro = new ResizeObserver(() => {
+      if (notesDensityFrame) return;
+      notesDensityFrame = requestAnimationFrame(() => {
+        notesDensityFrame = 0;
+        applyNotesListDensity(notesList);
+      });
+    });
+    ro.observe(notesList);
   }
 })();

@@ -25,21 +25,21 @@ function updateTargetSelector() {
   const ip     = document.getElementById('targetSelIP');
   const dom    = document.getElementById('targetSelDomain');
   const lbl    = document.getElementById('targetSelLabel');
-  const cpyBtn = document.getElementById('targetCopyBtn');
+  const cpyBtn = document.getElementById('targetSelectorCopy');
   if (t) {
     dot.classList.add('active');
     ip.textContent  = t.ip     || '—';
     dom.textContent = t.domain || '';
     lbl.textContent = t.label  || '';
     lbl.style.display = t.label ? '' : 'none';
-    if (cpyBtn) cpyBtn.style.display = (t.ip || t.domain) ? '' : 'none';
+    if (cpyBtn) cpyBtn.disabled = !(t.ip || t.domain);
   } else {
     dot.classList.remove('active');
     ip.textContent  = activeSessionId ? '— no targets' : '— no session';
     dom.textContent = '';
     lbl.textContent = '';
     lbl.style.display = 'none';
-    if (cpyBtn) cpyBtn.style.display = 'none';
+    if (cpyBtn) cpyBtn.disabled = true;
   }
 }
 
