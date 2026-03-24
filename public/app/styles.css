@@ -1082,7 +1082,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
   color:var(--text2);transition:all 0.12s;white-space:nowrap;
   letter-spacing:0.03em;
 }
-.source-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.source-chip.active{
+  background:rgba(var(--accent-rgb),0.14);
+  border-color:rgba(var(--accent-rgb),0.28);
+  color:var(--accent);
+}
 .source-chip:hover:not(.active){border-color:var(--accent);color:var(--text)}
 
 .search-status{
@@ -1263,6 +1267,18 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding:9px 16px;cursor:pointer;transition:background 0.1s;
 }
 .cmd-item:hover,.cmd-item.selected{background:rgba(124,58,237,0.14)}
+.cmd-item.cmd-item-static{
+  cursor:default;
+  opacity:0.82;
+}
+.cmd-item.cmd-item-static:hover{
+  background:transparent;
+}
+.cmd-item.cmd-item-static .cmd-item-title{
+  color:var(--text2);
+  font-size:12px;
+  font-weight:600;
+}
 .cmd-item-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 .cmd-item-main{flex:1;overflow:hidden}
 .cmd-item-title{font-size:14px;color:var(--text);font-weight:600}

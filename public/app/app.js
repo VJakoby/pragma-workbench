@@ -24,25 +24,80 @@ function buildCmdResults(q) {
   const res   = document.getElementById('cmdResults');
   cmdItems    = [];
   let html    = '';
+  const folderDocIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
+  const noteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
 
-  // Services
-  const svcs = SERVICES.filter(s =>
-    !ql || s.name.toLowerCase().includes(ql) || (s.port||'').includes(ql) ||
-    (s.category||'').toLowerCase().includes(ql)
-  ).slice(0, 6);
+  const pushCmdItem = ({ type, id, label, icon, title, sub, tag }) => {
+    cmdItems.push({ type, id, label });
+    return `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+      <span class="cmd-item-icon">${icon}</span>
+      <div class="cmd-item-main">
+        <div class="cmd-item-title">${title}</div>
+        <div class="cmd-item-sub">${sub}</div>
+      </div>
+      ${tag ? `<span class="cmd-item-tag">${tag}</span>` : ''}
+    </div>`;
+  };
 
-  if (svcs.length) {
+  const renderCmdPlaceholder = ({ icon, title, sub }) => `
+    <div class="cmd-item cmd-item-static" aria-hidden="true">
+      <span class="cmd-item-icon">${icon}</span>
+      <div class="cmd-item-main">
+        <div class="cmd-item-title">${title}</div>
+        <div class="cmd-item-sub">${sub}</div>
+      </div>
+    </div>`;
+
+  const matchesService = (s) =>
+    !ql || s.name.toLowerCase().includes(ql) || (s.port || '').includes(ql) ||
+    (s.category || '').toLowerCase().includes(ql) || (s.folder || '').toLowerCase().includes(ql);
+
+  // Services grouped by discovered KB folders first
+  const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
+  const knownFolders = new Set(folderCats.map(cat => cat.folder));
+
+  folderCats.forEach(cat => {
+    const matches = SERVICES
+      .filter(s => (s.folder || '') === cat.folder && matchesService(s))
+      .slice(0, 4);
+    html += `<div class="cmd-group-hdr">${esc(cat.label)}</div>`;
+    if (matches.length) {
+      matches.forEach(s => {
+        html += pushCmdItem({
+          type: 'service',
+          id: s.id,
+          label: s.name,
+          icon: s.icon || ICONS.notes,
+          title: esc(s.name),
+          sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || cat.label || '')}`,
+          tag: 'service',
+        });
+      });
+    } else {
+      html += renderCmdPlaceholder({
+        icon: folderDocIcon,
+        title: 'No matching documents',
+        sub: `Folder: ${esc(cat.label)}`,
+      });
+    }
+  });
+
+  const ungroupedServices = SERVICES
+    .filter(s => !knownFolders.has(s.folder || '') && matchesService(s))
+    .slice(0, 6);
+
+  if (ungroupedServices.length) {
     html += `<div class="cmd-group-hdr">Services</div>`;
-    svcs.forEach(s => {
-      cmdItems.push({ type:'service', id:s.id, label:s.name });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${s.icon||ICONS.notes}</span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(s.name)}</div>
-          <div class="cmd-item-sub">${esc(s.port||'')} · ${esc(s.category||'')}</div>
-        </div>
-        <span class="cmd-item-tag">service</span>
-      </div>`;
+    ungroupedServices.forEach(s => {
+      html += pushCmdItem({
+        type: 'service',
+        id: s.id,
+        label: s.name,
+        icon: s.icon || ICONS.notes,
+        title: esc(s.name),
+        sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || '')}`,
+        tag: 'service',
+      });
     });
   }
 
@@ -54,15 +109,15 @@ function buildCmdResults(q) {
   if (meths.length) {
     html += `<div class="cmd-group-hdr">Tactics</div>`;
     meths.forEach(m => {
-      cmdItems.push({ type:'tactic', id:m.id, label:m.name });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon">${m.icon||ICONS.guides}</span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(m.name)}</div>
-          <div class="cmd-item-sub">${esc(m.category||'')}</div>
-        </div>
-        <span class="cmd-item-tag">tactic</span>
-      </div>`;
+      html += pushCmdItem({
+        type: 'tactic',
+        id: m.id,
+        label: m.name,
+        icon: m.icon || ICONS.guides,
+        title: esc(m.name),
+        sub: esc(m.category || ''),
+        tag: 'tactic',
+      });
     });
   }
 
@@ -75,15 +130,15 @@ function buildCmdResults(q) {
   if (noteList.length) {
     html += `<div class="cmd-group-hdr">Session Notes</div>`;
     noteList.forEach(n => {
-      cmdItems.push({ type:'note', id:n.id, label:n.title });
-      html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-        <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-        <div class="cmd-item-main">
-          <div class="cmd-item-title">${esc(n.title||'Untitled')}</div>
-          <div class="cmd-item-sub">${esc((n.body||'').slice(0,60))}</div>
-        </div>
-        <span class="cmd-item-tag">note</span>
-      </div>`;
+      html += pushCmdItem({
+        type: 'note',
+        id: n.id,
+        label: n.title,
+        icon: noteIcon,
+        title: esc(n.title || 'Untitled'),
+        sub: esc((n.body || '').slice(0, 60)),
+        tag: 'note',
+      });
     });
   }
 
@@ -121,7 +176,7 @@ function onCmdKey(e) {
 }
 
 function updateCmdSelection() {
-  document.querySelectorAll('.cmd-item').forEach((el, i) => {
+  document.querySelectorAll('.cmd-item[data-idx]').forEach((el, i) => {
     el.classList.toggle('selected', i === cmdSelected);
   });
 }
