@@ -4,16 +4,24 @@
       <div class="topbar-logo">PRAGMA<span>// Workbench</span></div>
     </div>
 
-    <div class="target-selector" id="targetSelector" onclick="openTargetsPanel()">
-      <div class="target-sel-dot" id="targetSelDot"></div>
-      <div class="target-sel-info">
-        <span class="target-sel-ip" id="targetSelIP">No target</span>
-        <span class="target-sel-domain" id="targetSelDomain"></span>
-      </div>
-      <span class="target-sel-label" id="targetSelLabel"></span>
-      <span class="target-sel-arrow">&#x2304;</span>
+    <div class="target-selector" id="targetSelector">
+      <button class="target-selector-main" id="targetSelectorMain" onclick="openTargetsPanel()" title="Open targets">
+        <div class="target-sel-dot" id="targetSelDot"></div>
+        <div class="target-sel-info">
+          <span class="target-sel-ip" id="targetSelIP">No target</span>
+          <span class="target-sel-domain" id="targetSelDomain"></span>
+        </div>
+        <span class="target-sel-label" id="targetSelLabel"></span>
+        <span class="target-sel-arrow" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </span>
+      </button>
+      <button class="target-selector-copy" id="targetSelectorCopy" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" aria-label="Copy active target">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      </button>
     </div>
-    <button class="tb-btn target-copy-btn" id="targetCopyBtn" title="Copy IP  &middot;  Alt+click for domain" onclick="copyActiveTarget(event)" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Copy IP</span></button>
 
     <div class="svc-topbar-wrap" id="svcTopbarWrap">
       <button class="svc-topbar-btn" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
@@ -23,12 +31,13 @@
       <div class="svc-popover" id="svcPopover">
         <div class="svc-popover-hdr">
           <span class="svc-popover-title">&#9889; Quick Log</span>
-          <span id="svcSessionLabel" style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--accent);background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.2);border-radius:3px;padding:1px 7px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;display:none"></span>
+          <span class="svc-popover-session-label" id="svcSessionLabel"></span>
           <div class="svc-tabs">
             <button class="svc-tab active" id="svcTabPorts" onclick="switchSvcTab('ports')">Ports <span class="svc-tab-count" id="svcTabCountPorts"></span></button>
             <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
             <button class="svc-tab" id="svcTabLoot" onclick="switchSvcTab('loot')">Loot <span class="svc-tab-count" id="svcTabCountLoot"></span></button>
           </div>
+          <button class="svc-clear-btn" id="svcClearBtn" onclick="clearActiveQuickLog()" disabled>Clear All</button>
           <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">&times;</button>
         </div>
 
@@ -132,8 +141,12 @@
       <span class="cmd-trigger-kbd">&#8984;K</span>
     </button>
 
+    <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
+
     <div class="topbar-actions">
-      <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
-      <button class="tb-btn" id="themeBtn" onclick="toggleTheme()"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Light</span></button>
+      <div class="theme-toggle" id="themeBtn" role="group" aria-label="Theme selector">
+        <button class="theme-toggle-btn" id="themeLightBtn" onclick="setTheme('light')" title="Use light theme" aria-pressed="false">Light</button>
+        <button class="theme-toggle-btn" id="themeDarkBtn" onclick="setTheme('dark')" title="Use dark theme" aria-pressed="false">Dark</button>
+      </div>
     </div>
   </div>

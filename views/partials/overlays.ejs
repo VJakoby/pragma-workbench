@@ -127,13 +127,13 @@
 <!-- -- NEW NOTE MODAL -- -->
 <div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
   <div class="cmd-box" style="max-width:520px">
-    <div class="cmd-input-row" style="border-bottom:none;padding-bottom:6px">
+    <div class="cmd-input-row">
       <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:600">New Note</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">New Note</span>
       <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
     </div>
-    <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:8px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">Select type</div>
+    <div class="create-modal-body">
+      <div class="create-modal-hdr">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid">
         <button class="new-note-type-btn" data-type="scratch"     onclick="newNote('scratch')"    ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Blank</button>
         <button class="new-note-type-btn" data-type="general"     onclick="newNote('general')"    ><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> General</button>
@@ -237,22 +237,22 @@
 </div>
 
 <div class="pw-overlay" id="kbCreateOverlay" onclick="if(event.target===this)closeKbCreateModal()">
-  <div class="pw-box" style="width:360px">
-    <div class="pw-header">
-      <span class="pw-header-icon" id="kbCreateIcon">+</span>
-      <span class="pw-header-title" id="kbCreateTitle">Create File</span>
-      <button class="pw-header-close" onclick="closeKbCreateModal()">&times;</button>
+  <div class="cmd-box" style="max-width:520px">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon" id="kbCreateIcon">+</span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1" id="kbCreateTitle">Create File</span>
+      <span class="cmd-esc" onclick="closeKbCreateModal()" style="cursor:pointer">ESC</span>
     </div>
-    <div class="pw-body">
-      <div class="pw-description" id="kbCreateDesc">Create a new knowledge-base file.</div>
-      <div class="pw-field">
+    <div class="create-modal-body">
+      <div class="create-modal-desc" id="kbCreateDesc">Create a new knowledge-base file.</div>
+      <div class="session-field">
         <label>Filename</label>
         <input class="pw-input" id="kbCreateFilename" type="text" placeholder="e.g. smb-enum" autocomplete="off" spellcheck="false" onkeydown="handleKbCreateKey(event)">
       </div>
       <div class="pw-error-msg" id="kbCreateError"></div>
-      <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="closeKbCreateModal()">Cancel</button>
-        <button class="pw-btn primary" id="kbCreateSubmit" onclick="submitKbCreate()">Create</button>
+      <div class="session-actions">
+        <button class="session-btn secondary" onclick="closeKbCreateModal()">Cancel</button>
+        <button class="session-btn primary" id="kbCreateSubmit" onclick="submitKbCreate()">Create</button>
       </div>
     </div>
   </div>

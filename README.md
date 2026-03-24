@@ -21,6 +21,21 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 🧱 Tech Stack
+
+| Area | Technology | Notes |
+|---|---|---|
+| Runtime | Node.js | App server and local runtime |
+| Backend | Express | API routes, static assets, and EJS view serving |
+| Templating | EJS | Server-rendered app shell and partials |
+| Frontend | Vanilla JavaScript | Modular browser scripts under `public/app/` |
+| Editors | CodeMirror 6 | Markdown editing for notes and KB content |
+| Markdown Rendering | `marked` | KB and server-side markdown rendering |
+| Search | Fuse.js | Local fuzzy search and KB relevance scoring |
+| Encryption | Web Crypto API | Client-side AES-256-GCM + PBKDF2-SHA-512 |
+| Storage | File-backed JSON + Markdown | Sessions/workbench state on disk, KB as `.md` files |
+| Containerization | Docker / Docker Compose | Optional local container runtime |
+
 ## 🏷️ Features
 
 **Sessions & Targets**

@@ -7,12 +7,23 @@ const THEME_ORDER = ['dark', 'light'];
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 
+function refreshThemeToggle(theme) {
+  const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length] || 'dark';
+  const lightBtn = document.getElementById('themeLightBtn');
+  const darkBtn = document.getElementById('themeDarkBtn');
+  const toggle = document.getElementById('themeBtn');
+  if (!lightBtn || !darkBtn || !toggle) return;
+  lightBtn.classList.toggle('active', theme === 'light');
+  darkBtn.classList.toggle('active', theme === 'dark');
+  lightBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+  darkBtn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+  toggle.title = `Current theme: ${theme}. Switch to ${nextTheme}`;
+}
+
 function applyTheme(theme) {
   if (theme === 'dim') theme = 'dark';
-  const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length] || 'dark';
   if (theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
-    document.getElementById('themeBtn').innerHTML = '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</span>';
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const meta = document.createElement('meta');
     meta.name = 'theme-color';
@@ -20,17 +31,28 @@ function applyTheme(theme) {
     document.head.appendChild(meta);
   } else {
     document.documentElement.removeAttribute('data-theme');
-    document.getElementById('themeBtn').innerHTML = '<span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Light</span>';
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
     const meta = document.createElement('meta');
     meta.name = 'theme-color';
     meta.content = '#363f49';
     document.head.appendChild(meta);
   }
-  document.getElementById('themeBtn').title = `Switch to ${nextTheme}`;
+  refreshThemeToggle(theme);
 }
 
 function toggleTheme() {
+  const currentTheme = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dim'
+    ? 'dark'
+    : (document.documentElement.getAttribute('data-theme') || 'dark');
+  const currentIndex = THEME_ORDER.indexOf(currentTheme);
+  const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length] || 'dark';
+  setTheme(nextTheme);
+}
+
+function setTheme(theme) {
+  theme = theme === 'light' ? 'light' : 'dark';
+  localStorage.setItem('ops-theme', theme);
+  applyTheme(theme);
   setTimeout(() => {
     if (noteEditor) {
       const value = cmGetValue(noteEditor);
@@ -43,13 +65,6 @@ function toggleTheme() {
       cmSetValue(kbEditor, value);
     }
   }, 50);
-  const currentTheme = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dim'
-    ? 'dark'
-    : (document.documentElement.getAttribute('data-theme') || 'dark');
-  const currentIndex = THEME_ORDER.indexOf(currentTheme);
-  const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length] || 'dark';
-  localStorage.setItem('ops-theme', nextTheme);
-  applyTheme(nextTheme);
 }
 
 applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (localStorage.getItem('ops-theme') || 'dark'));
@@ -197,6 +212,21 @@ function closeShortcutsModal() {
   document.getElementById('shortcutsOverlay').classList.remove('open');
 }
 
+function setSidebarInfoOpen(open) {
+  const wrap = document.getElementById('sidebarInfo');
+  const btn = wrap?.querySelector('.sidebar-info-btn');
+  if (!wrap || !btn) return;
+  wrap.classList.toggle('open', !!open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleSidebarInfo(event) {
+  event?.stopPropagation();
+  const wrap = document.getElementById('sidebarInfo');
+  if (!wrap) return;
+  setSidebarInfoOpen(!wrap.classList.contains('open'));
+}
+
 function esc(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -295,6 +325,7 @@ document.addEventListener('keydown', async e => {
   if (ctrl && e.key === '.') { e.preventDefault(); openTargetsPanel(); return; }
 
   if (e.key === 'Escape') {
+    if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
     const reassignDropdown = document.getElementById('noteReassignDropdown');
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
@@ -316,6 +347,12 @@ document.addEventListener('keydown', async e => {
     }
     if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); }
   }
+});
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('sidebarInfo');
+  if (!wrap?.classList.contains('open')) return;
+  if (!e.target.closest('#sidebarInfo')) setSidebarInfoOpen(false);
 });
 
 document.addEventListener('DOMContentLoaded', () => {

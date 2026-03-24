@@ -40,6 +40,7 @@ function switchSvcTab(tab) {
       document.getElementById('lootCredInput')?.focus();
     }, 40);
   }
+  renderSvcClearAction();
 }
 
 function updateSvcTabCounts() {
@@ -59,6 +60,58 @@ function updateSvcTabCounts() {
     btn.textContent = total || '';
     btn.classList.toggle('has-entries', total > 0);
   }
+  renderSvcClearAction();
+}
+
+function getActiveQuickLogEntries() {
+  if (_activeSvcTab === 'paths') return getSessionPaths();
+  if (_activeSvcTab === 'loot') return getSessionLoot();
+  return getSessionServices();
+}
+
+function renderSvcClearAction() {
+  const btn = document.getElementById('svcClearBtn');
+  if (!btn) return;
+  const labels = { ports: 'Clear Ports', paths: 'Clear Paths', loot: 'Clear Loot' };
+  const count = getActiveQuickLogEntries().length;
+  btn.textContent = count ? `${labels[_activeSvcTab] || 'Clear All'} (${count})` : (labels[_activeSvcTab] || 'Clear All');
+  btn.disabled = !activeSessionId || count === 0;
+}
+
+async function clearActiveQuickLog() {
+  if (!activeSessionId) return;
+  const sess = sessions[activeSessionId];
+  if (!sess) return;
+
+  const labels = {
+    ports: { title: 'Clear Ports', key: 'services', noun: 'port/service entries' },
+    paths: { title: 'Clear Paths', key: 'paths', noun: 'path entries' },
+    loot: { title: 'Clear Loot', key: 'loot', noun: 'loot entries' },
+  };
+  const config = labels[_activeSvcTab] || labels.ports;
+  const entries = Array.isArray(sess[config.key]) ? sess[config.key] : [];
+  if (!entries.length) return;
+
+  try {
+    await showConfirmDialog({
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      title: config.title,
+      bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      description: `Remove all ${entries.length} ${config.noun} from this session?`,
+      confirmLabel: 'Clear All',
+      danger: true,
+    });
+  } catch {
+    return;
+  }
+
+  sess[config.key] = [];
+  saveNotes();
+  renderSvcLogTable();
+  renderPathTable();
+  renderLootTable();
+  updateSvcTabCounts();
+  showToast(`✓ Cleared ${config.noun}`);
 }
 
 function toggleToolPaste(kind) {
@@ -657,6 +710,7 @@ function toggleSvcPopover() {
     renderPathTable();
     renderLootTable();
     updateSvcTabCounts();
+    renderSvcClearAction();
     setTimeout(() => {
       const hi = document.getElementById('lootHostInput');
       if (hi && !hi.value) {

@@ -42,6 +42,15 @@ function injectTargets(rawHtml) {
   return out;
 }
 
+function injectTargetsInCodeLine(rawLine) {
+  let out = injectTargets(esc(rawLine));
+  const ip = esc(getIP());
+  const span = (val) => `<span class="ip-injected">${val}</span>`;
+  out = out.replace(/\bIP\b/g, span(ip))
+           .replace(/\bHOST\b/g, span(ip));
+  return out;
+}
+
 function wrapCodeBlocks(container) {
   container.querySelectorAll('pre').forEach(pre => {
     if (pre.parentElement.classList.contains('code-block-wrap')) return;
@@ -51,31 +60,13 @@ function wrapCodeBlocks(container) {
     pre.parentNode.insertBefore(wrap, pre);
     wrap.appendChild(pre);
 
-    const btn = document.createElement('button');
-    btn.className = 'copy-btn';
-    btn.textContent = 'copy';
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(pre.innerText).then(() => {
-        btn.textContent = '✓ copied';
-        btn.classList.add('copied');
-        showToast('✓ Copied to clipboard');
-        setTimeout(() => {
-          btn.textContent = 'copy';
-          btn.classList.remove('copied');
-        }, 1800);
-      });
-    });
-
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.textContent || '';
     const lines = rawText.replace(/\n$/, '').split('\n');
 
-    wrap.appendChild(btn);
-
     codeEl.innerHTML = lines.map((line) => {
       if (!line.trim()) return '<span class="code-line-blank">&nbsp;</span>';
-      const injected = injectTargets(esc(line));
+      const injected = injectTargetsInCodeLine(line);
       return '<span class="code-line">' +
              injected +
              '<span class="code-line-copy">\u2398 copy</span>' +
