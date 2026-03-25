@@ -46,6 +46,34 @@
       src = src.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<hr>');
       src = src.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
 
+      // GFM tables
+      src = src.replace(/((?:^\|.*\|\n)+)/gm, (block) => {
+        const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return block;
+        const splitRow = (line) => line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        const header = splitRow(lines[0]);
+        const separator = splitRow(lines[1]);
+        if (!header.length || header.length !== separator.length) return block;
+        if (!separator.every(cell => /^:?-{3,}:?$/.test(cell))) return block;
+
+        const alignFor = (cell) => {
+          if (/^:-+:$/.test(cell)) return 'center';
+          if (/^-+:$/.test(cell)) return 'right';
+          if (/^:-+$/.test(cell)) return 'left';
+          return '';
+        };
+
+        const aligns = separator.map(alignFor);
+        const th = header.map((cell, i) => `<th${aligns[i] ? ` style="text-align:${aligns[i]}"` : ''}>${cell}</th>`).join('');
+        const bodyRows = lines.slice(2).map((line) => {
+          const cols = splitRow(line);
+          if (cols.length !== header.length) return '';
+          return `<tr>${cols.map((cell, i) => `<td${aligns[i] ? ` style="text-align:${aligns[i]}"` : ''}>${cell}</td>`).join('')}</tr>`;
+        }).filter(Boolean).join('');
+
+        return `<table><thead><tr>${th}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+      });
+
       // Checklists — before unordered list processing
       src = src.replace(/((?:^[ \t]*[-*+] \[[ xX]\] .+\n?)+)/gm, m => {
         const items = m.trim().split('\n').map(l => {
@@ -107,7 +135,7 @@
         block = block.trim();
         if (!block) return '';
         if (/^\x00STASH/.test(block)) return block;
-        if (/^<(h[1-6]|ul|ol|hr|blockquote|pre)/.test(block)) return block;
+        if (/^<(h[1-6]|ul|ol|hr|blockquote|pre|table)/.test(block)) return block;
         return `<p>${block.replace(/\n/g,' ')}</p>`;
       }).join('\n');
 

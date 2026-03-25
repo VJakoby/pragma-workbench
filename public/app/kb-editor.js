@@ -1,6 +1,14 @@
 // ═══════════════════════════════════════════════
 // KB EDITOR
 // ═══════════════════════════════════════════════
+let cpEditSaveTimer = null;
+let cpEditSaving = false;
+
+function scheduleKbAutoSave() {
+  clearTimeout(cpEditSaveTimer);
+  cpEditSaveTimer = setTimeout(() => { saveEdit({ auto: true }); }, 700);
+}
+
 function cpEditTabHandler(e) {
   if (e.key !== 'Tab') return;
   e.preventDefault();
@@ -61,12 +69,15 @@ async function cancelEdit() {
   exitEditMode();
 }
 
-async function saveEdit() {
+async function saveEdit(opts = {}) {
   if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
+  if (cpEditSaving) return;
   const savedView = activeDoc.view;
   const savedId = activeDoc.id;
   const raw = cmGetValue(kbEditor);
-  setCpEditStatus('', '⏳ Saving…');
+  cpEditSaving = true;
+  clearTimeout(cpEditSaveTimer);
+  setCpEditStatus('', opts.auto ? '...saving' : '⏳ Saving…');
   try {
     const r = await fetch('/api/kb/save', {
       method: 'POST',
@@ -104,6 +115,8 @@ async function saveEdit() {
     setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
   } catch (e) {
     setCpEditStatus('unsaved', '✗ ' + e.message);
+  } finally {
+    cpEditSaving = false;
   }
 }
 
@@ -119,9 +132,12 @@ function cmInitKb(initialDoc) {
       CM.markdown(),
       ...buildCmTheme(),
       CM.EditorView.updateListener.of(update => {
-        if (update.docChanged && !cpEditDirty) {
-          cpEditDirty = true;
-          setCpEditStatus('unsaved', '● unsaved');
+        if (update.docChanged) {
+          if (!cpEditDirty) {
+            cpEditDirty = true;
+            setCpEditStatus('unsaved', '● unsaved');
+          }
+          scheduleKbAutoSave();
         }
       }),
       CM.EditorView.lineWrapping,

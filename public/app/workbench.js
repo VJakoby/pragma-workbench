@@ -434,28 +434,35 @@ function renderSessionSidebar() {
   const dot    = document.getElementById('sessionDot');
   const name   = document.getElementById('sessionName');
   const target = document.getElementById('sessionTarget');
+  const card   = document.getElementById('sessionActive');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
     const status = sess.status || 'active';
     dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent = sess.codename;
-    const activeTgt = (sess.targets || []).find(t => t.id === activeTargetId) || (sess.targets || [])[0];
-    if (activeTgt) target.textContent = [activeTgt.ip, activeTgt.domain].filter(Boolean).join(' · ') || activeTgt.label || 'no target set';
-    else target.textContent = '—';
-    target.style.color = '';
+    name.title = sess.codename || '';
+    if (card) card.title = sess.codename || 'Sessions';
+    target.textContent = '';
+    target.style.display = 'none';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
-      badge.textContent = n + ' note' + (n !== 1 ? 's' : '');
+      badge.textContent = String(n);
+      badge.title = n + ' note' + (n !== 1 ? 's' : '');
       badge.style.display = n > 0 ? '' : 'none';
     }
   } else {
     dot.className = 'session-active-dot';
     name.textContent = 'No session';
+    name.title = 'No session';
+    if (card) card.title = 'Sessions';
     target.textContent = '— click to set';
-    target.style.color = '';
+    target.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
-    if (badge) badge.style.display = 'none';
+    if (badge) {
+      badge.style.display = 'none';
+      badge.title = '';
+    }
   }
 }
 
