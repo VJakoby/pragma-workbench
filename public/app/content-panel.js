@@ -228,19 +228,22 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
+  const normalizedPath = typeof filePath === 'string' && filePath.startsWith('file://')
+    ? filePath.replace(/^file:\/\//, '')
+    : filePath;
 
   try {
     let d = null;
 
-    if (filePath) {
+    if (normalizedPath) {
       try {
         const r = await fetch('/api/content-proxy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_path: filePath }),
+          body: JSON.stringify({ file_path: normalizedPath }),
         });
         const j = await r.json();
-        if (j.ok && j.html) d = j;
+        if (r.ok && (j.html || j.raw)) d = j;
         else console.warn('[PRAGMA] content-proxy:', j.error || j.detail || 'no content');
       } catch (e) {
         console.warn('[PRAGMA] content-proxy fetch failed:', e.message);
@@ -249,7 +252,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
 
     if (!d) throw new Error('Content unavailable — ENGRAM could not serve this file');
 
-    const meta = filePath.split('/').pop() || sourceName || '';
+    const meta = (normalizedPath || '').split('/').pop() || sourceName || '';
     activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
     renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
@@ -258,7 +261,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
       <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
         <div style="font-size:22px;margin-bottom:8px">⚠</div>
         <div style="font-size:14px;font-weight:600;margin-bottom:6px">${e.message}</div>
-        <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;word-break:break-all">${esc(filePath || '')}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;word-break:break-all">${esc(normalizedPath || '')}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:10px">
           Make sure ENGRAM has indexed this file (<code>npm run index</code>) and is reachable at
           <code style="color:var(--accent)">${window.location.origin}/api/search-ping</code>
