@@ -5,21 +5,20 @@
     </div>
 
     <div class="target-selector" id="targetSelector">
+      <button class="target-selector-copy target-selector-copy-ip" id="targetSelectorCopy" title="Copy IP" onclick="copyActiveTargetIP()" aria-label="Copy active target IP">
+        <span class="target-copy-text" id="targetCopyIpText">—</span>
+      </button>
       <button class="target-selector-main" id="targetSelectorMain" onclick="openTargetsPanel()" title="Open targets">
         <div class="target-sel-dot" id="targetSelDot"></div>
-        <div class="target-sel-info">
-          <span class="target-sel-ip" id="targetSelIP">No target</span>
-          <span class="target-sel-domain" id="targetSelDomain"></span>
-        </div>
-        <span class="target-sel-label" id="targetSelLabel"></span>
+        <span class="target-sel-label target-sel-label-main" id="targetSelLabel">No target</span>
         <span class="target-sel-arrow" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 9 6 6 6-6"/>
           </svg>
         </span>
       </button>
-      <button class="target-selector-copy" id="targetSelectorCopy" title="Copy IP  ·  Alt+click for domain" onclick="copyActiveTarget(event)" aria-label="Copy active target">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      <button class="target-selector-copy target-selector-copy-domain" id="targetSelectorCopyDomain" title="Copy domain" onclick="copyActiveTargetDomain()" aria-label="Copy active target domain">
+        <span class="target-copy-text" id="targetCopyDomainText">—</span>
       </button>
     </div>
 

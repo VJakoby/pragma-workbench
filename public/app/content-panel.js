@@ -2,6 +2,7 @@
 // CONTENT PANEL RENDERING
 // ═══════════════════════════════════════════════
 let contentPanelBackState = null;
+let contentPanelCreateState = null;
 
 function setContentPanelBackState(state) {
   contentPanelBackState = state || null;
@@ -11,6 +12,24 @@ function setContentPanelBackState(state) {
 
 function clearContentPanelBackState() {
   setContentPanelBackState(null);
+}
+
+function setContentPanelCreateState(state) {
+  contentPanelCreateState = state || null;
+  const btn = document.getElementById('cpCreateBtn');
+  if (btn) btn.style.display = contentPanelCreateState ? '' : 'none';
+}
+
+function clearContentPanelCreateState() {
+  setContentPanelCreateState(null);
+}
+
+function openContentPanelCreate() {
+  if (!contentPanelCreateState || typeof openKbCreateModal !== 'function') return;
+  openKbCreateModal(contentPanelCreateState.view, {
+    folder: contentPanelCreateState.folder || '',
+    label: contentPanelCreateState.label || '',
+  });
 }
 
 function goBackContentPanel() {
@@ -172,6 +191,7 @@ async function openItem(view, id) {
         folder: activeDoc.folder || '',
         title: document.getElementById('cpTitle')?.textContent || '',
         meta: document.getElementById('cpMeta')?.textContent || '',
+        label: activeDoc.label || '',
       }
     : null;
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
@@ -193,6 +213,7 @@ async function openItem(view, id) {
       : `${d.category} · ${d.wordCount} words`;
     activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
     setContentPanelBackState(backState);
+    setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
@@ -202,6 +223,7 @@ async function openItem(view, id) {
 
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   clearContentPanelBackState();
+  clearContentPanelCreateState();
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -312,6 +334,7 @@ function closeContent() {
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
   clearContentPanelBackState();
+  clearContentPanelCreateState();
   exitEditMode();
   document.getElementById('cpEditBtn').style.display = 'none';
 }

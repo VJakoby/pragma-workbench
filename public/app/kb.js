@@ -2,6 +2,8 @@
 // SIDEBAR CATEGORIES
 // ═══════════════════════════════════════════════
 let kbCreateView = 'services';
+let kbCreateFolder = '';
+let kbCreateFolderLabel = '';
 let activeCatFolder = '';
 let serviceCategoryMeta = [];
 
@@ -98,7 +100,8 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   document.getElementById('cpTitle').textContent = label;
   document.getElementById('cpMeta').textContent = countLabel;
   document.getElementById('cpEditBtn').style.display = 'none';
-  activeDoc = { isBrowser: true, isLocal: true, view, folder };
+  if (typeof setContentPanelCreateState === 'function') setContentPanelCreateState({ view, folder, label });
+  activeDoc = { isBrowser: true, isLocal: true, view, folder, label };
 
   if (!items.length) {
     body.innerHTML = `<div class="empty-state" style="padding:28px 18px">
@@ -122,8 +125,8 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
       <span class="card-cat">${esc(item.category || '')}</span>
       <span class="card-icon">${item.icon || ICONS.notes}</span>
       <div class="card-port-name-row">
-        ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
         <span class="card-name">${esc(item.name)}</span>
+        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
       </div>
       <div class="card-desc">${esc(item.description || '')}</div>`;
     card.onclick = () => openItem(view, item.id);
@@ -150,11 +153,14 @@ function openKnowledgeCategory(cat, folder, navEl) {
   filterCards('services', input ? input.value || '' : '');
 }
 
-function openKbCreateModal(view) {
+function openKbCreateModal(view, opts = {}) {
   kbCreateView = view === 'services' ? 'services' : 'tactics';
+  kbCreateFolder = opts.folder || '';
+  kbCreateFolderLabel = opts.label || '';
   const isServices = kbCreateView === 'services';
   const title = isServices ? 'Create Service' : 'Create Tactic';
-  const categoryLabel = activeCat && activeCat !== 'all' ? ` in ${activeCat}` : '';
+  const categorySource = kbCreateFolderLabel || (activeCat && activeCat !== 'all' ? activeCat : '');
+  const categoryLabel = categorySource ? ` in ${categorySource}` : '';
 
   document.getElementById('kbCreateTitle').textContent = title;
   document.getElementById('kbCreateDesc').textContent = `Create a new ${isServices ? 'service' : 'tactic'} file${categoryLabel}.`;
@@ -211,9 +217,11 @@ async function submitKbCreate() {
 
   const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
   const backendView = getKbBackendView(clientView);
-  const category = activeView === clientView && activeCat !== 'all'
-    ? (activeCatFolder || activeCat)
-    : '';
+  const category = kbCreateFolder
+    ? kbCreateFolder
+    : (activeView === clientView && activeCat !== 'all'
+      ? (activeCatFolder || activeCat)
+      : '');
 
   try {
     if (err) {
@@ -236,7 +244,7 @@ async function submitKbCreate() {
     closeKbCreateModal();
     await refreshKbView(clientView);
     if (activeView !== clientView) {
-      switchView(clientView, document.getElementById(`nav-${clientView}`));
+      if (!shouldOpenKbSidebarInSidePanel()) switchView(clientView, document.getElementById(`nav-${clientView}`));
     }
     if (d.id) openItem(clientView, d.id);
     showToast('Created');
@@ -328,8 +336,8 @@ function renderCards(view) {
       <span class="card-cat">${esc(item.category || '')}</span>
       <span class="card-icon">${item.icon || ICONS.notes}</span>
       <div class="card-port-name-row">
-        ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
         <span class="card-name">${esc(item.name)}</span>
+        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
       </div>
       <div class="card-desc">${esc(item.description || '')}</div>`;
     card.onclick = () => openItem(view, item.id);
