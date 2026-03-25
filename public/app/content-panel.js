@@ -1,6 +1,31 @@
 // ═══════════════════════════════════════════════
 // CONTENT PANEL RENDERING
 // ═══════════════════════════════════════════════
+let contentPanelBackState = null;
+
+function setContentPanelBackState(state) {
+  contentPanelBackState = state || null;
+  const btn = document.getElementById('cpBackBtn');
+  if (btn) btn.style.display = contentPanelBackState ? '' : 'none';
+}
+
+function clearContentPanelBackState() {
+  setContentPanelBackState(null);
+}
+
+function goBackContentPanel() {
+  if (!contentPanelBackState) return;
+  const state = contentPanelBackState;
+  clearContentPanelBackState();
+  if (state.type === 'kb-browser' && typeof openKbBrowserInPanel === 'function') {
+    openKbBrowserInPanel(state.view, {
+      folder: state.folder || '',
+      title: state.title || '',
+      meta: state.meta || '',
+    });
+  }
+}
+
 function injectTargets(rawHtml) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
@@ -139,6 +164,16 @@ function refreshCodeBlocks() {
 }
 
 async function openItem(view, id) {
+  const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
+  const backState = hadBrowserState
+    ? {
+        type: 'kb-browser',
+        view: activeDoc.view,
+        folder: activeDoc.folder || '',
+        title: document.getElementById('cpTitle')?.textContent || '',
+        meta: document.getElementById('cpMeta')?.textContent || '',
+      }
+    : null;
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   const card = document.querySelector(`.card[data-id="${id}"]`);
   if (card) card.classList.add('active-card');
@@ -157,6 +192,7 @@ async function openItem(view, id) {
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
     activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
+    setContentPanelBackState(backState);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
@@ -165,6 +201,7 @@ async function openItem(view, id) {
 }
 
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
+  clearContentPanelBackState();
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -274,6 +311,7 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  clearContentPanelBackState();
   exitEditMode();
   document.getElementById('cpEditBtn').style.display = 'none';
 }
