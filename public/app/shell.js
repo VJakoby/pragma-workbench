@@ -151,6 +151,8 @@ async function init() {
 
   await loadNoteTemplates();
   renderNoteTypeGrid();
+  renderNotesList();
+  if (activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
 
   document.getElementById('svc-count').textContent = SERVICES.length;
   document.getElementById('tactics-count').textContent = TACTICS.length;
