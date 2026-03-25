@@ -164,7 +164,7 @@ function buildCmTheme() {
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
     '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)' },
-    '.cm-content': { color: v.text2, caretColor: v.text, padding: '0' },
+    '.cm-content': { color: v.text2, caretColor: v.text, padding: '0', fontWeight: '500' },
     '.cm-cursor': { borderLeftColor: v.text },
     '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },
     '.cm-activeLine': { background: v.activeLine },
