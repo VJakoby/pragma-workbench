@@ -273,6 +273,7 @@ body{
   background:rgba(var(--accent-rgb),0.14);
 }
 
+
 /* ── BODY SPLIT ── */
 .body-split{
   display:flex;flex:1;overflow:hidden;position:relative;
