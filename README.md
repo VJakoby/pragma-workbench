@@ -37,6 +37,20 @@ This means PRAGMA does not force one workflow:
 
 Titles and note content stay flexible, while session assignment and target assignment provide the explicit structure.
 
+## 🎯 Focus Model
+
+PRAGMA is built around a simple interaction rule:
+
+- **Session Notes are the primary workspace** during an engagement
+- **Knowledge Base, Tactics, search, and quick-log are supporting tools**
+- supporting views should help you retrieve context, not pull you out of the note-taking flow unnecessarily
+
+In practice, this means the app is opinionated about staying operational:
+
+- notes are where active engagement context lives
+- services, tactics, and indexed KB content are there to support the current note/work, not replace it
+- when possible, supporting content should open beside the current note rather than forcing a full context switch
+
 ## 🧱 Tech Stack
 
 | Area | Technology | Notes |
