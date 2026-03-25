@@ -104,16 +104,7 @@
               <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
             </div>
             <div class="target-filter-bar" id="targetFilterBar"></div>
-            <div class="notes-type-filter" id="notesTypeFilter">
-              <button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>
-              <button class="note-type-btn" data-type="general" onclick="setNoteFilter('general',this)">General</button>
-              <button class="note-type-btn" data-type="credentials" onclick="setNoteFilter('credentials',this)">Creds</button>
-              <button class="note-type-btn" data-type="privesc" onclick="setNoteFilter('privesc',this)">PrivEsc</button>
-              <button class="note-type-btn" data-type="recon" onclick="setNoteFilter('recon',this)">Recon</button>
-              <button class="note-type-btn" data-type="loot" onclick="setNoteFilter('loot',this)">Loot</button>
-              <button class="note-type-btn" data-type="exploit" onclick="setNoteFilter('exploit',this)">Exploit</button>
-              <button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>
-            </div>
+            <div class="notes-type-filter" id="notesTypeFilter"></div>
             <div class="notes-list-items" id="notesList"></div>
             <div class="timeline-toolbar" id="timelineToolbar" style="display:none">
               <select class="tl-filter-select" id="tlTargetSelect" onchange="setTlTargetFilter(this.value)">

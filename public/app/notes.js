@@ -10,21 +10,15 @@ let activeNoteSearch = '';
 function renderNoteFilterBar() {
   const bar = document.getElementById('notesTypeFilter');
   if (!bar) return;
-  const builtinIds = Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch');
-  const customIds  = Object.keys(NOTE_TEMPLATES).filter(id => id !== 'scratch' && !builtinIds.includes(id) && NOTE_TEMPLATES[id].fromFile);
 
   let html = `<button class="note-type-btn active" data-type="all" onclick="setNoteFilter('all',this)">All</button>`;
-  for (const id of builtinIds) {
-    const meta = NOTE_TYPE_META[id];
-    if (!meta) continue;
-    html += `<button class="note-type-btn" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.label}</button>`;
-  }
+  Object.keys(NOTE_TEMPLATES)
+    .filter(id => id !== 'scratch')
+    .forEach((id) => {
+      const meta = getNoteTypeMeta(id);
+      html += `<button class="note-type-btn${NOTE_TEMPLATES[id]?.fromFile ? ' note-type-custom' : ''}" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.label}</button>`;
+    });
   html += `<button class="note-type-btn" data-type="scratch" onclick="setNoteFilter('scratch',this)">Blank</button>`;
-  for (const id of customIds) {
-    const meta = NOTE_TYPE_META[id];
-    if (!meta) continue;
-    html += `<button class="note-type-btn note-type-custom" data-type="${id}" onclick="setNoteFilter('${id}',this)">${meta.icon || ''} ${meta.label}</button>`;
-  }
   bar.innerHTML = html;
 }
 
@@ -85,7 +79,7 @@ function renderNotesList() {
   }
 
   list.innerHTML = items.map(n => {
-    const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+    const meta = getNoteTypeMeta(n.type);
     const sess = n.session_id && sessions[n.session_id];
     const sessLabel = sess && sess.id !== activeSessionId ? `<span class="note-item-session">${esc(sess.codename)}</span>` : '';
     const tgt = n.target_id && activeSessionId && sessions[activeSessionId]
@@ -123,7 +117,7 @@ function onNoteSearch(val) {
 function exportCurrentNote() {
   if (!activeNoteId || !notes[activeNoteId]) return;
   const n = notes[activeNoteId];
-  const lines = ['---', `title: ${n.title || 'Untitled'}`, `type: ${n.type || 'general'}`];
+  const lines = ['---', `title: ${n.title || 'Untitled'}`, `type: ${n.type || 'scratch'}`];
   if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
   if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
   if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
@@ -179,9 +173,9 @@ function buildNoteBodyFromTemplate(tmpl) {
   return `# ${title}\n\n${body}`;
 }
 
-function newNote(type = 'general') {
+function newNote(type = 'scratch') {
   closeNewNoteModal();
-  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.general;
+  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.scratch;
   const id = 'note_' + Date.now();
   notes[id] = {
     id,
@@ -236,7 +230,7 @@ function openNote(id) {
   const area = document.getElementById('noteEditArea');
   area.style.display = 'flex';
 
-  const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+  const meta = getNoteTypeMeta(n.type);
   let badge = document.getElementById('noteTypeBadge');
   if (!badge) {
     badge = document.createElement('span');

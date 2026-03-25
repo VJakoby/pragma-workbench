@@ -11,6 +11,7 @@ function updateNotePreview() {
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
   el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  if (typeof injectTargets === 'function') el.innerHTML = injectTargets(el.innerHTML);
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);

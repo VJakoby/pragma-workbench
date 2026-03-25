@@ -16,6 +16,10 @@ function getActiveTarget() {
 
 function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
 function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<DOMAIN>'; }
+function getTargetLabelValue() {
+  const t = getActiveTarget();
+  return (t && (t.label || t.ip || t.domain)) || '<LABEL>';
+}
 
 function updateTargetDots() { updateTargetSelector(); }
 

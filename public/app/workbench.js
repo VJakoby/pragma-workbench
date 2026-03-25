@@ -3,14 +3,23 @@
 // ═══════════════════════════════════════════════
 const TEMPLATES_PATH = '/api/templates';
 
-const NOTE_TYPE_META = {
+const BLANK_NOTE_META = {
+  label: 'Blank',
+  icon: '📄',
+  cssClass: 'note-type-scratch',
+};
+
+const BUILTIN_NOTE_TYPE_META = {
   general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
   privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
-  scratch:     { label: 'Blank',       icon: '📄', cssClass: 'note-type-scratch'     },
+};
+
+let NOTE_TYPE_META = {
+  scratch: { ...BLANK_NOTE_META },
 };
 
 const NOTE_TEMPLATES_FALLBACK = {
@@ -24,6 +33,48 @@ const NOTE_TEMPLATES_FALLBACK = {
 };
 
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
+
+function getFallbackTemplates() {
+  return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
+}
+
+function normalizeCssClass(type) {
+  return BUILTIN_NOTE_TYPE_META[type]?.cssClass || 'note-type-general';
+}
+
+function setNoteTemplates(templates, { fromFile = false } = {}) {
+  NOTE_TYPE_META = { scratch: { ...BLANK_NOTE_META } };
+  NOTE_TEMPLATES = { scratch: { ...NOTE_TEMPLATES_FALLBACK.scratch } };
+
+  Object.entries(templates || {}).forEach(([id, tmpl]) => {
+    if (!id || id === 'scratch') return;
+    NOTE_TEMPLATES[id] = {
+      title: tmpl?.title || '',
+      body: tmpl?.body || '',
+      icon: tmpl?.icon,
+      label: tmpl?.label,
+      default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
+      fromFile,
+    };
+    NOTE_TYPE_META[id] = {
+      label: tmpl?.label || BUILTIN_NOTE_TYPE_META[id]?.label || id,
+      icon: tmpl?.icon || BUILTIN_NOTE_TYPE_META[id]?.icon || '📄',
+      cssClass: normalizeCssClass(id),
+    };
+  });
+}
+
+function getBlankTemplateButton() {
+  return `<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Blank</button>`;
+}
+
+function getNoteTypeMeta(type) {
+  return NOTE_TYPE_META[type] || {
+    label: type || 'Note',
+    icon: '📄',
+    cssClass: 'note-type-general',
+  };
+}
 
 let workbenchUnlocked        = true;
 const ENCRYPTED_CACHE_KEY    = 'ops-notes-v2-encrypted';
@@ -57,6 +108,9 @@ async function loadNoteTemplates() {
     const d = await r.json();
     if (!d.templates || !d.templates.length) {
       console.log('[Templates] No templates file or empty — using hardcoded fallback');
+      setNoteTemplates(getFallbackTemplates());
+      renderNoteTypeGrid();
+      renderNoteFilterBar();
       return;
     }
     const loaded = {};
@@ -70,46 +124,30 @@ async function loadNoteTemplates() {
         label:        t.label,
         default_tags: t.default_tags || [],
         fromFile:     true,
-      };
-      if (!NOTE_TYPE_META[t.id]) {
-        NOTE_TYPE_META[t.id] = { label: t.label || t.id, icon: t.icon || '📄', cssClass: 'note-type-general' };
       }
     }
-    loaded.scratch = NOTE_TEMPLATES_FALLBACK.scratch;
-    NOTE_TEMPLATES = loaded;
-    console.log(`[Templates] Loaded ${Object.keys(loaded).length - 1} templates from file`);
+    setNoteTemplates(loaded, { fromFile: true });
+    console.log(`[Templates] Loaded ${Object.keys(loaded).length} templates from file`);
     renderNoteTypeGrid();
     renderNoteFilterBar();
   } catch (e) {
     console.warn('[Templates] Failed to load templates file, using hardcoded fallback:', e.message);
+    setNoteTemplates(getFallbackTemplates());
+    renderNoteTypeGrid();
+    renderNoteFilterBar();
   }
 }
 
 function renderNoteTypeGrid() {
   const grid = document.getElementById('newNoteTypeGrid');
   if (!grid) return;
-
-  const builtinIds = new Set(Object.keys(NOTE_TEMPLATES_FALLBACK).filter(id => id !== 'scratch'));
-  const entries = Object.entries(NOTE_TEMPLATES).filter(([id]) => id !== 'scratch');
-  const builtins = entries.filter(([id]) =>  builtinIds.has(id));
-  const customs  = entries.filter(([id]) => !builtinIds.has(id));
-
-  const buttons = [`<button class="new-note-type-btn" data-type="scratch" onclick="newNote('scratch')"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg> Blank</button>`];
-
-  for (const [id, tmpl] of builtins) {
-    const icon  = tmpl.icon  || NOTE_TYPE_META[id]?.icon  || '📄';
-    const label = tmpl.label || NOTE_TYPE_META[id]?.label || id;
-    buttons.push(`<button class="new-note-type-btn" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
-  }
-
-  if (customs.length) {
-    buttons.push(`<div class="new-note-type-heading">Custom</div>`);
-    for (const [id, tmpl] of customs) {
-      const icon  = tmpl.icon  || '';
-      const label = tmpl.label || id;
-      buttons.push(`<button class="new-note-type-btn template-from-file" data-type="${id}" onclick="newNote('${id}')">${icon} ${label}</button>`);
-    }
-  }
+  const buttons = [getBlankTemplateButton()];
+  Object.entries(NOTE_TEMPLATES)
+    .filter(([id]) => id !== 'scratch')
+    .forEach(([id, tmpl]) => {
+      const meta = getNoteTypeMeta(id);
+      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="newNote('${id}')">${meta.icon} ${meta.label}</button>`);
+    });
   grid.innerHTML = buttons.join('');
 }
 

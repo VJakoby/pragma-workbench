@@ -1,12 +1,41 @@
 // ═══════════════════════════════════════════════
 // CONTENT PANEL RENDERING
 // ═══════════════════════════════════════════════
+let contentPanelBackState = null;
+
+function setContentPanelBackState(state) {
+  contentPanelBackState = state || null;
+  const btn = document.getElementById('cpBackBtn');
+  if (btn) btn.style.display = contentPanelBackState ? '' : 'none';
+}
+
+function clearContentPanelBackState() {
+  setContentPanelBackState(null);
+}
+
+function goBackContentPanel() {
+  if (!contentPanelBackState) return;
+  const state = contentPanelBackState;
+  clearContentPanelBackState();
+  if (state.type === 'kb-browser' && typeof openKbBrowserInPanel === 'function') {
+    openKbBrowserInPanel(state.view, {
+      folder: state.folder || '',
+      title: state.title || '',
+      meta: state.meta || '',
+    });
+  }
+}
+
 function injectTargets(rawHtml) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
+  const label  = esc(getTargetLabelValue());
   const span   = (val) => `<span class="ip-injected">${val}</span>`;
 
   const ipPatterns = [
+    /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
+    /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
+    /<rhost>/g, /<HOST>/g, /<host>/g,
     /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
     /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
     /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
@@ -21,6 +50,9 @@ function injectTargets(rawHtml) {
   ];
 
   const domainPatterns = [
+    /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
+    /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
+    /<WORKGROUP>/g,
     /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
     /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
     /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
@@ -29,9 +61,16 @@ function injectTargets(rawHtml) {
     /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
   ];
 
+  const labelPatterns = [
+    /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
+    /&lt;LABEL&gt;/g, /&lt;label&gt;/g, /&lt;TARGET_LABEL&gt;/g,
+    /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
+  ];
+
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
+  for (const p of labelPatterns) out = out.replace(p, span(label));
 
   out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
     const replaced = inner.replace(/\bIP\b/g, span(ip))
@@ -125,6 +164,16 @@ function refreshCodeBlocks() {
 }
 
 async function openItem(view, id) {
+  const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
+  const backState = hadBrowserState
+    ? {
+        type: 'kb-browser',
+        view: activeDoc.view,
+        folder: activeDoc.folder || '',
+        title: document.getElementById('cpTitle')?.textContent || '',
+        meta: document.getElementById('cpMeta')?.textContent || '',
+      }
+    : null;
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   const card = document.querySelector(`.card[data-id="${id}"]`);
   if (card) card.classList.add('active-card');
@@ -143,6 +192,7 @@ async function openItem(view, id) {
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
     activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
+    setContentPanelBackState(backState);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
@@ -151,6 +201,7 @@ async function openItem(view, id) {
 }
 
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
+  clearContentPanelBackState();
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -260,6 +311,7 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  clearContentPanelBackState();
   exitEditMode();
   document.getElementById('cpEditBtn').style.display = 'none';
 }
