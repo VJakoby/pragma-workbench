@@ -329,6 +329,8 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
     const reassignDropdown = document.getElementById('noteReassignDropdown');
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
+    const targetAssignDropdown = document.getElementById('noteTargetAssignDropdown');
+    if (targetAssignDropdown?.classList.contains('open')) { targetAssignDropdown.classList.remove('open'); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
@@ -343,6 +345,11 @@ document.addEventListener('keydown', async e => {
         }
       }
       exitEditMode();
+      return;
+    }
+    const noteArea = document.getElementById('noteEditArea');
+    if (activeView === 'notes' && activeNoteId && noteArea && noteArea.style.display !== 'none') {
+      await closeCurrentNote();
       return;
     }
     if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); }

@@ -356,6 +356,19 @@ async function deleteCurrentNote() {
   document.getElementById('noteEditArea').style.display = 'none';
 }
 
+async function closeCurrentNote() {
+  if (!activeNoteId) return;
+  clearTimeout(noteSaveTimer);
+  await persistActiveNote({ reason: 'note-close', immediate: true });
+  activeNoteId = null;
+  document.getElementById('notesEmpty').style.display = 'flex';
+  document.getElementById('noteEditArea').style.display = 'none';
+  document.getElementById('noteReassignDropdown')?.classList.remove('open');
+  document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
+  renderNotesList();
+  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
+}
+
 function getAllTags() {
   const set = new Set();
   Object.values(notes).forEach(n => (n.tags || []).forEach(t => set.add(t)));

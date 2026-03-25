@@ -140,7 +140,7 @@ body{
   background:var(--bg2);
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;
-  padding:0 15px; gap:11px;
+  padding:2px 15px; gap:11px;
   flex-shrink:0; z-index:50;
   flex-wrap:nowrap; overflow:visible;
 }
@@ -1646,7 +1646,7 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* ── Session block in sidebar ── */
 .session-active {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: 8px;
   padding: 8px 14px; cursor: pointer;
   transition: background 0.12s; border-left: 2px solid transparent;
 }
@@ -1771,25 +1771,28 @@ body.is-resizing *{cursor:col-resize!important}
 .notes-search-input::placeholder { color: var(--muted); }
 .notes-search-input:focus { border-color: var(--accent); }
 .session-notes-badge {
-  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-family: 'JetBrains Mono', monospace;
   font-weight: 700; color: var(--muted); background: var(--bg3);
   border: 1px solid var(--border); border-radius: 999px;
-  padding: 1px 7px; min-width: 22px; text-align: center;
-  line-height: 1.2; margin-left: 4px; flex-shrink: 0;
+  padding: 1px 6px; min-width: 18px; text-align: center;
+  line-height: 1.2; margin-left: 2px; flex-shrink: 0;
 }
 .target-copy-btn { font-weight: 600; }
-.session-active-info { flex: 1; min-width: 0; }
+.session-active-info { flex: 1 1 auto; min-width: 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: 'Inter', sans-serif;
+  line-height: 1.25;
 }
 .session-active-target {
   font-size: 11px; color: var(--text2);
   font-family: 'JetBrains Mono', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+  margin-top: 1px;
 }
-.session-active-arrow { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+.session-active-arrow { color: var(--muted); font-size: 14px; flex-shrink: 0; }
 
 /* Encrypted session button */
 .session-encrypt-row {
@@ -1962,14 +1965,15 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* ── Target selector (topbar) ── */
 .target-selector {
-  display: flex;
+  display: inline-flex;
   align-items: stretch;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 6px;
   transition: all 0.15s;
   flex-shrink: 0;
-  min-width: 320px;
+  width: max-content;
+  min-width: 0;
   max-width: min(720px, 72vw);
   overflow: hidden;
   height: 30px;
@@ -1994,6 +1998,7 @@ body.is-resizing *{cursor:col-resize!important}
   flex: 0 1 auto;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 0 11px;
   overflow: hidden;
@@ -2028,12 +2033,24 @@ body.is-resizing *{cursor:col-resize!important}
   cursor: not-allowed;
 }
 .target-sel-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--muted); flex-shrink: 0; transition: background 0.2s;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: transparent; flex-shrink: 0; transition: background 0.2s;
+  position: relative;
 }
-.target-sel-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.target-sel-dot.paused { background: var(--yellow); box-shadow: 0 0 6px rgba(251,191,36,0.45); }
-.target-sel-dot.complete { background: var(--red); box-shadow: 0 0 6px rgba(248,113,113,0.35); }
+.target-sel-dot::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  transform:translate(-50%, -50%);
+  background:var(--muted);
+}
+.target-sel-dot.active::after { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.target-sel-dot.paused::after { background: var(--yellow); box-shadow: 0 0 6px rgba(251,191,36,0.45); }
+.target-sel-dot.complete::after { background: var(--red); box-shadow: 0 0 6px rgba(248,113,113,0.35); }
 .target-sel-label {
   font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--accent); background: rgba(124,58,237,0.18);
@@ -2045,14 +2062,17 @@ body.is-resizing *{cursor:col-resize!important}
   min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
+  text-align:center;
   background:none;
   border:none;
   color:var(--text);
+  font-size:12px;
+  font-weight:600;
   padding:0;
 }
 .target-copy-text{
   display:block;
-  width:auto;
+  width:100%;
   min-width:0;
   padding:0 10px;
   box-sizing:border-box;
