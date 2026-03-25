@@ -21,6 +21,22 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 🗂️ Workspace Model
+
+PRAGMA is structured in three levels:
+
+- **Workbench** — the local workspace on your machine. A single workbench can contain multiple sessions.
+- **Session** — an engagement, project, machine set, or working context. A session can contain one target or many.
+- **Target** — a concrete IP, domain, or labeled host entry inside a session.
+
+This means PRAGMA does not force one workflow:
+
+- one workbench can hold several parallel engagements
+- one session can represent a single machine
+- one session can also represent a broader engagement with multiple targets
+
+Titles and note content stay flexible, while session assignment and target assignment provide the explicit structure.
+
 ## 🧱 Tech Stack
 
 | Area | Technology | Notes |

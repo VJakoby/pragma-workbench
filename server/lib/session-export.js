@@ -108,6 +108,7 @@ function injectTargetPlaceholders(text, target) {
 
   const ip = String(target.ip || '').trim();
   const domain = String(target.domain || '').trim();
+  const label = String(target.label || target.ip || target.domain || '').trim();
   let output = String(text);
 
   if (ip) {
@@ -138,6 +139,14 @@ function injectTargetPlaceholders(text, target) {
       /<WORKGROUP>/g, /\bWORKGROUP\b/g,
     ];
     output = replaceAllPatterns(output, domainPatterns, domain);
+  }
+
+  if (label) {
+    const labelPatterns = [
+      /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
+      /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
+    ];
+    output = replaceAllPatterns(output, labelPatterns, label);
   }
 
   return output;

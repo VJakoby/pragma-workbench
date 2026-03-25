@@ -4,9 +4,13 @@
 function injectTargets(rawHtml) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
+  const label  = esc(getTargetLabelValue());
   const span   = (val) => `<span class="ip-injected">${val}</span>`;
 
   const ipPatterns = [
+    /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
+    /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
+    /<rhost>/g, /<HOST>/g, /<host>/g,
     /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
     /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
     /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
@@ -21,6 +25,9 @@ function injectTargets(rawHtml) {
   ];
 
   const domainPatterns = [
+    /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
+    /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
+    /<WORKGROUP>/g,
     /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
     /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
     /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
@@ -29,9 +36,16 @@ function injectTargets(rawHtml) {
     /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
   ];
 
+  const labelPatterns = [
+    /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
+    /&lt;LABEL&gt;/g, /&lt;label&gt;/g, /&lt;TARGET_LABEL&gt;/g,
+    /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
+  ];
+
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
+  for (const p of labelPatterns) out = out.replace(p, span(label));
 
   out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
     const replaced = inner.replace(/\bIP\b/g, span(ip))
