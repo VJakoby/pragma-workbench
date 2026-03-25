@@ -183,7 +183,7 @@ function updateCmdSelection() {
 
 function shouldOpenCmdItemInSidePanel() {
   const noteArea = document.getElementById('noteEditArea');
-  return activeView === 'notes' && !!noteArea && noteArea.style.display !== 'none';
+  return activeView === 'notes' && !!activeNoteId && !!notes[activeNoteId] && !!noteArea && noteArea.style.display !== 'none';
 }
 
 function execCmd(idx) {

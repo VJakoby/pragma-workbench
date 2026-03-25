@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════
 if (typeof globalThis.SERVICES === 'undefined') globalThis.SERVICES = [];
 if (typeof globalThis.TACTICS === 'undefined') globalThis.TACTICS = [];
-if (typeof globalThis.activeView === 'undefined') globalThis.activeView = 'services';
+if (typeof globalThis.activeView === 'undefined') globalThis.activeView = 'notes';
 if (typeof globalThis.activeDoc === 'undefined') globalThis.activeDoc = null;
 if (typeof globalThis.activeCat === 'undefined') globalThis.activeCat = 'all';
 if (typeof globalThis.searchScope === 'undefined') globalThis.searchScope = 'all';
