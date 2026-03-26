@@ -186,14 +186,15 @@ function renderContentPanelTabs(doc = activeDoc) {
   const tabs = document.getElementById('cpQuickTabs');
   if (!tabs) return;
 
-  if (!doc?.isLocal || doc?.isBrowser || !doc.view || !doc.id || !doc.folder) {
+  if (!doc?.isLocal || doc?.isBrowser || !doc.view || !doc.id) {
     tabs.style.display = 'none';
     tabs.innerHTML = '';
     return;
   }
 
+  const docFolder = doc.folder || '';
   const siblings = getKbCollection(doc.view)
-    .filter(item => (item.folder || '') === (doc.folder || ''))
+    .filter(item => (item.folder || '') === docFolder)
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
 
   if (siblings.length <= 1) {

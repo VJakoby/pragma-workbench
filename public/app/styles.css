@@ -381,6 +381,10 @@ body{
 .nav-item-kb-folder .nav-item-icon{
   color:var(--muted);
 }
+.nav-item-kb-folder .nav-item-label{
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
 .nav-item-kb-folder.active .nav-item-icon,
 .nav-item-kb-folder:hover .nav-item-icon{
   color:currentColor;

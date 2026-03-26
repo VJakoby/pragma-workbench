@@ -105,6 +105,7 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   const body = document.getElementById('cpContent');
   if (!panel || !body) return;
   if (typeof clearContentPanelBackState === 'function') clearContentPanelBackState();
+  if (typeof renderContentPanelTabs === 'function') renderContentPanelTabs(null);
 
   const items = getKbCollection(view).filter(item => {
     if (view !== 'services' || !folder) return true;

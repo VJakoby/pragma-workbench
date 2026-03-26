@@ -88,11 +88,15 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   let tacticsCategories = [];
   let searchIndex = null;
 
+  function displayFilename(filename) {
+    return path.basename(String(filename || '').trim()) || 'untitled.md';
+  }
+
   function metaFromFilename(filename) {
     const base = path.basename(filename, '.md').toLowerCase();
     if (/^\d+$/.test(base) && PORT_MAP[base]) return { ...PORT_MAP[base], id: base };
     if (SLUG_MAP[base]) return { ...SLUG_MAP[base], id: base };
-    const name = base.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const name = displayFilename(filename);
     return { id: base, name, port: '—', category: 'Other', icon: '📄' };
   }
 
@@ -169,33 +173,6 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
       })));
     }
 
-    if (fs.existsSync(kbDir)) {
-      let rootEntries = [];
-      try { rootEntries = fs.readdirSync(kbDir, { withFileTypes: true }); } catch (_) {}
-      for (const entry of rootEntries) {
-        if (entry.name === 'tactics' || entry.name === 'services') continue;
-        const fullPath = path.join(kbDir, entry.name);
-        if (entry.isDirectory()) {
-          addCategory(humanizeCategory(entry.name), normalizeFolderName(entry.name) || entry.name);
-          entries.push(...walkMdFiles(fullPath, fullPath).map(fileEntry => ({
-            ...fileEntry,
-            sourceRoot: fullPath,
-            categoryLabel: humanizeCategory(entry.name),
-            folder: normalizeFolderName(entry.name) || entry.name,
-          })));
-        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
-          entries.push({
-            filename: entry.name,
-            filepath: fullPath,
-            subdir: '',
-            sourceRoot: kbDir,
-            categoryLabel: 'General',
-            folder: '',
-          });
-        }
-      }
-    }
-
     serviceIndex = entries.map(({ filename, filepath, categoryLabel, folder }) => {
       const content = fs.readFileSync(filepath, 'utf8');
       const meta = metaFromFilename(filename);
@@ -223,7 +200,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   function extractTitle(content, filename) {
     const match = content.match(/^#\s+(.+)$/m);
     if (match) return match[1].trim();
-    return path.basename(filename, '.md').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return displayFilename(filename);
   }
 
   function extractCategory(content, filename) {
