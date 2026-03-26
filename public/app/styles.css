@@ -1083,8 +1083,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
 
 .icon-btn{
   background:none;border:none;cursor:pointer;
-  color:var(--btn-color);font-size:17px;padding:3px 7px;
-  border-radius:4px;transition:all 0.12s;
+  color:var(--btn-color);font-size:19px;padding:5px 9px;
+  min-width:32px;min-height:30px;
+  border-radius:6px;transition:all 0.12s;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;flex-shrink:0;
 }
 .icon-btn:hover{background:var(--bg4);color:var(--text)}
 .icon-btn.danger:hover{background:rgba(248,113,113,0.1);color:var(--red)}
@@ -1604,9 +1607,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Pin button ── */
 .note-pin-btn {
   background: none; border: none; cursor: pointer;
-  font-size: 15px; padding: 3px 6px; border-radius: 4px;
+  font-size: 17px; padding: 5px 8px; min-width: 30px; min-height: 28px; border-radius: 6px;
   color: var(--muted); transition: all 0.12s; line-height: 1;
-  flex-shrink: 0;
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
 }
 .note-pin-btn:hover { color: #fb923c; background: rgba(251,146,60,0.12); }
 .note-pin-btn.pinned {
@@ -1802,23 +1805,23 @@ body.is-resizing *{cursor:col-resize!important}
   margin-left: 4px;
 }
 .editor-font-btn, .editor-font-label {
-  height: 22px;
+  height: 26px;
   border: 1px solid var(--border);
   background: var(--bg2);
   color: var(--text2);
   border-radius: 6px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.12s;
 }
 .editor-font-btn {
-  min-width: 28px;
-  padding: 0 7px;
+  min-width: 32px;
+  padding: 0 8px;
 }
 .editor-font-label {
-  min-width: 44px;
-  padding: 0 8px;
+  min-width: 48px;
+  padding: 0 9px;
 }
 .editor-font-btn:hover, .editor-font-label:hover {
   border-color: var(--border2);
@@ -2292,8 +2295,8 @@ body.is-resizing *{cursor:col-resize!important}
 .note-target-assign-wrap { position: relative; flex-shrink: 0; }
 .note-target-assign-btn {
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 5px; padding: 3px 9px; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  border-radius: 6px; padding: 5px 10px; min-height: 28px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); transition: all 0.15s; white-space: nowrap;
   display: flex; align-items: center; gap: 5px;
   box-sizing: border-box; line-height: 1;
@@ -2352,8 +2355,8 @@ body.is-resizing *{cursor:col-resize!important}
 .note-reassign-wrap { position: relative; flex-shrink: 0; }
 .note-reassign-btn {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
-  color: var(--muted); padding: 3px 9px; cursor: pointer; transition: all 0.15s;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+  color: var(--muted); padding: 5px 10px; min-height: 28px; cursor: pointer; transition: all 0.15s;
   white-space: nowrap; display: flex; align-items: center; gap: 5px;
   box-sizing: border-box; line-height: 1;
 }
@@ -2753,7 +2756,7 @@ body.enc-active-body .content-panel {
   background: var(--bg4);
   border: 1px solid var(--border);
   color: var(--btn-color);
-  font-size: 15px;
+  font-size: 16px;
   min-height: 24px;
   padding: 2px 8px;
   line-height: 1;
