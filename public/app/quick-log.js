@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════
 let _portParsed = [];
 let _pathParsed = [];
+let _lootParsed = [];
 let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 
@@ -11,7 +12,7 @@ const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 function updateSvcPopoverLayout() {
   const popover = document.getElementById('svcPopover');
   if (!popover) return;
-  const importOpen = ['portPastePanel', 'pathPastePanel'].some(id =>
+  const importOpen = ['portPastePanel', 'pathPastePanel', 'lootPastePanel'].some(id =>
     document.getElementById(id)?.style.display === 'flex'
   );
   popover.classList.toggle('svc-popover-import-open', importOpen);
@@ -126,14 +127,30 @@ async function clearActiveQuickLog() {
 }
 
 function toggleToolPaste(kind) {
-  const panel = document.getElementById(kind === 'ports' ? 'portPastePanel' : 'pathPastePanel');
-  const toggle = document.getElementById(kind === 'ports' ? 'portPasteToggle' : 'pathPasteToggle');
+  const panelMap = {
+    ports: 'portPastePanel',
+    paths: 'pathPastePanel',
+    loot: 'lootPastePanel',
+  };
+  const toggleMap = {
+    ports: 'portPasteToggle',
+    paths: 'pathPasteToggle',
+    loot: 'lootPasteToggle',
+  };
+  const inputMap = {
+    ports: 'portPasteInput',
+    paths: 'pathPasteInput',
+    loot: 'lootPasteInput',
+  };
+  const panel = document.getElementById(panelMap[kind]);
+  const toggle = document.getElementById(toggleMap[kind]);
+  if (!panel || !toggle) return;
   const isOpen = panel.style.display === 'flex';
   panel.style.display = isOpen ? 'none' : 'flex';
   toggle.style.color = isOpen ? '' : 'var(--accent)';
   toggle.style.borderColor = isOpen ? '' : 'var(--accent)';
   if (!isOpen) {
-    document.getElementById(kind === 'ports' ? 'portPasteInput' : 'pathPasteInput').focus();
+    document.getElementById(inputMap[kind])?.focus();
   } else {
     resetPastePanel(kind);
   }
@@ -147,6 +164,13 @@ function resetPastePanel(kind) {
     document.getElementById('portCommitBtn').style.display = 'none';
     _portParsed = [];
   } else {
+    if (kind === 'loot') {
+      document.getElementById('lootPasteInput').value = '';
+      document.getElementById('lootParsePreview').style.display = 'none';
+      document.getElementById('lootCommitBtn').style.display = 'none';
+      _lootParsed = [];
+      return;
+    }
     document.getElementById('pathPasteInput').value = '';
     document.getElementById('pathParsePreview').style.display = 'none';
     document.getElementById('pathCommitBtn').style.display = 'none';
@@ -736,6 +760,96 @@ function parseLootForCredentialsRow(entry) {
     service: escapeCredentialsCell(host),
     notes: escapeCredentialsCell(note),
   };
+}
+
+function parseLootImport(text) {
+  return String(text || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => !line.startsWith('#'))
+    .map(line => ({
+      credential: line,
+      hasSecret: line.includes(':') && line.indexOf(':') > 0 && line.slice(line.indexOf(':') + 1).trim().length > 0,
+    }));
+}
+
+function parseAndPreviewLoot() {
+  const raw = document.getElementById('lootPasteInput')?.value || '';
+  const preview = document.getElementById('lootParsePreview');
+  const commitBtn = document.getElementById('lootCommitBtn');
+  if (!preview || !commitBtn) return;
+
+  _lootParsed = parseLootImport(raw);
+  preview.style.display = 'block';
+  if (!_lootParsed.length) {
+    preview.innerHTML = '<div class="nmap-preview-none">No usernames or credentials found.</div>';
+    commitBtn.style.display = 'none';
+    return;
+  }
+
+  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const type = _activeLootType;
+  const existing = new Set(getSessionLoot().map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  const fresh = _lootParsed.filter(entry => !existing.has(`${type}::${entry.credential}::${host}`));
+  const dupes = _lootParsed.length - fresh.length;
+
+  let html = `<div class="nmap-preview-hdr"><span>${_lootParsed.length}</span> entr${_lootParsed.length === 1 ? 'y' : 'ies'} found`;
+  if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
+  html += `</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Type</th><th>Credential</th><th>Detected</th></tr></thead><tbody>`;
+  html += _lootParsed.map(entry => {
+    const isDupe = existing.has(`${type}::${entry.credential}::${host}`);
+    return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(type)}</td><td>${esc(entry.credential)}</td><td style="color:var(--text2)">${entry.hasSecret ? 'username:secret' : 'username only'}</td></tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  preview.innerHTML = html;
+
+  if (fresh.length > 0) {
+    commitBtn.style.display = 'block';
+    commitBtn.textContent = `＋ Add ${fresh.length} new`;
+  } else {
+    commitBtn.style.display = 'none';
+    preview.innerHTML += '<div class="nmap-preview-none">All entries already logged.</div>';
+  }
+}
+
+function commitLootParse() {
+  if (!activeSessionId || !_lootParsed.length) return;
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const note = (document.getElementById('lootNoteInput')?.value || '').trim();
+  const type = _activeLootType;
+  const existing = new Set(sessions[activeSessionId].loot.map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  let added = 0;
+  let syncedCredentials = false;
+
+  _lootParsed.forEach((item, idx) => {
+    const key = `${type}::${item.credential}::${host}`;
+    if (existing.has(key)) return;
+    existing.add(key);
+    const entry = {
+      id: `loot_${Date.now()}_${idx}`,
+      type,
+      credential: item.credential,
+      host,
+      note,
+      added: Date.now(),
+    };
+    sessions[activeSessionId].loot.push(entry);
+    if (syncLootEntryToCredentialsNote(entry)) syncedCredentials = true;
+    added++;
+  });
+
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+  if (syncedCredentials) {
+    renderNotesList();
+    renderSessionSidebar();
+  }
+  toggleToolPaste('loot');
+  showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
 function buildCredentialsTableRow(row) {

@@ -137,6 +137,7 @@ async function init() {
     const data = await response.json();
     SERVICES = data.services || [];
     if (typeof serviceCategoryMeta !== 'undefined') serviceCategoryMeta = data.categories || [];
+    if (typeof refreshRootKbSections === 'function') await refreshRootKbSections();
   } catch (e) {
     console.warn('services unavailable', e);
   }
@@ -176,6 +177,7 @@ function switchView(view, navEl) {
   document.getElementById(`view-${view}`).classList.add('active');
   if (view === 'services' && navEl?.id === 'nav-services' && typeof activeCatFolder !== 'undefined') {
     activeCatFolder = '';
+    if (typeof activeKbRootFolder !== 'undefined') activeKbRootFolder = '';
   }
   if (navEl) {
     navEl.classList.add('active');
@@ -190,7 +192,8 @@ function switchView(view, navEl) {
     document.getElementById('catList').style.display = '';
   } else if (view === 'services') {
     if (typeof renderKnowledgeFolderNav === 'function') renderKnowledgeFolderNav();
-    buildSidebar(view);
+    if (typeof getActiveKbBrowserView === 'function') buildSidebar(getActiveKbBrowserView());
+    else buildSidebar(view);
     if (catSection) catSection.style.display = '';
     document.getElementById('catList').style.display = '';
   } else {

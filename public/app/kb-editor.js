@@ -98,7 +98,12 @@ async function saveEdit(opts = {}) {
     try {
       const endpoint = savedView === 'services'
         ? `/api/service/${encodeURIComponent(savedId)}`
-        : `/api/tactic/${encodeURIComponent(savedId)}`;
+        : savedView === 'tactics'
+          ? `/api/tactic/${encodeURIComponent(savedId)}`
+          : savedView.startsWith('kb:')
+            ? `/api/kb-section/${encodeURIComponent(savedView.slice(3))}/${encodeURIComponent(savedId)}`
+            : '';
+      if (!endpoint) throw new Error('Unknown KB view');
       const r2 = await fetch(endpoint);
       const d2 = await r2.json();
       activeDoc.html = d2.html;

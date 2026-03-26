@@ -203,12 +203,12 @@ function renderContentPanelTabs(doc = activeDoc) {
     return;
   }
 
-  tabs.innerHTML = siblings.map(item => `
+  tabs.innerHTML = `<div class="content-panel-tabs-inner">${siblings.map(item => `
     <button class="content-panel-tab${item.id === doc.id ? ' active' : ''}"
       onclick="openItem('${doc.view}', '${esc(item.id)}')"
       title="${esc(item.name || '')}">
       ${esc(item.name || 'Untitled')}
-    </button>`).join('');
+    </button>`).join('')}</div>`;
   tabs.style.display = 'flex';
 }
 
