@@ -88,9 +88,12 @@
       function buildList(lines, ordered) {
         const tag = ordered ? 'ol' : 'ul';
         const bulletRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*+]\s+/;
+        const firstNumber = ordered
+          ? parseInt((lines[0]?.match(/^\s*(\d+)\.\s+/) || [])[1] || '1', 10)
+          : null;
         const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
 
-        let html = `<${tag}>`, i = 0;
+        let html = ordered && firstNumber > 1 ? `<${tag} start="${firstNumber}">` : `<${tag}>`, i = 0;
         while (i < lines.length) {
           const line = lines[i], indent = getIndent(line);
           const text = line.replace(bulletRe, '');
@@ -120,7 +123,7 @@
       });
 
       // Ordered lists (including indented nested)
-      src = src.replace(/((?:^\s*\d+\. .+\n?)+)/gm, m => {
+      src = src.replace(/((?:^\s*\d+\. .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
         return buildList(lines, true);
       });
