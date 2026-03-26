@@ -256,7 +256,12 @@ document.addEventListener('keydown', async e => {
   }
 
   if (ctrl && key === 's') {
-    if (activeNoteId) {
+    if (activeConfigDoc) {
+      e.preventDefault();
+      clearTimeout(noteSaveTimer);
+      setNoteSaveIndicator('saving', '...saving');
+      await persistTemplatesConfig({ reason: 'config-manual-save' });
+    } else if (activeNoteId) {
       e.preventDefault();
       clearTimeout(noteSaveTimer);
       setNoteSaveIndicator('saving', '...saving');
@@ -355,7 +360,7 @@ document.addEventListener('keydown', async e => {
       return;
     }
     const noteArea = document.getElementById('noteEditArea');
-    if (activeView === 'notes' && activeNoteId && noteArea && noteArea.style.display !== 'none') {
+    if (activeView === 'notes' && (activeNoteId || activeConfigDoc) && noteArea && noteArea.style.display !== 'none') {
       await closeCurrentNote();
       return;
     }

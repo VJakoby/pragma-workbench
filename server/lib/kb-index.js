@@ -224,7 +224,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
       const category = categoryLabel || meta.category || 'General';
       addCategory(category, folder || '');
       return {
-        id: meta.id, name: meta.name, port: meta.port, category,
+        id: meta.id, name: extractTitle(content, filename), port: meta.port, category,
         icon: meta.icon, description: extractDescription(content),
         file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder,
       };

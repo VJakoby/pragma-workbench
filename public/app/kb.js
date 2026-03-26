@@ -177,8 +177,19 @@ function openSidebarKbView(view, navEl) {
     openKbBrowserInPanel(view);
     return;
   }
-  if (view === 'services') activeKbRootFolder = '';
+  if (view === 'services') {
+    activeKbRootFolder = '';
+    activeCat = 'all';
+    activeCatFolder = '';
+  }
   switchView(view, navEl);
+  if (view === 'services') {
+    renderKnowledgeFolderNav();
+    buildSidebar('services');
+    renderCards('services');
+    const input = document.getElementById('svcSearch');
+    if (input) filterCards('services', input.value || '');
+  }
 }
 
 function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {}) {

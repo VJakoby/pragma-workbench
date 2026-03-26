@@ -385,8 +385,8 @@ body{
   color:var(--muted);
 }
 .nav-item-kb-folder .nav-item-label{
-  text-transform:uppercase;
-  letter-spacing:.06em;
+  text-transform:none;
+  letter-spacing:normal;
 }
 .nav-item-kb-folder.active .nav-item-icon,
 .nav-item-kb-folder:hover .nav-item-icon{
@@ -1183,6 +1183,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   font-size:12px;font-family:'Inter',sans-serif;white-space:nowrap;
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
+.search-input-row .engram-pill{margin-left:0}
 
 .search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
 .ctrl-label{
@@ -1622,6 +1623,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-network-enumeration { color: var(--green); background: rgba(var(--green-rgb),0.12); }
     .note-type-loot        { color: var(--green);   background: rgba(var(--green-rgb),0.08); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
+    .note-type-config      { color: var(--accent);  background: rgba(var(--accent-rgb),0.12); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
 
     /* Borders only on the note list item badges, not the filter bar buttons */
@@ -1631,6 +1633,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-item-type.note-type-network-enumeration { border: 1px solid rgba(var(--green-rgb),0.18); }
     .note-item-type.note-type-loot        { border: 1px solid rgba(var(--green-rgb),0.15); }
     .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
+    .note-item-type.note-type-config      { border: 1px solid rgba(var(--accent-rgb),0.18); }
     .note-item-type.note-type-scratch     { border: 1px solid var(--border); }
 
     /* New note type picker grid */
@@ -1995,6 +1998,14 @@ body.is-resizing *{cursor:col-resize!important}
   font-size: 13px; font-family: 'JetBrains Mono', monospace;
   outline: none; transition: border-color 0.15s;
   width: 100%; box-sizing: border-box;
+}
+.session-inline-field { display:flex; gap:8px; align-items:center; }
+.session-inline-field input { flex:1; min-width:0; }
+.session-field-hint {
+  font-size:11px; color:var(--muted); font-family:'Inter',sans-serif; line-height:1.45;
+}
+.session-field-hint code {
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text2);
 }
 .session-field input:focus { border-color: var(--accent); }
 .session-field input::placeholder { color: var(--muted); }

@@ -31,6 +31,38 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
     }
   });
 
+  app.get('/api/config/templates', async (req, res) => {
+    try {
+      const content = await fs.promises.readFile(templatesFile, 'utf-8');
+      res.json({ ok: true, content });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/config/templates', async (req, res) => {
+    try {
+      const content = String(req.body?.content || '');
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (err) {
+        return res.status(400).json({ error: `Invalid JSON: ${err.message}` });
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return res.status(400).json({ error: 'Root JSON value must be an object.' });
+      }
+      if (!Array.isArray(parsed.templates)) {
+        return res.status(400).json({ error: 'Expected a top-level "templates" array.' });
+      }
+      const normalized = `${JSON.stringify(parsed, null, 2)}\n`;
+      await fs.promises.writeFile(templatesFile, normalized, 'utf-8');
+      res.json({ ok: true, templates: parsed.templates.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/notes', (req, res) => {
     try {
       if (fs.existsSync(storage.workbenchEncFile()) && !fs.existsSync(storage.workbenchFile())) {

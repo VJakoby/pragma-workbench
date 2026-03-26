@@ -130,9 +130,9 @@ PRAGMA ships with six built-in note templates. Each opens with a pre-structured 
 | **Loot** | 💰 | `loot` | Exfiltrated files, credentials found, flags/proofs |
 | **Exploit** | 💥 | `exploit` | CVE/CVSS metadata, payload, steps, outcome, cleanup |
 
-### Custom Templates (`notes-templates.json`)
+### Custom Templates (`note-templates.json`)
 
-You can extend or fully replace the built-in templates by placing a `notes-templates.json` file next to `server.js`. On startup, PRAGMA loads it and uses it as the sole source of templates — built-ins are replaced entirely (except `Blank`, which is always kept).
+You can extend or fully replace the built-in templates by placing a `note-templates.json` file next to `server.js`. On startup, PRAGMA loads it and uses it as the sole source of templates — built-ins are replaced entirely (except `Blank`, which is always kept).
 
 **Schema:**
 

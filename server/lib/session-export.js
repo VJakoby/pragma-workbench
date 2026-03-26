@@ -110,6 +110,7 @@ function injectTargetPlaceholders(text, target) {
   const ip = String(target.ip || '').trim();
   const domain = String(target.domain || '').trim();
   const label = String(target.label || target.ip || target.domain || '').trim();
+  const attackerIp = String(target.attacker_ip || '').trim();
   let output = String(text);
 
   if (ip) {
@@ -150,6 +151,19 @@ function injectTargetPlaceholders(text, target) {
     output = replaceAllPatterns(output, labelPatterns, label);
   }
 
+  if (attackerIp) {
+    const attackerPatterns = [
+      /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
+      /<ATTACKER_IP>/g, /<attacker_ip>/g,
+      /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
+      /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
+      /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
+      /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
+      /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
+    ];
+    output = replaceAllPatterns(output, attackerPatterns, attackerIp);
+  }
+
   return output;
 }
 
@@ -185,7 +199,10 @@ function buildTypeBuckets(notes, templateMeta) {
 
 function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const exportedAt = Date.now();
-  const targets = Array.isArray(session.targets) ? [...session.targets] : [];
+  const sessionContext = { attacker_ip: session.attacker_ip || '' };
+  const targets = Array.isArray(session.targets)
+    ? session.targets.map((target) => ({ ...target, attacker_ip: session.attacker_ip || '' }))
+    : [];
   const targetById = Object.fromEntries(targets.map((target) => [target.id, target]));
 
   const allNotes = [...notes].sort((a, b) => noteTimestamp(a) - noteTimestamp(b));
@@ -225,6 +242,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
 
   return {
     session,
+    sessionContext,
     storage,
     sessionSlug: storage.slugify(session.codename),
     exportedAt,
@@ -275,7 +293,7 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
 }
 
 function renderSessionNoteFile({ note, session, typeMeta, storage }) {
-  const title = noteTitle(note, storage);
+  const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
   return [
     `# ${title}`,
     '',
@@ -285,7 +303,7 @@ function renderSessionNoteFile({ note, session, typeMeta, storage }) {
     '',
     '---',
     '',
-    note.body || '',
+    injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }),
   ].join('\n');
 }
 
@@ -329,7 +347,7 @@ function renderTimelineSummary(model) {
           const typeMeta = resolveNoteType(note.type, model.templateMeta);
           const target = note.target_id ? model.targetById[note.target_id] : null;
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
-          const title = noteTitle(note, model.storage);
+          const title = injectTargetPlaceholders(noteTitle(note, model.storage), target || model.sessionContext);
           const preview = (note.body || '')
             .split('\n')
             .map((line) => line.trim())
@@ -421,8 +439,9 @@ function renderNoteEntries(bucket, model, includeTarget) {
   const lines = [`### ${bucket.label}`, ''];
   bucket.notes.forEach((note) => {
     const target = note.target_id ? model.targetById[note.target_id] : null;
-    const resolvedTitle = target ? injectTargetPlaceholders(noteTitle(note, model.storage), target) : noteTitle(note, model.storage);
-    const resolvedBody = target ? injectTargetPlaceholders(note.body || '', target) : (note.body || '');
+    const placeholderContext = target || model.sessionContext;
+    const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
+    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
     lines.push(`#### ${resolvedTitle}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);

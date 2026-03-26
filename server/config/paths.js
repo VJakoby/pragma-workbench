@@ -12,7 +12,7 @@ function createPaths(rootDir) {
     PUBLIC_DIR: path.join(rootDir, 'public'),
     DASHBOARD_HTML: path.join(rootDir, 'public', 'app.html'),
     SESSIONS_DIR: process.env.SESSIONS_DIR || path.join(rootDir, 'sessions'),
-    TEMPLATES_FILE: path.join(rootDir, 'notes-templates.json'),
+    TEMPLATES_FILE: path.join(rootDir, 'note-templates.json'),
     SEARCH_URL: process.env.SEARCH_URL || 'http://localhost:3002',
   };
 }

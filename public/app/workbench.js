@@ -470,6 +470,7 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  updateSessionAttackerIpField();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -493,6 +494,7 @@ function renderSessionList() {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      const attacker = s.attacker_ip ? ` · attacker ${esc(s.attacker_ip)}` : '';
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-top">
@@ -501,7 +503,7 @@ function renderSessionList() {
         </div>
         <div class="session-list-item-name">${esc(s.codename)}</div>
       </div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-item-actions">
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
@@ -518,13 +520,42 @@ function createSession() {
   const name = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
   const id = 'sess_' + Date.now();
-  const sess = { id, codename: name, created: Date.now(), targets: [] };
+  const sess = { id, codename: name, created: Date.now(), targets: [], attacker_ip: '' };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);
   saveNotes();
   renderSessionList();
+  updateSessionAttackerIpField();
   document.getElementById('newSessionName').value = '';
+}
+
+function updateSessionAttackerIpField() {
+  const wrap = document.getElementById('attackerIpFieldWrap');
+  const input = document.getElementById('sessionAttackerIpInput');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !input) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  input.value = sess.attacker_ip || '';
+}
+
+function saveActiveSessionAttackerIp() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const input = document.getElementById('sessionAttackerIpInput');
+  if (!sess || !input) return;
+  const next = input.value.trim();
+  if ((sess.attacker_ip || '') === next) return;
+  sess.attacker_ip = next;
+  saveNotes();
+  renderSessionList();
+  renderSessionSidebar();
+  refreshCodeBlocks();
+  showToast(next ? `✓ Attacker IP set: ${next}` : '✓ Attacker IP cleared');
 }
 
 let _statusDropdownTarget = null;
@@ -601,6 +632,7 @@ function switchSession(id) {
     activeTargetId = null;
   }
   renderSessionSidebar();
+  updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
   updateTargetSelector();
@@ -629,6 +661,7 @@ async function deleteSession(id) {
   }
   saveNotes();
   renderSessionSidebar();
+  updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
 }

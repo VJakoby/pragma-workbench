@@ -49,6 +49,7 @@ function injectTargets(rawHtml) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
   const label  = esc(getTargetLabelValue());
+  const attacker = esc(getAttackerIP());
   const span   = (val) => `<span class="ip-injected">${val}</span>`;
 
   const ipPatterns = [
@@ -86,14 +87,28 @@ function injectTargets(rawHtml) {
     /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
   ];
 
+  const attackerPatterns = [
+    /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
+    /<ATTACKER_IP>/g, /<attacker_ip>/g,
+    /&lt;ATTACKER&gt;/g, /&lt;attacker&gt;/g, /&lt;ATTACKER-IP&gt;/g, /&lt;attacker-ip&gt;/g,
+    /&lt;ATTACKER_IP&gt;/g, /&lt;attacker_ip&gt;/g,
+    /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
+    /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
+    /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
+    /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
+    /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
+  ];
+
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
   for (const p of labelPatterns) out = out.replace(p, span(label));
+  for (const p of attackerPatterns) out = out.replace(p, span(attacker));
 
   out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
     const replaced = inner.replace(/\bIP\b/g, span(ip))
-                          .replace(/\bHOST\b/g, span(ip));
+                          .replace(/\bHOST\b/g, span(ip))
+                          .replace(/\bATTACKER\b/g, span(attacker));
     return open + replaced + close;
   });
 
@@ -103,9 +118,11 @@ function injectTargets(rawHtml) {
 function injectTargetsInCodeLine(rawLine) {
   let out = injectTargets(esc(rawLine));
   const ip = esc(getIP());
+  const attacker = esc(getAttackerIP());
   const span = (val) => `<span class="ip-injected">${val}</span>`;
   out = out.replace(/\bIP\b/g, span(ip))
-           .replace(/\bHOST\b/g, span(ip));
+           .replace(/\bHOST\b/g, span(ip))
+           .replace(/\bATTACKER\b/g, span(attacker));
   return out;
 }
 

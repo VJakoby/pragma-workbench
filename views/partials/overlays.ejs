@@ -81,6 +81,14 @@
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
         <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
       </div>
+      <div class="session-field" id="attackerIpFieldWrap" style="display:none">
+        <label>Attacker IP for active session</label>
+        <div class="session-inline-field">
+          <input id="sessionAttackerIpInput" type="text" placeholder="e.g. 10.10.14.7" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionAttackerIp()">
+          <button class="session-btn secondary" type="button" onclick="saveActiveSessionAttackerIp()">Save</button>
+        </div>
+        <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
+      </div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>

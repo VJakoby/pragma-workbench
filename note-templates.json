@@ -22,7 +22,9 @@
       "label": "Credentials",
       "icon": "🔑",
       "title_prefix": "Credentials",
-      "default_tags": ["creds"],
+      "default_tags": [
+        "creds"
+      ],
       "body_lines": [
         "## Credentials",
         "",
@@ -42,7 +44,9 @@
       "label": "Privlilege Escalation",
       "icon": "⬆",
       "title_prefix": "Privilege Escalation",
-      "default_tags": ["privesc"],
+      "default_tags": [
+        "privesc"
+      ],
       "body_lines": [
         "## System Info",
         "",
@@ -87,7 +91,9 @@
       "label": "Recon",
       "icon": "🔭",
       "title_prefix": "Recon",
-      "default_tags": ["recon"],
+      "default_tags": [
+        "recon"
+      ],
       "body_lines": [
         "## Target Overview",
         "",
@@ -123,7 +129,10 @@
       "label": "Network Enumeration",
       "icon": "🌐",
       "title_prefix": "Network Enumeration",
-      "default_tags": ["recon", "network"],
+      "default_tags": [
+        "recon",
+        "network"
+      ],
       "body_lines": [
         "## Target Overview",
         "",
@@ -149,7 +158,9 @@
       "label": "Loot",
       "icon": "💰",
       "title_prefix": "Loot",
-      "default_tags": ["loot"],
+      "default_tags": [
+        "loot"
+      ],
       "body_lines": [
         "## Files & Data",
         "",
@@ -177,7 +188,9 @@
       "label": "Exploitation",
       "icon": "💥",
       "title_prefix": "Exploit",
-      "default_tags": ["exploit"],
+      "default_tags": [
+        "exploit"
+      ],
       "body_lines": [
         "## Vulnerability",
         "",
@@ -214,7 +227,10 @@
       "label": "CTF",
       "icon": "🛡️",
       "title_prefix": "MACHINE-X",
-      "default_tags": ["ctf", "custom"],
+      "default_tags": [
+        "ctf",
+        "custom"
+      ],
       "body_lines": [
         "# Machine Name - <LABEL>",
         "",
