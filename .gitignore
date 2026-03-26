@@ -1,6 +1,9 @@
 # Notes and sessions
 sessions/
 
+# Backup files that should only be local
+*.bak
+
 # Personal Knowledge-base dir or symlinks
 knowledge_base/*
 /knowledge_base
