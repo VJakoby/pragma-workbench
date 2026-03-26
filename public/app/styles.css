@@ -1675,14 +1675,24 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .drag-handle-left::after{
   content:'';
-  position:absolute;top:0;bottom:0;
-  right:2px;width:2px;
-  background:transparent;
-  transition:background 0.15s;
+  position:absolute;top:50%;right:2px;
+  width:3px;height:42px;
+  transform:translateY(-50%);
+  border-radius:3px;
+  background:rgba(var(--accent-rgb),0.18);
+  box-shadow:
+    0 -12px 0 rgba(var(--accent-rgb),0.12),
+    0 12px 0 rgba(var(--accent-rgb),0.12);
+  transition:background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  opacity:0.75;
 }
 .drag-handle-left:hover::after,
 .drag-handle-left.dragging::after{
   background:var(--accent);
+  box-shadow:
+    0 -12px 0 rgba(var(--accent-rgb),0.45),
+    0 12px 0 rgba(var(--accent-rgb),0.45);
+  opacity:1;
 }
 /* Prevent text selection while dragging */
 body.is-resizing{user-select:none;cursor:col-resize!important}
