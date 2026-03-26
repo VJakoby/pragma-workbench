@@ -181,7 +181,23 @@ function buildCmTheme() {
       boxShadow: `inset 0 0 0 2px ${v.selectionOutline}`,
     },
     '.cm-activeLine': { background: v.activeLine },
-    '.cm-gutters': { display: 'none' },
+    '.cm-gutters': {
+      background: 'transparent',
+      color: v.muted,
+      borderRight: `1px solid ${v.bg3}`,
+      paddingRight: '4px',
+      marginRight: '8px',
+    },
+    '.cm-lineNumbers .cm-gutterElement': {
+      minWidth: '2em',
+      padding: '0 4px 0 0',
+      textAlign: 'right',
+      fontVariantNumeric: 'tabular-nums',
+    },
+    '.cm-activeLineGutter': {
+      color: v.text,
+      background: 'transparent',
+    },
     '.cm-placeholder': { color: v.muted },
     '.cm-line': { padding: '0' },
   }, { dark });
