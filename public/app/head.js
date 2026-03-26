@@ -117,7 +117,7 @@
       }
 
       // Unordered lists (including indented nested)
-      src = src.replace(/((?:^[ \t]*[-*+] .+\n?)+)/gm, m => {
+      src = src.replace(/((?:^[ \t]*[-*+] .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
         return buildList(lines, false);
       });
