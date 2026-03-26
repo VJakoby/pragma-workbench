@@ -2,12 +2,13 @@
 
 const fs = require('fs');
 
-const BUILTIN_TYPE_ORDER = ['recon', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
+const BUILTIN_TYPE_ORDER = ['recon', 'network-enumeration', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
 const BUILTIN_TYPE_LABELS = {
   general: 'General',
   credentials: 'Credentials',
   privesc: 'PrivEsc',
   recon: 'Recon',
+  'network-enumeration': 'Network Enumeration',
   loot: 'Loot',
   exploit: 'Exploit',
   scratch: 'Blank',
@@ -219,6 +220,8 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const eventTimestamps = events.map((item) => item.ts).filter(Boolean);
   const firstTs = eventTimestamps.length ? eventTimestamps[0] : 0;
   const lastTs = eventTimestamps.length ? eventTimestamps[eventTimestamps.length - 1] : 0;
+  const hasCredentialsNote = allNotes.some((note) => String(note.type || '').trim() === 'credentials');
+  const hasNetworkEnumerationNote = allNotes.some((note) => String(note.type || '').trim() === 'network-enumeration');
 
   return {
     session,
@@ -246,6 +249,10 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
       firstTs,
       lastTs,
       durationLabel: formatDuration(firstTs, lastTs),
+    },
+    canonicalSources: {
+      credentials: hasCredentialsNote,
+      networkEnumeration: hasNetworkEnumerationNote,
     },
   };
 }
@@ -376,19 +383,21 @@ function renderTargetSection(target, model) {
   if (target.label) lines.push(`- Label: ${target.label}`);
   if (lines[lines.length - 1] !== '') lines.push('');
 
-  const targetServices = model.services
-    .filter((entry) => entry.target_id === target.id)
-    .sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
-  if (targetServices.length) {
-    lines.push('Ports');
-    lines.push('');
-    lines.push('| Port | Service | Version | Notes |');
-    lines.push('|------|---------|---------|-------|');
-    targetServices.forEach((entry) => {
-      const port = entry.proto && entry.proto !== 'tcp' ? `${entry.port}/${entry.proto}` : entry.port;
-      lines.push(`| ${escapeTableCell(port)} | ${escapeTableCell(entry.service)} | ${escapeTableCell(entry.version)} | ${escapeTableCell(entry.notes)} |`);
-    });
-    lines.push('');
+  if (!model.canonicalSources.networkEnumeration) {
+    const targetServices = model.services
+      .filter((entry) => entry.target_id === target.id)
+      .sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
+    if (targetServices.length) {
+      lines.push('Ports');
+      lines.push('');
+      lines.push('| Port | Service | Version | Notes |');
+      lines.push('|------|---------|---------|-------|');
+      targetServices.forEach((entry) => {
+        const port = entry.proto && entry.proto !== 'tcp' ? `${entry.port}/${entry.proto}` : entry.port;
+        lines.push(`| ${escapeTableCell(port)} | ${escapeTableCell(entry.service)} | ${escapeTableCell(entry.version)} | ${escapeTableCell(entry.notes)} |`);
+      });
+      lines.push('');
+    }
   }
 
   const targetPaths = model.paths
@@ -478,11 +487,16 @@ function renderConsolidatedSession(model) {
     });
   }
 
-  if (model.loot.length) {
+  const summaryLoot = model.loot.filter((entry) => {
+    if (!model.canonicalSources.credentials) return true;
+    return !['cleartext', 'hash'].includes(String(entry.type || '').trim());
+  });
+
+  if (summaryLoot.length) {
     lines.push('---', '', '## Loot Summary', '');
     lines.push('| Type | Credential | Host | Context |');
     lines.push('|------|------------|------|---------|');
-    model.loot
+    summaryLoot
       .sort((a, b) => (a.added || 0) - (b.added || 0))
       .forEach((entry) => {
         lines.push(`| ${escapeTableCell(entry.type)} | \`${escapeTableCell(entry.credential)}\` | ${escapeTableCell(entry.host || '—')} | ${escapeTableCell(entry.note)} |`);

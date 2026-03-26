@@ -119,6 +119,32 @@
       ]
     },
     {
+      "id": "network-enumeration",
+      "label": "Network Enumeration",
+      "icon": "🌐",
+      "title_prefix": "Network Enumeration",
+      "default_tags": ["recon", "network"],
+      "body_lines": [
+        "## Target Overview",
+        "",
+        "| Field | Value |",
+        "|-------|-------|",
+        "| IP | |",
+        "| Domain | |",
+        "| Hostname | |",
+        "",
+        "## Open Ports & Services",
+        "",
+        "| Port | Proto | Service | Version | Notes |",
+        "|------|-------|---------|---------|-------|",
+        "|      |       |         |         |       |",
+        "",
+        "## Notes",
+        "",
+        ""
+      ]
+    },
+    {
       "id": "loot",
       "label": "Loot",
       "icon": "💰",

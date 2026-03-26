@@ -14,6 +14,7 @@ const BUILTIN_NOTE_TYPE_META = {
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
   privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
+  'network-enumeration': { label: 'Network Enumeration', icon: '🌐', cssClass: 'note-type-network-enumeration' },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
 };
@@ -27,6 +28,7 @@ const NOTE_TEMPLATES_FALLBACK = {
   credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
   privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
   recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
+  'network-enumeration': { title: 'Network Enumeration', body: `## Target Overview\n\n| Field | Value |\n|-------|-------|\n| IP | |\n| Domain | |\n| Hostname | |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Notes\n\n` },
   loot:        { title: 'Loot',                body: `## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n\`\`\`\n# root.txt / user.txt / proof.txt\n\n\`\`\`\n\n## Notes\n\n` },
   exploit:     { title: 'Exploit',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
   scratch:     { title: '',                    body: '' },

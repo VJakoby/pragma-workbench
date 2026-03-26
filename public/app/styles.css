@@ -1537,6 +1537,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
     .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
+    .note-type-network-enumeration { color: var(--green); background: rgba(var(--green-rgb),0.12); }
     .note-type-loot        { color: var(--green);   background: rgba(var(--green-rgb),0.08); }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
@@ -1545,6 +1546,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
     .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
     .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
+    .note-item-type.note-type-network-enumeration { border: 1px solid rgba(var(--green-rgb),0.18); }
     .note-item-type.note-type-loot        { border: 1px solid rgba(var(--green-rgb),0.15); }
     .note-item-type.note-type-exploit     { border: 1px solid rgba(251,146,60,0.15); }
     .note-item-type.note-type-scratch     { border: 1px solid var(--border); }

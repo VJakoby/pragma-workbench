@@ -257,14 +257,19 @@ function commitPortParse() {
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
   let added = 0;
+  let syncedNetworkNote = null;
   for (const r of _portParsed) {
     if (existing.has(`${r.port}/${r.proto}`)) continue;
-    sessions[activeSessionId].services.push({ id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() });
+    const entry = { id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
+    sessions[activeSessionId].services.push(entry);
+    const note = syncServiceEntryToNetworkEnumerationNote(entry);
+    if (note) syncedNetworkNote = note;
     added++;
   }
   saveNotes();
   renderSvcLogTable();
   updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
   showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
   toggleToolPaste('ports');
 }
@@ -504,6 +509,113 @@ function getSessionServices() {
   return sessions[activeSessionId].services || [];
 }
 
+function escapeMarkdownTableCell(value) {
+  return String(value || '').replace(/\|/g, '\\|').trim();
+}
+
+function parseServiceForNetworkRow(entry) {
+  if (!entry) return null;
+  if (!String(entry.port || '').trim()) return null;
+  return {
+    port: escapeMarkdownTableCell(entry.port),
+    proto: escapeMarkdownTableCell(entry.proto || 'tcp'),
+    service: escapeMarkdownTableCell(entry.service),
+    version: escapeMarkdownTableCell(entry.version),
+    notes: escapeMarkdownTableCell(entry.notes),
+  };
+}
+
+function buildNetworkEnumerationTableRow(row) {
+  return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
+}
+
+function upsertNetworkEnumerationRowIntoBody(body, row) {
+  const lines = String(body || '').split('\n');
+  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  if (headerIdx === -1) return null;
+  const separatorIdx = headerIdx + 1;
+  if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
+
+  let insertAt = separatorIdx + 1;
+  while (insertAt < lines.length && /^\|/.test(lines[insertAt].trim())) insertAt++;
+
+  const newRow = buildNetworkEnumerationTableRow(row);
+  const existingRows = lines.slice(separatorIdx + 1, insertAt).map(line => line.trim());
+  if (existingRows.includes(newRow.trim())) return body;
+
+  const placeholderIdx = lines.slice(separatorIdx + 1, insertAt).findIndex(line =>
+    /^\|\s*\|\s*\|\s*\|\s*\|\s*\|$/.test(line.replace(/\s/g, ''))
+  );
+  if (placeholderIdx !== -1) {
+    lines[separatorIdx + 1 + placeholderIdx] = newRow;
+  } else {
+    lines.splice(insertAt, 0, newRow);
+  }
+  return lines.join('\n');
+}
+
+function findSessionNetworkEnumerationNote() {
+  if (!activeSessionId) return null;
+  return Object.values(notes).find(note => note.session_id === activeSessionId && note.type === 'network-enumeration') || null;
+}
+
+function ensureSessionNetworkEnumerationNote() {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId) return null;
+  let note = findSessionNetworkEnumerationNote();
+  if (note) return note;
+
+  const id = 'note_' + Date.now();
+  const tmpl = NOTE_TEMPLATES['network-enumeration'];
+  note = {
+    id,
+    session_id: activeSessionId,
+    target_id: activeTargetId || null,
+    type: 'network-enumeration',
+    title: tmpl.title || '',
+    body: typeof buildNoteBodyFromTemplate === 'function' ? buildNoteBodyFromTemplate(tmpl) : (tmpl.body || ''),
+    tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
+    target_ip: getIP() !== '<IP>' ? getIP() : null,
+    target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  notes[id] = note;
+  return note;
+}
+
+function syncServiceEntryToNetworkEnumerationNote(entry) {
+  if (!NOTE_TEMPLATES?.['network-enumeration']) return false;
+
+  const note = ensureSessionNetworkEnumerationNote();
+  if (!note) return false;
+
+  const row = parseServiceForNetworkRow(entry);
+  if (!row) return false;
+
+  const nextBody = upsertNetworkEnumerationRowIntoBody(note.body || '', row);
+  if (!nextBody || nextBody === note.body) return false;
+
+  note.body = nextBody;
+  note.updated = Date.now();
+  return note;
+}
+
+function applySyncedNoteUpdate(note) {
+  if (!note) return;
+  renderNotesList();
+  renderSessionSidebar();
+  if (activeNoteId === note.id && typeof noteEditor !== 'undefined' && noteEditor) {
+    cmSetValue(noteEditor, note.body || '');
+    const moEl = document.getElementById('noteModifiedAt');
+    if (moEl) {
+      moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
+        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+      });
+    }
+    if (typeof updateNotePreview === 'function') updateNotePreview();
+  }
+}
+
 function addServiceLog() {
   const input = document.getElementById('svcQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
@@ -511,7 +623,7 @@ function addServiceLog() {
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  sessions[activeSessionId].services.push({
+  const entry = {
     id: `svc_${Date.now()}`,
     target_id: activeTargetId || null,
     port: parsed.port,
@@ -520,11 +632,15 @@ function addServiceLog() {
     version: parsed.version,
     notes: parsed.notes,
     added: Date.now(),
-  });
+  };
+  sessions[activeSessionId].services.push(entry);
+  const syncedNetworkNote = syncServiceEntryToNetworkEnumerationNote(entry);
   input.value = '';
   input.focus();
   saveNotes();
   renderSvcLogTable();
+  updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function deleteServiceLog(svcId) {
