@@ -2585,12 +2585,20 @@ body.enc-active-body .content-panel {
   position: fixed; top: calc(var(--topbar-h) + 8px);
   left: 50%; transform: translateX(-55%);
   width: min(680px, calc(100vw - 16px));
+  max-height: calc(100vh - var(--topbar-h) - 20px);
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
   z-index: 300; overflow: hidden;
+  display: flex; flex-direction: column;
   transition: opacity 0.08s ease, visibility 0.08s ease;
 }
 .svc-popover.open { visibility: visible; opacity: 1; pointer-events: auto; }
+.svc-popover.svc-popover-import-open {
+  width: min(960px, calc(100vw - 24px));
+}
+.svc-popover.svc-popover-loot-open {
+  width: min(1040px, calc(100vw - 24px));
+}
 .svc-popover-hdr {
   display: flex; align-items: flex-end; gap: 8px;
   padding: 10px 14px 0; border-bottom: 1px solid var(--border);
@@ -2704,7 +2712,7 @@ body.enc-active-body .content-panel {
   border-color: rgba(var(--green-rgb),0.26);
 }
 [data-theme="light"] .svc-topbar-btn-count { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
-.svc-popover-body { padding: 12px 14px; font-size: 13px; }
+.svc-popover-body { padding: 12px 14px; font-size: 13px; overflow-y: auto; min-height: 0; }
 .svc-popover-table-wrap { max-height: 260px; overflow-y: auto; margin-top: 10px; }
 .svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
 .svc-popover-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
@@ -2745,6 +2753,8 @@ body.enc-active-body .content-panel {
 .svc-popover-body textarea {
   font-size: 11px !important;
   padding: 9px 11px !important;
+  min-height: 110px;
+  max-height: min(38vh, 360px);
 }
 .svc-quick-input:focus { border-color: var(--accent); }
 .svc-quick-input::placeholder { color: var(--muted); }
@@ -2789,6 +2799,13 @@ body.enc-active-body .content-panel {
   font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted);
   padding: 6px 0;
 }
+.nmap-preview-hdr + .svc-table,
+#portParsePreview .svc-table,
+#pathParsePreview .svc-table,
+#portParsePreview .path-table,
+#pathParsePreview .path-table {
+  table-layout: fixed;
+}
 .svc-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .svc-table th {
   text-align: left; padding: 4px 8px; font-size: 10px; font-weight: 700;
@@ -2800,6 +2817,39 @@ body.enc-active-body .content-panel {
 .svc-table tr:hover td { background: rgba(124,58,237,0.06); }
 .svc-table td:first-child { color: var(--green); font-weight: 700; white-space: nowrap; }
 .svc-table td:nth-child(2) { color: var(--accent); font-weight: 700; }
+#portParsePreview,
+#pathParsePreview {
+  max-height: min(34vh, 320px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--bg3);
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-quick-input-row {
+  align-items: stretch;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot #lootCredInput {
+  min-width: 0;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot #lootHostInput {
+  flex: 0 0 180px !important;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table {
+  table-layout: fixed;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(2),
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(2) {
+  width: 42%;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(3),
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(3) {
+  width: 18%;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(4),
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(4) {
+  width: 28%;
+}
 .svc-del-btn {
   background: none; border: none; cursor: pointer; color: var(--muted);
   font-size: 13px; padding: 0 4px; border-radius: 3px; transition: color 0.12s;
@@ -2825,7 +2875,7 @@ body.enc-active-body .content-panel {
 /* Loot table — credential cell monospace, copyable */
 .loot-cred-cell {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
-  color: var(--yellow); cursor: pointer; word-break: break-all;
+  color: var(--yellow); cursor: pointer; word-break: break-all; overflow-wrap: anywhere;
   transition: color 0.1s;
 }
 .loot-cred-cell:hover { color: var(--text); }

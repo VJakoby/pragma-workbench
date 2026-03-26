@@ -16,6 +16,27 @@ function getKbCollection(view) {
   return view === 'services' ? SERVICES : TACTICS;
 }
 
+function buildKbSearchText(item) {
+  return [
+    item.name,
+    item.description,
+    item.port,
+    item.category,
+    item.folder,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function getKbScopeTotal(view) {
+  return getKbCollection(view).filter(item => {
+    const folderOk = view !== 'services' || !activeCatFolder || (item.folder || '') === activeCatFolder;
+    const catOk = activeCat === 'all' || String(item.category || '').toLowerCase() === String(activeCat || '').toLowerCase();
+    return folderOk && catOk;
+  }).length;
+}
+
 function getKbBackendView(view) {
   return view === 'services' ? 'services' : 'tactics';
 }
@@ -120,6 +141,7 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     card.dataset.id = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
+    card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
     card.innerHTML = `
       <span class="card-cat">${esc(item.category || '')}</span>
@@ -331,6 +353,7 @@ function renderCards(view) {
     card.dataset.id  = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
+    card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
     card.innerHTML = `
       <span class="card-cat">${esc(item.category || '')}</span>
@@ -381,24 +404,21 @@ function filterCards(view, query) {
   let vis      = 0;
 
   cards.forEach(card => {
-    const name  = card.querySelector('.card-name')?.textContent.toLowerCase() || '';
-    const desc  = card.querySelector('.card-desc')?.textContent.toLowerCase() || '';
-    const port  = card.querySelector('.card-port')?.textContent.toLowerCase() || '';
+    const haystack = card.dataset.search || card.textContent.toLowerCase();
     const cat   = card.dataset.cat || '';
     const folder = card.dataset.folder || '';
-    const catOk = activeCat === 'all' || cat === activeCat;
+    const catOk = activeCat === 'all' || String(cat).toLowerCase() === String(activeCat || '').toLowerCase();
     const folderOk = view !== 'services' || !activeCatFolder || folder === activeCatFolder;
-    const qOk   = !q || name.includes(q) || desc.includes(q) || port.includes(q) || cat.toLowerCase().includes(q);
+    const qOk   = !q || haystack.includes(q);
     const show  = catOk && folderOk && qOk;
     card.classList.toggle('hidden', !show);
     if (show) vis++;
   });
 
-  updateToolbarCount(view, vis);
+  updateToolbarCount(view, vis, getKbScopeTotal(view));
 }
 
-function updateToolbarCount(view, n) {
-  const total = getKbCollection(view).length;
+function updateToolbarCount(view, n, total = getKbCollection(view).length) {
   const el    = document.getElementById(view === 'services' ? 'svc-toolbar-count' : 'meth-toolbar-count');
   el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
 }

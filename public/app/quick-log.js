@@ -8,6 +8,16 @@ let _activeLootType = 'cleartext';
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 
+function updateSvcPopoverLayout() {
+  const popover = document.getElementById('svcPopover');
+  if (!popover) return;
+  const importOpen = ['portPastePanel', 'pathPastePanel'].some(id =>
+    document.getElementById(id)?.style.display === 'flex'
+  );
+  popover.classList.toggle('svc-popover-import-open', importOpen);
+  popover.classList.toggle('svc-popover-loot-open', _activeSvcTab === 'loot');
+}
+
 function switchSvcTabByArrow(dir) {
   const popover = document.getElementById('svcPopover');
   if (!popover || !popover.classList.contains('open')) return;
@@ -41,6 +51,7 @@ function switchSvcTab(tab) {
     }, 40);
   }
   renderSvcClearAction();
+  updateSvcPopoverLayout();
 }
 
 function updateSvcTabCounts() {
@@ -126,6 +137,7 @@ function toggleToolPaste(kind) {
   } else {
     resetPastePanel(kind);
   }
+  updateSvcPopoverLayout();
 }
 
 function resetPastePanel(kind) {
@@ -827,6 +839,7 @@ function toggleSvcPopover() {
   } else {
     popover.classList.add('open');
     btn.classList.add('open');
+    updateSvcPopoverLayout();
     const sessLabel = document.getElementById('svcSessionLabel');
     if (sessLabel) {
       const sess = activeSessionId && sessions[activeSessionId];
@@ -863,6 +876,7 @@ function toggleSvcPopover() {
 function closeSvcPopover() {
   document.getElementById('svcPopover')?.classList.remove('open');
   document.getElementById('svcTopbarBtn')?.classList.remove('open');
+  updateSvcPopoverLayout();
 }
 
 function _svcOutsideClose(e) {

@@ -239,18 +239,20 @@ function esc(s) {
 
 document.addEventListener('keydown', async e => {
   const ctrl = e.metaKey || e.ctrlKey;
+  const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+  const code = e.code || '';
 
-  if (ctrl && e.key === 'b') { e.preventDefault(); toggleSidebar(); return; }
-  if (ctrl && e.key === 'k') { e.preventDefault(); openCmd(); return; }
+  if (ctrl && key === 'b') { e.preventDefault(); toggleSidebar(); return; }
+  if (ctrl && key === 'k') { e.preventDefault(); openCmd(); return; }
 
-  if (ctrl && e.key === 'n') {
+  if (ctrl && key === 'n') {
     e.preventDefault();
     switchView('notes', document.getElementById('nav-notes'));
     openNewNoteModal();
     return;
   }
 
-  if (ctrl && e.key === 's') {
+  if (ctrl && key === 's') {
     if (activeNoteId) {
       e.preventDefault();
       clearTimeout(noteSaveTimer);
@@ -260,7 +262,7 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
-  if (ctrl && e.key === 'f') {
+  if (ctrl && key === 'f') {
     if (document.activeElement.tagName !== 'TEXTAREA' &&
         document.activeElement.id !== 'noteBody' &&
         document.activeElement.id !== 'noteTitleInput') {
@@ -271,20 +273,20 @@ document.addEventListener('keydown', async e => {
     }
   }
 
-  if (ctrl && ['1', '2', '3', '4', '5'].includes(e.key)) {
+  if (ctrl && ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(code)) {
     e.preventDefault();
     const viewMap = {
-      '1': ['notes', 'nav-notes'],
-      '2': ['services', null],
-      '3': ['tactics', 'nav-tactics'],
-      '4': ['search', 'nav-search'],
+      Digit1: ['notes', 'nav-notes'],
+      Digit2: ['services', null],
+      Digit3: ['tactics', 'nav-tactics'],
+      Digit4: ['search', 'nav-search'],
     };
-    const viewConfig = viewMap[e.key];
+    const viewConfig = viewMap[code];
     if (viewConfig) switchView(viewConfig[0], viewConfig[1] ? document.getElementById(viewConfig[1]) : null);
     return;
   }
 
-  if (ctrl && e.key === 'e') {
+  if (ctrl && key === 'e') {
     const contentPanel = document.getElementById('contentPanel');
     if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal) {
       e.preventDefault();
@@ -293,7 +295,7 @@ document.addEventListener('keydown', async e => {
     }
   }
 
-  if (ctrl && e.key === 'l') { e.preventDefault(); toggleSvcPopover(); return; }
+  if (ctrl && key === 'l') { e.preventDefault(); toggleSvcPopover(); return; }
 
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const popover = document.getElementById('svcPopover');
@@ -308,7 +310,7 @@ document.addEventListener('keydown', async e => {
     }
   }
 
-  if (e.altKey && e.key === 't') {
+  if (e.altKey && key === 't') {
     e.preventDefault();
     if (activeView !== 'notes') {
       switchView('notes', document.getElementById('nav-notes'));
@@ -324,7 +326,7 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
-  if (ctrl && e.key === '.') { e.preventDefault(); openTargetsPanel(); return; }
+  if (ctrl && code === 'Period') { e.preventDefault(); openTargetsPanel(); return; }
 
   if (e.key === 'Escape') {
     if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
