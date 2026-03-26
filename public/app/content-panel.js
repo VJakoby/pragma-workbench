@@ -182,7 +182,37 @@ function refreshCodeBlocks() {
   renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
 }
 
+function renderContentPanelTabs(doc = activeDoc) {
+  const tabs = document.getElementById('cpQuickTabs');
+  if (!tabs) return;
+
+  if (!doc?.isLocal || doc?.isBrowser || !doc.view || !doc.id || !doc.folder) {
+    tabs.style.display = 'none';
+    tabs.innerHTML = '';
+    return;
+  }
+
+  const siblings = getKbCollection(doc.view)
+    .filter(item => (item.folder || '') === (doc.folder || ''))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+
+  if (siblings.length <= 1) {
+    tabs.style.display = 'none';
+    tabs.innerHTML = '';
+    return;
+  }
+
+  tabs.innerHTML = siblings.map(item => `
+    <button class="content-panel-tab${item.id === doc.id ? ' active' : ''}"
+      onclick="openItem('${doc.view}', '${esc(item.id)}')"
+      title="${esc(item.name || '')}">
+      ${esc(item.name || 'Untitled')}
+    </button>`).join('');
+  tabs.style.display = 'flex';
+}
+
 async function openItem(view, id) {
+  const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
   const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
   const backState = hadBrowserState
     ? {
@@ -211,9 +241,21 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
-    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
+    activeDoc = {
+      html: d.html,
+      raw: d.raw,
+      icon: d.icon || ICONS.notes,
+      title: d.name,
+      meta,
+      id,
+      view,
+      isLocal: true,
+      folder: itemMeta?.folder || '',
+      category: itemMeta?.category || d.category || '',
+    };
     setContentPanelBackState(backState);
     setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
+    renderContentPanelTabs(activeDoc);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
@@ -224,6 +266,7 @@ async function openItem(view, id) {
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   clearContentPanelBackState();
   clearContentPanelCreateState();
+  renderContentPanelTabs(null);
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -254,6 +297,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
 
     const meta = (normalizedPath || '').split('/').pop() || sourceName || '';
     activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContentPanelTabs(activeDoc);
     renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch (e) {
@@ -336,6 +380,7 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  renderContentPanelTabs(null);
   clearContentPanelBackState();
   clearContentPanelCreateState();
   exitEditMode();

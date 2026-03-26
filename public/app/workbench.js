@@ -505,7 +505,7 @@ function renderSessionList() {
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
           <button class="session-item-export-btn session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete session" aria-label="Delete session"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg></button>
           <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export session data for import into another PRAGMA workbench">${ICONS.download} PRAGMA Session</button>
-          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export session notes and logs as markdown files">${ICONS.download} Export Markdown</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Generate a markdown summary from session notes and logs">${ICONS.download} Generate Markdown Summary</button>
         </div>
       </div>
     </div>`;
