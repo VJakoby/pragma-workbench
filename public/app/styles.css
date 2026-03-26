@@ -20,7 +20,7 @@
   --red:      #f87171;
   --orange:   #fb923c;
   --yellow:   #fbbf24;
-  --editor-font-size: 13px;
+  --editor-font-size: 14px;
   --sidebar-w: 220px;
   --topbar-h:  44px;
   --logo-icon-color: #8b5cf6;
@@ -2353,7 +2353,7 @@ kbd {
 /* ── CodeMirror 6 editor integration ── */
 .cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .cm-wrap .cm-editor {
-  flex: 1; height: 100%; font-size: var(--editor-font-size, 13px); font-family: 'JetBrains Mono', monospace;
+  flex: 1; height: 100%; font-size: var(--editor-font-size, 14px); font-family: 'JetBrains Mono', monospace;
   background: transparent !important;
 }
 .cm-editor.cm-focused { outline: none !important; }

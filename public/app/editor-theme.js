@@ -84,7 +84,7 @@ const SYNTAX_THEMES = {
 };
 
 let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
-let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '13', 10) || 13));
+let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '14', 10) || 14));
 
 function applyEditorFontSize(size = activeEditorFontSize) {
   activeEditorFontSize = Math.min(22, Math.max(11, size));
@@ -103,7 +103,7 @@ function decreaseEditorFont() {
 }
 
 function resetEditorFont() {
-  applyEditorFontSize(13);
+  applyEditorFontSize(14);
 }
 
 function setSyntaxTheme(name) {
