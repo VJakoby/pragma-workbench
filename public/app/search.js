@@ -170,6 +170,14 @@ function highlightSnippet(text, query) {
   return escaped.replace(re, '<mark>$1</mark>');
 }
 
+function localPathFromResult(result) {
+  if (result.file_path) return result.file_path;
+  if (typeof result.url === 'string' && result.url.startsWith('file://')) {
+    return result.url.replace(/^file:\/\//, '');
+  }
+  return '';
+}
+
 function renderResults(query, results, offline, docsSearched, timeMs) {
   const list = document.getElementById('resultsList');
   const stat = document.getElementById('searchStatus');
@@ -223,10 +231,11 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
     const trimmed  = snippet ? snippet.replace(/[ \t]+/g,' ').trim().slice(0, 400) : '';
     const isLocal = r.is_local;
     const href    = isLocal ? '#' : (r.url || '#');
+    const filePath = isLocal ? localPathFromResult(r) : '';
 
     return `<div class="result-card${isLocal?' local-result':''}"
          data-local="${isLocal?'1':'0'}"
-         data-filepath="${esc(r.file_path||'')}"
+         data-filepath="${esc(filePath)}"
          data-title="${esc(r.title||'')}"
          data-url="${esc(href)}"
          data-query="${esc(query)}"

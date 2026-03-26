@@ -140,7 +140,7 @@ function cmThemeVars() {
       text2: '#333333',
       muted: '#6a737d',
       bg3: '#f3f3f3',
-      selection: 'rgba(173, 214, 255, 0.45)',
+      selection: 'rgba(37, 99, 235, 0.42)',
       activeLine: '#f5f5f5',
     };
   }
@@ -150,7 +150,7 @@ function cmThemeVars() {
     text2,
     muted,
     bg3,
-    selection: 'rgba(124,58,237,0.25)',
+    selection: 'rgba(124,58,237,0.42)',
     activeLine: 'rgba(124,58,237,0.06)',
   };
 }
@@ -164,9 +164,11 @@ function buildCmTheme() {
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
     '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)' },
-    '.cm-content': { color: v.text2, caretColor: v.text, padding: '0' },
+    '.cm-content': { color: v.text2, caretColor: v.text, padding: '0', fontWeight: '500' },
     '.cm-cursor': { borderLeftColor: v.text },
     '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },
+    '.cm-selectionLayer .cm-selectionBackground': { background: `${v.selection} !important` },
+    '&.cm-focused .cm-selectionBackground': { background: `${v.selection} !important` },
     '.cm-activeLine': { background: v.activeLine },
     '.cm-gutters': { display: 'none' },
     '.cm-placeholder': { color: v.muted },

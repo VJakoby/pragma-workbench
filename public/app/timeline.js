@@ -115,7 +115,7 @@ function renderTimeline() {
 
       if (item.kind === 'note') {
         const n = item.data;
-        const meta = NOTE_TYPE_META[n.type] || NOTE_TYPE_META.general;
+        const meta = getNoteTypeMeta(n.type);
         const preview = (n.body || '').replace(/^#+\s*/gm, '').replace(/\n/g, ' ').trim().slice(0, 60);
         const tgt = n.target_id ? targets.find(t => t.id === n.target_id) : null;
         const tgtBadge = tgt

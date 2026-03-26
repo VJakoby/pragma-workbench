@@ -16,41 +16,60 @@ function getActiveTarget() {
 
 function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
 function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<DOMAIN>'; }
+function getTargetLabelValue() {
+  const t = getActiveTarget();
+  return (t && (t.label || t.ip || t.domain)) || '<LABEL>';
+}
 
 function updateTargetDots() { updateTargetSelector(); }
 
 function updateTargetSelector() {
   const t      = getActiveTarget();
+  const selector = document.getElementById('targetSelector');
   const dot    = document.getElementById('targetSelDot');
-  const ip     = document.getElementById('targetSelIP');
-  const dom    = document.getElementById('targetSelDomain');
   const lbl    = document.getElementById('targetSelLabel');
-  const cpyBtn = document.getElementById('targetCopyBtn');
+  const cpyIpBtn = document.getElementById('targetSelectorCopy');
+  const cpyDomBtn = document.getElementById('targetSelectorCopyDomain');
+  const ipText = document.getElementById('targetCopyIpText');
+  const domText = document.getElementById('targetCopyDomainText');
+  const sess = activeSessionId && sessions[activeSessionId];
+  const status = (sess && sess.status) || 'active';
+  if (selector) selector.classList.remove('status-active', 'status-paused', 'status-complete');
+  if (selector) selector.classList.add(`status-${status === 'active' ? 'active' : status}`);
+  dot.classList.remove('active', 'paused', 'complete');
   if (t) {
-    dot.classList.add('active');
-    ip.textContent  = t.ip     || '—';
-    dom.textContent = t.domain || '';
-    lbl.textContent = t.label  || '';
-    lbl.style.display = t.label ? '' : 'none';
-    if (cpyBtn) cpyBtn.style.display = (t.ip || t.domain) ? '' : 'none';
+    dot.classList.add(status === 'active' ? 'active' : status);
+    if (ipText) ipText.textContent = t.ip || '—';
+    if (domText) domText.textContent = t.domain || '—';
+    lbl.textContent = t.label || t.ip || t.domain || 'target';
+    if (cpyIpBtn) cpyIpBtn.disabled = !t.ip;
+    if (cpyDomBtn) cpyDomBtn.disabled = !t.domain;
   } else {
-    dot.classList.remove('active');
-    ip.textContent  = activeSessionId ? '— no targets' : '— no session';
-    dom.textContent = '';
-    lbl.textContent = '';
-    lbl.style.display = 'none';
-    if (cpyBtn) cpyBtn.style.display = 'none';
+    dot.classList.add(status === 'active' ? 'active' : status);
+    if (ipText) ipText.textContent = activeSessionId ? '—' : '—';
+    if (domText) domText.textContent = '—';
+    lbl.textContent = activeSessionId ? 'No target' : 'No session';
+    if (cpyIpBtn) cpyIpBtn.disabled = true;
+    if (cpyDomBtn) cpyDomBtn.disabled = true;
   }
 }
 
-function copyActiveTarget(e) {
+function copyActiveTarget(kind = 'ip') {
   const t = getActiveTarget();
   if (!t) return;
-  const text = (e.altKey && t.domain) ? t.domain : (t.ip || t.domain || '');
+  const text = kind === 'domain' ? (t.domain || '') : (t.ip || '');
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
     showToast(`Copied: ${text}`);
   });
+}
+
+function copyActiveTargetIP() {
+  copyActiveTarget('ip');
+}
+
+function copyActiveTargetDomain() {
+  copyActiveTarget('domain');
 }
 
 function openTargetsPanel() {

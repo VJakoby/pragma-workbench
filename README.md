@@ -21,6 +21,51 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 🗂️ Workspace Model
+
+PRAGMA is structured in three levels:
+
+- **Workbench** — the local workspace on your machine. A single workbench can contain multiple sessions.
+- **Session** — an engagement, project, machine set, or working context. A session can contain one target or many.
+- **Target** — a concrete IP, domain, or labeled host entry inside a session.
+
+This means PRAGMA does not force one workflow:
+
+- one workbench can hold several parallel engagements
+- one session can represent a single machine
+- one session can also represent a broader engagement with multiple targets
+
+Titles and note content stay flexible, while session assignment and target assignment provide the explicit structure.
+
+## 🎯 Focus Model
+
+PRAGMA is built around a simple interaction rule:
+
+- **Session Notes are the primary workspace** during an engagement
+- **Knowledge Base, Tactics, search, and quick-log are supporting tools**
+- supporting views should help you retrieve context, not pull you out of the note-taking flow unnecessarily
+
+In practice, this means the app is opinionated about staying operational:
+
+- notes are where active engagement context lives
+- services, tactics, and indexed KB content are there to support the current note/work, not replace it
+- when possible, supporting content should open beside the current note rather than forcing a full context switch
+
+## 🧱 Tech Stack
+
+| Area | Technology | Notes |
+|---|---|---|
+| Runtime | Node.js | App server and local runtime |
+| Backend | Express | API routes, static assets, and EJS view serving |
+| Templating | EJS | Server-rendered app shell and partials |
+| Frontend | Vanilla JavaScript | Modular browser scripts under `public/app/` |
+| Editors | CodeMirror 6 | Markdown editing for notes and KB content |
+| Markdown Rendering | `marked` | KB and server-side markdown rendering |
+| Search | Fuse.js | Local fuzzy search and KB relevance scoring |
+| Encryption | Web Crypto API | Client-side AES-256-GCM + PBKDF2-SHA-512 |
+| Storage | File-backed JSON + Markdown | Sessions/workbench state on disk, KB as `.md` files |
+| Containerization | Docker / Docker Compose | Optional local container runtime |
+
 ## 🏷️ Features
 
 **Sessions & Targets**

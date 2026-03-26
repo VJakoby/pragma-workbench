@@ -2,8 +2,15 @@
 // SIDEBAR CATEGORIES
 // ═══════════════════════════════════════════════
 let kbCreateView = 'services';
+let kbCreateFolder = '';
+let kbCreateFolderLabel = '';
 let activeCatFolder = '';
 let serviceCategoryMeta = [];
+
+function shouldOpenKbSidebarInSidePanel() {
+  const noteArea = document.getElementById('noteEditArea');
+  return activeView === 'notes' && !!activeNoteId && !!notes[activeNoteId] && !!noteArea && noteArea.style.display !== 'none';
+}
 
 function getKbCollection(view) {
   return view === 'services' ? SERVICES : TACTICS;
@@ -52,31 +59,108 @@ function renderKnowledgeFolderNav() {
   const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
   const currentFolder = activeView === 'services' ? (activeCatFolder || '') : '';
   const isKnowledgeActive = activeView === 'services';
+  const folderIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
 
   list.innerHTML = `
     ${folderCats.map(cat => `
-      <div class="nav-item${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${esc(cat.label)}', '${esc(cat.folder || '')}', this)" title="${esc(cat.label)}">
-        <span class="nav-item-icon">·</span>
+      <div class="nav-item nav-item-kb-folder${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${esc(cat.label)}', '${esc(cat.folder || '')}', this)" title="${esc(cat.label)}">
+        <span class="nav-item-icon">${folderIcon}</span>
         <span class="nav-item-label">${esc(cat.label)}</span>
         <span class="nav-item-count">${SERVICES.filter(item => item.folder === cat.folder).length || '—'}</span>
       </div>`).join('')}
   `;
 }
 
+function openSidebarKbView(view, navEl) {
+  if (shouldOpenKbSidebarInSidePanel()) {
+    openKbBrowserInPanel(view);
+    return;
+  }
+  switchView(view, navEl);
+}
+
+function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {}) {
+  const panel = document.getElementById('contentPanel');
+  const body = document.getElementById('cpContent');
+  if (!panel || !body) return;
+  if (typeof clearContentPanelBackState === 'function') clearContentPanelBackState();
+
+  const items = getKbCollection(view).filter(item => {
+    if (view !== 'services' || !folder) return true;
+    return (item.folder || '') === folder;
+  });
+
+  const label = title || (view === 'services'
+    ? (folder ? (serviceCategoryMeta.find(cat => (cat.folder || '') === folder)?.label || 'Knowledge') : 'Services')
+    : 'Tactics');
+  const countLabel = meta || `${items.length} ${items.length === 1 ? 'document' : 'documents'}`;
+
+  panel.classList.remove('hidden-panel');
+  document.getElementById('cpIcon').innerHTML = view === 'services' ? ICONS.notes : ICONS.guides;
+  document.getElementById('cpTitle').textContent = label;
+  document.getElementById('cpMeta').textContent = countLabel;
+  document.getElementById('cpEditBtn').style.display = 'none';
+  if (typeof setContentPanelCreateState === 'function') setContentPanelCreateState({ view, folder, label });
+  activeDoc = { isBrowser: true, isLocal: true, view, folder, label };
+
+  if (!items.length) {
+    body.innerHTML = `<div class="empty-state" style="padding:28px 18px">
+      <div class="empty-state-icon">${view === 'services' ? ICONS.notes : ICONS.guides}</div>
+      <div class="empty-state-title">No documents found</div>
+      <div class="empty-state-hint">${folder ? `No entries in ${esc(label)}` : `No ${view} available`}</div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML = `<div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
+  const grid = document.getElementById('cpBrowserGrid');
+  items.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id = item.id;
+    card.dataset.cat = item.category || '';
+    card.dataset.folder = item.folder || '';
+    card.style.setProperty('--card-accent', accentFor(idx));
+    card.innerHTML = `
+      <span class="card-cat">${esc(item.category || '')}</span>
+      <span class="card-icon">${item.icon || ICONS.notes}</span>
+      <div class="card-port-name-row">
+        <span class="card-name">${esc(item.name)}</span>
+        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
+      </div>
+      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.onclick = () => openItem(view, item.id);
+    grid.appendChild(card);
+  });
+
+  document.getElementById('cpReadBody').scrollTop = 0;
+}
+
 function openKnowledgeCategory(cat, folder, navEl) {
   activeCat = 'all';
   activeCatFolder = folder || '';
+  if (shouldOpenKbSidebarInSidePanel()) {
+    openKbBrowserInPanel('services', {
+      folder: activeCatFolder,
+      title: cat,
+      meta: `${SERVICES.filter(item => (item.folder || '') === activeCatFolder).length} documents`,
+    });
+    return;
+  }
   switchView('services', navEl);
   renderKnowledgeFolderNav();
   const input = document.getElementById('svcSearch');
   filterCards('services', input ? input.value || '' : '');
 }
 
-function openKbCreateModal(view) {
+function openKbCreateModal(view, opts = {}) {
   kbCreateView = view === 'services' ? 'services' : 'tactics';
+  kbCreateFolder = opts.folder || '';
+  kbCreateFolderLabel = opts.label || '';
   const isServices = kbCreateView === 'services';
   const title = isServices ? 'Create Service' : 'Create Tactic';
-  const categoryLabel = activeCat && activeCat !== 'all' ? ` in ${activeCat}` : '';
+  const categorySource = kbCreateFolderLabel || (activeCat && activeCat !== 'all' ? activeCat : '');
+  const categoryLabel = categorySource ? ` in ${categorySource}` : '';
 
   document.getElementById('kbCreateTitle').textContent = title;
   document.getElementById('kbCreateDesc').textContent = `Create a new ${isServices ? 'service' : 'tactic'} file${categoryLabel}.`;
@@ -133,9 +217,11 @@ async function submitKbCreate() {
 
   const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
   const backendView = getKbBackendView(clientView);
-  const category = activeView === clientView && activeCat !== 'all'
-    ? (activeCatFolder || activeCat)
-    : '';
+  const category = kbCreateFolder
+    ? kbCreateFolder
+    : (activeView === clientView && activeCat !== 'all'
+      ? (activeCatFolder || activeCat)
+      : '');
 
   try {
     if (err) {
@@ -158,7 +244,7 @@ async function submitKbCreate() {
     closeKbCreateModal();
     await refreshKbView(clientView);
     if (activeView !== clientView) {
-      switchView(clientView, document.getElementById(`nav-${clientView}`));
+      if (!shouldOpenKbSidebarInSidePanel()) switchView(clientView, document.getElementById(`nav-${clientView}`));
     }
     if (d.id) openItem(clientView, d.id);
     showToast('Created');
@@ -250,8 +336,8 @@ function renderCards(view) {
       <span class="card-cat">${esc(item.category || '')}</span>
       <span class="card-icon">${item.icon || ICONS.notes}</span>
       <div class="card-port-name-row">
-        ${item.port ? `<span class="card-port">${esc(item.port)}</span>` : ''}
         <span class="card-name">${esc(item.name)}</span>
+        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
       </div>
       <div class="card-desc">${esc(item.description || '')}</div>`;
     card.onclick = () => openItem(view, item.id);

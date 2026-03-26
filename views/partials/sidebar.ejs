@@ -28,12 +28,12 @@
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Knowledge Base</div>
-        <div class="nav-item" onclick="switchView('services',this)" id="nav-services" title="Services">
+        <div class="nav-item" onclick="openSidebarKbView('services', this)" id="nav-services" title="Services">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
           <span class="nav-item-label">Services</span>
           <span class="nav-item-count" id="svc-count">&mdash;</span>
         </div>
-        <div class="nav-item" onclick="switchView('tactics',this)" id="nav-tactics" title="Tactics">
+        <div class="nav-item" onclick="openSidebarKbView('tactics', this)" id="nav-tactics" title="Tactics">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
           <span class="nav-item-label">Tactics</span>
           <span class="nav-item-count" id="tactics-count">&mdash;</span>
@@ -57,8 +57,8 @@
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
 
-      <div class="sidebar-version sidebar-info">
-        <button class="sidebar-info-btn" type="button" aria-label="About PRAGMA" title="About PRAGMA">i</button>
+      <div class="sidebar-version sidebar-info" id="sidebarInfo">
+        <button class="sidebar-info-btn" type="button" aria-label="About PRAGMA" title="About PRAGMA" aria-expanded="false" onclick="toggleSidebarInfo(event)">i</button>
         <div class="sidebar-info-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
       </div>
     </div>
