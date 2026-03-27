@@ -6,6 +6,7 @@ const path = require('path');
 function registerKbRoutes(app, deps) {
   const {
     marked,
+    renderMarkdown,
     kbIndex,
     kbDir,
     servicesDir,
@@ -20,6 +21,17 @@ function registerKbRoutes(app, deps) {
 
   function getServiceCategoryRoots() {
     return [kbDir, servicesDir].filter((dir, idx, arr) => dir && arr.indexOf(dir) === idx);
+  }
+
+  function isWithinRoot(targetPath, rootPath) {
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedRoot = path.resolve(rootPath);
+    return resolvedTarget === resolvedRoot || resolvedTarget.startsWith(`${resolvedRoot}${path.sep}`);
+  }
+
+  function canPreviewKbFile(filePath) {
+    if (!filePath) return false;
+    return isWithinRoot(filePath, kbDir) && path.extname(filePath).toLowerCase() === '.md';
   }
 
   function getRootKbSection(folder) {
@@ -103,7 +115,7 @@ function registerKbRoutes(app, deps) {
       wordCount: item.wordCount,
       folder: item.folder,
       subfolder: item.subfolder || '',
-      html: marked.parse(item.content),
+      html: renderMarkdown(item.content),
       raw: item.content,
     });
   });
@@ -129,16 +141,17 @@ function registerKbRoutes(app, deps) {
     if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
     let resolved;
     if (path.isAbsolute(fileParam)) {
-      resolved = fileParam;
+      resolved = path.resolve(fileParam);
+      if (!canPreviewKbFile(resolved)) return res.status(403).json({ error: 'Access denied' });
     } else {
       // Preserve relative path so subdirectory files still resolve correctly.
       resolved = path.resolve(servicesDir, fileParam);
-      if (!resolved.startsWith(servicesDir)) return res.status(403).json({ error: 'Access denied' });
+      if (!canPreviewKbFile(resolved)) return res.status(403).json({ error: 'Access denied' });
     }
     if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
     try {
       const content = fs.readFileSync(resolved, 'utf8');
-      res.json({ html: marked.parse(content), raw: content });
+      res.json({ html: renderMarkdown(content), raw: content });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -209,7 +222,7 @@ function registerKbRoutes(app, deps) {
       description: svc.description,
       file: svc.file,
       wordCount: svc.wordCount,
-      html: marked.parse(svc.content),
+      html: renderMarkdown(svc.content),
       raw: svc.content,
     });
   });
@@ -244,7 +257,7 @@ function registerKbRoutes(app, deps) {
       description: guide.description,
       file: guide.file,
       wordCount: guide.wordCount,
-      html: marked.parse(guide.content),
+      html: renderMarkdown(guide.content),
       raw: guide.content,
     });
   });
@@ -261,7 +274,7 @@ function registerKbRoutes(app, deps) {
       description: guide.description,
       file: guide.file,
       wordCount: guide.wordCount,
-      html: marked.parse(guide.content),
+      html: renderMarkdown(guide.content),
       raw: guide.content,
     });
   });

@@ -755,26 +755,90 @@ async function importSession(event) {
       }
 
       const data = parsed;
-      if (!data.session || !data.notes) throw new Error('Invalid .session file');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid .session file');
+      if (!data.session || !Array.isArray(data.notes)) throw new Error('Invalid .session file');
+
+      const sanitizeImportedSession = (session) => {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) throw new Error('Invalid session payload');
+        const cleanTargets = Array.isArray(session.targets) ? session.targets
+          .filter(target => target && typeof target === 'object' && !Array.isArray(target))
+          .map((target, index) => ({
+            id: typeof target.id === 'string' && target.id ? target.id : `target_${Date.now()}_${index}`,
+            ip: String(target.ip || ''),
+            domain: String(target.domain || ''),
+            label: String(target.label || ''),
+          })) : [];
+        const cloneList = (list, fields) => {
+          if (!Array.isArray(list)) return [];
+          return list
+            .filter(entry => entry && typeof entry === 'object' && !Array.isArray(entry))
+            .map(entry => {
+              const out = {};
+              fields.forEach(([key, fallback = '']) => {
+                if (key === 'added' || key === 'created' || key === 'updated' || key === 'completed') {
+                  out[key] = Number(entry[key]) || null;
+                } else {
+                  out[key] = String(entry[key] ?? fallback);
+                }
+              });
+              return out;
+            });
+        };
+
+        return {
+          codename: String(session.codename || 'Imported Session'),
+          created: Number(session.created) || Date.now(),
+          attacker_ip: String(session.attacker_ip || ''),
+          status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
+          imported_from: String(session.codename || ''),
+          targets: cleanTargets,
+          services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
+          paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
+          loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          todos: Array.isArray(session.todos) ? session.todos
+            .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
+            .map((todo, index) => ({
+              id: typeof todo.id === 'string' && todo.id ? todo.id : `todo_${Date.now()}_${index}`,
+              text: String(todo.text || ''),
+              done: Boolean(todo.done),
+              created: Number(todo.created) || Date.now(),
+              completed: todo.done ? (Number(todo.completed) || Date.now()) : null,
+            }))
+            .filter(todo => todo.text.trim()) : [],
+          events: Array.isArray(session.events) ? session.events
+            .filter(entry => entry && typeof entry === 'object' && !Array.isArray(entry))
+            .map(entry => ({ ...entry, ts: Number(entry.ts) || Date.now() })) : [],
+        };
+      };
+
+      const sanitizeImportedNote = (note, index, sessionId) => {
+        if (!note || typeof note !== 'object' || Array.isArray(note)) return null;
+        return {
+          id: `note_${Date.now()}_${index}`,
+          session_id: sessionId,
+          target_id: typeof note.target_id === 'string' ? note.target_id : null,
+          type: String(note.type || 'general'),
+          title: String(note.title || 'Imported Note'),
+          body: String(note.body || ''),
+          tags: Array.isArray(note.tags) ? note.tags.map(tag => String(tag)).filter(Boolean) : [],
+          created: Number(note.created) || Date.now(),
+          updated: Number(note.updated) || Date.now(),
+          target_ip: note.target_ip ? String(note.target_ip) : null,
+          target_domain: note.target_domain ? String(note.target_domain) : null,
+        };
+      };
 
       const newSessId = 'sess_' + Date.now();
-      const importedSess = {
-        ...data.session,
-        id: newSessId,
-        created: data.session.created || Date.now(),
-        imported_from: data.session.codename,
-      };
+      const importedSess = { ...sanitizeImportedSession(data.session), id: newSessId };
 
       sessions[newSessId] = importedSess;
 
       let noteCount = 0;
-      data.notes.forEach(n => {
-        const newNoteId = 'note_' + Date.now() + '_' + (noteCount++);
-        notes[newNoteId] = {
-          ...n,
-          id: newNoteId,
-          session_id: newSessId,
-        };
+      data.notes.forEach((n, index) => {
+        const nextNote = sanitizeImportedNote(n, index, newSessId);
+        if (!nextNote) return;
+        notes[nextNote.id] = nextNote;
+        noteCount++;
       });
 
       saveNotes();

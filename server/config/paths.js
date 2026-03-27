@@ -6,6 +6,7 @@ function createPaths(rootDir) {
   const KB_DIR = process.env.KB_DIR || path.join(rootDir, 'knowledge_base');
   return {
     PORT: process.env.PORT || 3000,
+    HOST: process.env.HOST || '127.0.0.1',
     KB_DIR,
     SERVICES_DIR: path.join(KB_DIR, 'services'),
     TACTICS_DIR: path.join(KB_DIR, 'tactics'),

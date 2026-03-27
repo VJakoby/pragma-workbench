@@ -23,6 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const { marked } = require('marked');
 const { createPaths } = require('./config/paths');
+const { sanitizeRenderedHtml } = require('./lib/html-sanitize');
 const { createKbIndex } = require('./lib/kb-index');
 const { runStartupIntegrityCheck } = require('./lib/startup-check');
 const { createWorkbenchStorage } = require('./lib/workbench-storage');
@@ -43,6 +44,7 @@ const {
   SESSIONS_DIR,
   TEMPLATES_FILE,
   SEARCH_URL,
+  HOST,
 } = createPaths(path.resolve(__dirname, '..'));
 
 const kbIndex = createKbIndex({ kbDir: KB_DIR, servicesDir: SERVICES_DIR, tacticsDir: TACTICS_DIR });
@@ -55,6 +57,7 @@ const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
 
 marked.setOptions({ gfm: true, breaks: false });
+const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(String(markdown || '')));
 
 const app = express();
 app.set('views', path.join(__dirname, '..', 'views'));
@@ -87,6 +90,7 @@ app.get('/app.html', (req, res) => {
 
 registerKbRoutes(app, {
   marked,
+  renderMarkdown,
   kbIndex,
   kbDir: KB_DIR,
   servicesDir: SERVICES_DIR,
@@ -117,7 +121,7 @@ if (chokidar) {
 buildIndex();
 buildTacticsIndex();
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, HOST, () => {
   const serviceIndex = kbIndex.getServiceIndex();
   const tacticsIndex = kbIndex.getTacticsIndex();
   let kbSubdirs = [];
@@ -134,7 +138,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  ██╔═══╝ ██╔══██╗██╔══██║██║   ██║██║╚██╔╝██║██╔══██║`);
   console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
-  console.log(`  App      → http://localhost:${PORT}/`);
+  console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
   console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})\n`);
   if (kbSubdirs.length) {

@@ -370,6 +370,9 @@ function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent = meta || '';
   const el = document.getElementById('cpContent');
+  const safeHtml = typeof sanitizeRenderedHtml === 'function'
+    ? sanitizeRenderedHtml(injectTargets(html))
+    : injectTargets(html);
 
   if (query) {
     el.innerHTML = `
@@ -380,12 +383,12 @@ function renderContent(html, icon, title, meta, query = '') {
         <div class="source-preview-body md-content" id="cpContentInner"></div>
       </div>`;
     const inner = document.getElementById('cpContentInner');
-    inner.innerHTML = injectTargets(html);
+    inner.innerHTML = safeHtml;
     wrapCodeBlocks(inner);
     wrapInlineCodes(inner);
     makeCollapsible(inner);
   } else {
-    el.innerHTML = injectTargets(html);
+    el.innerHTML = safeHtml;
     wrapCodeBlocks(el);
     wrapInlineCodes(el);
     makeCollapsible(el);

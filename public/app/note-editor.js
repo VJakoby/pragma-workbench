@@ -11,8 +11,9 @@ function updateNotePreview() {
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
-  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  if (typeof injectTargets === 'function') el.innerHTML = injectTargets(el.innerHTML);
+  const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);

@@ -112,7 +112,10 @@ async function saveEdit(opts = {}) {
         ? `${d2.port} · ${d2.category}`
         : `${d2.category} · ${d2.wordCount} words`;
       activeDoc.title = d2.name || activeDoc.title;
-      document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
+      const html = typeof sanitizeRenderedHtml === 'function'
+        ? sanitizeRenderedHtml(injectTargets(d2.html))
+        : injectTargets(d2.html);
+      document.getElementById('cpContent').innerHTML = html;
       wrapCodeBlocks(document.getElementById('cpContent'));
       wrapInlineCodes(document.getElementById('cpContent'));
     } catch (_) {}
