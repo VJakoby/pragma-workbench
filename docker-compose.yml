@@ -11,6 +11,7 @@ services:
       - ./sessions:/usr/src/app/sessions                     # Keeps session data alive even if the container is deleted  
     environment:
       # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
+      - HOST=0.0.0.0                                         # Container must bind all interfaces so published port 127.0.0.1:3000 works from the host
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
       - SEARCH_URL=http://engram:3002                        # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
