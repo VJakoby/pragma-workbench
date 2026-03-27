@@ -8,6 +8,87 @@ let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
+const SVC_TAB_CONFIG = {
+  ports: {
+    buttonId: 'svcTabPorts',
+    panelId: 'svcPanelPorts',
+    focusId: 'svcQuickInput',
+    onActivate: () => renderSvcLogTable(),
+  },
+  paths: {
+    buttonId: 'svcTabPaths',
+    panelId: 'svcPanelPaths',
+    focusId: 'pathQuickInput',
+    onActivate: () => renderPathTable(),
+  },
+  loot: {
+    buttonId: 'svcTabLoot',
+    panelId: 'svcPanelLoot',
+    focusId: 'lootCredInput',
+    onActivate: () => {
+      renderLootTable();
+      const hostInput = document.getElementById('lootHostInput');
+      if (hostInput && !hostInput.value) {
+        const ip = getIP();
+        if (ip !== '<IP>') hostInput.value = ip;
+      }
+    },
+  },
+};
+
+function updateUtilitySessionLabel(labelId) {
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (sess) {
+    label.textContent = sess.codename;
+    label.style.display = '';
+  } else {
+    label.textContent = '';
+    label.style.display = 'none';
+  }
+}
+
+function isEventInsideWrap(e, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return false;
+  const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+  return wrap.contains(e.target) || path.includes(wrap);
+}
+
+function reopenUtilityOutsideListener(handler) {
+  setTimeout(() => document.addEventListener('click', handler, { once: true }), 0);
+}
+
+function openUtilityPopover({
+  popoverId,
+  buttonId,
+  labelId,
+  closeOthers = [],
+  onOpen = null,
+  outsideHandler,
+}) {
+  const popover = document.getElementById(popoverId);
+  const button = document.getElementById(buttonId);
+  if (!popover || !button) return false;
+  if (popover.classList.contains('open')) return false;
+
+  closeOthers.forEach(closeFn => {
+    if (typeof closeFn === 'function') closeFn();
+  });
+  popover.classList.add('open');
+  button.classList.add('open');
+  if (labelId) updateUtilitySessionLabel(labelId);
+  if (typeof onOpen === 'function') onOpen();
+  reopenUtilityOutsideListener(outsideHandler);
+  return true;
+}
+
+function closeUtilityPopover(popoverId, buttonId, afterClose = null) {
+  document.getElementById(popoverId)?.classList.remove('open');
+  document.getElementById(buttonId)?.classList.remove('open');
+  if (typeof afterClose === 'function') afterClose();
+}
 
 function updateSvcPopoverLayout() {
   const popover = document.getElementById('svcPopover');
@@ -17,6 +98,15 @@ function updateSvcPopoverLayout() {
   );
   popover.classList.toggle('svc-popover-import-open', importOpen);
   popover.classList.toggle('svc-popover-loot-open', _activeSvcTab === 'loot');
+}
+
+function getSvcTabConfig(tab) {
+  return SVC_TAB_CONFIG[tab] || SVC_TAB_CONFIG.ports;
+}
+
+function focusSvcTabInput(tab) {
+  const config = getSvcTabConfig(tab);
+  setTimeout(() => document.getElementById(config.focusId)?.focus(), 40);
 }
 
 function switchSvcTabByArrow(dir) {
@@ -32,25 +122,14 @@ function switchSvcTabByArrow(dir) {
 
 function switchSvcTab(tab) {
   _activeSvcTab = tab;
-  document.getElementById('svcTabPorts').classList.toggle('active', tab === 'ports');
-  document.getElementById('svcTabPaths').classList.toggle('active', tab === 'paths');
-  document.getElementById('svcTabLoot').classList.toggle('active', tab === 'loot');
-  document.getElementById('svcPanelPorts').style.display = tab === 'ports' ? 'block' : 'none';
-  document.getElementById('svcPanelPaths').style.display = tab === 'paths' ? 'block' : 'none';
-  document.getElementById('svcPanelLoot').style.display = tab === 'loot' ? 'block' : 'none';
-  if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
-  if (tab === 'paths') { renderPathTable(); setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
-  if (tab === 'loot') {
-    renderLootTable();
-    setTimeout(() => {
-      const hi = document.getElementById('lootHostInput');
-      if (hi && !hi.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hi.value = ip;
-      }
-      document.getElementById('lootCredInput')?.focus();
-    }, 40);
-  }
+  Object.entries(SVC_TAB_CONFIG).forEach(([tabKey, config]) => {
+    document.getElementById(config.buttonId)?.classList.toggle('active', tabKey === tab);
+    const panel = document.getElementById(config.panelId);
+    if (panel) panel.style.display = tabKey === tab ? 'block' : 'none';
+  });
+  const config = getSvcTabConfig(tab);
+  config.onActivate?.();
+  focusSvcTabInput(tab);
   renderSvcClearAction();
   updateSvcPopoverLayout();
 }
@@ -81,6 +160,17 @@ function getSessionTodos() {
   return sessions[activeSessionId].todos || [];
 }
 
+function ensureSessionTodos() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  if (!Array.isArray(sessions[activeSessionId].todos)) sessions[activeSessionId].todos = [];
+  return sessions[activeSessionId].todos;
+}
+
+function syncTodoUi() {
+  renderTodoClearAction();
+  updateTodoCount();
+}
+
 function updateTodoCount() {
   const todos = getSessionTodos();
   const openCount = todos.filter(todo => !todo.done).length;
@@ -103,16 +193,14 @@ function renderTodoList() {
   if (!listEl) return;
   if (!activeSessionId || !sessions[activeSessionId]) {
     listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep TODO items.</div>`;
-    renderTodoClearAction();
-    updateTodoCount();
+    syncTodoUi();
     return;
   }
 
   const todos = getSessionTodos();
   if (!todos.length) {
     listEl.innerHTML = `<div class="todo-empty">No TODO items yet. Add the next step you want to keep visible for this session.</div>`;
-    renderTodoClearAction();
-    updateTodoCount();
+    syncTodoUi();
     return;
   }
 
@@ -129,8 +217,7 @@ function renderTodoList() {
       </button>
     </div>
   `).join('');
-  renderTodoClearAction();
-  updateTodoCount();
+  syncTodoUi();
 }
 
 function addTodoEntry() {
@@ -144,8 +231,9 @@ function addTodoEntry() {
     input?.focus();
     return;
   }
-  if (!sessions[activeSessionId].todos) sessions[activeSessionId].todos = [];
-  sessions[activeSessionId].todos.push({
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  todos.push({
     id: `todo_${Date.now()}`,
     text,
     done: false,
@@ -170,15 +258,19 @@ function toggleTodoDone(todoId) {
 
 function deleteTodoEntry(todoId) {
   if (!activeSessionId) return;
-  sessions[activeSessionId].todos = getSessionTodos().filter(item => item.id !== todoId);
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  sessions[activeSessionId].todos = todos.filter(item => item.id !== todoId);
   saveNotes();
   renderTodoList();
 }
 
 function clearCompletedTodos() {
   if (!activeSessionId) return;
-  const remaining = getSessionTodos().filter(item => !item.done);
-  if (remaining.length === getSessionTodos().length) return;
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  const remaining = todos.filter(item => !item.done);
+  if (remaining.length === todos.length) return;
   sessions[activeSessionId].todos = remaining;
   saveNotes();
   renderTodoList();
@@ -1211,61 +1303,48 @@ function buildLootMarkdown(sessionId) {
 }
 
 function toggleSvcPopover() {
-  const popover = document.getElementById('svcPopover');
-  const btn = document.getElementById('svcTopbarBtn');
-  const isOpen = popover.classList.contains('open');
-  if (isOpen) {
+  if (document.getElementById('svcPopover')?.classList.contains('open')) {
     closeSvcPopover();
-  } else {
-    closeTodoPopover();
-    popover.classList.add('open');
-    btn.classList.add('open');
-    updateSvcPopoverLayout();
-    const sessLabel = document.getElementById('svcSessionLabel');
-    if (sessLabel) {
-      const sess = activeSessionId && sessions[activeSessionId];
-      if (sess) {
-        sessLabel.textContent = sess.codename;
-        sessLabel.style.display = '';
-      } else {
-        sessLabel.textContent = '';
-        sessLabel.style.display = 'none';
-      }
-    }
-    renderSvcLogTable();
-    renderPathTable();
-    renderLootTable();
-    updateSvcTabCounts();
-    renderSvcClearAction();
-    setTimeout(() => {
-      const hi = document.getElementById('lootHostInput');
-      if (hi && !hi.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hi.value = ip;
-      }
-      const inputId = _activeSvcTab === 'ports'
-        ? 'svcQuickInput'
-        : _activeSvcTab === 'loot'
-          ? 'lootCredInput'
-          : 'pathQuickInput';
-      document.getElementById(inputId)?.focus();
-    }, 40);
-    setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+    return;
   }
+  openUtilityPopover({
+    popoverId: 'svcPopover',
+    buttonId: 'svcTopbarBtn',
+    labelId: 'svcSessionLabel',
+    closeOthers: [closeTodoPopover],
+    outsideHandler: _svcOutsideClose,
+    onOpen: () => {
+      updateSvcPopoverLayout();
+      renderSvcLogTable();
+      renderPathTable();
+      renderLootTable();
+      updateSvcTabCounts();
+      renderSvcClearAction();
+      setTimeout(() => {
+        const hi = document.getElementById('lootHostInput');
+        if (hi && !hi.value) {
+          const ip = getIP();
+          if (ip !== '<IP>') hi.value = ip;
+        }
+        const inputId = _activeSvcTab === 'ports'
+          ? 'svcQuickInput'
+          : _activeSvcTab === 'loot'
+            ? 'lootCredInput'
+            : 'pathQuickInput';
+        document.getElementById(inputId)?.focus();
+      }, 40);
+    },
+  });
 }
 
 function closeSvcPopover() {
-  document.getElementById('svcPopover')?.classList.remove('open');
-  document.getElementById('svcTopbarBtn')?.classList.remove('open');
-  updateSvcPopoverLayout();
+  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
 }
 
 function _svcOutsideClose(e) {
-  const wrap = document.getElementById('svcTopbarWrap');
-  if (!wrap) return;
-  if (wrap.contains(e.target)) {
+  if (isEventInsideWrap(e, 'svcTopbarWrap')) {
     if (document.getElementById('svcPopover')?.classList.contains('open')) {
-      setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+      reopenUtilityOutsideListener(_svcOutsideClose);
     }
   } else {
     closeSvcPopover();
@@ -1273,46 +1352,31 @@ function _svcOutsideClose(e) {
 }
 
 function toggleTodoPopover() {
-  const popover = document.getElementById('todoPopover');
-  const btn = document.getElementById('todoTopbarBtn');
-  if (!popover || !btn) return;
-  const isOpen = popover.classList.contains('open');
-  if (isOpen) {
+  if (document.getElementById('todoPopover')?.classList.contains('open')) {
     closeTodoPopover();
     return;
   }
-
-  closeSvcPopover();
-  popover.classList.add('open');
-  btn.classList.add('open');
-  const sessLabel = document.getElementById('todoSessionLabel');
-  if (sessLabel) {
-    const sess = activeSessionId && sessions[activeSessionId];
-    if (sess) {
-      sessLabel.textContent = sess.codename;
-      sessLabel.style.display = '';
-    } else {
-      sessLabel.textContent = '';
-      sessLabel.style.display = 'none';
-    }
-  }
-  renderTodoList();
-  setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
-  setTimeout(() => document.addEventListener('click', _todoOutsideClose, { once: true }), 0);
+  openUtilityPopover({
+    popoverId: 'todoPopover',
+    buttonId: 'todoTopbarBtn',
+    labelId: 'todoSessionLabel',
+    closeOthers: [closeSvcPopover],
+    outsideHandler: _todoOutsideClose,
+    onOpen: () => {
+      renderTodoList();
+      setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
+    },
+  });
 }
 
 function closeTodoPopover() {
-  document.getElementById('todoPopover')?.classList.remove('open');
-  document.getElementById('todoTopbarBtn')?.classList.remove('open');
+  closeUtilityPopover('todoPopover', 'todoTopbarBtn');
 }
 
 function _todoOutsideClose(e) {
-  const wrap = document.getElementById('todoTopbarWrap');
-  if (!wrap) return;
-  const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
-  if (wrap.contains(e.target) || path.includes(wrap)) {
+  if (isEventInsideWrap(e, 'todoTopbarWrap')) {
     if (document.getElementById('todoPopover')?.classList.contains('open')) {
-      setTimeout(() => document.addEventListener('click', _todoOutsideClose, { once: true }), 0);
+      reopenUtilityOutsideListener(_todoOutsideClose);
     }
   } else {
     closeTodoPopover();
