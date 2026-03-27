@@ -1873,8 +1873,9 @@ body.is-resizing *{cursor:col-resize!important}
   background: var(--bg2);
   color: var(--text2);
   border-radius: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -1884,7 +1885,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .editor-font-label {
   min-width: 48px;
-  padding: 0 9px;
+  padding: 0 10px;
 }
 .editor-font-btn:hover, .editor-font-label:hover {
   border-color: var(--border2);
