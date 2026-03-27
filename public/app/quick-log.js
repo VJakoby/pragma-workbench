@@ -553,6 +553,37 @@ function buildNetworkEnumerationTableRow(row) {
   return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
 }
 
+function getSessionTargetById(targetId) {
+  if (!activeSessionId || !targetId || !sessions[activeSessionId]) return null;
+  const targets = sessions[activeSessionId].targets || [];
+  return targets.find(target => target.id === targetId) || null;
+}
+
+function populateNetworkEnumerationOverview(body, target = null) {
+  const resolvedTarget = target || getActiveTarget() || null;
+  const ip = resolvedTarget?.ip || '';
+  const domain = resolvedTarget?.domain || '';
+  const hostname = resolvedTarget ? (resolvedTarget.label || resolvedTarget.ip || resolvedTarget.domain || '') : '';
+  const replacements = {
+    IP: ip,
+    Domain: domain,
+    Hostname: hostname,
+  };
+
+  return String(body || '')
+    .split('\n')
+    .map((line) => {
+      const match = line.match(/^\|\s*(IP|Domain|Hostname)\s*\|\s*(.*?)\s*\|$/i);
+      if (!match) return line;
+      const field = match[1];
+      const current = String(match[2] || '').trim();
+      const next = replacements[field] || '';
+      if (current || !next) return line;
+      return `| ${field} | ${next} |`;
+    })
+    .join('\n');
+}
+
 function upsertNetworkEnumerationRowIntoBody(body, row) {
   const lines = String(body || '').split('\n');
   const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
@@ -578,14 +609,21 @@ function upsertNetworkEnumerationRowIntoBody(body, row) {
   return lines.join('\n');
 }
 
-function findSessionNetworkEnumerationNote() {
-  if (!activeSessionId) return null;
-  return Object.values(notes).find(note => note.session_id === activeSessionId && note.type === 'network-enumeration') || null;
+function findTargetNetworkEnumerationNote(targetId) {
+  if (!activeSessionId || !targetId) return null;
+  return Object.values(notes).find(note =>
+    note.session_id === activeSessionId &&
+    note.type === 'network-enumeration' &&
+    note.target_id === targetId
+  ) || null;
 }
 
-function ensureSessionNetworkEnumerationNote() {
-  if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId) return null;
-  let note = findSessionNetworkEnumerationNote();
+function ensureTargetNetworkEnumerationNote(targetId) {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId || !targetId) return null;
+  const target = getSessionTargetById(targetId);
+  if (!target) return null;
+
+  let note = findTargetNetworkEnumerationNote(targetId);
   if (note) return note;
 
   const id = 'note_' + Date.now();
@@ -593,13 +631,16 @@ function ensureSessionNetworkEnumerationNote() {
   note = {
     id,
     session_id: activeSessionId,
-    target_id: activeTargetId || null,
+    target_id: targetId,
     type: 'network-enumeration',
     title: tmpl.title || '',
-    body: typeof buildNoteBodyFromTemplate === 'function' ? buildNoteBodyFromTemplate(tmpl) : (tmpl.body || ''),
+    body: populateNetworkEnumerationOverview(
+      typeof buildNoteBodyFromTemplate === 'function' ? buildNoteBodyFromTemplate(tmpl) : (tmpl.body || ''),
+      target
+    ),
     tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
-    target_ip: getIP() !== '<IP>' ? getIP() : null,
-    target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
+    target_ip: target.ip || null,
+    target_domain: target.domain || null,
     created: Date.now(),
     updated: Date.now(),
   };
@@ -608,9 +649,9 @@ function ensureSessionNetworkEnumerationNote() {
 }
 
 function syncServiceEntryToNetworkEnumerationNote(entry) {
-  if (!NOTE_TEMPLATES?.['network-enumeration']) return false;
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !entry?.target_id) return false;
 
-  const note = ensureSessionNetworkEnumerationNote();
+  const note = ensureTargetNetworkEnumerationNote(entry.target_id);
   if (!note) return false;
 
   const row = parseServiceForNetworkRow(entry);

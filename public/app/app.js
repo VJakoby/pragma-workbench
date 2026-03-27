@@ -19,6 +19,108 @@ function closeCmdIfOutside(e) {
   if (e.target === document.getElementById('cmdOverlay')) closeCmd();
 }
 
+const TOOLTIP_TARGET_SELECTOR = [
+  '.icon-btn[title]',
+  '.tb-btn[title]',
+  '.note-pin-btn[title]',
+  '.note-reassign-btn[title]',
+  '.note-target-assign-btn[title]',
+  '.editor-font-btn[title]',
+  '.editor-font-label[title]',
+  '.preview-layout-btn[title]',
+  '.sidebar-toggle-btn[title]',
+  '.target-selector-copy[title]',
+  '.target-selector-main[title]',
+  '.svc-topbar-btn[title]',
+  '.svc-clear-btn[title]',
+  '.svc-quick-add-btn[title]',
+  '.session-item-export-btn[title]',
+  '.target-item-del[title]',
+  '.svc-del-btn[title]',
+  '.notes-list-reopen-btn[title]',
+  '.cmd-trigger[title]',
+  '.theme-toggle-btn[title]',
+  '.sidebar-info-btn[title]',
+].join(', ');
+
+let tooltipTarget = null;
+
+function getTooltipEl() {
+  return document.getElementById('appTooltip');
+}
+
+function getTooltipText(el) {
+  return el?.dataset?.nativeTitle || el?.getAttribute?.('title') || '';
+}
+
+function positionTooltip(target) {
+  const tooltip = getTooltipEl();
+  if (!tooltip || !target) return;
+  const rect = target.getBoundingClientRect();
+  const tipRect = tooltip.getBoundingClientRect();
+  const margin = 10;
+  let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+  left = Math.max(margin, Math.min(window.innerWidth - tipRect.width - margin, left));
+  let top = rect.top - tipRect.height - 8;
+  if (top < margin) top = rect.bottom + 8;
+  tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+}
+
+function hideTooltip(target = tooltipTarget) {
+  const tooltip = getTooltipEl();
+  if (!tooltip) return;
+  if (target?.dataset?.nativeTitle && !target.getAttribute('title')) {
+    target.setAttribute('title', target.dataset.nativeTitle);
+  }
+  tooltip.classList.remove('visible');
+  tooltip.setAttribute('aria-hidden', 'true');
+  tooltipTarget = null;
+}
+
+function showTooltip(target) {
+  const tooltip = getTooltipEl();
+  const text = getTooltipText(target);
+  if (!tooltip || !target || !text) return;
+  if (tooltipTarget && tooltipTarget !== target) hideTooltip(tooltipTarget);
+  tooltipTarget = target;
+  if (!target.dataset.nativeTitle) target.dataset.nativeTitle = text;
+  target.removeAttribute('title');
+  tooltip.textContent = text;
+  tooltip.classList.add('visible');
+  tooltip.setAttribute('aria-hidden', 'false');
+  positionTooltip(target);
+}
+
+document.addEventListener('mouseover', (e) => {
+  const target = e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  if (!target || target === tooltipTarget) return;
+  showTooltip(target);
+});
+
+document.addEventListener('mouseout', (e) => {
+  if (!tooltipTarget) return;
+  const related = e.relatedTarget;
+  if (related && tooltipTarget.contains(related)) return;
+  if (tooltipTarget.contains(e.target)) hideTooltip(tooltipTarget);
+});
+
+document.addEventListener('focusin', (e) => {
+  const target = e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  if (target) showTooltip(target);
+});
+
+document.addEventListener('focusout', (e) => {
+  if (tooltipTarget && tooltipTarget.contains(e.target)) hideTooltip(tooltipTarget);
+});
+
+window.addEventListener('scroll', () => {
+  if (tooltipTarget) positionTooltip(tooltipTarget);
+}, true);
+
+window.addEventListener('resize', () => {
+  if (tooltipTarget) positionTooltip(tooltipTarget);
+});
+
 function buildCmdResults(q) {
   const ql    = q.toLowerCase().trim();
   const res   = document.getElementById('cmdResults');

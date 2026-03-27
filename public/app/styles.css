@@ -3248,3 +3248,32 @@ body.enc-active-body .content-panel {
   transition: all 0.15s; flex-shrink: 0;
 }
 .tl-export-btn:hover { border-color: var(--border2); color: var(--text); }
+
+.app-tooltip{
+  position:fixed;
+  left:0;
+  top:0;
+  transform:translate(-9999px,-9999px);
+  z-index:1200;
+  padding:5px 8px;
+  border-radius:6px;
+  background:rgba(12,16,22,0.96);
+  border:1px solid rgba(148,163,184,0.24);
+  color:#eef3fb;
+  font-family:'Inter',sans-serif;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.25;
+  white-space:nowrap;
+  pointer-events:none;
+  box-shadow:0 10px 24px rgba(0,0,0,0.35);
+  opacity:0;
+  transition:opacity 0.12s ease;
+}
+[data-theme="light"] .app-tooltip{
+  background:rgba(255,255,255,0.98);
+  border-color:rgba(148,163,184,0.3);
+  color:#1f2937;
+  box-shadow:0 10px 22px rgba(15,23,42,0.14);
+}
+.app-tooltip.visible{opacity:1}
