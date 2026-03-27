@@ -73,6 +73,115 @@ function updateSvcTabCounts() {
     btn.classList.toggle('has-entries', total > 0);
   }
   renderSvcClearAction();
+  updateTodoCount();
+}
+
+function getSessionTodos() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].todos || [];
+}
+
+function updateTodoCount() {
+  const todos = getSessionTodos();
+  const openCount = todos.filter(todo => !todo.done).length;
+  const btn = document.getElementById('todoTopbarCount');
+  if (!btn) return;
+  btn.textContent = openCount || '';
+  btn.classList.toggle('has-entries', openCount > 0);
+}
+
+function renderTodoClearAction() {
+  const btn = document.getElementById('todoClearBtn');
+  if (!btn) return;
+  const doneCount = getSessionTodos().filter(todo => todo.done).length;
+  btn.textContent = doneCount ? `Clear Done (${doneCount})` : 'Clear Done';
+  btn.disabled = !activeSessionId || doneCount === 0;
+}
+
+function renderTodoList() {
+  const listEl = document.getElementById('todoList');
+  if (!listEl) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep TODO items.</div>`;
+    renderTodoClearAction();
+    updateTodoCount();
+    return;
+  }
+
+  const todos = getSessionTodos();
+  if (!todos.length) {
+    listEl.innerHTML = `<div class="todo-empty">No TODO items yet. Add the next step you want to keep visible for this session.</div>`;
+    renderTodoClearAction();
+    updateTodoCount();
+    return;
+  }
+
+  listEl.innerHTML = todos.map(todo => `
+    <div class="todo-item${todo.done ? ' done' : ''}">
+      <button class="todo-check-btn" onclick="event.stopPropagation(); toggleTodoDone('${todo.id}')" title="${todo.done ? 'Mark as open' : 'Mark as done'}" aria-label="${todo.done ? 'Mark as open' : 'Mark as done'}">
+        <span class="todo-check-box">${todo.done ? '&#10003;' : ''}</span>
+      </button>
+      <div class="todo-item-body">
+        <div class="todo-item-text">${esc(todo.text || '')}</div>
+      </div>
+      <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>
+  `).join('');
+  renderTodoClearAction();
+  updateTodoCount();
+}
+
+function addTodoEntry() {
+  const input = document.getElementById('todoQuickInput');
+  const text = input?.value?.trim() || '';
+  if (!activeSessionId) {
+    showToast('⚠ Open a session first', 'err');
+    return;
+  }
+  if (!text) {
+    input?.focus();
+    return;
+  }
+  if (!sessions[activeSessionId].todos) sessions[activeSessionId].todos = [];
+  sessions[activeSessionId].todos.push({
+    id: `todo_${Date.now()}`,
+    text,
+    done: false,
+    created: Date.now(),
+    completed: null,
+  });
+  input.value = '';
+  saveNotes();
+  renderTodoList();
+  input.focus();
+}
+
+function toggleTodoDone(todoId) {
+  if (!activeSessionId) return;
+  const todo = getSessionTodos().find(item => item.id === todoId);
+  if (!todo) return;
+  todo.done = !todo.done;
+  todo.completed = todo.done ? Date.now() : null;
+  saveNotes();
+  renderTodoList();
+}
+
+function deleteTodoEntry(todoId) {
+  if (!activeSessionId) return;
+  sessions[activeSessionId].todos = getSessionTodos().filter(item => item.id !== todoId);
+  saveNotes();
+  renderTodoList();
+}
+
+function clearCompletedTodos() {
+  if (!activeSessionId) return;
+  const remaining = getSessionTodos().filter(item => !item.done);
+  if (remaining.length === getSessionTodos().length) return;
+  sessions[activeSessionId].todos = remaining;
+  saveNotes();
+  renderTodoList();
 }
 
 function getActiveQuickLogEntries() {
@@ -1108,6 +1217,7 @@ function toggleSvcPopover() {
   if (isOpen) {
     closeSvcPopover();
   } else {
+    closeTodoPopover();
     popover.classList.add('open');
     btn.classList.add('open');
     updateSvcPopoverLayout();
@@ -1159,5 +1269,52 @@ function _svcOutsideClose(e) {
     }
   } else {
     closeSvcPopover();
+  }
+}
+
+function toggleTodoPopover() {
+  const popover = document.getElementById('todoPopover');
+  const btn = document.getElementById('todoTopbarBtn');
+  if (!popover || !btn) return;
+  const isOpen = popover.classList.contains('open');
+  if (isOpen) {
+    closeTodoPopover();
+    return;
+  }
+
+  closeSvcPopover();
+  popover.classList.add('open');
+  btn.classList.add('open');
+  const sessLabel = document.getElementById('todoSessionLabel');
+  if (sessLabel) {
+    const sess = activeSessionId && sessions[activeSessionId];
+    if (sess) {
+      sessLabel.textContent = sess.codename;
+      sessLabel.style.display = '';
+    } else {
+      sessLabel.textContent = '';
+      sessLabel.style.display = 'none';
+    }
+  }
+  renderTodoList();
+  setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
+  setTimeout(() => document.addEventListener('click', _todoOutsideClose, { once: true }), 0);
+}
+
+function closeTodoPopover() {
+  document.getElementById('todoPopover')?.classList.remove('open');
+  document.getElementById('todoTopbarBtn')?.classList.remove('open');
+}
+
+function _todoOutsideClose(e) {
+  const wrap = document.getElementById('todoTopbarWrap');
+  if (!wrap) return;
+  const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+  if (wrap.contains(e.target) || path.includes(wrap)) {
+    if (document.getElementById('todoPopover')?.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', _todoOutsideClose, { once: true }), 0);
+    }
+  } else {
+    closeTodoPopover();
   }
 }

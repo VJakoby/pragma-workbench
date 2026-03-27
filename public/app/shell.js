@@ -343,6 +343,7 @@ document.addEventListener('keydown', async e => {
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
     const targetAssignDropdown = document.getElementById('noteTargetAssignDropdown');
     if (targetAssignDropdown?.classList.contains('open')) { targetAssignDropdown.classList.remove('open'); return; }
+    if (document.getElementById('todoPopover')?.classList.contains('open')) { closeTodoPopover(); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }

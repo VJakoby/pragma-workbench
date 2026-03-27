@@ -520,7 +520,7 @@ function createSession() {
   const name = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
   const id = 'sess_' + Date.now();
-  const sess = { id, codename: name, created: Date.now(), targets: [], attacker_ip: '' };
+  const sess = { id, codename: name, created: Date.now(), targets: [], attacker_ip: '', todos: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);
@@ -638,6 +638,7 @@ function switchSession(id) {
   updateTargetSelector();
   refreshCodeBlocks();
   updateSvcTabCounts();
+  renderTodoList();
 }
 
 async function deleteSession(id) {
@@ -664,6 +665,7 @@ async function deleteSession(id) {
   updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
+  renderTodoList();
 }
 
 let _sessionRenameId = null;
