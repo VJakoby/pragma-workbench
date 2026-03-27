@@ -246,12 +246,12 @@ function renderNotesList() {
     const tagsHtml = (n.tags || []).length
       ? n.tags.map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')
       : '';
-    return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
+    return `<div class="note-item ${meta.cssClass}${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
       <div class="note-item-head">
+        <span class="note-item-type-icon" title="${esc(meta.label)}">${meta.icon}</span>
         <span class="note-item-date">${formatDate(n.updated)}</span>
       </div>
       <div class="note-item-meta-row">
-        <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
         ${tgtLabel}
         ${tagsHtml}
         ${sessLabel}
@@ -657,12 +657,13 @@ function reassignNote(sessionId) {
 function updateReassignBtn(note) {
   const btn = document.getElementById('noteReassignBtn');
   if (!btn) return;
+  const sessionIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 16.5 12 21l9-4.5"/></svg>';
   const sess = note.session_id && sessions[note.session_id];
   if (sess) {
-    btn.textContent = '⎘ ' + sess.codename;
+    btn.innerHTML = sessionIcon + ' ' + esc(sess.codename);
     btn.classList.add('assigned');
   } else {
-    btn.textContent = '⎘ unassigned';
+    btn.innerHTML = sessionIcon + ' unassigned';
     btn.classList.remove('assigned');
   }
 }
