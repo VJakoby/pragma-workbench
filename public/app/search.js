@@ -108,13 +108,14 @@ function renderSourceChips() {
   chips.innerHTML = knownSources.map(s => {
     const active = !disabledSources.has(s.id);
     return `<button class="source-chip${active ? ' active' : ''}"
-      onclick="toggleSourceFilter('${esc(s.id)}')"
+      onclick="toggleSourceFilter('${encodeURIComponent(s.id)}')"
       title="${active ? 'Disable' : 'Enable'} source: ${esc(s.name)}"
     >${esc(s.name)}</button>`;
   }).join('');
 }
 
 function toggleSourceFilter(sourceId) {
+  sourceId = decodeURIComponent(sourceId);
   if (disabledSources.has(sourceId)) {
     disabledSources.delete(sourceId);
   } else {

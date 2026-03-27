@@ -222,7 +222,7 @@ function renderContentPanelTabs(doc = activeDoc) {
 
   tabs.innerHTML = `<div class="content-panel-tabs-inner">${siblings.map(item => `
     <button class="content-panel-tab${item.id === doc.id ? ' active' : ''}"
-      onclick="openItem('${doc.view}', '${esc(item.id)}')"
+      onclick="openItem('${encodeURIComponent(doc.view)}', '${encodeURIComponent(item.id)}')"
       title="${esc(item.name || '')}">
       ${esc(item.name || 'Untitled')}
     </button>`).join('')}</div>`;
@@ -230,6 +230,8 @@ function renderContentPanelTabs(doc = activeDoc) {
 }
 
 async function openItem(view, id) {
+  view = decodeURIComponent(view);
+  id = decodeURIComponent(id);
   const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
   const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
   const backState = hadBrowserState
@@ -277,7 +279,7 @@ async function openItem(view, id) {
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
-    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
 }
 
@@ -370,9 +372,7 @@ function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent = meta || '';
   const el = document.getElementById('cpContent');
-  const safeHtml = typeof sanitizeRenderedHtml === 'function'
-    ? sanitizeRenderedHtml(injectTargets(html))
-    : injectTargets(html);
+  const renderedHtml = injectTargets(html);
 
   if (query) {
     el.innerHTML = `
@@ -383,12 +383,12 @@ function renderContent(html, icon, title, meta, query = '') {
         <div class="source-preview-body md-content" id="cpContentInner"></div>
       </div>`;
     const inner = document.getElementById('cpContentInner');
-    inner.innerHTML = safeHtml;
+    inner.innerHTML = renderedHtml;
     wrapCodeBlocks(inner);
     wrapInlineCodes(inner);
     makeCollapsible(inner);
   } else {
-    el.innerHTML = safeHtml;
+    el.innerHTML = renderedHtml;
     wrapCodeBlocks(el);
     wrapInlineCodes(el);
     makeCollapsible(el);

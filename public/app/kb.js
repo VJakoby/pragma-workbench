@@ -132,13 +132,13 @@ function renderKnowledgeFolderNav() {
 
   list.innerHTML = `
     ${folderCats.map(cat => `
-      <div class="nav-item nav-item-kb-folder${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${esc(cat.label)}', '${esc(cat.folder || '')}', this)" title="${esc(cat.label)}">
+      <div class="nav-item nav-item-kb-folder${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${encodeURIComponent(cat.label)}', '${encodeURIComponent(cat.folder || '')}', this)" title="${esc(cat.label)}">
         <span class="nav-item-icon">${folderIcon}</span>
         <span class="nav-item-label">${esc(cat.label)}</span>
         <span class="nav-item-count">${SERVICES.filter(item => item.folder === cat.folder).length || '—'}</span>
       </div>`).join('')}
     ${rootKbSections.map(section => `
-      <div class="nav-item nav-item-kb-folder${activeKbSection === section.folder ? ' active' : ''}" onclick="openRootKbSection('${esc(section.folder)}', '${esc(section.label)}', this)" title="${esc(section.label)}">
+      <div class="nav-item nav-item-kb-folder${activeKbSection === section.folder ? ' active' : ''}" onclick="openRootKbSection('${encodeURIComponent(section.folder)}', '${encodeURIComponent(section.label)}', this)" title="${esc(section.label)}">
         <span class="nav-item-icon">${folderIcon}</span>
         <span class="nav-item-label">${esc(section.label)}</span>
         <span class="nav-item-count">${section.count || '—'}</span>
@@ -147,6 +147,8 @@ function renderKnowledgeFolderNav() {
 }
 
 async function openRootKbSection(folder, label, navEl) {
+  folder = decodeURIComponent(folder);
+  label = decodeURIComponent(label);
   try {
     await ensureRootKbSectionLoaded(folder);
     if (shouldOpenKbSidebarInSidePanel()) {
@@ -254,6 +256,8 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
 }
 
 function openKnowledgeCategory(cat, folder, navEl) {
+  cat = decodeURIComponent(cat);
+  folder = decodeURIComponent(folder);
   activeCat = 'all';
   activeCatFolder = folder || '';
   activeKbRootFolder = '';
@@ -416,7 +420,7 @@ function buildSidebar(view) {
 
   list.innerHTML = cats.map(cat => `
     <div class="nav-item${cat.label===activeCat?' active':''}" data-cat="${esc(cat.label)}" data-folder="${esc(cat.folder || '')}"
-         onclick="setCat('${esc(cat.label)}', this, '${view}', '${esc(cat.folder || '')}')">
+         onclick="setCat('${encodeURIComponent(cat.label)}', this, '${encodeURIComponent(view)}', '${encodeURIComponent(cat.folder || '')}')">
       <span class="nav-item-icon">${cat.label==='all'?'◈':'·'}</span>
       <span class="nav-item-label">${cat.label==='all'?'All':esc(cat.label)}</span>
       ${cat.label!=='all'?`<span class="nav-item-count">${scopedItems.filter(i => i.category===cat.label).length}</span>`:''}
@@ -424,6 +428,9 @@ function buildSidebar(view) {
 }
 
 function setCat(cat, el, view, folder = '') {
+  cat = decodeURIComponent(cat);
+  view = decodeURIComponent(view);
+  folder = decodeURIComponent(folder);
   activeCat = cat;
   activeCatFolder = folder || '';
   document.querySelectorAll('#catList .nav-item').forEach(n => n.classList.remove('active'));

@@ -557,7 +557,7 @@ function renderNoteTags(n) {
   (n.tags || []).forEach(tag => {
     const pill = document.createElement('span');
     pill.className = 'note-tag';
-    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + esc(tag) + '\')">×</span>';
+    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + encodeURIComponent(tag) + '\')">×</span>';
     row.insertBefore(pill, input);
   });
 }
@@ -581,6 +581,7 @@ function noteTagKeydown(e) {
 }
 
 function removeNoteTag(tag) {
+  tag = decodeURIComponent(tag);
   if (!activeNoteId) return;
   const n = notes[activeNoteId];
   n.tags = (n.tags || []).filter(t => t !== tag);
@@ -593,6 +594,7 @@ function removeNoteTag(tag) {
 }
 
 function setTagFilter(tag) {
+  tag = decodeURIComponent(tag);
   activeTagFilter = activeTagFilter === tag ? null : tag;
   renderTagFilterSidebar();
   renderNotesList();
@@ -603,7 +605,7 @@ function renderTagFilterSidebar() {
   const tags = getAllTags();
   if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:JetBrains Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
-    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
+    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${encodeURIComponent(t)}')">#${esc(t)}</span>`
   ).join('');
 }
 

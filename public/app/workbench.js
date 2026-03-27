@@ -732,7 +732,12 @@ async function importSession(event) {
   const reader = new FileReader();
   reader.onload = async e => {
     try {
-      let parsed = JSON.parse(e.target.result);
+      let parsed;
+      try {
+        parsed = JSON.parse(e.target.result);
+      } catch (_) {
+        throw new Error('Could not load .session file. File is malformed.');
+      }
       if (parsed.encrypted === true) {
         let password;
         try {
@@ -755,11 +760,11 @@ async function importSession(event) {
       }
 
       const data = parsed;
-      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid .session file');
-      if (!data.session || !Array.isArray(data.notes)) throw new Error('Invalid .session file');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Could not load .session file. File is malformed.');
+      if (!data.session || !Array.isArray(data.notes)) throw new Error('Could not load .session file. File is malformed.');
 
       const sanitizeImportedSession = (session) => {
-        if (!session || typeof session !== 'object' || Array.isArray(session)) throw new Error('Invalid session payload');
+        if (!session || typeof session !== 'object' || Array.isArray(session)) throw new Error('Could not load .session file. File is malformed.');
         const cleanTargets = Array.isArray(session.targets) ? session.targets
           .filter(target => target && typeof target === 'object' && !Array.isArray(target))
           .map((target, index) => ({

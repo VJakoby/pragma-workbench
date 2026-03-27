@@ -44,6 +44,8 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.cmd-trigger[title]',
   '.theme-toggle-btn[title]',
   '.sidebar-info-btn[title]',
+  '.nav-item[title]',
+  '.session-active[title]',
 ].join(', ');
 
 let tooltipTarget = null;
@@ -84,6 +86,11 @@ function showTooltip(target) {
   const tooltip = getTooltipEl();
   const text = getTooltipText(target);
   if (!tooltip || !target || !text) return;
+  const isSidebarTarget = target.matches('.nav-item[title], .session-active[title]');
+  if (isSidebarTarget) {
+    const sidebar = target.closest('.sidebar');
+    if (!sidebar?.classList.contains('sidebar-icon-only')) return;
+  }
   if (tooltipTarget && tooltipTarget !== target) hideTooltip(tooltipTarget);
   tooltipTarget = target;
   if (!target.dataset.nativeTitle) target.dataset.nativeTitle = text;
@@ -534,13 +541,14 @@ function _pwCheckStrength() {
 // ═══════════════════════════════════════════════
 // SESSION ENCRYPTION (AES-256-GCM + PBKDF2-SHA-512)
 // ═══════════════════════════════════════════════
-// Format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
-// Format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
+// Crypto format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
+// Crypto format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
 //
 // Note: AES-GCM provides built-in authenticated encryption via the GHASH tag.
 // Any tampering with ciphertext, IV, or AAD causes decrypt to throw — no
-// separate HMAC is required on top of GCM. The pragma_version field gates
-// which key derivation parameters are used on decrypt.
+// separate HMAC is required on top of GCM. pragma_version tracks the overall
+// workbench payload version; crypto_version tracks which KDF parameters to use
+// for encrypted blobs.
 
 const PBKDF2_ITERATIONS_V2 = 600000; // NIST SP 800-132 (2023) recommendation
 const PBKDF2_ITERATIONS_V1 = 310000; // legacy — kept for reading old blobs
@@ -571,7 +579,14 @@ async function encryptPayload(plaintext, password) {
   const enc  = new TextEncoder();
   const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
   const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
-  return { pragma_version: 2, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
+  return {
+    pragma_version: 1,
+    crypto_version: 2,
+    encrypted: true,
+    salt: b64(salt),
+    iv: b64(iv),
+    data: b64(ct),
+  };
 }
 
 async function decryptPayload(obj, password) {
@@ -579,8 +594,11 @@ async function decryptPayload(obj, password) {
   const salt   = b64d(obj.salt);
   const iv     = b64d(obj.iv);
   const ct     = b64d(obj.data);
-  // Detect format version — v1 blobs have pragma_version: 1 or missing
-  const version = (obj.pragma_version >= 2) ? 2 : 1;
+  // Support both legacy blobs keyed by pragma_version and newer blobs that
+  // separate workbench version from crypto_version.
+  const version = obj.crypto_version >= 2
+    ? 2
+    : (obj.pragma_version >= 2 || salt.length >= 32 ? 2 : 1);
   const key    = await deriveKey(password, salt, version);
   const dec    = new TextDecoder();
   try {
