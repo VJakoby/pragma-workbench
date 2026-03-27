@@ -3149,6 +3149,29 @@ body.enc-active-body .content-panel {
 }
 .todo-del-btn {
   margin-top: -1px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--btn-color);
+  font-size: 16px;
+  padding: 5px 8px;
+  min-width: 30px;
+  min-height: 28px;
+  border-radius: 6px;
+  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.todo-del-btn:hover {
+  background: rgba(248,113,113,0.1);
+  border-color: rgba(248,113,113,0.28);
+  color: var(--red);
+}
+.todo-del-btn:active {
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.38);
+  color: var(--red);
 }
 .create-modal-body {
   padding: 14px 16px 18px;
