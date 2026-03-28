@@ -1,0 +1,460 @@
+{
+  "templates": [
+    {
+      "id": "general",
+      "label": "General",
+      "icon": "📋",
+      "title_prefix": "",
+      "default_tags": [],
+      "body_lines": [
+        "## Overview",
+        "",
+        "",
+        "## Notes",
+        "",
+        "",
+        "## References",
+        ""
+      ]
+    },
+    {
+      "id": "credentials",
+      "label": "Credentials",
+      "icon": "🔑",
+      "title_prefix": "Credentials",
+      "default_tags": [
+        "creds"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Credentials",
+          "body_lines": [
+            "## Credentials",
+            "",
+            "| Username | Password | Hash | Service | Notes |",
+            "|----------|----------|------|---------|-------|",
+            "|          |          |      |         |       |",
+            "",
+            "## Password Spray / Stuffing Notes",
+            "",
+            "",
+            "## Valid Sessions / Tokens",
+            ""
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "title_prefix": "Web Credentials",
+          "default_tags": [
+            "creds",
+            "web"
+          ],
+          "body_lines": [
+            "## Credentials",
+            "",
+            "| Username | Password | URL / Path | Role | Notes |",
+            "|----------|----------|------------|------|-------|",
+            "|          |          |            |      |       |",
+            "",
+            "## Sessions / Cookies",
+            "",
+            "| Type | Value | Scope | Notes |",
+            "|------|-------|-------|-------|",
+            "|      |       |       |       |",
+            "",
+            "## Notes",
+            ""
+          ]
+        }
+      ],
+      "body_lines": [
+        "## Credentials",
+        "",
+        "| Username | Password | Hash | Service | Notes |",
+        "|----------|----------|------|---------|-------|",
+        "|          |          |      |         |       |",
+        "",
+        "## Password Spray / Stuffing Notes",
+        "",
+        "",
+        "## Valid Sessions / Tokens",
+        ""
+      ]
+    },
+    {
+      "id": "privesc",
+      "label": "Privlilege Escalation",
+      "icon": "⬆",
+      "title_prefix": "Privilege Escalation",
+      "default_tags": [
+        "privesc"
+      ],
+      "body_lines": [
+        "## System Info",
+        "",
+        "| Field        | Value |",
+        "|--------------|-------|",
+        "| OS           |       |",
+        "| Kernel       |       |",
+        "| Hostname     |       |",
+        "| Current User |       |",
+        "| Groups       |       |",
+        "",
+        "## Enumeration",
+        "",
+        "### SUID / SGID Binaries",
+        "",
+        "",
+        "### Sudo Rights",
+        "",
+        "",
+        "### Cron Jobs",
+        "",
+        "",
+        "### Writable Paths / Misconfigs",
+        "",
+        "",
+        "### Interesting Files",
+        "",
+        "",
+        "## Vectors Attempted",
+        "",
+        "| Vector | Result | Notes |",
+        "|--------|--------|-------|",
+        "|        |        |       |",
+        "",
+        "## Escalation Path",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "recon",
+      "label": "Recon",
+      "icon": "🔭",
+      "title_prefix": "Recon",
+      "default_tags": [
+        "recon"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Recon",
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| OS       |       |",
+            "| In Scope |       |",
+            "",
+            "## Open Ports & Services",
+            "",
+            "| Port | Proto | Service | Version | Notes |",
+            "|------|-------|---------|---------|-------|",
+            "|      |       |         |         |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "",
+            "## DNS / Hostnames",
+            "",
+            "",
+            "## Users / Groups Discovered",
+            "",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "title_prefix": "Web Recon",
+          "default_tags": [
+            "recon",
+            "web"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| VHost    |       |",
+            "| Tech     |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "| Path | Status | Notes |",
+            "|------|--------|-------|",
+            "|      |        |       |",
+            "",
+            "## Parameters / Inputs",
+            "",
+            "| Parameter | Source | Notes |",
+            "|-----------|--------|-------|",
+            "|           |        |       |",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "ad",
+          "label": "AD",
+          "title_prefix": "AD Recon",
+          "default_tags": [
+            "recon",
+            "ad"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field      | Value |",
+            "|------------|-------|",
+            "| IP         |       |",
+            "| Domain     |       |",
+            "| Hostname   |       |",
+            "| Role       |       |",
+            "",
+            "## Users / Groups",
+            "",
+            "## Shares / SMB",
+            "",
+            "## Kerberos / LDAP",
+            "",
+            "## BloodHound / AD Findings",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        }
+      ],
+      "body_lines": [
+        "## Target Overview",
+        "",
+        "| Field    | Value |",
+        "|----------|-------|",
+        "| IP       |       |",
+        "| Domain   |       |",
+        "| OS       |       |",
+        "| In Scope |       |",
+        "",
+        "## Open Ports & Services",
+        "",
+        "| Port | Proto | Service | Version | Notes |",
+        "|------|-------|---------|---------|-------|",
+        "|      |       |         |         |       |",
+        "",
+        "## Web Endpoints",
+        "",
+        "",
+        "## DNS / Hostnames",
+        "",
+        "",
+        "## Users / Groups Discovered",
+        "",
+        "",
+        "## Findings",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "network-enumeration",
+      "label": "Network Enumeration",
+      "icon": "🌐",
+      "title_prefix": "Network Enumeration",
+      "default_tags": [
+        "recon",
+        "network"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Network Enumeration",
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field | Value |",
+            "|-------|-------|",
+            "| IP | |",
+            "| Domain | |",
+            "| Hostname | |",
+            "",
+            "## Open Ports & Services",
+            "",
+            "| Port | Proto | Service | Version | Notes |",
+            "|------|-------|---------|---------|-------|",
+            "|      |       |         |         |       |",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "minimal",
+          "label": "Minimal",
+          "title_prefix": "Network Enumeration",
+          "default_tags": [
+            "recon",
+            "network",
+            "minimal"
+          ],
+          "body_lines": [
+            "## Open Ports & Services",
+            "",
+            "| Port | Service | Notes |",
+            "|------|---------|-------|",
+            "|      |         |       |",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        }
+      ],
+      "body_lines": [
+        "## Target Overview",
+        "",
+        "| Field | Value |",
+        "|-------|-------|",
+        "| IP | |",
+        "| Domain | |",
+        "| Hostname | |",
+        "",
+        "## Open Ports & Services",
+        "",
+        "| Port | Proto | Service | Version | Notes |",
+        "|------|-------|---------|---------|-------|",
+        "|      |       |         |         |       |",
+        "",
+        "## Notes",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "loot",
+      "label": "Loot",
+      "icon": "💰",
+      "title_prefix": "Loot",
+      "default_tags": [
+        "loot"
+      ],
+      "body_lines": [
+        "## Files & Data",
+        "",
+        "| Path | Description | Hash / Value | Exfil Method |",
+        "|------|-------------|--------------|--------------|",
+        "|      |             |              |              |",
+        "",
+        "## Credentials Found",
+        "",
+        "",
+        "## Flags / Proofs",
+        "",
+        "```",
+        "# root.txt / user.txt / proof.txt",
+        "",
+        "```",
+        "",
+        "## Notes",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "exploit",
+      "label": "Exploitation",
+      "icon": "💥",
+      "title_prefix": "Exploit",
+      "default_tags": [
+        "exploit"
+      ],
+      "body_lines": [
+        "## Vulnerability",
+        "",
+        "| Field        | Value |",
+        "|--------------|-------|",
+        "| Name         |       |",
+        "| CVE          |       |",
+        "| CVSS         |       |",
+        "| Affected     |       |",
+        "| Auth Required|       |",
+        "",
+        "## Payload",
+        "",
+        "```bash",
+        "",
+        "```",
+        "",
+        "## Steps",
+        "",
+        "1. ",
+        "2. ",
+        "3. ",
+        "",
+        "## Outcome",
+        "",
+        "",
+        "## Cleanup / Artifacts to Remove",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "CTF-machine",
+      "label": "CTF",
+      "icon": "🛡️",
+      "title_prefix": "MACHINE-X",
+      "default_tags": [
+        "ctf",
+        "custom"
+      ],
+      "body_lines": [
+        "# Machine Name - <LABEL>",
+        "",
+        "- **IP:** `<TARGET>`",
+        "- **DOMAIN:** `<DOMAIN>`",
+        "",
+        "* Look for:",
+        " * *local.txt (Users desktop usually)*",
+        " * *root.txt (Adminstrator desktop usually)*",
+        "-----------------------------",
+        "",
+        "## 1. Enumeration",
+        "",
+        "",
+        "",
+        "",
+        "## 2. Exploitation",
+        "",
+        "",
+        "",
+        "## 3. Post-Exploitation",
+        "",
+        "",
+        "",
+        "## 4. Privilege Escalation",
+        "",
+        "",
+        "",
+        "## 5. Clean up & Notes"
+      ]
+    }
+  ]
+}

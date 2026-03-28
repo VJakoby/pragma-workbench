@@ -6,6 +6,165 @@ let activeNoteScope  = 'session';
 let activeTagFilter  = null;
 let activeTargetFilter = null;
 let activeNoteSearch = '';
+let activeNewNoteType = null;
+const CONFIG_TEMPLATES_PATH = '/api/config/templates';
+
+function setNoteEditorMode(mode) {
+  const isConfig = mode === 'config';
+  const editor = document.getElementById('notesEditor');
+  const badge = document.getElementById('noteTypeBadge');
+  const title = document.getElementById('noteTitleInput');
+  const pin = document.getElementById('notePinBtn');
+  const reassign = document.getElementById('noteReassignWrap');
+  const target = document.getElementById('noteTargetAssignWrap');
+  const previewBtn = document.getElementById('notePreviewBtn');
+  const hint = document.querySelector('.note-md-hint');
+  const timestamps = document.getElementById('noteTimestamps');
+  const createdWrap = document.getElementById('noteCreatedWrap');
+  const modifiedWrap = document.getElementById('noteModifiedWrap');
+  const tags = document.getElementById('noteTagsRow');
+  const backlinks = document.getElementById('noteBacklinks');
+  const exportBtn = document.getElementById('noteExportBtn');
+  const duplicateBtn = document.getElementById('noteDuplicateBtn');
+  const deleteBtn = document.getElementById('noteDeleteBtn');
+  const previewPane = document.getElementById('notePreviewPane');
+  const previewHandle = document.getElementById('notePreviewHandle');
+  const layoutToggle = document.getElementById('previewLayoutToggle');
+  const split = document.getElementById('noteEditorSplit');
+
+  if (editor) editor.classList.toggle('config-mode', isConfig);
+  if (badge) {
+    if (isConfig) {
+      badge.textContent = '⚙ Templates';
+      badge.className = 'note-item-type note-type-config';
+    }
+  }
+  if (title) {
+    title.readOnly = isConfig;
+    title.placeholder = isConfig ? '' : 'Note title…';
+  }
+  if (pin) pin.style.display = isConfig ? 'none' : '';
+  if (reassign) reassign.style.display = isConfig ? 'none' : '';
+  if (target) target.style.display = isConfig ? 'none' : '';
+  if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
+  if (hint) hint.style.display = isConfig ? 'none' : '';
+  if (timestamps) timestamps.style.display = '';
+  if (createdWrap) createdWrap.style.display = isConfig ? 'none' : '';
+  if (modifiedWrap) modifiedWrap.style.display = isConfig ? 'none' : '';
+  if (tags) tags.style.display = isConfig ? 'none' : '';
+  if (backlinks) backlinks.style.display = isConfig ? 'none' : '';
+  if (duplicateBtn) duplicateBtn.style.display = isConfig ? 'none' : '';
+  if (deleteBtn) deleteBtn.style.display = isConfig ? 'none' : '';
+  if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
+  if (split) {
+    if (isConfig) {
+      split.classList.remove('preview-open', 'split-side');
+      split.style.removeProperty('--note-editor-w');
+      split.style.removeProperty('--note-editor-h');
+    } else {
+      applyNotePreviewState();
+    }
+  }
+  if (previewPane && isConfig) previewPane.style.display = 'none';
+  if (previewHandle && isConfig) previewHandle.style.display = 'none';
+  if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
+}
+
+function ensureNoteTypeBadge() {
+  let badge = document.getElementById('noteTypeBadge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'noteTypeBadge';
+    badge.className = 'note-item-type';
+    document.querySelector('.notes-editor-hdr').prepend(badge);
+  }
+  return badge;
+}
+
+async function fetchTemplatesConfigDoc() {
+  const r = await fetch(CONFIG_TEMPLATES_PATH);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Failed to load note-templates.json');
+  return String(d.content || '');
+}
+
+async function persistTemplatesConfig(opts = {}) {
+  if (activeConfigDoc !== 'templates') return false;
+  const content = cmGetValue(noteEditor);
+  const seq = beginAppSave(opts.statusText || '...saving');
+  try {
+    const res = await fetch(CONFIG_TEMPLATES_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    await loadNoteTemplates();
+    finishAppSaveSuccess(seq, 'saved');
+    return true;
+  } catch (err) {
+    finishAppSaveError(seq, err, 'invalid json');
+    if (opts.toast !== false) showToast(`⚠ ${err.message}`, 'err');
+    return false;
+  }
+}
+
+function autoSaveTemplatesConfig() {
+  if (activeConfigDoc !== 'templates') return;
+  setNoteSaveIndicator('saving', '...saving');
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => { persistTemplatesConfig({ reason: 'config-autosave', toast: false }); }, 600);
+}
+
+function autoSaveActiveConfig() {
+  if (activeConfigDoc === 'templates') autoSaveTemplatesConfig();
+}
+
+async function openTemplatesConfig(navEl) {
+  if (activeNoteId && notes[activeNoteId]) {
+    clearTimeout(noteSaveTimer);
+    await persistActiveNote({ reason: 'note-switch', immediate: true });
+  }
+  activeNoteId = null;
+  activeConfigDoc = 'templates';
+  switchView('notes', navEl || document.getElementById('nav-config-templates'));
+  renderNotesList();
+
+  document.getElementById('notesEmpty').style.display = 'none';
+  const area = document.getElementById('noteEditArea');
+  area.style.display = 'flex';
+
+  const badge = ensureNoteTypeBadge();
+  badge.textContent = '⚙ Templates';
+  badge.className = 'note-item-type note-type-config';
+
+  const title = document.getElementById('noteTitleInput');
+  title.value = 'note-templates.json';
+  title.oninput = null;
+  setNoteEditorMode('config');
+  setNoteSaveIndicator('saving', 'loading…');
+
+  try {
+    const content = await fetchTemplatesConfigDoc();
+    cmInitNote(content);
+    setNoteSaveIndicator('saved', 'saved');
+  } catch (err) {
+    cmInitNote('');
+    setNoteSaveIndicator('error', 'load failed');
+    showToast(`⚠ ${err.message}`, 'err');
+  }
+}
+
+function closeConfigEditor() {
+  clearTimeout(noteSaveTimer);
+  activeConfigDoc = null;
+  setNoteEditorMode('note');
+  document.getElementById('notesEmpty').style.display = 'flex';
+  document.getElementById('noteEditArea').style.display = 'none';
+  document.getElementById('nav-config-templates')?.classList.remove('active');
+  renderNotesList();
+}
 
 function renderNoteFilterBar() {
   const bar = document.getElementById('notesTypeFilter');
@@ -88,12 +247,12 @@ function renderNotesList() {
     const tagsHtml = (n.tags || []).length
       ? n.tags.map(t => `<span class="note-item-tag">#${esc(t)}</span>`).join('')
       : '';
-    return `<div class="note-item${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
+    return `<div class="note-item ${meta.cssClass}${n.id===activeNoteId?' active':''}" onclick="openNote('${n.id}')" data-id="${n.id}">
       <div class="note-item-head">
+        <span class="note-item-type-icon" title="${esc(meta.label)}">${meta.icon}</span>
         <span class="note-item-date">${formatDate(n.updated)}</span>
       </div>
       <div class="note-item-meta-row">
-        <span class="note-item-type ${meta.cssClass}">${meta.icon} ${meta.label}</span>
         ${tgtLabel}
         ${tagsHtml}
         ${sessLabel}
@@ -115,6 +274,11 @@ function onNoteSearch(val) {
 }
 
 function exportCurrentNote() {
+  if (activeConfigDoc === 'templates') {
+    downloadText(cmGetValue(noteEditor), 'note-templates.json');
+    showToast('✓ Exported note-templates.json');
+    return;
+  }
   if (!activeNoteId || !notes[activeNoteId]) return;
   const n = notes[activeNoteId];
   const lines = ['---', `title: ${n.title || 'Untitled'}`, `type: ${n.type || 'scratch'}`];
@@ -161,9 +325,98 @@ function formatDate(ts) {
          d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 }
 
-function openNewNoteModal() { document.getElementById('newNoteOverlay').classList.add('open'); }
-function closeNewNoteModal() { document.getElementById('newNoteOverlay').classList.remove('open'); }
+function resetNewNoteModalState() {
+  activeNewNoteType = null;
+  document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.remove('active'));
+  const variantWrap = document.getElementById('newNoteVariantWrap');
+  const variantBar = document.getElementById('newNoteVariantBar');
+  const previewWrap = document.getElementById('newNotePreviewWrap');
+  const previewContent = document.getElementById('newNotePreviewContent');
+  const createBtn = document.getElementById('newNoteCreateBtn');
+  const createHint = document.getElementById('newNoteCreateHint');
+  if (variantWrap) variantWrap.style.display = 'none';
+  if (variantBar) variantBar.innerHTML = '';
+  if (previewWrap) previewWrap.style.display = 'none';
+  if (previewContent) previewContent.innerHTML = '';
+  if (createBtn) createBtn.style.display = 'none';
+  if (createHint) createHint.style.display = '';
+}
+
+function openNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.add('open');
+  resetNewNoteModalState();
+}
+
+function closeNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.remove('open');
+  resetNewNoteModalState();
+}
+
 function closeNewNoteModalIfOutside(e) { if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal(); }
+
+function renderNewNotePreview(type) {
+  const wrap = document.getElementById('newNotePreviewWrap');
+  const content = document.getElementById('newNotePreviewContent');
+  if (!wrap || !content || !type) return;
+
+  const tmpl = resolveTemplateForCreation(type, NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || null);
+  const md = buildNoteBodyFromTemplate(tmpl);
+  const rendered = typeof marked !== 'undefined' && marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  content.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(rendered) : rendered;
+  wrap.style.display = '';
+}
+
+function renderNewNoteVariantPicker(type) {
+  const variantWrap = document.getElementById('newNoteVariantWrap');
+  const variantBar = document.getElementById('newNoteVariantBar');
+  const createBtn = document.getElementById('newNoteCreateBtn');
+  const createHint = document.getElementById('newNoteCreateHint');
+  const tmpl = NOTE_TEMPLATES[type];
+  const variants = Array.isArray(tmpl?.variants) ? tmpl.variants : [];
+
+  if (!variantWrap || !variantBar || !createBtn || !createHint) return;
+  if (!variants.length) {
+    variantWrap.style.display = 'none';
+    variantBar.innerHTML = '';
+    createBtn.style.display = 'none';
+    createHint.style.display = '';
+    return;
+  }
+
+  variantWrap.style.display = '';
+  createBtn.style.display = '';
+  createHint.style.display = 'none';
+  const selectedId = NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || variants[0].id;
+  variantBar.innerHTML = variants.map((variant) =>
+    `<button class="btn-group-item${variant.id === selectedId ? ' active' : ''}" onclick="setNewNoteVariant(decodeURIComponent('${encodeURIComponent(type)}'),decodeURIComponent('${encodeURIComponent(variant.id)}'))">${esc(variant.label)}</button>`
+  ).join('');
+  renderNewNotePreview(type);
+}
+
+function selectNewNoteType(type) {
+  activeNewNoteType = type;
+  document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
+  const variants = Array.isArray(NOTE_TEMPLATES[type]?.variants) ? NOTE_TEMPLATES[type].variants : [];
+  if (!variants.length) {
+    newNote(type);
+    return;
+  }
+  if (!NOTE_TEMPLATE_VARIANT_SELECTIONS[type]) NOTE_TEMPLATE_VARIANT_SELECTIONS[type] = variants[0].id;
+  renderNewNoteVariantPicker(type);
+}
+
+function setNewNoteVariant(type, variantId) {
+  NOTE_TEMPLATE_VARIANT_SELECTIONS[type] = variantId;
+  if (activeNewNoteType === type) {
+    renderNewNoteVariantPicker(type);
+    renderNewNotePreview(type);
+  }
+}
+
+function createSelectedNewNote() {
+  if (!activeNewNoteType) return;
+  newNote(activeNewNoteType, NOTE_TEMPLATE_VARIANT_SELECTIONS[activeNewNoteType] || null);
+}
 
 function buildNoteBodyFromTemplate(tmpl) {
   const body = tmpl?.body || '';
@@ -173,15 +426,16 @@ function buildNoteBodyFromTemplate(tmpl) {
   return `# ${title}\n\n${body}`;
 }
 
-function newNote(type = 'scratch') {
+function newNote(type = 'scratch', variantId = null) {
   closeNewNoteModal();
-  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.scratch;
+  const tmpl = resolveTemplateForCreation(type, variantId);
   const id = 'note_' + Date.now();
   notes[id] = {
     id,
     session_id: activeSessionId || null,
     target_id: activeTargetId || null,
     type,
+    template_variant: tmpl.variant_id || null,
     title: tmpl.title || '',
     body: buildNoteBodyFromTemplate(tmpl),
     tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
@@ -221,7 +475,16 @@ function duplicateCurrentNote() {
   showToast('Note duplicated');
 }
 
-function openNote(id) {
+async function openNote(id) {
+  if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
+    clearTimeout(noteSaveTimer);
+    await persistActiveNote({ reason: 'note-switch', immediate: true });
+  }
+  const wasConfig = !!activeConfigDoc;
+  if (wasConfig) {
+    activeConfigDoc = null;
+    setNoteEditorMode('note');
+  }
   activeNoteId = id;
   const n = notes[id];
   if (!n) return;
@@ -231,15 +494,10 @@ function openNote(id) {
   area.style.display = 'flex';
 
   const meta = getNoteTypeMeta(n.type);
-  let badge = document.getElementById('noteTypeBadge');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.id = 'noteTypeBadge';
-    badge.className = 'note-item-type';
-    document.querySelector('.notes-editor-hdr').prepend(badge);
-  }
+  const badge = ensureNoteTypeBadge();
   badge.textContent = meta.icon + ' ' + meta.label;
   badge.className = 'note-item-type ' + meta.cssClass;
+  setNoteEditorMode('note');
 
   document.getElementById('noteTitleInput').value = n.title || '';
   const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-GB', {
@@ -250,7 +508,8 @@ function openNote(id) {
   if (elMo) elMo.textContent = fmtTs(n.updated);
   const pinBtn = document.getElementById('notePinBtn');
   if (pinBtn) { pinBtn.classList.toggle('pinned', !!n.pinned); pinBtn.title = n.pinned ? 'Unpin note' : 'Pin note'; }
-  cmSetValue(noteEditor, n.body || '');
+  if (wasConfig) cmInitNote(n.body || '');
+  else cmSetValue(noteEditor, n.body || '');
   renderNoteTags(n);
   updateReassignBtn(n);
   renderBacklinks(id);
@@ -357,6 +616,13 @@ async function deleteCurrentNote() {
 }
 
 async function closeCurrentNote() {
+  if (activeConfigDoc) {
+    clearTimeout(noteSaveTimer);
+    const ok = await persistTemplatesConfig({ reason: 'config-close' });
+    if (!ok) return;
+    closeConfigEditor();
+    return;
+  }
   if (!activeNoteId) return;
   clearTimeout(noteSaveTimer);
   await persistActiveNote({ reason: 'note-close', immediate: true });
@@ -382,7 +648,7 @@ function renderNoteTags(n) {
   (n.tags || []).forEach(tag => {
     const pill = document.createElement('span');
     pill.className = 'note-tag';
-    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + esc(tag) + '\')">×</span>';
+    pill.innerHTML = '#' + esc(tag) + '<span class="note-tag-del" onclick="removeNoteTag(\'' + encodeURIComponent(tag) + '\')">×</span>';
     row.insertBefore(pill, input);
   });
 }
@@ -406,6 +672,7 @@ function noteTagKeydown(e) {
 }
 
 function removeNoteTag(tag) {
+  tag = decodeURIComponent(tag);
   if (!activeNoteId) return;
   const n = notes[activeNoteId];
   n.tags = (n.tags || []).filter(t => t !== tag);
@@ -418,6 +685,7 @@ function removeNoteTag(tag) {
 }
 
 function setTagFilter(tag) {
+  tag = decodeURIComponent(tag);
   activeTagFilter = activeTagFilter === tag ? null : tag;
   renderTagFilterSidebar();
   renderNotesList();
@@ -428,7 +696,7 @@ function renderTagFilterSidebar() {
   const tags = getAllTags();
   if (!tags.length) { list.innerHTML = '<span style="font-size:13px;color:var(--muted);font-family:JetBrains Mono,monospace">No tags yet</span>'; return; }
   list.innerHTML = tags.map(t =>
-    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${esc(t)}')">#${esc(t)}</span>`
+    `<span class="tag-filter-chip${activeTagFilter===t?' active':''}" onclick="setTagFilter('${encodeURIComponent(t)}')">#${esc(t)}</span>`
   ).join('');
 }
 
@@ -482,12 +750,13 @@ function reassignNote(sessionId) {
 function updateReassignBtn(note) {
   const btn = document.getElementById('noteReassignBtn');
   if (!btn) return;
+  const sessionIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 16.5 12 21l9-4.5"/></svg>';
   const sess = note.session_id && sessions[note.session_id];
   if (sess) {
-    btn.textContent = '⎘ ' + sess.codename;
+    btn.innerHTML = sessionIcon + ' ' + esc(sess.codename);
     btn.classList.add('assigned');
   } else {
-    btn.textContent = '⎘ unassigned';
+    btn.innerHTML = sessionIcon + ' unassigned';
     btn.classList.remove('assigned');
   }
 }
@@ -636,6 +905,17 @@ async function exportNotesMarkdown(sessionId) {
     });
     const d = await r.json();
     if (d.ok) {
+      if (d.download?.filename && typeof d.download.content === 'string') {
+        const blob = new Blob([d.download.content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = d.download.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
       const count = d.files?.length || 0;
       showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {

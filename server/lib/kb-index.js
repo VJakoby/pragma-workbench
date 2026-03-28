@@ -86,13 +86,18 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   let tacticsIndex = [];
   let serviceCategories = [];
   let tacticsCategories = [];
+  let rootKbSections = [];
   let searchIndex = null;
+
+  function displayFilename(filename) {
+    return path.basename(String(filename || '').trim()) || 'untitled.md';
+  }
 
   function metaFromFilename(filename) {
     const base = path.basename(filename, '.md').toLowerCase();
     if (/^\d+$/.test(base) && PORT_MAP[base]) return { ...PORT_MAP[base], id: base };
     if (SLUG_MAP[base]) return { ...SLUG_MAP[base], id: base };
-    const name = base.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const name = displayFilename(filename);
     return { id: base, name, port: '—', category: 'Other', icon: '📄' };
   }
 
@@ -127,6 +132,16 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
     return String(name || '').replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || 'General';
   }
 
+  function rootKbItemId(rootDir, filepath) {
+    return path.relative(rootDir, filepath)
+      .replace(/\\/g, '/')
+      .replace(/\.md$/i, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9/._-]+/g, '-')
+      .replace(/[/.]+/g, '__')
+      .replace(/-+/g, '-');
+  }
+
   function walkMdFiles(dir, rootDir) {
     let results = [];
     let entries;
@@ -147,6 +162,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   function buildIndex() {
     const entries = [];
     const categoryMap = new Map();
+    const extraSections = [];
 
     function addCategory(label, folder = '') {
       if (!label || label === 'All') return;
@@ -172,28 +188,34 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
     if (fs.existsSync(kbDir)) {
       let rootEntries = [];
       try { rootEntries = fs.readdirSync(kbDir, { withFileTypes: true }); } catch (_) {}
-      for (const entry of rootEntries) {
-        if (entry.name === 'tactics' || entry.name === 'services') continue;
-        const fullPath = path.join(kbDir, entry.name);
-        if (entry.isDirectory()) {
-          addCategory(humanizeCategory(entry.name), normalizeFolderName(entry.name) || entry.name);
-          entries.push(...walkMdFiles(fullPath, fullPath).map(fileEntry => ({
-            ...fileEntry,
-            sourceRoot: fullPath,
-            categoryLabel: humanizeCategory(entry.name),
-            folder: normalizeFolderName(entry.name) || entry.name,
-          })));
-        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
-          entries.push({
-            filename: entry.name,
-            filepath: fullPath,
-            subdir: '',
-            sourceRoot: kbDir,
-            categoryLabel: 'General',
-            folder: '',
-          });
-        }
-      }
+      rootEntries
+        .filter(entry => entry.isDirectory() && entry.name !== 'services' && entry.name !== 'tactics')
+        .forEach(entry => {
+          const folder = normalizeFolderName(entry.name) || entry.name;
+          const label = humanizeCategory(entry.name);
+          const sectionRoot = path.join(kbDir, entry.name);
+          const items = walkMdFiles(sectionRoot, sectionRoot)
+            .map(({ filename, filepath, subdir }) => {
+              const content = fs.readFileSync(filepath, 'utf8');
+              const id = rootKbItemId(sectionRoot, filepath);
+              return {
+                id,
+                name: extractTitle(content, filename),
+                category: subdir ? humanizeCategory(subdir) : label,
+                icon: '📄',
+                description: extractDescription(content),
+                file: filename,
+                filepath,
+                content,
+                wordCount: content.split(/\s+/).length,
+                folder,
+                subfolder: subdir || '',
+              };
+            })
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          extraSections.push({ folder, label, dirpath: sectionRoot, items });
+        });
     }
 
     serviceIndex = entries.map(({ filename, filepath, categoryLabel, folder }) => {
@@ -202,12 +224,13 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
       const category = categoryLabel || meta.category || 'General';
       addCategory(category, folder || '');
       return {
-        id: meta.id, name: meta.name, port: meta.port, category,
+        id: meta.id, name: extractTitle(content, filename), port: meta.port, category,
         icon: meta.icon, description: extractDescription(content),
         file: filename, filepath, content, wordCount: content.split(/\s+/).length, folder,
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
     serviceCategories = Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+    rootKbSections = extraSections.sort((a, b) => a.label.localeCompare(b.label));
 
     searchIndex = new Fuse(serviceIndex, {
       includeScore: true, threshold: 0.4, ignoreLocation: true,
@@ -223,7 +246,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   function extractTitle(content, filename) {
     const match = content.match(/^#\s+(.+)$/m);
     if (match) return match[1].trim();
-    return path.basename(filename, '.md').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return displayFilename(filename);
   }
 
   function extractCategory(content, filename) {
@@ -272,6 +295,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
     getServiceCategories: () => serviceCategories,
     getTacticsIndex: () => tacticsIndex,
     getTacticsCategories: () => tacticsCategories,
+    getRootKbSections: () => rootKbSections,
     getSearchIndex: () => searchIndex,
     metaFromFilename,
     normalizeKbFilename,

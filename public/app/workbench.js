@@ -14,6 +14,7 @@ const BUILTIN_NOTE_TYPE_META = {
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
   privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
+  'network-enumeration': { label: 'Network Enumeration', icon: '🌐', cssClass: 'note-type-network-enumeration' },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
   exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
 };
@@ -27,12 +28,14 @@ const NOTE_TEMPLATES_FALLBACK = {
   credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
   privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
   recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
+  'network-enumeration': { title: 'Network Enumeration', body: `## Target Overview\n\n| Field | Value |\n|-------|-------|\n| IP | |\n| Domain | |\n| Hostname | |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Notes\n\n` },
   loot:        { title: 'Loot',                body: `## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n\`\`\`\n# root.txt / user.txt / proof.txt\n\n\`\`\`\n\n## Notes\n\n` },
   exploit:     { title: 'Exploit',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
   scratch:     { title: '',                    body: '' },
 };
 
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
+const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -42,25 +45,67 @@ function normalizeCssClass(type) {
   return BUILTIN_NOTE_TYPE_META[type]?.cssClass || 'note-type-general';
 }
 
+function normalizeTemplateVariant(variant) {
+  if (!variant || typeof variant !== 'object') return null;
+  const id = String(variant.id || '').trim();
+  if (!id) return null;
+  return {
+    id,
+    label: String(variant.label || id).trim() || id,
+    title: String(variant.title || '').trim(),
+    body: String(variant.body || ''),
+    default_tags: Array.isArray(variant.default_tags) ? [...variant.default_tags] : null,
+  };
+}
+
+function normalizeTemplateDefinition(tmpl, fromFile = false) {
+  return {
+    title: String(tmpl?.title || '').trim(),
+    body: String(tmpl?.body || ''),
+    icon: tmpl?.icon,
+    label: tmpl?.label,
+    default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
+    variants: Array.isArray(tmpl?.variants) ? tmpl.variants.map(normalizeTemplateVariant).filter(Boolean) : [],
+    fromFile,
+  };
+}
+
+function getTemplateVariant(type, variantId = null) {
+  const tmpl = NOTE_TEMPLATES[type];
+  const variants = Array.isArray(tmpl?.variants) ? tmpl.variants : [];
+  if (!variants.length) return null;
+  const selectedId = String(variantId || NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || variants[0].id);
+  return variants.find(variant => variant.id === selectedId) || variants[0];
+}
+
+function resolveTemplateForCreation(type, variantId = null) {
+  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.scratch;
+  const variant = getTemplateVariant(type, variantId);
+  return {
+    ...tmpl,
+    title: variant?.title || tmpl.title || '',
+    body: variant?.body || tmpl.body || '',
+    default_tags: Array.isArray(variant?.default_tags) ? [...variant.default_tags] : [...(tmpl.default_tags || [])],
+    variant_id: variant?.id || null,
+    variant_label: variant?.label || null,
+  };
+}
+
 function setNoteTemplates(templates, { fromFile = false } = {}) {
   NOTE_TYPE_META = { scratch: { ...BLANK_NOTE_META } };
   NOTE_TEMPLATES = { scratch: { ...NOTE_TEMPLATES_FALLBACK.scratch } };
 
   Object.entries(templates || {}).forEach(([id, tmpl]) => {
     if (!id || id === 'scratch') return;
-    NOTE_TEMPLATES[id] = {
-      title: tmpl?.title || '',
-      body: tmpl?.body || '',
-      icon: tmpl?.icon,
-      label: tmpl?.label,
-      default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
-      fromFile,
-    };
+    NOTE_TEMPLATES[id] = normalizeTemplateDefinition(tmpl, fromFile);
     NOTE_TYPE_META[id] = {
       label: tmpl?.label || BUILTIN_NOTE_TYPE_META[id]?.label || id,
       icon: tmpl?.icon || BUILTIN_NOTE_TYPE_META[id]?.icon || '📄',
       cssClass: normalizeCssClass(id),
     };
+    const defaultVariantId = NOTE_TEMPLATES[id].variants?.[0]?.id;
+    if (defaultVariantId) NOTE_TEMPLATE_VARIANT_SELECTIONS[id] = defaultVariantId;
+    else delete NOTE_TEMPLATE_VARIANT_SELECTIONS[id];
   });
 }
 
@@ -116,15 +161,21 @@ async function loadNoteTemplates() {
     const loaded = {};
     for (const t of d.templates) {
       if (!t.id) continue;
-      const body = Array.isArray(t.body_lines) ? t.body_lines.join('\n') : (t.body || '');
       loaded[t.id] = {
         title:        t.title_prefix || '',
-        body,
+        body:         t.body || '',
         icon:         t.icon,
         label:        t.label,
         default_tags: t.default_tags || [],
+        variants:     Array.isArray(t.variants) ? t.variants.map((variant) => ({
+          id: variant?.id,
+          label: variant?.label,
+          title: variant?.title_prefix || '',
+          body: variant?.body || '',
+          default_tags: variant?.default_tags || null,
+        })) : [],
         fromFile:     true,
-      }
+      };
     }
     setNoteTemplates(loaded, { fromFile: true });
     console.log(`[Templates] Loaded ${Object.keys(loaded).length} templates from file`);
@@ -146,7 +197,10 @@ function renderNoteTypeGrid() {
     .filter(([id]) => id !== 'scratch')
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
-      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="newNote('${id}')">${meta.icon} ${meta.label}</button>`);
+      const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
+        ? `<span class="new-note-type-meta">${tmpl.variants.length} version${tmpl.variants.length !== 1 ? 's' : ''}</span>`
+        : '';
+      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
     });
   grid.innerHTML = buttons.join('');
 }
@@ -468,6 +522,7 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  updateSessionAttackerIpField();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -491,6 +546,7 @@ function renderSessionList() {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      const attacker = s.attacker_ip ? ` · attacker ${esc(s.attacker_ip)}` : '';
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
       <div class="session-list-item-top">
@@ -499,13 +555,13 @@ function renderSessionList() {
         </div>
         <div class="session-list-item-name">${esc(s.codename)}</div>
       </div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-item-actions">
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
           <button class="session-item-export-btn session-delete-btn" onclick="deleteSession('${s.id}')" title="Delete session" aria-label="Delete session"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg></button>
-          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export session data for import into another PRAGMA workbench">${ICONS.download} PRAGMA Session</button>
-          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Export session notes and logs as markdown files">${ICONS.download} Export Markdown</button>
+          <button class="session-item-export-btn" onclick="exportSessionFile('${s.id}')" title="Export session data for import into another PRAGMA workbench">${ICONS.download} Session</button>
+          <button class="session-item-export-btn" onclick="exportNotesMarkdown('${s.id}')" title="Generate a markdown summary from session notes and logs">${ICONS.download} Generate Summary</button>
         </div>
       </div>
     </div>`;
@@ -516,13 +572,42 @@ function createSession() {
   const name = document.getElementById('newSessionName').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
   const id = 'sess_' + Date.now();
-  const sess = { id, codename: name, created: Date.now(), targets: [] };
+  const sess = { id, codename: name, created: Date.now(), targets: [], attacker_ip: '', todos: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);
   saveNotes();
   renderSessionList();
+  updateSessionAttackerIpField();
   document.getElementById('newSessionName').value = '';
+}
+
+function updateSessionAttackerIpField() {
+  const wrap = document.getElementById('attackerIpFieldWrap');
+  const input = document.getElementById('sessionAttackerIpInput');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !input) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  input.value = sess.attacker_ip || '';
+}
+
+function saveActiveSessionAttackerIp() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const input = document.getElementById('sessionAttackerIpInput');
+  if (!sess || !input) return;
+  const next = input.value.trim();
+  if ((sess.attacker_ip || '') === next) return;
+  sess.attacker_ip = next;
+  saveNotes();
+  renderSessionList();
+  renderSessionSidebar();
+  refreshCodeBlocks();
+  showToast(next ? `✓ Attacker IP set: ${next}` : '✓ Attacker IP cleared');
 }
 
 let _statusDropdownTarget = null;
@@ -599,11 +684,13 @@ function switchSession(id) {
     activeTargetId = null;
   }
   renderSessionSidebar();
+  updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
   updateTargetSelector();
   refreshCodeBlocks();
   updateSvcTabCounts();
+  renderTodoList();
 }
 
 async function deleteSession(id) {
@@ -627,8 +714,10 @@ async function deleteSession(id) {
   }
   saveNotes();
   renderSessionSidebar();
+  updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
+  renderTodoList();
 }
 
 let _sessionRenameId = null;
@@ -695,7 +784,12 @@ async function importSession(event) {
   const reader = new FileReader();
   reader.onload = async e => {
     try {
-      let parsed = JSON.parse(e.target.result);
+      let parsed;
+      try {
+        parsed = JSON.parse(e.target.result);
+      } catch (_) {
+        throw new Error('Could not load .session file. File is malformed.');
+      }
       if (parsed.encrypted === true) {
         let password;
         try {
@@ -718,26 +812,90 @@ async function importSession(event) {
       }
 
       const data = parsed;
-      if (!data.session || !data.notes) throw new Error('Invalid .session file');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Could not load .session file. File is malformed.');
+      if (!data.session || !Array.isArray(data.notes)) throw new Error('Could not load .session file. File is malformed.');
+
+      const sanitizeImportedSession = (session) => {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) throw new Error('Could not load .session file. File is malformed.');
+        const cleanTargets = Array.isArray(session.targets) ? session.targets
+          .filter(target => target && typeof target === 'object' && !Array.isArray(target))
+          .map((target, index) => ({
+            id: typeof target.id === 'string' && target.id ? target.id : `target_${Date.now()}_${index}`,
+            ip: String(target.ip || ''),
+            domain: String(target.domain || ''),
+            label: String(target.label || ''),
+          })) : [];
+        const cloneList = (list, fields) => {
+          if (!Array.isArray(list)) return [];
+          return list
+            .filter(entry => entry && typeof entry === 'object' && !Array.isArray(entry))
+            .map(entry => {
+              const out = {};
+              fields.forEach(([key, fallback = '']) => {
+                if (key === 'added' || key === 'created' || key === 'updated' || key === 'completed') {
+                  out[key] = Number(entry[key]) || null;
+                } else {
+                  out[key] = String(entry[key] ?? fallback);
+                }
+              });
+              return out;
+            });
+        };
+
+        return {
+          codename: String(session.codename || 'Imported Session'),
+          created: Number(session.created) || Date.now(),
+          attacker_ip: String(session.attacker_ip || ''),
+          status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
+          imported_from: String(session.codename || ''),
+          targets: cleanTargets,
+          services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
+          paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
+          loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          todos: Array.isArray(session.todos) ? session.todos
+            .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
+            .map((todo, index) => ({
+              id: typeof todo.id === 'string' && todo.id ? todo.id : `todo_${Date.now()}_${index}`,
+              text: String(todo.text || ''),
+              done: Boolean(todo.done),
+              created: Number(todo.created) || Date.now(),
+              completed: todo.done ? (Number(todo.completed) || Date.now()) : null,
+            }))
+            .filter(todo => todo.text.trim()) : [],
+          events: Array.isArray(session.events) ? session.events
+            .filter(entry => entry && typeof entry === 'object' && !Array.isArray(entry))
+            .map(entry => ({ ...entry, ts: Number(entry.ts) || Date.now() })) : [],
+        };
+      };
+
+      const sanitizeImportedNote = (note, index, sessionId) => {
+        if (!note || typeof note !== 'object' || Array.isArray(note)) return null;
+        return {
+          id: `note_${Date.now()}_${index}`,
+          session_id: sessionId,
+          target_id: typeof note.target_id === 'string' ? note.target_id : null,
+          type: String(note.type || 'general'),
+          title: String(note.title || 'Imported Note'),
+          body: String(note.body || ''),
+          tags: Array.isArray(note.tags) ? note.tags.map(tag => String(tag)).filter(Boolean) : [],
+          created: Number(note.created) || Date.now(),
+          updated: Number(note.updated) || Date.now(),
+          target_ip: note.target_ip ? String(note.target_ip) : null,
+          target_domain: note.target_domain ? String(note.target_domain) : null,
+        };
+      };
 
       const newSessId = 'sess_' + Date.now();
-      const importedSess = {
-        ...data.session,
-        id: newSessId,
-        created: data.session.created || Date.now(),
-        imported_from: data.session.codename,
-      };
+      const importedSess = { ...sanitizeImportedSession(data.session), id: newSessId };
 
       sessions[newSessId] = importedSess;
 
       let noteCount = 0;
-      data.notes.forEach(n => {
-        const newNoteId = 'note_' + Date.now() + '_' + (noteCount++);
-        notes[newNoteId] = {
-          ...n,
-          id: newNoteId,
-          session_id: newSessId,
-        };
+      data.notes.forEach((n, index) => {
+        const nextNote = sanitizeImportedNote(n, index, newSessId);
+        if (!nextNote) return;
+        notes[nextNote.id] = nextNote;
+        noteCount++;
       });
 
       saveNotes();

@@ -49,6 +49,7 @@ function injectTargets(rawHtml) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
   const label  = esc(getTargetLabelValue());
+  const attacker = esc(getAttackerIP());
   const span   = (val) => `<span class="ip-injected">${val}</span>`;
 
   const ipPatterns = [
@@ -86,14 +87,28 @@ function injectTargets(rawHtml) {
     /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
   ];
 
+  const attackerPatterns = [
+    /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
+    /<ATTACKER_IP>/g, /<attacker_ip>/g,
+    /&lt;ATTACKER&gt;/g, /&lt;attacker&gt;/g, /&lt;ATTACKER-IP&gt;/g, /&lt;attacker-ip&gt;/g,
+    /&lt;ATTACKER_IP&gt;/g, /&lt;attacker_ip&gt;/g,
+    /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
+    /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
+    /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
+    /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
+    /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
+  ];
+
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip));
   for (const p of domainPatterns) out = out.replace(p, span(domain));
   for (const p of labelPatterns) out = out.replace(p, span(label));
+  for (const p of attackerPatterns) out = out.replace(p, span(attacker));
 
   out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
     const replaced = inner.replace(/\bIP\b/g, span(ip))
-                          .replace(/\bHOST\b/g, span(ip));
+                          .replace(/\bHOST\b/g, span(ip))
+                          .replace(/\bATTACKER\b/g, span(attacker));
     return open + replaced + close;
   });
 
@@ -103,9 +118,11 @@ function injectTargets(rawHtml) {
 function injectTargetsInCodeLine(rawLine) {
   let out = injectTargets(esc(rawLine));
   const ip = esc(getIP());
+  const attacker = esc(getAttackerIP());
   const span = (val) => `<span class="ip-injected">${val}</span>`;
   out = out.replace(/\bIP\b/g, span(ip))
-           .replace(/\bHOST\b/g, span(ip));
+           .replace(/\bHOST\b/g, span(ip))
+           .replace(/\bATTACKER\b/g, span(attacker));
   return out;
 }
 
@@ -182,7 +199,40 @@ function refreshCodeBlocks() {
   renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
 }
 
+function renderContentPanelTabs(doc = activeDoc) {
+  const tabs = document.getElementById('cpQuickTabs');
+  if (!tabs) return;
+
+  if (!doc?.isLocal || doc?.isBrowser || !doc.view || !doc.id) {
+    tabs.style.display = 'none';
+    tabs.innerHTML = '';
+    return;
+  }
+
+  const docFolder = doc.folder || '';
+  const siblings = getKbCollection(doc.view)
+    .filter(item => (item.folder || '') === docFolder)
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+
+  if (siblings.length <= 1) {
+    tabs.style.display = 'none';
+    tabs.innerHTML = '';
+    return;
+  }
+
+  tabs.innerHTML = `<div class="content-panel-tabs-inner">${siblings.map(item => `
+    <button class="content-panel-tab${item.id === doc.id ? ' active' : ''}"
+      onclick="openItem('${encodeURIComponent(doc.view)}', '${encodeURIComponent(item.id)}')"
+      title="${esc(item.name || '')}">
+      ${esc(item.name || 'Untitled')}
+    </button>`).join('')}</div>`;
+  tabs.style.display = 'flex';
+}
+
 async function openItem(view, id) {
+  view = decodeURIComponent(view);
+  id = decodeURIComponent(id);
+  const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
   const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
   const backState = hadBrowserState
     ? {
@@ -211,19 +261,32 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
-    activeDoc = { html: d.html, raw: d.raw, icon: d.icon || ICONS.notes, title: d.name, meta, id, view, isLocal: true };
+    activeDoc = {
+      html: d.html,
+      raw: d.raw,
+      icon: d.icon || ICONS.notes,
+      title: d.name,
+      meta,
+      id,
+      view,
+      isLocal: true,
+      folder: itemMeta?.folder || '',
+      category: itemMeta?.category || d.category || '',
+    };
     setContentPanelBackState(backState);
     setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
+    renderContentPanelTabs(activeDoc);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
-    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+    document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
 }
 
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   clearContentPanelBackState();
   clearContentPanelCreateState();
+  renderContentPanelTabs(null);
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
   document.getElementById('cpTitle').textContent = title;
@@ -254,6 +317,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
 
     const meta = (normalizedPath || '').split('/').pop() || sourceName || '';
     activeDoc = { html: d.html, icon: '🔍', title, meta, isLocal: false };
+    renderContentPanelTabs(activeDoc);
     renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
   } catch (e) {
@@ -308,6 +372,7 @@ function renderContent(html, icon, title, meta, query = '') {
   document.getElementById('cpTitle').textContent = title;
   document.getElementById('cpMeta').textContent = meta || '';
   const el = document.getElementById('cpContent');
+  const renderedHtml = injectTargets(html);
 
   if (query) {
     el.innerHTML = `
@@ -318,12 +383,12 @@ function renderContent(html, icon, title, meta, query = '') {
         <div class="source-preview-body md-content" id="cpContentInner"></div>
       </div>`;
     const inner = document.getElementById('cpContentInner');
-    inner.innerHTML = injectTargets(html);
+    inner.innerHTML = renderedHtml;
     wrapCodeBlocks(inner);
     wrapInlineCodes(inner);
     makeCollapsible(inner);
   } else {
-    el.innerHTML = injectTargets(html);
+    el.innerHTML = renderedHtml;
     wrapCodeBlocks(el);
     wrapInlineCodes(el);
     makeCollapsible(el);
@@ -336,6 +401,7 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  renderContentPanelTabs(null);
   clearContentPanelBackState();
   clearContentPanelCreateState();
   exitEditMode();

@@ -2,12 +2,13 @@
 
 const fs = require('fs');
 
-const BUILTIN_TYPE_ORDER = ['recon', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
+const BUILTIN_TYPE_ORDER = ['recon', 'network-enumeration', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
 const BUILTIN_TYPE_LABELS = {
   general: 'General',
   credentials: 'Credentials',
   privesc: 'PrivEsc',
   recon: 'Recon',
+  'network-enumeration': 'Network Enumeration',
   loot: 'Loot',
   exploit: 'Exploit',
   scratch: 'Blank',
@@ -109,6 +110,7 @@ function injectTargetPlaceholders(text, target) {
   const ip = String(target.ip || '').trim();
   const domain = String(target.domain || '').trim();
   const label = String(target.label || target.ip || target.domain || '').trim();
+  const attackerIp = String(target.attacker_ip || '').trim();
   let output = String(text);
 
   if (ip) {
@@ -149,6 +151,19 @@ function injectTargetPlaceholders(text, target) {
     output = replaceAllPatterns(output, labelPatterns, label);
   }
 
+  if (attackerIp) {
+    const attackerPatterns = [
+      /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
+      /<ATTACKER_IP>/g, /<attacker_ip>/g,
+      /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
+      /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
+      /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
+      /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
+      /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
+    ];
+    output = replaceAllPatterns(output, attackerPatterns, attackerIp);
+  }
+
   return output;
 }
 
@@ -184,7 +199,10 @@ function buildTypeBuckets(notes, templateMeta) {
 
 function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const exportedAt = Date.now();
-  const targets = Array.isArray(session.targets) ? [...session.targets] : [];
+  const sessionContext = { attacker_ip: session.attacker_ip || '' };
+  const targets = Array.isArray(session.targets)
+    ? session.targets.map((target) => ({ ...target, attacker_ip: session.attacker_ip || '' }))
+    : [];
   const targetById = Object.fromEntries(targets.map((target) => [target.id, target]));
 
   const allNotes = [...notes].sort((a, b) => noteTimestamp(a) - noteTimestamp(b));
@@ -219,9 +237,12 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const eventTimestamps = events.map((item) => item.ts).filter(Boolean);
   const firstTs = eventTimestamps.length ? eventTimestamps[0] : 0;
   const lastTs = eventTimestamps.length ? eventTimestamps[eventTimestamps.length - 1] : 0;
+  const hasCredentialsNote = allNotes.some((note) => String(note.type || '').trim() === 'credentials');
+  const hasNetworkEnumerationNote = allNotes.some((note) => String(note.type || '').trim() === 'network-enumeration');
 
   return {
     session,
+    sessionContext,
     storage,
     sessionSlug: storage.slugify(session.codename),
     exportedAt,
@@ -247,6 +268,10 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
       lastTs,
       durationLabel: formatDuration(firstTs, lastTs),
     },
+    canonicalSources: {
+      credentials: hasCredentialsNote,
+      networkEnumeration: hasNetworkEnumerationNote,
+    },
   };
 }
 
@@ -268,7 +293,7 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
 }
 
 function renderSessionNoteFile({ note, session, typeMeta, storage }) {
-  const title = noteTitle(note, storage);
+  const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
   return [
     `# ${title}`,
     '',
@@ -278,7 +303,7 @@ function renderSessionNoteFile({ note, session, typeMeta, storage }) {
     '',
     '---',
     '',
-    note.body || '',
+    injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }),
   ].join('\n');
 }
 
@@ -322,7 +347,7 @@ function renderTimelineSummary(model) {
           const typeMeta = resolveNoteType(note.type, model.templateMeta);
           const target = note.target_id ? model.targetById[note.target_id] : null;
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
-          const title = noteTitle(note, model.storage);
+          const title = injectTargetPlaceholders(noteTitle(note, model.storage), target || model.sessionContext);
           const preview = (note.body || '')
             .split('\n')
             .map((line) => line.trim())
@@ -376,19 +401,21 @@ function renderTargetSection(target, model) {
   if (target.label) lines.push(`- Label: ${target.label}`);
   if (lines[lines.length - 1] !== '') lines.push('');
 
-  const targetServices = model.services
-    .filter((entry) => entry.target_id === target.id)
-    .sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
-  if (targetServices.length) {
-    lines.push('Ports');
-    lines.push('');
-    lines.push('| Port | Service | Version | Notes |');
-    lines.push('|------|---------|---------|-------|');
-    targetServices.forEach((entry) => {
-      const port = entry.proto && entry.proto !== 'tcp' ? `${entry.port}/${entry.proto}` : entry.port;
-      lines.push(`| ${escapeTableCell(port)} | ${escapeTableCell(entry.service)} | ${escapeTableCell(entry.version)} | ${escapeTableCell(entry.notes)} |`);
-    });
-    lines.push('');
+  if (!model.canonicalSources.networkEnumeration) {
+    const targetServices = model.services
+      .filter((entry) => entry.target_id === target.id)
+      .sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
+    if (targetServices.length) {
+      lines.push('Ports');
+      lines.push('');
+      lines.push('| Port | Service | Version | Notes |');
+      lines.push('|------|---------|---------|-------|');
+      targetServices.forEach((entry) => {
+        const port = entry.proto && entry.proto !== 'tcp' ? `${entry.port}/${entry.proto}` : entry.port;
+        lines.push(`| ${escapeTableCell(port)} | ${escapeTableCell(entry.service)} | ${escapeTableCell(entry.version)} | ${escapeTableCell(entry.notes)} |`);
+      });
+      lines.push('');
+    }
   }
 
   const targetPaths = model.paths
@@ -412,8 +439,9 @@ function renderNoteEntries(bucket, model, includeTarget) {
   const lines = [`### ${bucket.label}`, ''];
   bucket.notes.forEach((note) => {
     const target = note.target_id ? model.targetById[note.target_id] : null;
-    const resolvedTitle = target ? injectTargetPlaceholders(noteTitle(note, model.storage), target) : noteTitle(note, model.storage);
-    const resolvedBody = target ? injectTargetPlaceholders(note.body || '', target) : (note.body || '');
+    const placeholderContext = target || model.sessionContext;
+    const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
+    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
     lines.push(`#### ${resolvedTitle}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
@@ -478,11 +506,16 @@ function renderConsolidatedSession(model) {
     });
   }
 
-  if (model.loot.length) {
+  const summaryLoot = model.loot.filter((entry) => {
+    if (!model.canonicalSources.credentials) return true;
+    return !['cleartext', 'hash'].includes(String(entry.type || '').trim());
+  });
+
+  if (summaryLoot.length) {
     lines.push('---', '', '## Loot Summary', '');
     lines.push('| Type | Credential | Host | Context |');
     lines.push('|------|------------|------|---------|');
-    model.loot
+    summaryLoot
       .sort((a, b) => (a.added || 0) - (b.added || 0))
       .forEach((entry) => {
         lines.push(`| ${escapeTableCell(entry.type)} | \`${escapeTableCell(entry.credential)}\` | ${escapeTableCell(entry.host || '—')} | ${escapeTableCell(entry.note)} |`);

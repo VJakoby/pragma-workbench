@@ -3,10 +3,111 @@
 // ═══════════════════════════════════════════════
 let _portParsed = [];
 let _pathParsed = [];
+let _lootParsed = [];
 let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
+const SVC_TAB_CONFIG = {
+  ports: {
+    buttonId: 'svcTabPorts',
+    panelId: 'svcPanelPorts',
+    focusId: 'svcQuickInput',
+    onActivate: () => renderSvcLogTable(),
+  },
+  paths: {
+    buttonId: 'svcTabPaths',
+    panelId: 'svcPanelPaths',
+    focusId: 'pathQuickInput',
+    onActivate: () => renderPathTable(),
+  },
+  loot: {
+    buttonId: 'svcTabLoot',
+    panelId: 'svcPanelLoot',
+    focusId: 'lootCredInput',
+    onActivate: () => {
+      renderLootTable();
+      const hostInput = document.getElementById('lootHostInput');
+      if (hostInput && !hostInput.value) {
+        const ip = getIP();
+        if (ip !== '<IP>') hostInput.value = ip;
+      }
+    },
+  },
+};
+
+function updateUtilitySessionLabel(labelId) {
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (sess) {
+    label.textContent = sess.codename;
+    label.style.display = '';
+  } else {
+    label.textContent = '';
+    label.style.display = 'none';
+  }
+}
+
+function isEventInsideWrap(e, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return false;
+  const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+  return wrap.contains(e.target) || path.includes(wrap);
+}
+
+function reopenUtilityOutsideListener(handler) {
+  setTimeout(() => document.addEventListener('click', handler, { once: true }), 0);
+}
+
+function openUtilityPopover({
+  popoverId,
+  buttonId,
+  labelId,
+  closeOthers = [],
+  onOpen = null,
+  outsideHandler,
+}) {
+  const popover = document.getElementById(popoverId);
+  const button = document.getElementById(buttonId);
+  if (!popover || !button) return false;
+  if (popover.classList.contains('open')) return false;
+
+  closeOthers.forEach(closeFn => {
+    if (typeof closeFn === 'function') closeFn();
+  });
+  popover.classList.add('open');
+  button.classList.add('open');
+  if (labelId) updateUtilitySessionLabel(labelId);
+  if (typeof onOpen === 'function') onOpen();
+  reopenUtilityOutsideListener(outsideHandler);
+  return true;
+}
+
+function closeUtilityPopover(popoverId, buttonId, afterClose = null) {
+  document.getElementById(popoverId)?.classList.remove('open');
+  document.getElementById(buttonId)?.classList.remove('open');
+  if (typeof afterClose === 'function') afterClose();
+}
+
+function updateSvcPopoverLayout() {
+  const popover = document.getElementById('svcPopover');
+  if (!popover) return;
+  const importOpen = ['portPastePanel', 'pathPastePanel', 'lootPastePanel'].some(id =>
+    document.getElementById(id)?.style.display === 'flex'
+  );
+  popover.classList.toggle('svc-popover-import-open', importOpen);
+  popover.classList.toggle('svc-popover-loot-open', _activeSvcTab === 'loot');
+}
+
+function getSvcTabConfig(tab) {
+  return SVC_TAB_CONFIG[tab] || SVC_TAB_CONFIG.ports;
+}
+
+function focusSvcTabInput(tab) {
+  const config = getSvcTabConfig(tab);
+  setTimeout(() => document.getElementById(config.focusId)?.focus(), 40);
+}
 
 function switchSvcTabByArrow(dir) {
   const popover = document.getElementById('svcPopover');
@@ -21,26 +122,16 @@ function switchSvcTabByArrow(dir) {
 
 function switchSvcTab(tab) {
   _activeSvcTab = tab;
-  document.getElementById('svcTabPorts').classList.toggle('active', tab === 'ports');
-  document.getElementById('svcTabPaths').classList.toggle('active', tab === 'paths');
-  document.getElementById('svcTabLoot').classList.toggle('active', tab === 'loot');
-  document.getElementById('svcPanelPorts').style.display = tab === 'ports' ? 'block' : 'none';
-  document.getElementById('svcPanelPaths').style.display = tab === 'paths' ? 'block' : 'none';
-  document.getElementById('svcPanelLoot').style.display = tab === 'loot' ? 'block' : 'none';
-  if (tab === 'ports') { renderSvcLogTable(); setTimeout(() => document.getElementById('svcQuickInput')?.focus(), 40); }
-  if (tab === 'paths') { renderPathTable(); setTimeout(() => document.getElementById('pathQuickInput')?.focus(), 40); }
-  if (tab === 'loot') {
-    renderLootTable();
-    setTimeout(() => {
-      const hi = document.getElementById('lootHostInput');
-      if (hi && !hi.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hi.value = ip;
-      }
-      document.getElementById('lootCredInput')?.focus();
-    }, 40);
-  }
+  Object.entries(SVC_TAB_CONFIG).forEach(([tabKey, config]) => {
+    document.getElementById(config.buttonId)?.classList.toggle('active', tabKey === tab);
+    const panel = document.getElementById(config.panelId);
+    if (panel) panel.style.display = tabKey === tab ? 'block' : 'none';
+  });
+  const config = getSvcTabConfig(tab);
+  config.onActivate?.();
+  focusSvcTabInput(tab);
   renderSvcClearAction();
+  updateSvcPopoverLayout();
 }
 
 function updateSvcTabCounts() {
@@ -61,6 +152,128 @@ function updateSvcTabCounts() {
     btn.classList.toggle('has-entries', total > 0);
   }
   renderSvcClearAction();
+  updateTodoCount();
+}
+
+function getSessionTodos() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].todos || [];
+}
+
+function ensureSessionTodos() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  if (!Array.isArray(sessions[activeSessionId].todos)) sessions[activeSessionId].todos = [];
+  return sessions[activeSessionId].todos;
+}
+
+function syncTodoUi() {
+  renderTodoClearAction();
+  updateTodoCount();
+}
+
+function updateTodoCount() {
+  const todos = getSessionTodos();
+  const openCount = todos.filter(todo => !todo.done).length;
+  const btn = document.getElementById('todoTopbarCount');
+  if (!btn) return;
+  btn.textContent = openCount || '';
+  btn.classList.toggle('has-entries', openCount > 0);
+}
+
+function renderTodoClearAction() {
+  const btn = document.getElementById('todoClearBtn');
+  if (!btn) return;
+  const doneCount = getSessionTodos().filter(todo => todo.done).length;
+  btn.textContent = doneCount ? `Clear Done (${doneCount})` : 'Clear Done';
+  btn.disabled = !activeSessionId || doneCount === 0;
+}
+
+function renderTodoList() {
+  const listEl = document.getElementById('todoList');
+  if (!listEl) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep TODO items.</div>`;
+    syncTodoUi();
+    return;
+  }
+
+  const todos = getSessionTodos();
+  if (!todos.length) {
+    listEl.innerHTML = `<div class="todo-empty">No TODO items yet. Add the next step you want to keep visible for this session.</div>`;
+    syncTodoUi();
+    return;
+  }
+
+  listEl.innerHTML = todos.map(todo => `
+    <div class="todo-item${todo.done ? ' done' : ''}">
+      <button class="todo-check-btn" onclick="event.stopPropagation(); toggleTodoDone('${todo.id}')" title="${todo.done ? 'Mark as open' : 'Mark as done'}" aria-label="${todo.done ? 'Mark as open' : 'Mark as done'}">
+        <span class="todo-check-box">${todo.done ? '&#10003;' : ''}</span>
+      </button>
+      <div class="todo-item-body">
+        <div class="todo-item-text">${esc(todo.text || '')}</div>
+      </div>
+      <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>
+  `).join('');
+  syncTodoUi();
+}
+
+function addTodoEntry() {
+  const input = document.getElementById('todoQuickInput');
+  const text = input?.value?.trim() || '';
+  if (!activeSessionId) {
+    showToast('⚠ Open a session first', 'err');
+    return;
+  }
+  if (!text) {
+    input?.focus();
+    return;
+  }
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  todos.push({
+    id: `todo_${Date.now()}`,
+    text,
+    done: false,
+    created: Date.now(),
+    completed: null,
+  });
+  input.value = '';
+  saveNotes();
+  renderTodoList();
+  input.focus();
+}
+
+function toggleTodoDone(todoId) {
+  if (!activeSessionId) return;
+  const todo = getSessionTodos().find(item => item.id === todoId);
+  if (!todo) return;
+  todo.done = !todo.done;
+  todo.completed = todo.done ? Date.now() : null;
+  saveNotes();
+  renderTodoList();
+}
+
+function deleteTodoEntry(todoId) {
+  if (!activeSessionId) return;
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  sessions[activeSessionId].todos = todos.filter(item => item.id !== todoId);
+  saveNotes();
+  renderTodoList();
+}
+
+function clearCompletedTodos() {
+  if (!activeSessionId) return;
+  const todos = ensureSessionTodos();
+  if (!todos) return;
+  const remaining = todos.filter(item => !item.done);
+  if (remaining.length === todos.length) return;
+  sessions[activeSessionId].todos = remaining;
+  saveNotes();
+  renderTodoList();
 }
 
 function getActiveQuickLogEntries() {
@@ -115,17 +328,34 @@ async function clearActiveQuickLog() {
 }
 
 function toggleToolPaste(kind) {
-  const panel = document.getElementById(kind === 'ports' ? 'portPastePanel' : 'pathPastePanel');
-  const toggle = document.getElementById(kind === 'ports' ? 'portPasteToggle' : 'pathPasteToggle');
+  const panelMap = {
+    ports: 'portPastePanel',
+    paths: 'pathPastePanel',
+    loot: 'lootPastePanel',
+  };
+  const toggleMap = {
+    ports: 'portPasteToggle',
+    paths: 'pathPasteToggle',
+    loot: 'lootPasteToggle',
+  };
+  const inputMap = {
+    ports: 'portPasteInput',
+    paths: 'pathPasteInput',
+    loot: 'lootPasteInput',
+  };
+  const panel = document.getElementById(panelMap[kind]);
+  const toggle = document.getElementById(toggleMap[kind]);
+  if (!panel || !toggle) return;
   const isOpen = panel.style.display === 'flex';
   panel.style.display = isOpen ? 'none' : 'flex';
   toggle.style.color = isOpen ? '' : 'var(--accent)';
   toggle.style.borderColor = isOpen ? '' : 'var(--accent)';
   if (!isOpen) {
-    document.getElementById(kind === 'ports' ? 'portPasteInput' : 'pathPasteInput').focus();
+    document.getElementById(inputMap[kind])?.focus();
   } else {
     resetPastePanel(kind);
   }
+  updateSvcPopoverLayout();
 }
 
 function resetPastePanel(kind) {
@@ -135,6 +365,13 @@ function resetPastePanel(kind) {
     document.getElementById('portCommitBtn').style.display = 'none';
     _portParsed = [];
   } else {
+    if (kind === 'loot') {
+      document.getElementById('lootPasteInput').value = '';
+      document.getElementById('lootParsePreview').style.display = 'none';
+      document.getElementById('lootCommitBtn').style.display = 'none';
+      _lootParsed = [];
+      return;
+    }
     document.getElementById('pathPasteInput').value = '';
     document.getElementById('pathParsePreview').style.display = 'none';
     document.getElementById('pathCommitBtn').style.display = 'none';
@@ -245,14 +482,19 @@ function commitPortParse() {
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
   let added = 0;
+  let syncedNetworkNote = null;
   for (const r of _portParsed) {
     if (existing.has(`${r.port}/${r.proto}`)) continue;
-    sessions[activeSessionId].services.push({ id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() });
+    const entry = { id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
+    sessions[activeSessionId].services.push(entry);
+    const note = syncServiceEntryToNetworkEnumerationNote(entry);
+    if (note) syncedNetworkNote = note;
     added++;
   }
   saveNotes();
   renderSvcLogTable();
   updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
   showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
   toggleToolPaste('ports');
 }
@@ -492,6 +734,154 @@ function getSessionServices() {
   return sessions[activeSessionId].services || [];
 }
 
+function escapeMarkdownTableCell(value) {
+  return String(value || '').replace(/\|/g, '\\|').trim();
+}
+
+function parseServiceForNetworkRow(entry) {
+  if (!entry) return null;
+  if (!String(entry.port || '').trim()) return null;
+  return {
+    port: escapeMarkdownTableCell(entry.port),
+    proto: escapeMarkdownTableCell(entry.proto || 'tcp'),
+    service: escapeMarkdownTableCell(entry.service),
+    version: escapeMarkdownTableCell(entry.version),
+    notes: escapeMarkdownTableCell(entry.notes),
+  };
+}
+
+function buildNetworkEnumerationTableRow(row) {
+  return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
+}
+
+function getSessionTargetById(targetId) {
+  if (!activeSessionId || !targetId || !sessions[activeSessionId]) return null;
+  const targets = sessions[activeSessionId].targets || [];
+  return targets.find(target => target.id === targetId) || null;
+}
+
+function populateNetworkEnumerationOverview(body, target = null) {
+  const resolvedTarget = target || getActiveTarget() || null;
+  const ip = resolvedTarget?.ip || '';
+  const domain = resolvedTarget?.domain || '';
+  const hostname = resolvedTarget ? (resolvedTarget.label || resolvedTarget.ip || resolvedTarget.domain || '') : '';
+  const replacements = {
+    IP: ip,
+    Domain: domain,
+    Hostname: hostname,
+  };
+
+  return String(body || '')
+    .split('\n')
+    .map((line) => {
+      const match = line.match(/^\|\s*(IP|Domain|Hostname)\s*\|\s*(.*?)\s*\|$/i);
+      if (!match) return line;
+      const field = match[1];
+      const current = String(match[2] || '').trim();
+      const next = replacements[field] || '';
+      if (current || !next) return line;
+      return `| ${field} | ${next} |`;
+    })
+    .join('\n');
+}
+
+function upsertNetworkEnumerationRowIntoBody(body, row) {
+  const lines = String(body || '').split('\n');
+  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  if (headerIdx === -1) return null;
+  const separatorIdx = headerIdx + 1;
+  if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
+
+  let insertAt = separatorIdx + 1;
+  while (insertAt < lines.length && /^\|/.test(lines[insertAt].trim())) insertAt++;
+
+  const newRow = buildNetworkEnumerationTableRow(row);
+  const existingRows = lines.slice(separatorIdx + 1, insertAt).map(line => line.trim());
+  if (existingRows.includes(newRow.trim())) return body;
+
+  const placeholderIdx = lines.slice(separatorIdx + 1, insertAt).findIndex(line =>
+    /^\|\s*\|\s*\|\s*\|\s*\|\s*\|$/.test(line.replace(/\s/g, ''))
+  );
+  if (placeholderIdx !== -1) {
+    lines[separatorIdx + 1 + placeholderIdx] = newRow;
+  } else {
+    lines.splice(insertAt, 0, newRow);
+  }
+  return lines.join('\n');
+}
+
+function findTargetNetworkEnumerationNote(targetId) {
+  if (!activeSessionId || !targetId) return null;
+  return Object.values(notes).find(note =>
+    note.session_id === activeSessionId &&
+    note.type === 'network-enumeration' &&
+    note.target_id === targetId
+  ) || null;
+}
+
+function ensureTargetNetworkEnumerationNote(targetId) {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId || !targetId) return null;
+  const target = getSessionTargetById(targetId);
+  if (!target) return null;
+
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (note) return note;
+
+  const id = 'note_' + Date.now();
+  const tmpl = NOTE_TEMPLATES['network-enumeration'];
+  note = {
+    id,
+    session_id: activeSessionId,
+    target_id: targetId,
+    type: 'network-enumeration',
+    title: tmpl.title || '',
+    body: populateNetworkEnumerationOverview(
+      typeof buildNoteBodyFromTemplate === 'function' ? buildNoteBodyFromTemplate(tmpl) : (tmpl.body || ''),
+      target
+    ),
+    tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
+    target_ip: target.ip || null,
+    target_domain: target.domain || null,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  notes[id] = note;
+  return note;
+}
+
+function syncServiceEntryToNetworkEnumerationNote(entry) {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !entry?.target_id) return false;
+
+  const note = ensureTargetNetworkEnumerationNote(entry.target_id);
+  if (!note) return false;
+
+  const row = parseServiceForNetworkRow(entry);
+  if (!row) return false;
+
+  const nextBody = upsertNetworkEnumerationRowIntoBody(note.body || '', row);
+  if (!nextBody || nextBody === note.body) return false;
+
+  note.body = nextBody;
+  note.updated = Date.now();
+  return note;
+}
+
+function applySyncedNoteUpdate(note) {
+  if (!note) return;
+  renderNotesList();
+  renderSessionSidebar();
+  if (activeNoteId === note.id && typeof noteEditor !== 'undefined' && noteEditor) {
+    cmSetValue(noteEditor, note.body || '');
+    const moEl = document.getElementById('noteModifiedAt');
+    if (moEl) {
+      moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
+        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+      });
+    }
+    if (typeof updateNotePreview === 'function') updateNotePreview();
+  }
+}
+
 function addServiceLog() {
   const input = document.getElementById('svcQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
@@ -499,7 +889,7 @@ function addServiceLog() {
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  sessions[activeSessionId].services.push({
+  const entry = {
     id: `svc_${Date.now()}`,
     target_id: activeTargetId || null,
     port: parsed.port,
@@ -508,11 +898,15 @@ function addServiceLog() {
     version: parsed.version,
     notes: parsed.notes,
     added: Date.now(),
-  });
+  };
+  sessions[activeSessionId].services.push(entry);
+  const syncedNetworkNote = syncServiceEntryToNetworkEnumerationNote(entry);
   input.value = '';
   input.focus();
   saveNotes();
   renderSvcLogTable();
+  updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function deleteServiceLog(svcId) {
@@ -608,6 +1002,96 @@ function parseLootForCredentialsRow(entry) {
     service: escapeCredentialsCell(host),
     notes: escapeCredentialsCell(note),
   };
+}
+
+function parseLootImport(text) {
+  return String(text || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => !line.startsWith('#'))
+    .map(line => ({
+      credential: line,
+      hasSecret: line.includes(':') && line.indexOf(':') > 0 && line.slice(line.indexOf(':') + 1).trim().length > 0,
+    }));
+}
+
+function parseAndPreviewLoot() {
+  const raw = document.getElementById('lootPasteInput')?.value || '';
+  const preview = document.getElementById('lootParsePreview');
+  const commitBtn = document.getElementById('lootCommitBtn');
+  if (!preview || !commitBtn) return;
+
+  _lootParsed = parseLootImport(raw);
+  preview.style.display = 'block';
+  if (!_lootParsed.length) {
+    preview.innerHTML = '<div class="nmap-preview-none">No usernames or credentials found.</div>';
+    commitBtn.style.display = 'none';
+    return;
+  }
+
+  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const type = _activeLootType;
+  const existing = new Set(getSessionLoot().map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  const fresh = _lootParsed.filter(entry => !existing.has(`${type}::${entry.credential}::${host}`));
+  const dupes = _lootParsed.length - fresh.length;
+
+  let html = `<div class="nmap-preview-hdr"><span>${_lootParsed.length}</span> entr${_lootParsed.length === 1 ? 'y' : 'ies'} found`;
+  if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
+  html += `</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Type</th><th>Credential</th><th>Detected</th></tr></thead><tbody>`;
+  html += _lootParsed.map(entry => {
+    const isDupe = existing.has(`${type}::${entry.credential}::${host}`);
+    return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(type)}</td><td>${esc(entry.credential)}</td><td style="color:var(--text2)">${entry.hasSecret ? 'username:secret' : 'username only'}</td></tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  preview.innerHTML = html;
+
+  if (fresh.length > 0) {
+    commitBtn.style.display = 'block';
+    commitBtn.textContent = `＋ Add ${fresh.length} new`;
+  } else {
+    commitBtn.style.display = 'none';
+    preview.innerHTML += '<div class="nmap-preview-none">All entries already logged.</div>';
+  }
+}
+
+function commitLootParse() {
+  if (!activeSessionId || !_lootParsed.length) return;
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const note = (document.getElementById('lootNoteInput')?.value || '').trim();
+  const type = _activeLootType;
+  const existing = new Set(sessions[activeSessionId].loot.map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  let added = 0;
+  let syncedCredentials = false;
+
+  _lootParsed.forEach((item, idx) => {
+    const key = `${type}::${item.credential}::${host}`;
+    if (existing.has(key)) return;
+    existing.add(key);
+    const entry = {
+      id: `loot_${Date.now()}_${idx}`,
+      type,
+      credential: item.credential,
+      host,
+      note,
+      added: Date.now(),
+    };
+    sessions[activeSessionId].loot.push(entry);
+    if (syncLootEntryToCredentialsNote(entry)) syncedCredentials = true;
+    added++;
+  });
+
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+  if (syncedCredentials) {
+    renderNotesList();
+    renderSessionSidebar();
+  }
+  toggleToolPaste('loot');
+  showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
 function buildCredentialsTableRow(row) {
@@ -819,60 +1303,82 @@ function buildLootMarkdown(sessionId) {
 }
 
 function toggleSvcPopover() {
-  const popover = document.getElementById('svcPopover');
-  const btn = document.getElementById('svcTopbarBtn');
-  const isOpen = popover.classList.contains('open');
-  if (isOpen) {
+  if (document.getElementById('svcPopover')?.classList.contains('open')) {
     closeSvcPopover();
-  } else {
-    popover.classList.add('open');
-    btn.classList.add('open');
-    const sessLabel = document.getElementById('svcSessionLabel');
-    if (sessLabel) {
-      const sess = activeSessionId && sessions[activeSessionId];
-      if (sess) {
-        sessLabel.textContent = sess.codename;
-        sessLabel.style.display = '';
-      } else {
-        sessLabel.textContent = '';
-        sessLabel.style.display = 'none';
-      }
-    }
-    renderSvcLogTable();
-    renderPathTable();
-    renderLootTable();
-    updateSvcTabCounts();
-    renderSvcClearAction();
-    setTimeout(() => {
-      const hi = document.getElementById('lootHostInput');
-      if (hi && !hi.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hi.value = ip;
-      }
-      const inputId = _activeSvcTab === 'ports'
-        ? 'svcQuickInput'
-        : _activeSvcTab === 'loot'
-          ? 'lootCredInput'
-          : 'pathQuickInput';
-      document.getElementById(inputId)?.focus();
-    }, 40);
-    setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+    return;
   }
+  openUtilityPopover({
+    popoverId: 'svcPopover',
+    buttonId: 'svcTopbarBtn',
+    labelId: 'svcSessionLabel',
+    closeOthers: [closeTodoPopover],
+    outsideHandler: _svcOutsideClose,
+    onOpen: () => {
+      updateSvcPopoverLayout();
+      renderSvcLogTable();
+      renderPathTable();
+      renderLootTable();
+      updateSvcTabCounts();
+      renderSvcClearAction();
+      setTimeout(() => {
+        const hi = document.getElementById('lootHostInput');
+        if (hi && !hi.value) {
+          const ip = getIP();
+          if (ip !== '<IP>') hi.value = ip;
+        }
+        const inputId = _activeSvcTab === 'ports'
+          ? 'svcQuickInput'
+          : _activeSvcTab === 'loot'
+            ? 'lootCredInput'
+            : 'pathQuickInput';
+        document.getElementById(inputId)?.focus();
+      }, 40);
+    },
+  });
 }
 
 function closeSvcPopover() {
-  document.getElementById('svcPopover')?.classList.remove('open');
-  document.getElementById('svcTopbarBtn')?.classList.remove('open');
+  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
 }
 
 function _svcOutsideClose(e) {
-  const wrap = document.getElementById('svcTopbarWrap');
-  if (!wrap) return;
-  if (wrap.contains(e.target)) {
+  if (isEventInsideWrap(e, 'svcTopbarWrap')) {
     if (document.getElementById('svcPopover')?.classList.contains('open')) {
-      setTimeout(() => document.addEventListener('click', _svcOutsideClose, { once: true }), 0);
+      reopenUtilityOutsideListener(_svcOutsideClose);
     }
   } else {
     closeSvcPopover();
+  }
+}
+
+function toggleTodoPopover() {
+  if (document.getElementById('todoPopover')?.classList.contains('open')) {
+    closeTodoPopover();
+    return;
+  }
+  openUtilityPopover({
+    popoverId: 'todoPopover',
+    buttonId: 'todoTopbarBtn',
+    labelId: 'todoSessionLabel',
+    closeOthers: [closeSvcPopover],
+    outsideHandler: _todoOutsideClose,
+    onOpen: () => {
+      renderTodoList();
+      setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
+    },
+  });
+}
+
+function closeTodoPopover() {
+  closeUtilityPopover('todoPopover', 'todoTopbarBtn');
+}
+
+function _todoOutsideClose(e) {
+  if (isEventInsideWrap(e, 'todoTopbarWrap')) {
+    if (document.getElementById('todoPopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_todoOutsideClose);
+    }
+  } else {
+    closeTodoPopover();
   }
 }

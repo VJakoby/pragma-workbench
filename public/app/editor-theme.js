@@ -84,7 +84,7 @@ const SYNTAX_THEMES = {
 };
 
 let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
-let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '13', 10) || 13));
+let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '14', 10) || 14));
 
 function applyEditorFontSize(size = activeEditorFontSize) {
   activeEditorFontSize = Math.min(22, Math.max(11, size));
@@ -103,7 +103,7 @@ function decreaseEditorFont() {
 }
 
 function resetEditorFont() {
-  applyEditorFontSize(13);
+  applyEditorFontSize(14);
 }
 
 function setSyntaxTheme(name) {
@@ -140,7 +140,8 @@ function cmThemeVars() {
       text2: '#333333',
       muted: '#6a737d',
       bg3: '#f3f3f3',
-      selection: 'rgba(37, 99, 235, 0.42)',
+      selection: 'rgba(37, 99, 235, 0.56)',
+      selectionOutline: 'rgba(37, 99, 235, 0.78)',
       activeLine: '#f5f5f5',
     };
   }
@@ -150,7 +151,8 @@ function cmThemeVars() {
     text2,
     muted,
     bg3,
-    selection: 'rgba(124,58,237,0.42)',
+    selection: 'rgba(124,58,237,0.48)',
+    selectionOutline: 'rgba(196,181,253,0.58)',
     activeLine: 'rgba(124,58,237,0.06)',
   };
 }
@@ -167,10 +169,35 @@ function buildCmTheme() {
     '.cm-content': { color: v.text2, caretColor: v.text, padding: '0', fontWeight: '500' },
     '.cm-cursor': { borderLeftColor: v.text },
     '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },
-    '.cm-selectionLayer .cm-selectionBackground': { background: `${v.selection} !important` },
-    '&.cm-focused .cm-selectionBackground': { background: `${v.selection} !important` },
+    '.cm-content::selection, .cm-content *::selection': { background: `${v.selection} !important` },
+    '.cm-line::selection, .cm-line > span::selection': { background: `${v.selection} !important` },
+    '.cm-selectionLayer .cm-selectionBackground': {
+      background: `${v.selection} !important`,
+      boxShadow: `inset 0 0 0 2px ${v.selectionOutline}`,
+      borderRadius: '2px',
+    },
+    '&.cm-focused .cm-selectionBackground': {
+      background: `${v.selection} !important`,
+      boxShadow: `inset 0 0 0 2px ${v.selectionOutline}`,
+    },
     '.cm-activeLine': { background: v.activeLine },
-    '.cm-gutters': { display: 'none' },
+    '.cm-gutters': {
+      background: 'transparent',
+      color: v.muted,
+      borderRight: `1px solid ${v.bg3}`,
+      paddingRight: '4px',
+      marginRight: '8px',
+    },
+    '.cm-lineNumbers .cm-gutterElement': {
+      minWidth: '2em',
+      padding: '0 4px 0 0',
+      textAlign: 'right',
+      fontVariantNumeric: 'tabular-nums',
+    },
+    '.cm-activeLineGutter': {
+      color: v.text,
+      background: 'transparent',
+    },
     '.cm-placeholder': { color: v.muted },
     '.cm-line': { padding: '0' },
   }, { dark });

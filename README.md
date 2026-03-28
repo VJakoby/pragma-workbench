@@ -70,6 +70,7 @@ In practice, this means the app is opinionated about staying operational:
 
 **Sessions & Targets**
 - Named sessions with multi-target tracking (IP, domain, label)
+- Session-level attacker IP field for callback/reverse-shell style placeholders
 - Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
 - Export/import sessions as JSON for portability; notes export as structured markdown
@@ -86,16 +87,18 @@ In practice, this means the app is opinionated about staying operational:
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
+- In-app editing of `note-templates.json` through the Configuration section, using the same editor/autosave flow as notes
 
 **Quick Log (`Ctrl+L`)**
 
-A persistent in-session log accessible from the topbar, organised into three tabs:
+A persistent in-session capture tool accessible from the topbar:
 
 - **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
+- **TODO** — a session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen
 
-All three tabs persist per session alongside notes and are included in markdown exports. In the consolidated session export, loot is rendered in a `## Loot Summary` section.
+Ports, paths, loot, and TODO items persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
 
 **Knowledge Base & Tactics**
 - Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
@@ -104,6 +107,7 @@ All three tabs persist per session alongside notes and are included in markdown 
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
 - Local/remote scope filter, source filter, and query-term snippet highlighting in results
 - Degrades gracefully if ENGRAM is offline, with a one-click reachability check
+- Local KB previews support quick switching between sibling notes in the same category/folder
 
 **Workbench Reliability**
 - Atomic writes — every save is written to a temp file first, then renamed into place, preventing corruption from crashes or power loss
@@ -119,20 +123,21 @@ All three tabs persist per session alongside notes and are included in markdown 
 
 ## 📝 Note Templates
 
-PRAGMA ships with six built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+PRAGMA ships with built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
 | Template | Icon | Default Tags | Purpose |
 |---|---|---|---|
 | **General** | 📋 | — | Free-form notes with Overview / Notes / References sections |
 | **Credentials** | 🔑 | `creds` | Credential table, password spray notes, valid sessions |
 | **Recon** | 🔭 | `recon` | Target overview, open ports, web endpoints, DNS, users |
+| **Network Enumeration** | 🌐 | `network` | Per-target target overview plus synchronized open ports and services |
 | **PrivEsc** | ⬆ | `privesc` | System info, enumeration checklist, vectors tried, escalation path |
 | **Loot** | 💰 | `loot` | Exfiltrated files, credentials found, flags/proofs |
 | **Exploit** | 💥 | `exploit` | CVE/CVSS metadata, payload, steps, outcome, cleanup |
 
-### Custom Templates (`notes-templates.json`)
+### Custom Templates (`note-templates.json`)
 
-You can extend or fully replace the built-in templates by placing a `notes-templates.json` file next to `server.js`. On startup, PRAGMA loads it and uses it as the sole source of templates — built-ins are replaced entirely (except `Blank`, which is always kept).
+You can extend or fully replace the built-in templates by editing `note-templates.json` next to `server.js`. PRAGMA exposes this directly in the app under `Configuration -> Note Templates`, and also loads the same file on startup as the source of templates.
 
 **Schema:**
 
@@ -176,31 +181,16 @@ Custom templates appear in the picker with a purple border and a **Custom** head
 
 ## 🔐 Security
 
-PRAGMA is a **single-operator, local-first tool** designed to run in a controlled environment — ideally a dedicated pentest VM. It has no authentication layer, no multi-user access control, and no network hardening beyond what the host OS provides. The security model assumes the operator controls the machine it runs on.
+PRAGMA is a single-operator, localhost-first tool. It is designed for use on a controlled machine, ideally a dedicated pentest VM.
 
-### Encryption
+High-level security position:
 
-- Workbench encryption uses **AES-256-GCM** with **PBKDF2-SHA-512** key derivation at 600,000 iterations
-- Encryption and decryption happen **entirely in the browser** — the password never touches disk, localStorage, server memory, or the network
-- The server stores only the ciphertext blob and refuses plaintext writes while an encrypted workbench is active
-- Disabling encryption requires supplying the decrypted payload to the server — a bare unauthenticated request is rejected, preventing accidental or console-based erasure of the workbench file
-- If the password prompt is cancelled or decryption fails on load, the application halts and renders a locked screen — no data is written and no UI is exposed
+- binds to `127.0.0.1` by default
+- supports encrypted workbench storage with client-side AES-256-GCM
+- treats imported/session/markdown content as untrusted input
+- is not intended for hostile internet-facing multi-user deployment
 
-### Deployment recommendations
-
-- **Run on localhost only** — PRAGMA binds to `127.0.0.1:3000` by default. Do not expose it on a LAN, VPN, or any network interface accessible to others. Your session notes, targets, and KB content are sensitive operational data
-- **Use a dedicated pentest VM** — the recommended setup is a VM used exclusively for pentesting, with PRAGMA running locally inside it. This isolates your notes from your host OS and limits exposure if the VM is compromised
-- **Do not run as root** — the Docker setup drops all capabilities and runs as a non-root user. If running with Node.js directly, use a standard user account
-- **Encrypt your workbench** — if your notes contain credentials, findings, or client-sensitive data, enable workbench encryption. The workbench file is portable and encrypted at rest, so even if the file is copied off the machine it cannot be read without the password
-- **Back up your workbench file** — the rolling backup system keeps the last 5 versions automatically. For additional safety, use the **⬇ Restore backup** button in the sidebar to download a copy to your host machine
-
-### What encryption does NOT protect against
-
-- An attacker with active access to the running browser session (the plaintext is in memory while unlocked)
-- Keyloggers or screen capture on the host machine
-- A compromised VM where the attacker can observe the browser process
-
-These are outside the threat model for a local single-operator tool. If your VM is compromised during an engagement, your notes are the least of your concerns.
+For the actual threat model, mitigations, verified checks, and remaining review areas, see [SECURITY.md](./SECURITY.md).
 
 ---
 

@@ -20,6 +20,7 @@ if (typeof globalThis.sessions === 'undefined') globalThis.sessions = {};
 if (typeof globalThis.activeSessionId === 'undefined') globalThis.activeSessionId = null;
 if (typeof globalThis.activeTargetId === 'undefined') globalThis.activeTargetId = null;
 if (typeof globalThis.activeNoteId === 'undefined') globalThis.activeNoteId = null;
+if (typeof globalThis.activeConfigDoc === 'undefined') globalThis.activeConfigDoc = null;
 if (typeof globalThis.noteSaveTimer === 'undefined') globalThis.noteSaveTimer = null;
 if (typeof globalThis.tlTargetFilter === 'undefined') globalThis.tlTargetFilter = null;
 if (typeof globalThis.encryptedStorageEnabled === 'undefined') globalThis.encryptedStorageEnabled = false;

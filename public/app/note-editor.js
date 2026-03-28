@@ -5,13 +5,15 @@ let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
 
 function updateNotePreview() {
+  if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
   if (!pane || pane.style.display === 'none') return;
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
-  el.innerHTML = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  if (typeof injectTargets === 'function') el.innerHTML = injectTargets(el.innerHTML);
+  const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
@@ -19,6 +21,7 @@ function updateNotePreview() {
 }
 
 function toggleNotePreview() {
+  if (activeConfigDoc) return;
   notePreviewOpen = !notePreviewOpen;
   localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
   applyNotePreviewState();
@@ -110,22 +113,30 @@ function cmInitNote(initialDoc) {
   if (!wrap || !CM) return;
   if (noteEditor) noteEditor.destroy();
 
+  const extensions = [
+    CM.basicSetup,
+    ...buildCmTheme(),
+    CM.EditorView.updateListener.of(update => {
+      if (!update.docChanged) return;
+      if (activeConfigDoc) {
+        autoSaveActiveConfig();
+        return;
+      }
+      if (activeNoteId) {
+        autoSaveNote();
+        updateNotePreview();
+      }
+    }),
+    CM.EditorView.lineWrapping,
+    CM.indentUnit.of('  '),
+    CM.keymap.of([CM.indentWithTab]),
+  ];
+
+  if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
+
   noteEditor = new CM.EditorView({
     doc: initialDoc ?? '',
-    extensions: [
-      CM.basicSetup,
-      CM.markdown(),
-      ...buildCmTheme(),
-      CM.EditorView.updateListener.of(update => {
-        if (update.docChanged && activeNoteId) {
-          autoSaveNote();
-          updateNotePreview();
-        }
-      }),
-      CM.EditorView.lineWrapping,
-      CM.indentUnit.of('  '),
-      CM.keymap.of([CM.indentWithTab])
-    ],
+    extensions,
     parent: wrap,
   });
 }

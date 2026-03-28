@@ -6,6 +6,7 @@ const path = require('path');
 function registerKbRoutes(app, deps) {
   const {
     marked,
+    renderMarkdown,
     kbIndex,
     kbDir,
     servicesDir,
@@ -20,6 +21,22 @@ function registerKbRoutes(app, deps) {
 
   function getServiceCategoryRoots() {
     return [kbDir, servicesDir].filter((dir, idx, arr) => dir && arr.indexOf(dir) === idx);
+  }
+
+  function isWithinRoot(targetPath, rootPath) {
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedRoot = path.resolve(rootPath);
+    return resolvedTarget === resolvedRoot || resolvedTarget.startsWith(`${resolvedRoot}${path.sep}`);
+  }
+
+  function canPreviewKbFile(filePath) {
+    if (!filePath) return false;
+    return isWithinRoot(filePath, kbDir) && path.extname(filePath).toLowerCase() === '.md';
+  }
+
+  function getRootKbSection(folder) {
+    const sections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
+    return sections.find(section => (section.folder || '') === String(folder || '')) || null;
   }
 
   function resolveServiceCategoryDir(folder) {
@@ -58,6 +75,51 @@ function registerKbRoutes(app, deps) {
     });
   });
 
+  app.get('/api/kb-sections', (req, res) => {
+    const sections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
+    res.json({
+      total: sections.length,
+      sections: sections.map(section => ({
+        folder: section.folder,
+        label: section.label,
+        count: Array.isArray(section.items) ? section.items.length : 0,
+      })),
+    });
+  });
+
+  app.get('/api/kb-section/:folder', (req, res) => {
+    const section = getRootKbSection(req.params.folder);
+    if (!section) return res.status(404).json({ error: 'KB section not found' });
+    res.json({
+      folder: section.folder,
+      label: section.label,
+      total: section.items.length,
+      items: section.items.map(({ id, name, category, icon, description, file, wordCount, folder, subfolder }) => ({
+        id, name, category, icon, description, file, wordCount, folder, subfolder,
+      })),
+    });
+  });
+
+  app.get('/api/kb-section/:folder/:id', (req, res) => {
+    const section = getRootKbSection(req.params.folder);
+    if (!section) return res.status(404).json({ error: 'KB section not found' });
+    const item = section.items.find(entry => entry.id === req.params.id);
+    if (!item) return res.status(404).json({ error: 'KB document not found' });
+    res.json({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      icon: item.icon,
+      description: item.description,
+      file: item.file,
+      wordCount: item.wordCount,
+      folder: item.folder,
+      subfolder: item.subfolder || '',
+      html: renderMarkdown(item.content),
+      raw: item.content,
+    });
+  });
+
   app.get('/api/sources', (req, res) => {
     const serviceIndex = kbIndex.getServiceIndex();
     res.json({
@@ -79,16 +141,17 @@ function registerKbRoutes(app, deps) {
     if (!fileParam) return res.status(400).json({ error: 'Missing ?file= parameter' });
     let resolved;
     if (path.isAbsolute(fileParam)) {
-      resolved = fileParam;
+      resolved = path.resolve(fileParam);
+      if (!canPreviewKbFile(resolved)) return res.status(403).json({ error: 'Access denied' });
     } else {
       // Preserve relative path so subdirectory files still resolve correctly.
       resolved = path.resolve(servicesDir, fileParam);
-      if (!resolved.startsWith(servicesDir)) return res.status(403).json({ error: 'Access denied' });
+      if (!canPreviewKbFile(resolved)) return res.status(403).json({ error: 'Access denied' });
     }
     if (!fs.existsSync(resolved)) return res.status(404).json({ error: `File not found: ${resolved}` });
     try {
       const content = fs.readFileSync(resolved, 'utf8');
-      res.json({ html: marked.parse(content), raw: content });
+      res.json({ html: renderMarkdown(content), raw: content });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -159,7 +222,7 @@ function registerKbRoutes(app, deps) {
       description: svc.description,
       file: svc.file,
       wordCount: svc.wordCount,
-      html: marked.parse(svc.content),
+      html: renderMarkdown(svc.content),
       raw: svc.content,
     });
   });
@@ -194,7 +257,7 @@ function registerKbRoutes(app, deps) {
       description: guide.description,
       file: guide.file,
       wordCount: guide.wordCount,
-      html: marked.parse(guide.content),
+      html: renderMarkdown(guide.content),
       raw: guide.content,
     });
   });
@@ -211,7 +274,7 @@ function registerKbRoutes(app, deps) {
       description: guide.description,
       file: guide.file,
       wordCount: guide.wordCount,
-      html: marked.parse(guide.content),
+      html: renderMarkdown(guide.content),
       raw: guide.content,
     });
   });
@@ -220,11 +283,18 @@ function registerKbRoutes(app, deps) {
     try {
       const serviceIndex = kbIndex.getServiceIndex();
       const tacticsIndex = kbIndex.getTacticsIndex();
+      const rootKbSections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
       const { id, view, content } = req.body;
       if (!id || !view || typeof content !== 'string') {
         return res.status(400).json({ error: 'id, view, and content are required' });
       }
-      const index = view === 'services' ? serviceIndex : tacticsIndex;
+      const index = view === 'services'
+        ? serviceIndex
+        : view === 'tactics'
+          ? tacticsIndex
+          : view.startsWith('kb:')
+            ? ((rootKbSections.find(section => `kb:${section.folder}` === view)?.items) || [])
+            : [];
       const entry = index.find(e => e.id === id);
       if (!entry) return res.status(404).json({ error: 'File not found in index' });
       fs.writeFileSync(entry.filepath, content, 'utf8');
@@ -241,16 +311,25 @@ function registerKbRoutes(app, deps) {
       const { view, filename, category } = req.body || {};
       const isServices = view === 'services';
       const isTactics = view === 'tactics';
-      if (!isServices && !isTactics) {
-        return res.status(400).json({ error: 'view must be services or tactics' });
+      const isKnowledge = view === 'knowledge';
+      if (!isServices && !isTactics && !isKnowledge) {
+        return res.status(400).json({ error: 'view must be services, tactics, or knowledge' });
       }
 
       const safeFilename = normalizeKbFilename(filename);
       if (!safeFilename) return res.status(400).json({ error: 'A valid filename is required' });
 
       const categoryDir = safeCategoryPath(category);
-      const rootDir = isServices ? getServiceWriteRoot(categoryDir) : tacticsDir;
-      const targetDir = path.resolve(rootDir, categoryDir || '.');
+      let rootDir = isServices ? getServiceWriteRoot(categoryDir) : isTactics ? tacticsDir : kbDir;
+      let targetDir = path.resolve(rootDir, categoryDir || '.');
+      if (isKnowledge && categoryDir) {
+        const [sectionFolder, ...restParts] = categoryDir.split(path.sep).filter(Boolean);
+        const section = getRootKbSection(sectionFolder);
+        if (section?.dirpath) {
+          rootDir = section.dirpath;
+          targetDir = path.resolve(rootDir, restParts.join(path.sep) || '.');
+        }
+      }
       const rootResolved = path.resolve(rootDir);
       if (!targetDir.startsWith(rootResolved)) {
         return res.status(403).json({ error: 'Invalid category path' });
@@ -267,12 +346,18 @@ function registerKbRoutes(app, deps) {
       const initialContent = `# ${title}\n\n## Overview\n\n`;
       fs.writeFileSync(filePath, initialContent, 'utf8');
 
-      if (isServices) buildIndex();
+      if (isServices || isKnowledge) buildIndex();
       else buildTacticsIndex();
 
-      const id = isServices
+      let id = isServices
         ? metaFromFilename(safeFilename).id
         : path.basename(safeFilename, '.md').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (isKnowledge) {
+        const safeFolder = (categoryDir || '').split(path.sep)[0] || '';
+        const section = getRootKbSection(safeFolder);
+        const created = section?.items?.find(item => item.filepath === filePath);
+        if (created?.id) id = created.id;
+      }
 
       const relativeBase = path.relative(rootDir, filePath);
       console.log(`[PRAGMA] Created KB file: ${filePath}`);

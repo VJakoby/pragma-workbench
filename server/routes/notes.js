@@ -14,13 +14,20 @@ const {
 } = require('../lib/session-export');
 
 function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
+  function expandTemplateBody(template) {
+    return {
+      ...template,
+      body: Array.isArray(template?.body_lines) ? template.body_lines.join('\n') : (template?.body || ''),
+    };
+  }
+
   app.get('/api/templates', async (req, res) => {
     try {
       const raw = await fs.promises.readFile(templatesFile, 'utf-8');
       const data = JSON.parse(raw);
       const templates = Array.isArray(data.templates) ? data.templates.map((template) => ({
-        ...template,
-        body: Array.isArray(template?.body_lines) ? template.body_lines.join('\n') : (template?.body || ''),
+        ...expandTemplateBody(template),
+        variants: Array.isArray(template?.variants) ? template.variants.map(expandTemplateBody) : [],
       })) : [];
       console.log(`[PRAGMA] /api/templates — file: ${templatesFile}, parsed ${templates.length} templates`);
       if (!templates.length) return res.json({ templates: null });
@@ -28,6 +35,38 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
     } catch (err) {
       console.log(`[PRAGMA] /api/templates — error: ${err.message} (file: ${templatesFile})`);
       res.json({ templates: null });
+    }
+  });
+
+  app.get('/api/config/templates', async (req, res) => {
+    try {
+      const content = await fs.promises.readFile(templatesFile, 'utf-8');
+      res.json({ ok: true, content });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/config/templates', async (req, res) => {
+    try {
+      const content = String(req.body?.content || '');
+      let parsed;
+      try {
+        parsed = JSON.parse(content);
+      } catch (err) {
+        return res.status(400).json({ error: `Invalid JSON: ${err.message}` });
+      }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return res.status(400).json({ error: 'Root JSON value must be an object.' });
+      }
+      if (!Array.isArray(parsed.templates)) {
+        return res.status(400).json({ error: 'Expected a top-level "templates" array.' });
+      }
+      const normalized = `${JSON.stringify(parsed, null, 2)}\n`;
+      await fs.promises.writeFile(templatesFile, normalized, 'utf-8');
+      res.json({ ok: true, templates: parsed.templates.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -295,11 +334,21 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
       written.push('SUMMARY.md');
 
       const consolidatedName = `${sessSlug}.md`;
-      fs.writeFileSync(path.join(outDir, consolidatedName), renderConsolidatedSession(model), 'utf8');
+      const consolidatedContent = renderConsolidatedSession(model);
+      fs.writeFileSync(path.join(outDir, consolidatedName), consolidatedContent, 'utf8');
       written.push(consolidatedName);
 
       console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
-      res.json({ ok: true, path: outDir, files: written, session: session.codename });
+      res.json({
+        ok: true,
+        path: outDir,
+        files: written,
+        session: session.codename,
+        download: {
+          filename: consolidatedName,
+          content: consolidatedContent,
+        },
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

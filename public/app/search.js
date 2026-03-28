@@ -108,13 +108,14 @@ function renderSourceChips() {
   chips.innerHTML = knownSources.map(s => {
     const active = !disabledSources.has(s.id);
     return `<button class="source-chip${active ? ' active' : ''}"
-      onclick="toggleSourceFilter('${esc(s.id)}')"
+      onclick="toggleSourceFilter('${encodeURIComponent(s.id)}')"
       title="${active ? 'Disable' : 'Enable'} source: ${esc(s.name)}"
     >${esc(s.name)}</button>`;
   }).join('');
 }
 
 function toggleSourceFilter(sourceId) {
+  sourceId = decodeURIComponent(sourceId);
   if (disabledSources.has(sourceId)) {
     disabledSources.delete(sourceId);
   } else {
@@ -233,7 +234,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
     const href    = isLocal ? '#' : (r.url || '#');
     const filePath = isLocal ? localPathFromResult(r) : '';
 
-    return `<div class="result-card${isLocal?' local-result':''}"
+    return `<div class="result-card ${isLocal ? 'local-result' : 'online-result'}"
          data-local="${isLocal?'1':'0'}"
          data-filepath="${esc(filePath)}"
          data-title="${esc(r.title||'')}"
@@ -245,10 +246,10 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
       <div class="search-meta-row">
         ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
         ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
-        ${isLocal ? `<span class="result-badge local">local</span>` : `<span class="result-badge online">online</span>`}
       </div>
       <div class="result-meta">
         <span class="result-source">${esc(r.source_name||'')}</span>
+        <span class="result-kind ${isLocal ? 'local' : 'online'}">${isLocal ? 'local' : 'online'}</span>
       </div>
       ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;

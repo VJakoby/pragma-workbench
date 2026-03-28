@@ -39,9 +39,9 @@
           <span class="nav-item-count" id="tactics-count">&mdash;</span>
         </div>
         <div id="kbNavList"></div>
-        <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search Indexed KBs">
+        <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search indexed knowledge bases">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <span class="nav-item-label">Search Indexed KBs</span>
+          <span class="nav-item-label">Search KB</span>
           <span class="nav-item-count search-nav-badge checking" id="search-index-badge">&mdash;</span>
         </div>
       </div>
@@ -57,8 +57,12 @@
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
 
-      <div class="sidebar-version sidebar-info" id="sidebarInfo">
-        <button class="sidebar-info-btn" type="button" aria-label="About PRAGMA" title="About PRAGMA" aria-expanded="false" onclick="toggleSidebarInfo(event)">i</button>
-        <div class="sidebar-info-tip">Engagement note workbench. Track findings and pull KB context via ENGRA-indexer.</div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr">Configuration</div>
+        <div class="nav-item" onclick="openTemplatesConfig(this)" id="nav-config-templates" title="Note Templates">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M12 17v4"/><path d="M3 12h4"/><path d="M17 12h4"/><path d="m5.64 5.64 2.83 2.83"/><path d="m15.53 15.53 2.83 2.83"/><path d="m5.64 18.36 2.83-2.83"/><path d="m15.53 8.47 2.83-2.83"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span class="nav-item-label">Note Templates</span>
+        </div>
       </div>
     </div>

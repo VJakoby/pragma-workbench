@@ -19,6 +19,124 @@ function closeCmdIfOutside(e) {
   if (e.target === document.getElementById('cmdOverlay')) closeCmd();
 }
 
+const TOOLTIP_TARGET_SELECTOR = [
+  '.icon-btn[title]',
+  '.tb-btn[title]',
+  '.note-pin-btn[title]',
+  '.note-reassign-btn[title]',
+  '.note-target-assign-btn[title]',
+  '.editor-font-btn[title]',
+  '.editor-font-label[title]',
+  '.preview-layout-btn[title]',
+  '.sidebar-toggle-btn[title]',
+  '.target-selector-copy[title]',
+  '.target-selector-main[title]',
+  '.svc-topbar-btn[title]',
+  '.todo-topbar-btn[title]',
+  '.svc-clear-btn[title]',
+  '.svc-quick-add-btn[title]',
+  '.todo-check-btn[title]',
+  '.todo-del-btn[title]',
+  '.session-item-export-btn[title]',
+  '.target-item-del[title]',
+  '.svc-del-btn[title]',
+  '.notes-list-reopen-btn[title]',
+  '.cmd-trigger[title]',
+  '.theme-toggle-btn[title]',
+  '.sidebar-info-btn[title]',
+  '.nav-item[title]',
+  '.session-active[title]',
+].join(', ');
+
+let tooltipTarget = null;
+
+function getTooltipEl() {
+  return document.getElementById('appTooltip');
+}
+
+function getTooltipText(el) {
+  if (el?.matches?.('.nav-item, .session-active')) {
+    return el.dataset?.nativeTitle
+      || el.getAttribute?.('title')
+      || el.querySelector?.('.nav-item-label, .session-active-name')?.textContent?.trim()
+      || '';
+  }
+  return el?.dataset?.nativeTitle || el?.getAttribute?.('title') || '';
+}
+
+function positionTooltip(target) {
+  const tooltip = getTooltipEl();
+  if (!tooltip || !target) return;
+  const rect = target.getBoundingClientRect();
+  const tipRect = tooltip.getBoundingClientRect();
+  const margin = 10;
+  let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+  left = Math.max(margin, Math.min(window.innerWidth - tipRect.width - margin, left));
+  let top = rect.top - tipRect.height - 8;
+  if (top < margin) top = rect.bottom + 8;
+  tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+}
+
+function hideTooltip(target = tooltipTarget) {
+  const tooltip = getTooltipEl();
+  if (!tooltip) return;
+  if (target?.dataset?.nativeTitle && !target.getAttribute('title')) {
+    target.setAttribute('title', target.dataset.nativeTitle);
+  }
+  tooltip.classList.remove('visible');
+  tooltip.setAttribute('aria-hidden', 'true');
+  tooltipTarget = null;
+}
+
+function showTooltip(target) {
+  const tooltip = getTooltipEl();
+  const text = getTooltipText(target);
+  if (!tooltip || !target || !text) return;
+  const isSidebarTarget = target.matches('.nav-item[title], .session-active[title]');
+  if (isSidebarTarget) {
+    const sidebar = target.closest('.sidebar');
+    if (!sidebar?.classList.contains('sidebar-icon-only')) return;
+  }
+  if (tooltipTarget && tooltipTarget !== target) hideTooltip(tooltipTarget);
+  tooltipTarget = target;
+  if (!target.dataset.nativeTitle) target.dataset.nativeTitle = text;
+  target.removeAttribute('title');
+  tooltip.textContent = text;
+  tooltip.classList.add('visible');
+  tooltip.setAttribute('aria-hidden', 'false');
+  positionTooltip(target);
+}
+
+document.addEventListener('mouseover', (e) => {
+  const target = e.target.closest('.nav-item, .session-active') || e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  if (!target || target === tooltipTarget) return;
+  showTooltip(target);
+});
+
+document.addEventListener('mouseout', (e) => {
+  if (!tooltipTarget) return;
+  const related = e.relatedTarget;
+  if (related && tooltipTarget.contains(related)) return;
+  if (tooltipTarget.contains(e.target)) hideTooltip(tooltipTarget);
+});
+
+document.addEventListener('focusin', (e) => {
+  const target = e.target.closest('.nav-item, .session-active') || e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  if (target) showTooltip(target);
+});
+
+document.addEventListener('focusout', (e) => {
+  if (tooltipTarget && tooltipTarget.contains(e.target)) hideTooltip(tooltipTarget);
+});
+
+window.addEventListener('scroll', () => {
+  if (tooltipTarget) positionTooltip(tooltipTarget);
+}, true);
+
+window.addEventListener('resize', () => {
+  if (tooltipTarget) positionTooltip(tooltipTarget);
+});
+
 function buildCmdResults(q) {
   const ql    = q.toLowerCase().trim();
   const res   = document.getElementById('cmdResults');
@@ -429,13 +547,14 @@ function _pwCheckStrength() {
 // ═══════════════════════════════════════════════
 // SESSION ENCRYPTION (AES-256-GCM + PBKDF2-SHA-512)
 // ═══════════════════════════════════════════════
-// Format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
-// Format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
+// Crypto format v2: 600k PBKDF2-SHA-512 iterations, 32-byte salt, AES-256-GCM
+// Crypto format v1: 310k PBKDF2-SHA-256, 16-byte salt — read-only legacy support
 //
 // Note: AES-GCM provides built-in authenticated encryption via the GHASH tag.
 // Any tampering with ciphertext, IV, or AAD causes decrypt to throw — no
-// separate HMAC is required on top of GCM. The pragma_version field gates
-// which key derivation parameters are used on decrypt.
+// separate HMAC is required on top of GCM. pragma_version tracks the overall
+// workbench payload version; crypto_version tracks which KDF parameters to use
+// for encrypted blobs.
 
 const PBKDF2_ITERATIONS_V2 = 600000; // NIST SP 800-132 (2023) recommendation
 const PBKDF2_ITERATIONS_V1 = 310000; // legacy — kept for reading old blobs
@@ -466,7 +585,14 @@ async function encryptPayload(plaintext, password) {
   const enc  = new TextEncoder();
   const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
   const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
-  return { pragma_version: 2, encrypted: true, salt: b64(salt), iv: b64(iv), data: b64(ct) };
+  return {
+    pragma_version: 1,
+    crypto_version: 2,
+    encrypted: true,
+    salt: b64(salt),
+    iv: b64(iv),
+    data: b64(ct),
+  };
 }
 
 async function decryptPayload(obj, password) {
@@ -474,8 +600,11 @@ async function decryptPayload(obj, password) {
   const salt   = b64d(obj.salt);
   const iv     = b64d(obj.iv);
   const ct     = b64d(obj.data);
-  // Detect format version — v1 blobs have pragma_version: 1 or missing
-  const version = (obj.pragma_version >= 2) ? 2 : 1;
+  // Support both legacy blobs keyed by pragma_version and newer blobs that
+  // separate workbench version from crypto_version.
+  const version = obj.crypto_version >= 2
+    ? 2
+    : (obj.pragma_version >= 2 || salt.length >= 32 ? 2 : 1);
   const key    = await deriveKey(password, salt, version);
   const dec    = new TextDecoder();
   try {

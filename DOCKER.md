@@ -31,7 +31,7 @@ pragma-workbench/
 │   └── partials/
 ├── server.js
 ├── package.json
-├── notes-templates.json          // optional — custom note templates (see README)
+├── note-templates.json           // optional — custom note templates (see README)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── sessions/                     // runtime data — created automatically
@@ -78,7 +78,7 @@ services:
     volumes:
       - ./sessions:/usr/src/app/sessions
       - ./knowledge_base:/usr/src/app/knowledge_base:ro
-      - ./notes-templates.json:/usr/src/app/notes-templates.json:ro # optional, only if you use custom templates
+      - ./note-templates.json:/usr/src/app/note-templates.json:ro # optional, only if you use custom templates
     environment:
       - KB_DIR=/usr/src/app/knowledge_base
       - SESSIONS_DIR=/usr/src/app/sessions
@@ -87,7 +87,7 @@ services:
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
 
-> **Templates note:** The checked-in `docker-compose.yml` does not currently mount `notes-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
+> **Templates note:** The checked-in `docker-compose.yml` does not currently mount `note-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
 
 ---
 
