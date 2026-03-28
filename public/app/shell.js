@@ -161,6 +161,7 @@ async function init() {
   await Promise.allSettled([
     typeof loadSearchSources === 'function' ? loadSearchSources() : Promise.resolve(),
     typeof checkEngramStatus === 'function' ? checkEngramStatus() : Promise.resolve(),
+    typeof initMatrix === 'function' ? initMatrix() : Promise.resolve(),
   ]);
 
   renderCards('services');
@@ -206,6 +207,10 @@ function switchView(view, navEl) {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
     checkEngramStatus();
     if (!knownSources.length) loadSearchSources();
+  }
+
+  if (view === 'matrix' && typeof onMatrixViewOpen === 'function') {
+    onMatrixViewOpen();
   }
 }
 

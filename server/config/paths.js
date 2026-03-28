@@ -15,6 +15,7 @@ function createPaths(rootDir) {
     SESSIONS_DIR: process.env.SESSIONS_DIR || path.join(rootDir, 'sessions'),
     TEMPLATES_FILE: path.join(rootDir, 'note-templates.json'),
     SEARCH_URL: process.env.SEARCH_URL || 'http://localhost:3002',
+    MATRIX_URL: process.env.MATRIX_URL || 'http://127.0.0.1:3003',
   };
 }
 

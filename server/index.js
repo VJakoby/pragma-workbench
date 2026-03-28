@@ -30,6 +30,7 @@ const { createWorkbenchStorage } = require('./lib/workbench-storage');
 const { registerKbRoutes } = require('./routes/kb');
 const { registerNotesRoutes } = require('./routes/notes');
 const { registerSearchProxyRoutes } = require('./routes/search-proxy');
+const { registerMatrixRoutes } = require('./routes/matrix');
 const { registerWorkbenchRoutes } = require('./routes/workbenches');
 
 let chokidar;
@@ -44,6 +45,7 @@ const {
   SESSIONS_DIR,
   TEMPLATES_FILE,
   SEARCH_URL,
+  MATRIX_URL,
   HOST,
 } = createPaths(path.resolve(__dirname, '..'));
 
@@ -104,6 +106,7 @@ registerKbRoutes(app, {
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });
+registerMatrixRoutes(app, { matrixUrl: MATRIX_URL });
 registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
 registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage });
 

@@ -24,6 +24,46 @@
         <div class="cards-area" id="methGrid"></div>
       </div>
 
+      <div class="panel-view" id="view-matrix">
+        <div class="matrix-view">
+          <div class="matrix-toolbar">
+            <div class="matrix-toolbar-left">
+              <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
+              <div class="matrix-toolbar-meta" id="matrixToolbarMeta">Proxying through PRAGMA</div>
+            </div>
+            <div class="matrix-toolbar-actions">
+              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh Matrix // Recon status">Refresh</button>
+              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh Matrix // Recon jobs">Jobs</button>
+            </div>
+          </div>
+          <div class="matrix-grid">
+            <section class="matrix-card">
+              <div class="matrix-card-hdr">Submit Recon</div>
+              <div class="matrix-mode-row btn-group">
+                <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
+                <button class="btn-group-item" id="matrixModeIps" onclick="setMatrixMode('ips')">IPs</button>
+              </div>
+              <label class="matrix-label" for="matrixDkimSelectors" id="matrixDkimLabel">DKIM Selectors</label>
+              <input class="matrix-input" id="matrixDkimSelectors" type="text" placeholder="optional: selector1 selector2">
+              <label class="matrix-label" for="matrixTargets" id="matrixTargetsLabel">Targets</label>
+              <textarea class="matrix-textarea" id="matrixTargets" placeholder="example.com&#10;sub.example.com"></textarea>
+              <div class="matrix-action-row">
+                <button class="tb-btn" onclick="submitMatrixJob()">Run</button>
+                <button class="tb-btn" onclick="clearMatrixForm()">Clear</button>
+              </div>
+            </section>
+            <section class="matrix-card">
+              <div class="matrix-card-hdr">Recent Jobs</div>
+              <div class="matrix-jobs-list" id="matrixJobsList">No Matrix // Recon jobs loaded.</div>
+            </section>
+            <section class="matrix-card matrix-card-wide">
+              <div class="matrix-card-hdr">Job Output</div>
+              <pre class="matrix-output" id="matrixOutput">Select or run a Matrix // Recon job.</pre>
+            </section>
+          </div>
+        </div>
+      </div>
+
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">
           <div class="search-input-row">
