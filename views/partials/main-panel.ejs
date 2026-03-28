@@ -49,8 +49,10 @@
               <textarea class="matrix-textarea" id="matrixTargets" placeholder="example.com&#10;sub.example.com"></textarea>
               <div class="matrix-action-row">
                 <button class="tb-btn" onclick="submitMatrixJob()">Run</button>
+                <button class="tb-btn" onclick="importMatrixTargets()">Import</button>
                 <button class="tb-btn" onclick="clearMatrixForm()">Clear</button>
               </div>
+              <input id="matrixImportFile" type="file" accept=".txt,.csv,.json,.log" hidden>
             </section>
             <section class="matrix-card">
               <div class="matrix-card-hdr">Recent Jobs</div>
@@ -58,7 +60,7 @@
             </section>
             <section class="matrix-card matrix-card-wide">
               <div class="matrix-card-hdr">Job Output</div>
-              <pre class="matrix-output" id="matrixOutput">Select or run a Matrix // Recon job.</pre>
+              <div class="matrix-output" id="matrixOutput">Select or run a Matrix // Recon job.</div>
             </section>
           </div>
         </div>

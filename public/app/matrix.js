@@ -5,6 +5,15 @@ let matrixState = {
   capabilities: null,
 };
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function matrixSetStatus(label, state) {
   const pill = document.getElementById('matrixServicePill');
   const badge = document.getElementById('matrix-status-badge');
@@ -20,13 +29,373 @@ function matrixSetStatus(label, state) {
   }
 }
 
+function matrixStatusChip(label, tone = 'neutral') {
+  return `<span class="matrix-chip ${tone}">${escapeHtml(label)}</span>`;
+}
+
+function matrixJoinList(values) {
+  if (!Array.isArray(values) || !values.length) return '<span class="matrix-muted">None</span>';
+  return values.map(value => `<span class="matrix-pill">${escapeHtml(value)}</span>`).join('');
+}
+
+function matrixFormatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return escapeHtml(value);
+  return date.toLocaleString();
+}
+
+function matrixDaysUntil(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.ceil((date.getTime() - Date.now()) / 86400000);
+}
+
+function matrixFormatMx(mxList) {
+  if (!Array.isArray(mxList) || !mxList.length) return '<span class="matrix-muted">None</span>';
+  return mxList.map(item => {
+    if (item?.isNullMx) return '<span class="matrix-pill">Null MX</span>';
+    const exchange = item?.exchange || 'unknown';
+    const priority = Number.isFinite(item?.priority) ? ` (prio ${item.priority})` : '';
+    return `<span class="matrix-pill">${escapeHtml(exchange + priority)}</span>`;
+  }).join('');
+}
+
+function matrixExtractDkimRows(dkim) {
+  if (!dkim || !Array.isArray(dkim.records) || !dkim.records.length) return '';
+  return dkim.records.map(record => {
+    const first = Array.isArray(record.records) ? record.records[0] : null;
+    const flags = [];
+    if (first?.keyRevoked) flags.push('revoked');
+    if (first?.keyPresent && !first?.keyRevoked) flags.push('key present');
+    const detail = flags.length ? ` (${flags.join(', ')})` : '';
+    return `<div class="matrix-kv"><span>${escapeHtml(record.selector || 'selector')}</span><strong>${escapeHtml(record.host || '')}${escapeHtml(detail)}</strong></div>`;
+  }).join('');
+}
+
+function matrixExtractEntityName(entity) {
+  const card = Array.isArray(entity?.vcardArray?.[1]) ? entity.vcardArray[1] : [];
+  const fn = card.find(item => item?.[0] === 'fn');
+  return fn?.[3] || entity?.handle || null;
+}
+
+function matrixExtractEntityEmail(entity) {
+  const card = Array.isArray(entity?.vcardArray?.[1]) ? entity.vcardArray[1] : [];
+  const email = card.find(item => item?.[0] === 'email');
+  return email?.[3] || null;
+}
+
+function matrixExtractEvents(events) {
+  const out = {};
+  if (!Array.isArray(events)) return out;
+  for (const event of events) {
+    if (!event?.eventAction || !event?.eventDate) continue;
+    out[event.eventAction] = event.eventDate;
+  }
+  return out;
+}
+
+function matrixRenderKv(label, value) {
+  return `<div class="matrix-kv"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || 'N/A')}</strong></div>`;
+}
+
+function matrixRenderDomainResult(result) {
+  const dns = result?.dns || {};
+  const email = result?.emailSecurity || {};
+  const dkim = email?.dkim || {};
+  const tls = result?.transportSecurity?.tls || {};
+  const cert = tls?.certificate || {};
+  const expiryDays = matrixDaysUntil(cert.validTo);
+  const dkimFlags = [];
+  if (dkim.status) dkimFlags.push(dkim.status);
+  if (dkim.wildcardSuspected) dkimFlags.push('wildcard suspected');
+
+  return `
+    <section class="matrix-result-card">
+      <div class="matrix-result-head">
+        <div>
+          <div class="matrix-result-title">${escapeHtml(result.normalized || result.target || 'Domain')}</div>
+          <div class="matrix-result-subtitle">${escapeHtml(result.target || '')}</div>
+        </div>
+        <div class="matrix-chip-row">
+          ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
+          ${matrixStatusChip(result.resolved ? 'resolved' : 'unresolved', result.resolved ? 'ok' : 'warn')}
+          ${matrixStatusChip(email.acceptsMail === false ? 'no mail' : 'mail', email.acceptsMail === false ? 'warn' : 'neutral')}
+        </div>
+      </div>
+
+      <div class="matrix-section-grid">
+        <section class="matrix-section">
+          <h4>Resolution</h4>
+          ${matrixRenderKv('IPv4', Array.isArray(dns.a) && dns.a.length ? dns.a.join(', ') : 'None')}
+          ${matrixRenderKv('IPv6', Array.isArray(dns.aaaa) && dns.aaaa.length ? dns.aaaa.join(', ') : 'None')}
+          ${matrixRenderKv('CNAME', Array.isArray(dns.cname) && dns.cname.length ? dns.cname.join(', ') : 'None')}
+          ${matrixRenderKv('Nameservers', Array.isArray(dns.ns) && dns.ns.length ? dns.ns.join(', ') : 'None')}
+          ${matrixRenderKv('MX', Array.isArray(dns.mx) && dns.mx.some(item => item?.isNullMx) ? 'Null MX' : (Array.isArray(dns.mx) && dns.mx.length ? dns.mx.map(item => `${item.exchange || 'unknown'}${Number.isFinite(item.priority) ? ` (${item.priority})` : ''}`).join(', ') : 'None'))}
+        </section>
+
+        <section class="matrix-section">
+          <h4>Email Security</h4>
+          ${matrixRenderKv('SPF', Array.isArray(email.spf) && email.spf.length ? email.spf.join(' | ') : 'None')}
+          ${matrixRenderKv('DMARC', Array.isArray(email.dmarc) && email.dmarc.length ? email.dmarc.join(' | ') : 'None')}
+          ${matrixRenderKv('DKIM', dkimFlags.length ? dkimFlags.join(', ') : 'Not found')}
+          ${matrixRenderKv('Selectors Checked', Array.isArray(dkim.selectorsChecked) ? String(dkim.selectorsChecked.length) : '0')}
+        </section>
+
+        <section class="matrix-section">
+          <h4>TLS</h4>
+          ${matrixRenderKv('Status', tls.status || 'Unknown')}
+          ${matrixRenderKv('Protocol', tls.protocol || 'N/A')}
+          ${matrixRenderKv('Issuer', cert?.issuer?.CN || cert?.issuer?.O || 'N/A')}
+          ${matrixRenderKv('Subject CN', cert?.subject?.CN || 'N/A')}
+          ${matrixRenderKv('Certificate Expiry', cert.validTo || 'N/A')}
+          ${matrixRenderKv('Days Remaining', expiryDays == null ? 'N/A' : String(expiryDays))}
+        </section>
+      </div>
+
+      <section class="matrix-section">
+        <h4>Highlights</h4>
+        <div class="matrix-pill-row">${matrixJoinList(dns.ns || [])}</div>
+        <div class="matrix-pill-row">${matrixFormatMx(dns.mx)}</div>
+      </section>
+
+      ${Array.isArray(dkim.records) && dkim.records.length ? `
+        <section class="matrix-section">
+          <h4>DKIM Records</h4>
+          <div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>
+        </section>
+      ` : ''}
+
+      ${(cert.subjectAltName || tls.cipher?.name) ? `
+        <section class="matrix-section">
+          <h4>Certificate Details</h4>
+          <div class="matrix-kv-list">
+            ${matrixRenderKv('SAN', cert.subjectAltName || 'N/A')}
+            ${matrixRenderKv('Cipher', tls.cipher?.standardName || tls.cipher?.name || 'N/A')}
+            ${matrixRenderKv('Valid From', cert.validFrom || 'N/A')}
+          </div>
+        </section>
+      ` : ''}
+    </section>
+  `;
+}
+
+function matrixRenderIpResult(result) {
+  const rdap = result?.rdap || {};
+  const summary = rdap?.summary || {};
+  const registrant = Array.isArray(summary.entities) ? summary.entities.find(entity => Array.isArray(entity.roles) && entity.roles.includes('registrant')) : null;
+  const abuse = Array.isArray(rdap.document?.entities)
+    ? rdap.document.entities.find(entity => Array.isArray(entity.roles) && entity.roles.includes('abuse'))
+    : null;
+  const events = matrixExtractEvents(summary.events || rdap.document?.events);
+
+  return `
+    <section class="matrix-result-card">
+      <div class="matrix-result-head">
+        <div>
+          <div class="matrix-result-title">${escapeHtml(result.normalized || result.target || 'IP')}</div>
+          <div class="matrix-result-subtitle">${escapeHtml(summary.name || summary.handle || rdap.status || '')}</div>
+        </div>
+        <div class="matrix-chip-row">
+          ${matrixStatusChip(result.public ? 'public' : (result.scope || 'private'), result.public ? 'ok' : 'warn')}
+          ${matrixStatusChip(`IPv${escapeHtml(result.version || '')}`, 'neutral')}
+          ${matrixStatusChip(rdap.status || 'rdap', rdap.status === 'ok' ? 'ok' : 'warn')}
+        </div>
+      </div>
+
+      <div class="matrix-section-grid">
+        <section class="matrix-section">
+          <h4>Allocation</h4>
+          ${matrixRenderKv('Network', summary.name || 'N/A')}
+          ${matrixRenderKv('Handle', summary.handle || 'N/A')}
+          ${matrixRenderKv('Type', summary.type || 'N/A')}
+          ${matrixRenderKv('Range', summary.startAddress && summary.endAddress ? `${summary.startAddress} - ${summary.endAddress}` : 'N/A')}
+          ${matrixRenderKv('Status', Array.isArray(summary.status) ? summary.status.join(', ') : 'N/A')}
+        </section>
+
+        <section class="matrix-section">
+          <h4>Ownership</h4>
+          ${matrixRenderKv('Registrant', matrixExtractEntityName(registrant) || 'N/A')}
+          ${matrixRenderKv('Abuse Contact', matrixExtractEntityEmail(abuse) || 'N/A')}
+          ${matrixRenderKv('Registration', events.registration || 'N/A')}
+          ${matrixRenderKv('Last Changed', events['last changed'] || 'N/A')}
+        </section>
+      </div>
+
+      <section class="matrix-section">
+        <h4>RDAP Source</h4>
+        <div class="matrix-kv-list">
+          ${matrixRenderKv('Lookup URL', rdap.source || 'N/A')}
+          ${matrixRenderKv('Parent Handle', summary.parentHandle || 'N/A')}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function matrixRenderJobOverview(job) {
+  const counts = job?.result?.counts || {};
+  return `
+    <section class="matrix-result-card">
+      <div class="matrix-result-head">
+        <div>
+          <div class="matrix-result-title">${escapeHtml(job.type || 'matrix-job')}</div>
+          <div class="matrix-result-subtitle">Job ${escapeHtml(job.id || '')}</div>
+        </div>
+        <div class="matrix-chip-row">
+          ${matrixStatusChip(job.status || 'unknown', job.status === 'completed' ? 'ok' : (job.status === 'failed' ? 'bad' : 'warn'))}
+          ${job.completedAt ? matrixStatusChip('complete', 'ok') : ''}
+        </div>
+      </div>
+      <div class="matrix-section-grid">
+        <section class="matrix-section">
+          <h4>Timing</h4>
+          ${matrixRenderKv('Created', matrixFormatDate(job.createdAt))}
+          ${matrixRenderKv('Started', matrixFormatDate(job.startedAt))}
+          ${matrixRenderKv('Completed', matrixFormatDate(job.completedAt))}
+        </section>
+        <section class="matrix-section">
+          <h4>Counts</h4>
+          ${Object.keys(counts).length ? Object.entries(counts).map(([key, value]) => matrixRenderKv(key, String(value))).join('') : matrixRenderKv('Targets', String(job.input?.targets?.length || 0))}
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+function matrixRenderRaw(value) {
+  return `
+    <details class="matrix-raw-details">
+      <summary>Raw JSON</summary>
+      <pre class="matrix-raw-pre">${escapeHtml(JSON.stringify(value, null, 2))}</pre>
+    </details>
+  `;
+}
+
+function matrixRenderPayload(value) {
+  if (typeof value === 'string') {
+    return `<div class="matrix-empty-state">${escapeHtml(value)}</div>`;
+  }
+
+  const summary = value?.summary || null;
+  const base = value?.result && value?.status ? value : (summary || value);
+  const resultEnvelope = value?.result && value?.result?.results ? value.result : (value?.result?.result ? value.result.result : value?.result || null);
+  const results = Array.isArray(resultEnvelope?.results) ? resultEnvelope.results : [];
+
+  if (value?.submitting) {
+    return `
+      <section class="matrix-result-card">
+        <div class="matrix-result-head">
+          <div>
+            <div class="matrix-result-title">Submitting ${escapeHtml(matrixState.mode)}</div>
+            <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
+          </div>
+          <div class="matrix-chip-row">${matrixStatusChip('submitting', 'warn')}</div>
+        </div>
+      </section>
+      ${matrixRenderRaw(value)}
+    `;
+  }
+
+  if (!base || (!base.status && !results.length)) {
+    return matrixRenderRaw(value);
+  }
+
+  let html = matrixRenderJobOverview({ ...base, result: resultEnvelope });
+  if (results.length) {
+    html += results.map(item => {
+      if (item.kind === 'domain') return matrixRenderDomainResult(item);
+      if (item.kind === 'ip') return matrixRenderIpResult(item);
+      return `
+        <section class="matrix-result-card">
+          <div class="matrix-result-title">${escapeHtml(item.normalized || item.target || item.kind || 'Result')}</div>
+          ${matrixRenderRaw(item)}
+        </section>
+      `;
+    }).join('');
+  }
+  if (base?.error || value?.error) {
+    html += `
+      <section class="matrix-result-card">
+        <div class="matrix-result-title">Error</div>
+        <div class="matrix-empty-state">${escapeHtml(base.error || value.error)}</div>
+      </section>
+    `;
+  }
+  html += matrixRenderRaw(value);
+  return html;
+}
+
 function matrixSetOutput(value) {
   const node = document.getElementById('matrixOutput');
   if (!node) return;
-  node.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+  node.innerHTML = matrixRenderPayload(value);
+}
+
+function matrixParseImportedTargets(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => typeof item === 'string' ? item.trim() : '').filter(Boolean);
+    }
+    if (Array.isArray(parsed?.targets)) {
+      return parsed.targets.map(item => String(item || '').trim()).filter(Boolean);
+    }
+    if (Array.isArray(parsed?.result?.results)) {
+      return parsed.result.results
+        .map(item => item?.normalized || item?.target || '')
+        .map(item => String(item || '').trim())
+        .filter(Boolean);
+    }
+    if (Array.isArray(parsed?.results)) {
+      return parsed.results
+        .map(item => item?.normalized || item?.target || '')
+        .map(item => String(item || '').trim())
+        .filter(Boolean);
+    }
+  } catch (_) {}
+
+  return trimmed
+    .split(/[\n,;\t\r ]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function importMatrixTargets() {
+  document.getElementById('matrixImportFile')?.click();
+}
+
+async function onMatrixFileSelected(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const targets = matrixParseImportedTargets(text);
+    const textarea = document.getElementById('matrixTargets');
+    if (textarea) {
+      textarea.value = targets.length ? targets.join('\n') : text;
+    }
+    matrixSetOutput({
+      imported: true,
+      filename: file.name,
+      detectedTargets: targets.length,
+      mode: matrixState.mode,
+    });
+  } catch (error) {
+    matrixSetOutput({ error: 'Could not read import file', detail: error.message });
+  } finally {
+    if (input) input.value = '';
+  }
 }
 
 async function initMatrix() {
+  setMatrixMode(matrixState.mode);
+  document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
   await Promise.allSettled([
     refreshMatrixStatus(),
     loadMatrixJobs(),
@@ -45,6 +414,7 @@ async function refreshMatrixStatus() {
       fetch('/api/matrix/health').then(r => r.json()),
       fetch('/api/matrix/capabilities').then(r => r.json()),
     ]);
+    void health;
     matrixState.capabilities = capabilities;
     matrixSetStatus('online', 'online');
     if (meta) {
@@ -71,14 +441,18 @@ function setMatrixMode(mode) {
     dkimInput.disabled = matrixState.mode !== 'domains';
   }
   if (targetsLabel) targetsLabel.textContent = matrixState.mode === 'domains' ? 'Domains' : 'IP Addresses';
-  if (targets) targets.placeholder = matrixState.mode === 'domains'
-    ? 'example.com\nsub.example.com'
-    : '8.8.8.8\n1.1.1.1';
+  if (targets) {
+    targets.placeholder = matrixState.mode === 'domains'
+      ? 'example.com\nsub.example.com'
+      : '8.8.8.8\n1.1.1.1';
+  }
 }
 
 function clearMatrixForm() {
-  document.getElementById('matrixTargets').value = '';
-  document.getElementById('matrixDkimSelectors').value = '';
+  const targets = document.getElementById('matrixTargets');
+  const selectors = document.getElementById('matrixDkimSelectors');
+  if (targets) targets.value = '';
+  if (selectors) selectors.value = '';
 }
 
 async function submitMatrixJob() {
@@ -137,9 +511,9 @@ async function loadMatrixJobs() {
   }
   list.innerHTML = jobs.map(job => `
     <button class="matrix-job-item" onclick="openMatrixJob('${job.id}')">
-      <span class="matrix-job-item-type">${job.type}</span>
-      <span class="matrix-job-item-status ${job.status}">${job.status}</span>
-      <span class="matrix-job-item-meta">${job.targetCount} targets</span>
+      <span class="matrix-job-item-type">${escapeHtml(job.type)}</span>
+      <span class="matrix-job-item-status ${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
+      <span class="matrix-job-item-meta">${escapeHtml(job.targetCount)} targets</span>
     </button>
   `).join('');
 }
@@ -163,3 +537,4 @@ window.clearMatrixForm = clearMatrixForm;
 window.submitMatrixJob = submitMatrixJob;
 window.loadMatrixJobs = loadMatrixJobs;
 window.openMatrixJob = openMatrixJob;
+window.importMatrixTargets = importMatrixTargets;
