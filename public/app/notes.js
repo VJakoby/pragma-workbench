@@ -6,6 +6,7 @@ let activeNoteScope  = 'session';
 let activeTagFilter  = null;
 let activeTargetFilter = null;
 let activeNoteSearch = '';
+let activeNewNoteType = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
 
 function setNoteEditorMode(mode) {
@@ -324,9 +325,98 @@ function formatDate(ts) {
          d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 }
 
-function openNewNoteModal() { document.getElementById('newNoteOverlay').classList.add('open'); }
-function closeNewNoteModal() { document.getElementById('newNoteOverlay').classList.remove('open'); }
+function resetNewNoteModalState() {
+  activeNewNoteType = null;
+  document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.remove('active'));
+  const variantWrap = document.getElementById('newNoteVariantWrap');
+  const variantBar = document.getElementById('newNoteVariantBar');
+  const previewWrap = document.getElementById('newNotePreviewWrap');
+  const previewContent = document.getElementById('newNotePreviewContent');
+  const createBtn = document.getElementById('newNoteCreateBtn');
+  const createHint = document.getElementById('newNoteCreateHint');
+  if (variantWrap) variantWrap.style.display = 'none';
+  if (variantBar) variantBar.innerHTML = '';
+  if (previewWrap) previewWrap.style.display = 'none';
+  if (previewContent) previewContent.innerHTML = '';
+  if (createBtn) createBtn.style.display = 'none';
+  if (createHint) createHint.style.display = '';
+}
+
+function openNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.add('open');
+  resetNewNoteModalState();
+}
+
+function closeNewNoteModal() {
+  document.getElementById('newNoteOverlay').classList.remove('open');
+  resetNewNoteModalState();
+}
+
 function closeNewNoteModalIfOutside(e) { if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal(); }
+
+function renderNewNotePreview(type) {
+  const wrap = document.getElementById('newNotePreviewWrap');
+  const content = document.getElementById('newNotePreviewContent');
+  if (!wrap || !content || !type) return;
+
+  const tmpl = resolveTemplateForCreation(type, NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || null);
+  const md = buildNoteBodyFromTemplate(tmpl);
+  const rendered = typeof marked !== 'undefined' && marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  content.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(rendered) : rendered;
+  wrap.style.display = '';
+}
+
+function renderNewNoteVariantPicker(type) {
+  const variantWrap = document.getElementById('newNoteVariantWrap');
+  const variantBar = document.getElementById('newNoteVariantBar');
+  const createBtn = document.getElementById('newNoteCreateBtn');
+  const createHint = document.getElementById('newNoteCreateHint');
+  const tmpl = NOTE_TEMPLATES[type];
+  const variants = Array.isArray(tmpl?.variants) ? tmpl.variants : [];
+
+  if (!variantWrap || !variantBar || !createBtn || !createHint) return;
+  if (!variants.length) {
+    variantWrap.style.display = 'none';
+    variantBar.innerHTML = '';
+    createBtn.style.display = 'none';
+    createHint.style.display = '';
+    return;
+  }
+
+  variantWrap.style.display = '';
+  createBtn.style.display = '';
+  createHint.style.display = 'none';
+  const selectedId = NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || variants[0].id;
+  variantBar.innerHTML = variants.map((variant) =>
+    `<button class="btn-group-item${variant.id === selectedId ? ' active' : ''}" onclick="setNewNoteVariant(decodeURIComponent('${encodeURIComponent(type)}'),decodeURIComponent('${encodeURIComponent(variant.id)}'))">${esc(variant.label)}</button>`
+  ).join('');
+  renderNewNotePreview(type);
+}
+
+function selectNewNoteType(type) {
+  activeNewNoteType = type;
+  document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
+  const variants = Array.isArray(NOTE_TEMPLATES[type]?.variants) ? NOTE_TEMPLATES[type].variants : [];
+  if (!variants.length) {
+    newNote(type);
+    return;
+  }
+  if (!NOTE_TEMPLATE_VARIANT_SELECTIONS[type]) NOTE_TEMPLATE_VARIANT_SELECTIONS[type] = variants[0].id;
+  renderNewNoteVariantPicker(type);
+}
+
+function setNewNoteVariant(type, variantId) {
+  NOTE_TEMPLATE_VARIANT_SELECTIONS[type] = variantId;
+  if (activeNewNoteType === type) {
+    renderNewNoteVariantPicker(type);
+    renderNewNotePreview(type);
+  }
+}
+
+function createSelectedNewNote() {
+  if (!activeNewNoteType) return;
+  newNote(activeNewNoteType, NOTE_TEMPLATE_VARIANT_SELECTIONS[activeNewNoteType] || null);
+}
 
 function buildNoteBodyFromTemplate(tmpl) {
   const body = tmpl?.body || '';
@@ -336,15 +426,16 @@ function buildNoteBodyFromTemplate(tmpl) {
   return `# ${title}\n\n${body}`;
 }
 
-function newNote(type = 'scratch') {
+function newNote(type = 'scratch', variantId = null) {
   closeNewNoteModal();
-  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.scratch;
+  const tmpl = resolveTemplateForCreation(type, variantId);
   const id = 'note_' + Date.now();
   notes[id] = {
     id,
     session_id: activeSessionId || null,
     target_id: activeTargetId || null,
     type,
+    template_variant: tmpl.variant_id || null,
     title: tmpl.title || '',
     body: buildNoteBodyFromTemplate(tmpl),
     tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
@@ -814,6 +905,17 @@ async function exportNotesMarkdown(sessionId) {
     });
     const d = await r.json();
     if (d.ok) {
+      if (d.download?.filename && typeof d.download.content === 'string') {
+        const blob = new Blob([d.download.content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = d.download.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
       const count = d.files?.length || 0;
       showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`);
     } else {

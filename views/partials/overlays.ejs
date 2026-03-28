@@ -134,15 +134,27 @@
 
 <!-- -- NEW NOTE MODAL -- -->
 <div class="cmd-overlay" id="newNoteOverlay" onclick="closeNewNoteModalIfOutside(event)">
-  <div class="cmd-box" style="max-width:520px">
+  <div class="cmd-box" style="max-width:620px">
     <div class="cmd-input-row">
       <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">New Note</span>
       <span class="cmd-esc" onclick="closeNewNoteModal()" style="cursor:pointer">ESC</span>
     </div>
-      <div class="create-modal-body">
+    <div class="create-modal-body">
       <div class="create-modal-hdr">Select type</div>
       <div class="new-note-type-grid" id="newNoteTypeGrid"></div>
+      <div class="create-modal-hdr" id="newNoteVariantWrap" style="display:none">
+        <span>Select version</span>
+        <div class="btn-group new-note-variant-bar" id="newNoteVariantBar" style="margin-top:8px"></div>
+      </div>
+      <div class="create-modal-preview" id="newNotePreviewWrap" style="display:none">
+        <div class="create-modal-hdr">Preview</div>
+        <div class="md-content create-modal-preview-content" id="newNotePreviewContent"></div>
+      </div>
+      <div class="create-modal-desc" id="newNoteCreateHint">Templates with multiple versions will show a version selector here.</div>
+      <div class="create-modal-actions">
+        <button class="session-btn primary" id="newNoteCreateBtn" type="button" onclick="createSelectedNewNote()" style="display:none">Create Note</button>
+      </div>
     </div>
   </div>
 </div>

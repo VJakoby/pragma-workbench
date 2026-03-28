@@ -55,6 +55,12 @@ function getTooltipEl() {
 }
 
 function getTooltipText(el) {
+  if (el?.matches?.('.nav-item, .session-active')) {
+    return el.dataset?.nativeTitle
+      || el.getAttribute?.('title')
+      || el.querySelector?.('.nav-item-label, .session-active-name')?.textContent?.trim()
+      || '';
+  }
   return el?.dataset?.nativeTitle || el?.getAttribute?.('title') || '';
 }
 
@@ -102,7 +108,7 @@ function showTooltip(target) {
 }
 
 document.addEventListener('mouseover', (e) => {
-  const target = e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  const target = e.target.closest('.nav-item, .session-active') || e.target.closest(TOOLTIP_TARGET_SELECTOR);
   if (!target || target === tooltipTarget) return;
   showTooltip(target);
 });
@@ -115,7 +121,7 @@ document.addEventListener('mouseout', (e) => {
 });
 
 document.addEventListener('focusin', (e) => {
-  const target = e.target.closest(TOOLTIP_TARGET_SELECTOR);
+  const target = e.target.closest('.nav-item, .session-active') || e.target.closest(TOOLTIP_TARGET_SELECTOR);
   if (target) showTooltip(target);
 });
 

@@ -35,6 +35,7 @@ const NOTE_TEMPLATES_FALLBACK = {
 };
 
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
+const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -44,25 +45,67 @@ function normalizeCssClass(type) {
   return BUILTIN_NOTE_TYPE_META[type]?.cssClass || 'note-type-general';
 }
 
+function normalizeTemplateVariant(variant) {
+  if (!variant || typeof variant !== 'object') return null;
+  const id = String(variant.id || '').trim();
+  if (!id) return null;
+  return {
+    id,
+    label: String(variant.label || id).trim() || id,
+    title: String(variant.title || '').trim(),
+    body: String(variant.body || ''),
+    default_tags: Array.isArray(variant.default_tags) ? [...variant.default_tags] : null,
+  };
+}
+
+function normalizeTemplateDefinition(tmpl, fromFile = false) {
+  return {
+    title: String(tmpl?.title || '').trim(),
+    body: String(tmpl?.body || ''),
+    icon: tmpl?.icon,
+    label: tmpl?.label,
+    default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
+    variants: Array.isArray(tmpl?.variants) ? tmpl.variants.map(normalizeTemplateVariant).filter(Boolean) : [],
+    fromFile,
+  };
+}
+
+function getTemplateVariant(type, variantId = null) {
+  const tmpl = NOTE_TEMPLATES[type];
+  const variants = Array.isArray(tmpl?.variants) ? tmpl.variants : [];
+  if (!variants.length) return null;
+  const selectedId = String(variantId || NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || variants[0].id);
+  return variants.find(variant => variant.id === selectedId) || variants[0];
+}
+
+function resolveTemplateForCreation(type, variantId = null) {
+  const tmpl = NOTE_TEMPLATES[type] || NOTE_TEMPLATES.scratch;
+  const variant = getTemplateVariant(type, variantId);
+  return {
+    ...tmpl,
+    title: variant?.title || tmpl.title || '',
+    body: variant?.body || tmpl.body || '',
+    default_tags: Array.isArray(variant?.default_tags) ? [...variant.default_tags] : [...(tmpl.default_tags || [])],
+    variant_id: variant?.id || null,
+    variant_label: variant?.label || null,
+  };
+}
+
 function setNoteTemplates(templates, { fromFile = false } = {}) {
   NOTE_TYPE_META = { scratch: { ...BLANK_NOTE_META } };
   NOTE_TEMPLATES = { scratch: { ...NOTE_TEMPLATES_FALLBACK.scratch } };
 
   Object.entries(templates || {}).forEach(([id, tmpl]) => {
     if (!id || id === 'scratch') return;
-    NOTE_TEMPLATES[id] = {
-      title: tmpl?.title || '',
-      body: tmpl?.body || '',
-      icon: tmpl?.icon,
-      label: tmpl?.label,
-      default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
-      fromFile,
-    };
+    NOTE_TEMPLATES[id] = normalizeTemplateDefinition(tmpl, fromFile);
     NOTE_TYPE_META[id] = {
       label: tmpl?.label || BUILTIN_NOTE_TYPE_META[id]?.label || id,
       icon: tmpl?.icon || BUILTIN_NOTE_TYPE_META[id]?.icon || '📄',
       cssClass: normalizeCssClass(id),
     };
+    const defaultVariantId = NOTE_TEMPLATES[id].variants?.[0]?.id;
+    if (defaultVariantId) NOTE_TEMPLATE_VARIANT_SELECTIONS[id] = defaultVariantId;
+    else delete NOTE_TEMPLATE_VARIANT_SELECTIONS[id];
   });
 }
 
@@ -118,15 +161,21 @@ async function loadNoteTemplates() {
     const loaded = {};
     for (const t of d.templates) {
       if (!t.id) continue;
-      const body = Array.isArray(t.body_lines) ? t.body_lines.join('\n') : (t.body || '');
       loaded[t.id] = {
         title:        t.title_prefix || '',
-        body,
+        body:         t.body || '',
         icon:         t.icon,
         label:        t.label,
         default_tags: t.default_tags || [],
+        variants:     Array.isArray(t.variants) ? t.variants.map((variant) => ({
+          id: variant?.id,
+          label: variant?.label,
+          title: variant?.title_prefix || '',
+          body: variant?.body || '',
+          default_tags: variant?.default_tags || null,
+        })) : [],
         fromFile:     true,
-      }
+      };
     }
     setNoteTemplates(loaded, { fromFile: true });
     console.log(`[Templates] Loaded ${Object.keys(loaded).length} templates from file`);
@@ -148,7 +197,10 @@ function renderNoteTypeGrid() {
     .filter(([id]) => id !== 'scratch')
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
-      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="newNote('${id}')">${meta.icon} ${meta.label}</button>`);
+      const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
+        ? `<span class="new-note-type-meta">${tmpl.variants.length} version${tmpl.variants.length !== 1 ? 's' : ''}</span>`
+        : '';
+      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
     });
   grid.innerHTML = buttons.join('');
 }

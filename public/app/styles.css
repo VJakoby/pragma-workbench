@@ -668,6 +668,10 @@ body{
 /* ── SVG icon sizing & alignment ── */
 .nav-item-icon svg, .nav-item-icon { display:flex; align-items:center; }
 .icon-btn svg, .tb-btn svg { display:block; }
+.icon-btn svg {
+  width: 15px;
+  height: 15px;
+}
 svg { vertical-align: middle; flex-shrink: 0; }
 .nav-item-icon { width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
 .sidebar .nav-item-icon svg { width:18px; height:18px; }
@@ -1492,7 +1496,16 @@ svg { vertical-align: middle; flex-shrink: 0; }
   display: flex; align-items: center; justify-content: center;
   line-height: 1;
 }
-.sidebar-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
+.sidebar-toggle-btn:hover {
+  background: rgba(var(--accent-rgb),0.08);
+  border-color: rgba(var(--accent-rgb),0.28);
+  color: var(--text);
+}
+.sidebar-toggle-btn:active {
+  background: rgba(var(--accent-rgb),0.12);
+  border-color: rgba(var(--accent-rgb),0.38);
+  color: var(--accent);
+}
 .sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
 .sidebar-toggle-mark {
   display: flex;
@@ -1504,7 +1517,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
   font-weight: 900;
   line-height: 1;
 }
-.sidebar-toggle-btn:hover .sidebar-toggle-mark { color: var(--accent2); }
+.sidebar-toggle-btn:hover .sidebar-toggle-mark,
+.sidebar-toggle-btn:active .sidebar-toggle-mark { color: var(--accent2); }
 .sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
 /* ── Sidebar icon-only mode ── */
 .sidebar { transition: width 0.18s ease, border-color 0.4s, box-shadow 0.4s; }
@@ -1696,9 +1710,15 @@ svg { vertical-align: middle; flex-shrink: 0; }
       border-radius: 7px; padding: 10px 8px;
       font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
-      position: relative;
+      position: relative; display:flex; align-items:center; gap:7px;
     }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
+    .new-note-type-btn.active {
+      border-color: rgba(var(--accent-rgb),0.42);
+      background: rgba(var(--accent-rgb),0.08);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.18);
+    }
     .new-note-type-btn.template-from-file {
       border-color: rgba(124,58,237,0.5);
       box-shadow: 0 0 0 1px rgba(124,58,237,0.25);
@@ -1706,6 +1726,15 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .new-note-type-btn.template-from-file:hover {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(124,58,237,0.5);
+    }
+    .new-note-type-meta {
+      margin-left:auto;
+      font-family:'Inter',sans-serif;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:var(--muted);
     }
     .note-type-custom { color: var(--accent); }
 
@@ -3193,6 +3222,46 @@ body.enc-active-body .content-panel {
   font-size: 14px;
   color: var(--text2);
   line-height: 1.6;
+}
+.new-note-variant-bar {
+  width: 100%;
+  margin-top: 8px;
+}
+.create-modal-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.create-modal-preview-content {
+  max-height: min(34vh, 320px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.create-modal-preview-content h1,
+.create-modal-preview-content h2,
+.create-modal-preview-content h3,
+.create-modal-preview-content h4 {
+  margin-top: 0.7em;
+  margin-bottom: 0.35em;
+}
+.create-modal-preview-content p,
+.create-modal-preview-content ul,
+.create-modal-preview-content ol,
+.create-modal-preview-content table,
+.create-modal-preview-content blockquote,
+.create-modal-preview-content pre {
+  margin-bottom: 0.65em;
+}
+.create-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 /* ── Nmap parse preview ── */
 .nmap-preview-hdr {

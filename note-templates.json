@@ -25,6 +25,51 @@
       "default_tags": [
         "creds"
       ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Credentials",
+          "body_lines": [
+            "## Credentials",
+            "",
+            "| Username | Password | Hash | Service | Notes |",
+            "|----------|----------|------|---------|-------|",
+            "|          |          |      |         |       |",
+            "",
+            "## Password Spray / Stuffing Notes",
+            "",
+            "",
+            "## Valid Sessions / Tokens",
+            ""
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "title_prefix": "Web Credentials",
+          "default_tags": [
+            "creds",
+            "web"
+          ],
+          "body_lines": [
+            "## Credentials",
+            "",
+            "| Username | Password | URL / Path | Role | Notes |",
+            "|----------|----------|------------|------|-------|",
+            "|          |          |            |      |       |",
+            "",
+            "## Sessions / Cookies",
+            "",
+            "| Type | Value | Scope | Notes |",
+            "|------|-------|-------|-------|",
+            "|      |       |       |       |",
+            "",
+            "## Notes",
+            ""
+          ]
+        }
+      ],
       "body_lines": [
         "## Credentials",
         "",
@@ -94,6 +139,108 @@
       "default_tags": [
         "recon"
       ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Recon",
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| OS       |       |",
+            "| In Scope |       |",
+            "",
+            "## Open Ports & Services",
+            "",
+            "| Port | Proto | Service | Version | Notes |",
+            "|------|-------|---------|---------|-------|",
+            "|      |       |         |         |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "",
+            "## DNS / Hostnames",
+            "",
+            "",
+            "## Users / Groups Discovered",
+            "",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "title_prefix": "Web Recon",
+          "default_tags": [
+            "recon",
+            "web"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| VHost    |       |",
+            "| Tech     |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "| Path | Status | Notes |",
+            "|------|--------|-------|",
+            "|      |        |       |",
+            "",
+            "## Parameters / Inputs",
+            "",
+            "| Parameter | Source | Notes |",
+            "|-----------|--------|-------|",
+            "|           |        |       |",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "ad",
+          "label": "AD",
+          "title_prefix": "AD Recon",
+          "default_tags": [
+            "recon",
+            "ad"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field      | Value |",
+            "|------------|-------|",
+            "| IP         |       |",
+            "| Domain     |       |",
+            "| Hostname   |       |",
+            "| Role       |       |",
+            "",
+            "## Users / Groups",
+            "",
+            "## Shares / SMB",
+            "",
+            "## Kerberos / LDAP",
+            "",
+            "## BloodHound / AD Findings",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        }
+      ],
       "body_lines": [
         "## Target Overview",
         "",
@@ -132,6 +279,53 @@
       "default_tags": [
         "recon",
         "network"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Network Enumeration",
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field | Value |",
+            "|-------|-------|",
+            "| IP | |",
+            "| Domain | |",
+            "| Hostname | |",
+            "",
+            "## Open Ports & Services",
+            "",
+            "| Port | Proto | Service | Version | Notes |",
+            "|------|-------|---------|---------|-------|",
+            "|      |       |         |         |       |",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "minimal",
+          "label": "Minimal",
+          "title_prefix": "Network Enumeration",
+          "default_tags": [
+            "recon",
+            "network",
+            "minimal"
+          ],
+          "body_lines": [
+            "## Open Ports & Services",
+            "",
+            "| Port | Service | Notes |",
+            "|------|---------|-------|",
+            "|      |         |       |",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        }
       ],
       "body_lines": [
         "## Target Overview",
