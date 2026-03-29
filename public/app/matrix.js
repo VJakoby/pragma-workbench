@@ -17,20 +17,49 @@ function escapeHtml(value) {
 function matrixSetStatus(label, state) {
   const pill = document.getElementById('matrixServicePill');
   const badge = document.getElementById('matrix-status-badge');
+  const versionLabel = document.getElementById('matrixVersionLabel');
+  const version = matrixState.capabilities?.version ? `v${matrixState.capabilities.version}` : '';
   if (pill) {
     pill.textContent = label;
     pill.className = `matrix-service-pill ${state || ''}`.trim();
+    pill.title = '';
+    pill.setAttribute('aria-label', `MATRIX status ${label}`);
+  }
+  if (versionLabel) {
+    versionLabel.textContent = version;
   }
   if (badge) {
     badge.textContent = '';
     badge.className = `nav-item-count matrix-nav-status ${state || ''}`.trim();
-    badge.title = `MATRIX // Recon ${label}`;
-    badge.setAttribute('aria-label', `MATRIX // Recon ${label}`);
+    badge.title = version || `MATRIX ${label}`;
+    badge.setAttribute('aria-label', version ? `MATRIX ${label} ${version}` : `MATRIX ${label}`);
   }
 }
 
 function matrixStatusChip(label, tone = 'neutral') {
   return `<span class="matrix-chip ${tone}">${escapeHtml(label)}</span>`;
+}
+
+function matrixSectionTone(status) {
+  if (status === 'ok') return 'ok';
+  if (status === 'warning') return 'warning';
+  if (status === 'error') return 'error';
+  return 'neutral';
+}
+
+function matrixChipTone(status) {
+  if (status === 'ok') return 'ok';
+  if (status === 'warning') return 'warn';
+  if (status === 'error') return 'bad';
+  return 'neutral';
+}
+
+function matrixCombineAssessments(items) {
+  const list = items.filter(Boolean);
+  if (list.some(item => item.status === 'error')) return { status: 'error' };
+  if (list.some(item => item.status === 'warning')) return { status: 'warning' };
+  if (list.some(item => item.status === 'ok')) return { status: 'ok' };
+  return { status: 'neutral' };
 }
 
 function matrixJoinList(values) {
@@ -100,16 +129,21 @@ function matrixRenderKv(label, value) {
   return `<div class="matrix-kv"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || 'N/A')}</strong></div>`;
 }
 
-function matrixRenderSection(title, tone, content) {
+function matrixRenderSection(title, tone, content, assessment = null) {
+  const statusClass = `matrix-section-status--${matrixSectionTone(assessment?.status)}`;
+  const note = assessment?.reason
+    ? `<div class="matrix-assessment-note">${escapeHtml(assessment.reason)}</div>`
+    : '';
   return `
-    <section class="matrix-section matrix-section--${tone}">
+    <section class="matrix-section matrix-section--${tone} ${statusClass}">
       <div class="matrix-section-top">${escapeHtml(title)}</div>
-      <div class="matrix-section-body">${content}</div>
+      <div class="matrix-section-body">${note}${content}</div>
     </section>
   `;
 }
 
 function matrixRenderDomainResult(result) {
+  const assessment = result?.assessment || {};
   const dns = result?.dns || {};
   const email = result?.emailSecurity || {};
   const dkim = email?.dkim || {};
@@ -119,9 +153,10 @@ function matrixRenderDomainResult(result) {
   const dkimFlags = [];
   if (dkim.status) dkimFlags.push(dkim.status);
   if (dkim.wildcardSuspected) dkimFlags.push('wildcard suspected');
+  const overall = matrixCombineAssessments([assessment.resolution, assessment.email, assessment.tls]);
 
   return `
-    <section class="matrix-result-card matrix-result-card--domain">
+    <section class="matrix-result-card matrix-result-card--domain matrix-result-status--${matrixSectionTone(overall.status)}">
       <div class="matrix-result-head matrix-result-top">
         <div>
           <div class="matrix-result-title">${escapeHtml(result.normalized || result.target || 'Domain')}</div>
@@ -130,7 +165,10 @@ function matrixRenderDomainResult(result) {
         <div class="matrix-chip-row">
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(result.resolved ? 'resolved' : 'unresolved', result.resolved ? 'ok' : 'warn')}
-          ${matrixStatusChip(email.acceptsMail === false ? 'no mail' : 'mail', email.acceptsMail === false ? 'warn' : 'neutral')}
+          ${matrixStatusChip('SPF', matrixChipTone(assessment.spf?.status))}
+          ${matrixStatusChip('DMARC', matrixChipTone(assessment.dmarc?.status))}
+          ${matrixStatusChip('DKIM', matrixChipTone(assessment.dkim?.status))}
+          ${matrixStatusChip('TLS', matrixChipTone(assessment.tls?.status))}
         </div>
       </div>
 
@@ -142,32 +180,37 @@ function matrixRenderDomainResult(result) {
           ${matrixRenderKv('CNAME', Array.isArray(dns.cname) && dns.cname.length ? dns.cname.join(', ') : 'None')}
           ${matrixRenderKv('Nameservers', Array.isArray(dns.ns) && dns.ns.length ? dns.ns.join(', ') : 'None')}
           ${matrixRenderKv('MX', Array.isArray(dns.mx) && dns.mx.some(item => item?.isNullMx) ? 'Null MX' : (Array.isArray(dns.mx) && dns.mx.length ? dns.mx.map(item => `${item.exchange || 'unknown'}${Number.isFinite(item.priority) ? ` (${item.priority})` : ''}`).join(', ') : 'None'))}
-        `)}
+        `, assessment.resolution)}
 
         ${matrixRenderSection('Email Security', 'email', `
+          ${matrixRenderKv('Mail Posture', assessment.mail?.summary || 'N/A')}
+          ${matrixRenderKv('SPF Status', assessment.spf?.summary || 'N/A')}
           ${matrixRenderKv('SPF', Array.isArray(email.spf) && email.spf.length ? email.spf.join(' | ') : 'None')}
+          ${matrixRenderKv('DMARC Status', assessment.dmarc?.summary || 'N/A')}
           ${matrixRenderKv('DMARC', Array.isArray(email.dmarc) && email.dmarc.length ? email.dmarc.join(' | ') : 'None')}
+          ${matrixRenderKv('DKIM Status', assessment.dkim?.summary || 'N/A')}
           ${matrixRenderKv('DKIM', dkimFlags.length ? dkimFlags.join(', ') : 'Not found')}
           ${matrixRenderKv('Selectors Checked', Array.isArray(dkim.selectorsChecked) ? String(dkim.selectorsChecked.length) : '0')}
-        `)}
+        `, assessment.email)}
 
         ${matrixRenderSection('TLS', 'tls', `
+          ${matrixRenderKv('Assessment', assessment.tls?.summary || 'N/A')}
           ${matrixRenderKv('Status', tls.status || 'Unknown')}
           ${matrixRenderKv('Protocol', tls.protocol || 'N/A')}
           ${matrixRenderKv('Issuer', cert?.issuer?.CN || cert?.issuer?.O || 'N/A')}
           ${matrixRenderKv('Subject CN', cert?.subject?.CN || 'N/A')}
           ${matrixRenderKv('Certificate Expiry', cert.validTo || 'N/A')}
           ${matrixRenderKv('Days Remaining', expiryDays == null ? 'N/A' : String(expiryDays))}
-        `)}
+        `, assessment.tls)}
       </div>
 
       ${matrixRenderSection('Highlights', 'highlights', `
         <div class="matrix-pill-row">${matrixJoinList(dns.ns || [])}</div>
         <div class="matrix-pill-row">${matrixFormatMx(dns.mx)}</div>
-      `)}
+      `, overall)}
 
       ${Array.isArray(dkim.records) && dkim.records.length ? `
-        ${matrixRenderSection('DKIM Records', 'dkim', `<div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>`)}
+        ${matrixRenderSection('DKIM Records', 'dkim', `<div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>`, assessment.dkim)}
       ` : ''}
 
       ${(cert.subjectAltName || tls.cipher?.name) ? `
@@ -177,7 +220,7 @@ function matrixRenderDomainResult(result) {
             ${matrixRenderKv('Cipher', tls.cipher?.standardName || tls.cipher?.name || 'N/A')}
             ${matrixRenderKv('Valid From', cert.validFrom || 'N/A')}
           </div>
-        `)}
+        `, assessment.tls)}
       ` : ''}
       </div>
     </section>
@@ -426,7 +469,6 @@ function onMatrixViewOpen() {
 }
 
 async function refreshMatrixStatus() {
-  const meta = document.getElementById('matrixToolbarMeta');
   try {
     const [healthResponse, capabilitiesResponse] = await Promise.all([
       fetch('/api/matrix/health'),
@@ -440,13 +482,9 @@ async function refreshMatrixStatus() {
     if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('MATRIX service unavailable');
     matrixState.capabilities = capabilities;
     matrixSetStatus('online', 'online');
-    if (meta) {
-      const version = capabilities?.version ? ` v${capabilities.version}` : '';
-      meta.textContent = `Online${version ? ` • v${capabilities.version}` : ''}`;
-    }
   } catch (error) {
+    matrixState.capabilities = null;
     matrixSetStatus('offline', 'offline');
-    if (meta) meta.textContent = 'Offline';
   }
 }
 
