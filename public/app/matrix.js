@@ -404,9 +404,16 @@ async function onMatrixFileSelected(event) {
   }
 }
 
+function onMatrixTargetsKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.stopPropagation();
+  }
+}
+
 async function initMatrix() {
   setMatrixMode(matrixState.mode);
   document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
+  document.getElementById('matrixTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
   await Promise.allSettled([
     refreshMatrixStatus(),
     loadMatrixJobs(),
@@ -435,11 +442,11 @@ async function refreshMatrixStatus() {
     matrixSetStatus('online', 'online');
     if (meta) {
       const version = capabilities?.version ? ` v${capabilities.version}` : '';
-      meta.textContent = `MATRIX // Recon${version} via PRAGMA proxy`;
+      meta.textContent = `Online${version ? ` • v${capabilities.version}` : ''}`;
     }
   } catch (error) {
     matrixSetStatus('offline', 'offline');
-    if (meta) meta.textContent = 'MATRIX // Recon unreachable from PRAGMA';
+    if (meta) meta.textContent = 'Offline';
   }
 }
 

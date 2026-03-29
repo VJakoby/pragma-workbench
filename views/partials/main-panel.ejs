@@ -28,8 +28,11 @@
         <div class="matrix-view">
           <div class="matrix-toolbar">
             <div class="matrix-toolbar-left">
-              <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
-              <div class="matrix-toolbar-meta" id="matrixToolbarMeta">Proxying through PRAGMA</div>
+              <div class="matrix-toolbar-title">MATRIX<span>// Recon</span></div>
+              <div class="matrix-toolbar-status-row">
+                <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
+                <div class="matrix-toolbar-meta" id="matrixToolbarMeta">Checking MATRIX availability</div>
+              </div>
             </div>
             <div class="matrix-toolbar-actions">
               <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX // Recon status">Refresh</button>
@@ -43,10 +46,10 @@
                 <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
                 <button class="btn-group-item" id="matrixModeIps" onclick="setMatrixMode('ips')">IPs</button>
               </div>
-              <label class="matrix-label" for="matrixDkimSelectors" id="matrixDkimLabel">DKIM Selectors</label>
-              <input class="matrix-input" id="matrixDkimSelectors" type="text" placeholder="optional: selector1 selector2">
               <label class="matrix-label" for="matrixNaming" id="matrixNamingLabel">Naming</label>
               <input class="matrix-input" id="matrixNaming" type="text" placeholder="optional: Acme perimeter">
+              <label class="matrix-label" for="matrixDkimSelectors" id="matrixDkimLabel">DKIM Selectors</label>
+              <input class="matrix-input" id="matrixDkimSelectors" type="text" placeholder="optional: selector1 selector2">
               <label class="matrix-label" for="matrixTargets" id="matrixTargetsLabel">Targets</label>
               <textarea class="matrix-textarea" id="matrixTargets" placeholder="example.com&#10;sub.example.com"></textarea>
               <div class="matrix-action-row">
