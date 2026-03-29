@@ -179,6 +179,133 @@ function matrixEscapeAttribute(value) {
     .replace(/>/g, '&gt;');
 }
 
+function matrixMarkdownCell(value) {
+  return String(value ?? 'N/A')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+}
+
+function matrixMarkdownList(values, empty = 'None') {
+  if (!Array.isArray(values) || !values.length) return empty;
+  return values.join(', ');
+}
+
+function matrixMarkdownMx(mxList) {
+  if (!Array.isArray(mxList) || !mxList.length) return 'None';
+  if (mxList.some(item => item?.isNullMx)) return 'Null MX';
+  return mxList.map(item => `${item.exchange || 'unknown'}${Number.isFinite(item.priority) ? ` (${item.priority})` : ''}`).join(', ');
+}
+
+function matrixMarkdownAssessmentNotes(notes) {
+  const filtered = notes.filter(Boolean);
+  if (!filtered.length) return '';
+  return `\n\n**Notes:** ${filtered.join(' • ')}`;
+}
+
+function matrixBuildMarkdownTable(rows) {
+  const body = rows.map(([label, value]) => `| ${matrixMarkdownCell(label)} | ${matrixMarkdownCell(value)} |`).join('\n');
+  return ['| Field | Value |', '| --- | --- |', body].join('\n');
+}
+
+function matrixBuildDomainMarkdown(result) {
+  const assessment = result?.assessment || {};
+  const dns = result?.dns || {};
+  const email = result?.emailSecurity || {};
+  const dkim = email?.dkim || {};
+  const tls = result?.transportSecurity?.tls || {};
+  const cert = tls?.certificate || {};
+  const dkimFlags = [];
+  if (dkim.status) dkimFlags.push(dkim.status);
+  if (dkim.wildcardSuspected) dkimFlags.push('wildcard suspected');
+  if (Array.isArray(dkim.records) && dkim.records.some(record => Array.isArray(record.records) && record.records.some(item => item?.keyRevoked))) {
+    dkimFlags.push('revoked key observed');
+  }
+
+  const notes = [];
+  if (assessment.dmarc?.status === 'warning' && Array.isArray(email.dmarc) && email.dmarc.some(entry => /\bp=none\b/i.test(entry))) {
+    notes.push('DMARC is present but set to p=none');
+  } else if (assessment.dmarc?.reason) {
+    notes.push(assessment.dmarc.reason);
+  }
+  if (assessment.tls?.status === 'error' || assessment.tls?.status === 'warning') notes.push(assessment.tls?.reason || assessment.tls?.summary);
+  if (Array.isArray(dns.mx) && dns.mx.some(item => item?.isNullMx)) notes.push('Null MX configured');
+  if (dkim.wildcardSuspected) notes.push('DKIM wildcard suspected');
+  if (assessment.spf?.status === 'warning' || assessment.spf?.status === 'error') notes.push(assessment.spf?.reason || assessment.spf?.summary);
+
+  const rows = [
+    ['Target', result.normalized || result.target || 'N/A'],
+    ['IPv4', matrixMarkdownList(dns.a)],
+    ['IPv6', matrixMarkdownList(dns.aaaa)],
+    ['Nameservers', matrixMarkdownList(dns.ns)],
+    ['MX', matrixMarkdownMx(dns.mx)],
+    ['SPF', Array.isArray(email.spf) && email.spf.length ? email.spf.join(' | ') : 'None'],
+    ['DMARC', Array.isArray(email.dmarc) && email.dmarc.length ? email.dmarc.join(' | ') : 'None'],
+    ['DKIM', dkimFlags.length ? dkimFlags.join(', ') : 'Not found'],
+    ['TLS Status', tls.status || assessment.tls?.summary || 'Unknown'],
+    ['Valid From', cert.validFrom || 'N/A'],
+    ['Valid To', cert.validTo || 'N/A'],
+    ['Issuer', cert?.issuer?.CN || cert?.issuer?.O || 'N/A'],
+  ];
+
+  return `## ${result.normalized || result.target || 'Domain Recon'}\n\n${matrixBuildMarkdownTable(rows)}${matrixMarkdownAssessmentNotes(notes)}`;
+}
+
+function matrixBuildIpMarkdown(result) {
+  const rdap = result?.rdap || {};
+  const summary = rdap?.summary || {};
+  const registrant = Array.isArray(summary.entities) ? summary.entities.find(entity => Array.isArray(entity.roles) && entity.roles.includes('registrant')) : null;
+  const abuse = Array.isArray(rdap.document?.entities)
+    ? rdap.document.entities.find(entity => Array.isArray(entity.roles) && entity.roles.includes('abuse'))
+    : null;
+  const sourceLabel = (() => {
+    if (!rdap.source) return rdap.status || 'N/A';
+    try {
+      return new URL(rdap.source).hostname;
+    } catch (_) {
+      return rdap.source;
+    }
+  })();
+  const rows = [
+    ['Target IP', result.normalized || result.target || 'N/A'],
+    ['Classification', result.public ? `Public IPv${result.version || ''}` : `${result.scope || 'Non-public'} IPv${result.version || ''}`],
+    ['Owner / Org', matrixExtractEntityName(registrant) || summary.name || summary.handle || 'N/A'],
+    ['Network Range / CIDR', summary.startAddress && summary.endAddress ? `${summary.startAddress} - ${summary.endAddress}` : 'N/A'],
+    ['RIR / RDAP Source', sourceLabel],
+    ['Abuse Contact', matrixExtractEntityEmail(abuse) || 'N/A'],
+    ['WHOIS Fallback', result?.whois?.status || 'N/A'],
+  ];
+  return `## ${result.normalized || result.target || 'IP Recon'}\n\n${matrixBuildMarkdownTable(rows)}`;
+}
+
+function matrixBuildSubdomainMarkdown(result) {
+  const discovery = result?.discovery || {};
+  const hostnames = Array.isArray(discovery.hostnames) ? discovery.hostnames : [];
+  const header = `## ${result.rootDomain || result.normalized || result.target || 'Passive Subdomain Recon'}`;
+  const rows = [
+    ['Root Domain', result.rootDomain || result.normalized || result.target || 'N/A'],
+    ['Sources Used', Array.isArray(discovery.sourcesUsed) && discovery.sourcesUsed.length ? discovery.sourcesUsed.join(', ') : 'None'],
+    ['Returned', String(discovery.returnedCount || 0)],
+    ['Total Discovered', String(discovery.totalDiscovered || 0)],
+  ];
+  const hostList = hostnames.length
+    ? hostnames.map(item => `| ${matrixMarkdownCell(item.hostname || '')} | ${matrixMarkdownCell(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')} |`).join('\n')
+    : '| None | N/A |';
+  return `${header}\n\n${matrixBuildMarkdownTable(rows)}\n\n| Hostname | Source |\n| --- | --- |\n${hostList}`;
+}
+
+function matrixReconMarkdown(result) {
+  if (result?.kind === 'domain') return matrixBuildDomainMarkdown(result);
+  if (result?.kind === 'ip') return matrixBuildIpMarkdown(result);
+  if (result?.kind === 'subdomain-discovery') return matrixBuildSubdomainMarkdown(result);
+  return '';
+}
+
+function matrixCopyMarkdownButton(result) {
+  const markdown = matrixReconMarkdown(result);
+  if (!markdown) return '';
+  return `<button class="tb-btn matrix-copy-btn matrix-markdown-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(markdown)}">Copy Markdown</button>`;
+}
+
 function matrixRenderSection(title, tone, content, assessment = null) {
   const statusClass = `matrix-section-status--${matrixSectionTone(assessment?.status)}`;
   const note = assessment?.reason
@@ -213,6 +340,7 @@ function matrixRenderDomainResult(result) {
           <div class="matrix-result-subtitle">${escapeHtml(result.target || '')}</div>
         </div>
         <div class="matrix-chip-row">
+          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(result.resolved ? 'resolved' : 'unresolved', result.resolved ? 'ok' : 'warn')}
           ${matrixStatusChip('SPF', matrixChipTone(assessment.spf?.status))}
@@ -295,6 +423,7 @@ function matrixRenderIpResult(result) {
           <div class="matrix-result-subtitle">${escapeHtml(summary.name || summary.handle || rdap.status || '')}</div>
         </div>
         <div class="matrix-chip-row">
+          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.public ? 'public' : (result.scope || 'private'), result.public ? 'ok' : 'warn')}
           ${matrixStatusChip(`IPv${escapeHtml(result.version || '')}`, 'neutral')}
           ${matrixStatusChip(rdap.status || 'rdap', rdap.status === 'ok' ? 'ok' : 'warn')}
@@ -344,6 +473,7 @@ function matrixRenderSubdomainResult(result) {
           <div class="matrix-result-subtitle">Passive subdomain discovery</div>
         </div>
         <div class="matrix-chip-row">
+          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(`${discovery.returnedCount || 0} found`, hostnames.length ? 'ok' : 'warn')}
           ${matrixStatusChip('crt.sh', 'neutral')}

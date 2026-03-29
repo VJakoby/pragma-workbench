@@ -3878,6 +3878,15 @@ body.enc-active-body .content-panel {
 .matrix-result-head .matrix-chip-row {
   justify-content:center;
 }
+.matrix-markdown-btn {
+  min-height:20px;
+  height:20px;
+  padding:0 8px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+}
 .matrix-chip {
   display:inline-flex; align-items:center; justify-content:center;
   min-height:20px; padding:2px 8px; border-radius:999px;
