@@ -116,6 +116,14 @@ function registerMatrixRoutes(app, { matrixUrl }) {
       body: JSON.stringify(req.body || {}),
     });
   });
+
+  app.post('/api/matrix/recon/subdomains', async (req, res) => {
+    return proxyJson(res, '/api/recon/subdomains', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 12000);
+  });
 }
 
 module.exports = { registerMatrixRoutes };

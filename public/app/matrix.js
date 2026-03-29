@@ -74,6 +74,15 @@ function matrixFormatDate(value) {
   return date.toLocaleString();
 }
 
+function matrixFormatJobType(type) {
+  const mapping = {
+    'domain-recon': 'Passive Domain Recon',
+    'ip-recon': 'Passive IP Recon',
+    'subdomain-passive-recon': 'Passive Subdomain Recon',
+  };
+  return mapping[type] || type || 'matrix-job';
+}
+
 function matrixDaysUntil(value) {
   if (!value) return null;
   const date = new Date(value);
@@ -213,12 +222,13 @@ function matrixRenderDomainResult(result) {
         ${matrixRenderSection('DKIM Records', 'dkim', `<div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>`, assessment.dkim)}
       ` : ''}
 
-      ${(cert.subjectAltName || tls.cipher?.name) ? `
+      ${(cert.subjectAltName || tls.cipher?.name || cert.validFrom || cert.validTo) ? `
         ${matrixRenderSection('Certificate Details', 'certificate', `
           <div class="matrix-kv-list">
             ${matrixRenderKv('SAN', cert.subjectAltName || 'N/A')}
             ${matrixRenderKv('Cipher', tls.cipher?.standardName || tls.cipher?.name || 'N/A')}
             ${matrixRenderKv('Valid From', cert.validFrom || 'N/A')}
+            ${matrixRenderKv('Valid To', cert.validTo || 'N/A')}
           </div>
         `, assessment.tls)}
       ` : ''}
@@ -279,15 +289,69 @@ function matrixRenderIpResult(result) {
   `;
 }
 
+function matrixRenderSubdomainResult(result) {
+  const discovery = result?.discovery || {};
+  const hostnames = Array.isArray(discovery.hostnames) ? discovery.hostnames : [];
+  const tone = result.error ? 'error' : (hostnames.length ? 'ok' : 'warning');
+
+  return `
+    <section class="matrix-result-card matrix-result-card--domain matrix-result-status--${tone}">
+      <div class="matrix-result-head matrix-result-top">
+        <div>
+          <div class="matrix-result-title">${escapeHtml(result.rootDomain || result.normalized || result.target || 'Root Domain')}</div>
+          <div class="matrix-result-subtitle">Passive subdomain discovery</div>
+        </div>
+        <div class="matrix-chip-row">
+          ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
+          ${matrixStatusChip(`${discovery.returnedCount || 0} found`, hostnames.length ? 'ok' : 'warn')}
+          ${matrixStatusChip('crt.sh', 'neutral')}
+        </div>
+      </div>
+
+      <div class="matrix-result-body">
+      <div class="matrix-section-grid">
+        ${matrixRenderSection('Discovery', 'resolution', `
+          ${matrixRenderKv('Root Domain', result.rootDomain || result.normalized || 'N/A')}
+          ${matrixRenderKv('Mode', discovery.passive ? 'Passive' : 'N/A')}
+          ${matrixRenderKv('Sources Used', Array.isArray(discovery.sourcesUsed) && discovery.sourcesUsed.length ? discovery.sourcesUsed.join(', ') : 'None')}
+          ${matrixRenderKv('Returned', String(discovery.returnedCount || 0))}
+          ${matrixRenderKv('Total Discovered', String(discovery.totalDiscovered || 0))}
+          ${matrixRenderKv('Truncated', discovery.truncated ? 'Yes' : 'No')}
+        `)}
+
+        ${matrixRenderSection('Source Detail', 'source', `
+          ${matrixRenderKv('Primary Source', 'crt.sh')}
+          ${matrixRenderKv('Passive Only', 'Yes')}
+          ${matrixRenderKv('Touches Target', 'No')}
+        `)}
+      </div>
+
+      ${matrixRenderSection('Discovered Hostnames', 'highlights', `
+        ${hostnames.length ? `
+          <div class="matrix-subdomain-list">
+            ${hostnames.map(item => `
+              <div class="matrix-subdomain-item">
+                <div class="matrix-subdomain-host">${escapeHtml(item.hostname || '')}</div>
+                <div class="matrix-subdomain-meta">${escapeHtml(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')}</div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `<div class="matrix-empty-state">${escapeHtml(result.error || 'No passive subdomains discovered')}</div>`}
+      `)}
+      </div>
+    </section>
+  `;
+}
+
 function matrixRenderJobOverview(job) {
   const counts = job?.result?.counts || {};
   const jobName = job?.input?.name || job?.name || '';
   return `
     <section class="matrix-result-card matrix-result-card--job">
       <div class="matrix-result-head matrix-result-top">
-        <div>
-          <div class="matrix-result-title">${escapeHtml(jobName || 'MATRIX // Recon')}</div>
-          <div class="matrix-result-subtitle">${escapeHtml(job.type || 'matrix-job')} • Job ${escapeHtml(job.id || '')}</div>
+          <div>
+            <div class="matrix-result-title">${escapeHtml(jobName || 'MATRIX // Recon')}</div>
+          <div class="matrix-result-subtitle">${escapeHtml(matrixFormatJobType(job.type))} • Job ${escapeHtml(job.id || '')}</div>
         </div>
         <div class="matrix-chip-row">
           ${matrixStatusChip(job.status || 'unknown', job.status === 'completed' ? 'ok' : (job.status === 'failed' ? 'bad' : 'warn'))}
@@ -334,7 +398,7 @@ function matrixRenderPayload(value) {
       <section class="matrix-result-card matrix-result-card--submit">
         <div class="matrix-result-head matrix-result-top">
           <div>
-            <div class="matrix-result-title">Submitting ${escapeHtml(document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Recon')}</div>
+            <div class="matrix-result-title">Submitting ${escapeHtml(document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Passive Recon')}</div>
             <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
           </div>
           <div class="matrix-chip-row">${matrixStatusChip('submitting', 'warn')}</div>
@@ -354,6 +418,7 @@ function matrixRenderPayload(value) {
     html += results.map(item => {
       if (item.kind === 'domain') return matrixRenderDomainResult(item);
       if (item.kind === 'ip') return matrixRenderIpResult(item);
+      if (item.kind === 'subdomain-discovery') return matrixRenderSubdomainResult(item);
       return `
         <section class="matrix-result-card matrix-result-card--generic">
           <div class="matrix-result-head matrix-result-top">
@@ -400,13 +465,17 @@ function matrixParseImportedTargets(text) {
     }
     if (Array.isArray(parsed?.result?.results)) {
       return parsed.result.results
-        .map(item => item?.normalized || item?.target || '')
+        .flatMap(item => item?.kind === 'subdomain-discovery'
+          ? (Array.isArray(item?.discovery?.hostnames) ? item.discovery.hostnames.map(host => host?.hostname || '') : [])
+          : [item?.normalized || item?.target || ''])
         .map(item => String(item || '').trim())
         .filter(Boolean);
     }
     if (Array.isArray(parsed?.results)) {
       return parsed.results
-        .map(item => item?.normalized || item?.target || '')
+        .flatMap(item => item?.kind === 'subdomain-discovery'
+          ? (Array.isArray(item?.discovery?.hostnames) ? item.discovery.hostnames.map(host => host?.hostname || '') : [])
+          : [item?.normalized || item?.target || ''])
         .map(item => String(item || '').trim())
         .filter(Boolean);
     }
@@ -489,9 +558,10 @@ async function refreshMatrixStatus() {
 }
 
 function setMatrixMode(mode) {
-  matrixState.mode = mode === 'ips' ? 'ips' : 'domains';
+  matrixState.mode = mode === 'ips' || mode === 'subdomains' ? mode : 'domains';
   document.getElementById('matrixModeDomains')?.classList.toggle('active', matrixState.mode === 'domains');
   document.getElementById('matrixModeIps')?.classList.toggle('active', matrixState.mode === 'ips');
+  document.getElementById('matrixModeSubdomains')?.classList.toggle('active', matrixState.mode === 'subdomains');
   const dkimLabel = document.getElementById('matrixDkimLabel');
   const dkimInput = document.getElementById('matrixDkimSelectors');
   const targetsLabel = document.getElementById('matrixTargetsLabel');
@@ -501,11 +571,17 @@ function setMatrixMode(mode) {
     dkimInput.style.display = matrixState.mode === 'domains' ? '' : 'none';
     dkimInput.disabled = matrixState.mode !== 'domains';
   }
-  if (targetsLabel) targetsLabel.textContent = matrixState.mode === 'domains' ? 'Domains' : 'IP Addresses';
+  if (targetsLabel) {
+    targetsLabel.textContent = matrixState.mode === 'domains'
+      ? 'Domains'
+      : (matrixState.mode === 'ips' ? 'IP Addresses' : 'Root Domains');
+  }
   if (targets) {
     targets.placeholder = matrixState.mode === 'domains'
       ? 'example.com\nsub.example.com'
-      : '8.8.8.8\n1.1.1.1';
+      : (matrixState.mode === 'ips'
+        ? '8.8.8.8\n1.1.1.1'
+        : 'example.com\nacme.com');
   }
 }
 
@@ -522,7 +598,9 @@ async function submitMatrixJob() {
   const targets = document.getElementById('matrixTargets').value;
   const dkimSelectors = document.getElementById('matrixDkimSelectors').value;
   const name = document.getElementById('matrixNaming')?.value.trim() || '';
-  const path = matrixState.mode === 'ips' ? '/api/matrix/recon/ips' : '/api/matrix/recon/domains';
+  const path = matrixState.mode === 'ips'
+    ? '/api/matrix/recon/ips'
+    : (matrixState.mode === 'subdomains' ? '/api/matrix/recon/subdomains' : '/api/matrix/recon/domains');
   const body = { text: targets };
   if (name) body.name = name;
   if (matrixState.mode === 'domains' && dkimSelectors.trim()) body.dkimSelectors = dkimSelectors;
@@ -571,14 +649,14 @@ async function loadMatrixJobs() {
   }
   const jobs = Array.isArray(data.jobs) ? data.jobs : [];
   if (!jobs.length) {
-    list.textContent = 'No MATRIX // Recon jobs yet.';
+    list.textContent = 'No MATRIX // Passive Recon jobs yet.';
     return;
   }
   list.innerHTML = jobs.map(job => `
     <button class="matrix-job-item" onclick="openMatrixJob('${job.id}')">
-      <span class="matrix-job-item-type">${escapeHtml(job.type)}</span>
+      <span class="matrix-job-item-type">${escapeHtml(job.name || `${job.targetCount} targets`)}</span>
       <span class="matrix-job-item-status ${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
-      <span class="matrix-job-item-meta">${escapeHtml(job.name || `${job.targetCount} targets`)}</span>
+      <span class="matrix-job-item-meta">${escapeHtml(matrixFormatJobType(job.type))}</span>
     </button>
   `).join('');
 }

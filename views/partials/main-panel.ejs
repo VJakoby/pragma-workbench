@@ -28,22 +28,23 @@
         <div class="matrix-view">
           <div class="matrix-toolbar">
             <div class="matrix-toolbar-left">
-              <div class="matrix-toolbar-title">MATRIX<span>// Recon</span></div>
+              <div class="matrix-toolbar-title">MATRIX<span>// Passive Recon</span></div>
               <div class="matrix-toolbar-status-row">
                 <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
                 <div class="matrix-version-label" id="matrixVersionLabel"></div>
               </div>
             </div>
             <div class="matrix-toolbar-actions">
-              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX // Recon status">Refresh</button>
-              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX // Recon jobs">Jobs</button>
+              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX // Passive Recon status">Refresh</button>
+              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX // Passive Recon jobs">Jobs</button>
             </div>
           </div>
           <div class="matrix-grid">
             <section class="matrix-card">
-              <div class="matrix-card-hdr">Recon</div>
+              <div class="matrix-card-hdr">Passive Recon</div>
               <div class="matrix-mode-row btn-group">
                 <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
+                <button class="btn-group-item" id="matrixModeSubdomains" onclick="setMatrixMode('subdomains')">Subdomains</button>
                 <button class="btn-group-item" id="matrixModeIps" onclick="setMatrixMode('ips')">IPs</button>
               </div>
               <label class="matrix-label" for="matrixNaming" id="matrixNamingLabel">Naming</label>
@@ -61,11 +62,11 @@
             </section>
             <section class="matrix-card">
               <div class="matrix-card-hdr">Recent Jobs</div>
-              <div class="matrix-jobs-list" id="matrixJobsList">No MATRIX // Recon jobs loaded.</div>
+              <div class="matrix-jobs-list" id="matrixJobsList">No MATRIX // Passive Recon jobs loaded.</div>
             </section>
             <section class="matrix-card matrix-card-wide">
               <div class="matrix-card-hdr">Job Output</div>
-              <div class="matrix-output" id="matrixOutput">Select or run a MATRIX // Recon job.</div>
+              <div class="matrix-output" id="matrixOutput">Select or run a MATRIX // Passive Recon job.</div>
             </section>
           </div>
         </div>
