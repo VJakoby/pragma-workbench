@@ -65,6 +65,7 @@ Set these in your `docker-compose.yml` to customise paths:
 |---|---|---|
 | `KB_DIR` | App default: `./knowledge_base` | Path to your knowledge base directory inside the app runtime |
 | `SEARCH_URL` | App default: `http://localhost:3002` | URL to the ENGRAM indexer |
+| `MATRIX_URL` | App default: `http://127.0.0.1:3003` | URL to the MATRIX Toolbox service |
 | `SESSIONS_DIR` | App default: `./sessions` | Path where PRAGMA stores the workbench and backups |
 
 Example `docker-compose.yml` volume + env setup:
@@ -83,9 +84,14 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base
       - SESSIONS_DIR=/usr/src/app/sessions
       - SEARCH_URL=http://engram:3002
+      - MATRIX_URL=http://host.docker.internal:3003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
+
+> **MATRIX note:** If PRAGMA runs inside Docker and MATRIX runs on the host machine, `MATRIX_URL=http://127.0.0.1:3003` will not work from inside the PRAGMA container. Use `MATRIX_URL=http://host.docker.internal:3003` and add the `host-gateway` mapping shown above.
 
 > **Templates note:** The checked-in `docker-compose.yml` does not currently mount `note-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
 
@@ -132,3 +138,26 @@ docker compose down && docker compose up -d --build
 To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network. The default `SEARCH_URL` in the checked-in compose file already points at `http://engram:3002`, but you still need to provide the ENGRAM container separately.
 
 See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.
+
+## Running with MATRIX
+
+To enable the `MATRIX // Toolbox` module from a Dockerized PRAGMA instance, PRAGMA must be able to reach the MATRIX HTTP API from inside the container.
+
+Recommended topology:
+
+- PRAGMA in Docker
+- MATRIX running on the host at `http://127.0.0.1:3003`
+
+In that case, set:
+
+```yaml
+environment:
+  - MATRIX_URL=http://host.docker.internal:3003
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+Important:
+
+- inside the PRAGMA container, `127.0.0.1` refers to the PRAGMA container itself, not the host
+- if MATRIX is instead running in another container, point `MATRIX_URL` at that container/service name instead

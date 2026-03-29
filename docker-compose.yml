@@ -15,9 +15,12 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
       - SEARCH_URL=http://engram:3002                        # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
+      - MATRIX_URL=http://host.docker.internal:3003         # MATRIX is expected to run outside this compose stack and be reachable from the PRAGMA container
     restart: unless-stopped
     networks:
       - pragma-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"                  # Linux host-gateway mapping so PRAGMA can reach host-side MATRIX on port 3003
     # ── Security hardening ──────────────────────────────────────────────────
     tmpfs:
       - /tmp                                                 # Node/Express needs a writable /tmp
