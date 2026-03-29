@@ -27,6 +27,7 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.note-target-assign-btn[title]',
   '.editor-font-btn[title]',
   '.editor-font-label[title]',
+  '.editor-font-choice[title]',
   '.preview-layout-btn[title]',
   '.sidebar-toggle-btn[title]',
   '.target-selector-copy[title]',

@@ -21,6 +21,7 @@
   --orange:   #fb923c;
   --yellow:   #fbbf24;
   --editor-font-size: 14px;
+  --editor-font-family: 'JetBrains Mono', monospace;
   --ui-font-sm: 12px;
   --ui-font-xs: 11px;
   --ui-font-xxs: 10px;
@@ -115,7 +116,7 @@
 [data-theme="dim"] .note-tag,
 [data-theme="dim"] .target-item-label,
 [data-theme="dim"] .note-wikilink{
-  color: #dceff2;
+  color: #f2fbfd;
   background: rgba(94, 153, 163, 0.18);
   border-color: rgba(129, 184, 193, 0.3);
 }
@@ -123,6 +124,15 @@
 [data-theme="dim"] .note-wikilink:hover{
   background: rgba(94, 153, 163, 0.24);
   border-color: rgba(129, 184, 193, 0.38);
+  color: #ffffff;
+}
+[data-theme="dark"] .note-tag,
+[data-theme="dark"] .note-wikilink{
+  color: #e8fafb;
+}
+[data-theme="dark"] .note-tag:hover,
+[data-theme="dark"] .note-wikilink:hover{
+  color: #ffffff;
 }
 
 html,body{height:100%;overflow:hidden}
@@ -1993,7 +2003,15 @@ body.is-resizing *{cursor:col-resize!important}
   display: flex; align-items: center; gap: 4px;
   margin-left: 4px;
 }
-.editor-font-btn, .editor-font-label {
+.editor-font-family-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg2);
+}
+.editor-font-btn, .editor-font-label, .editor-font-choice {
   height: 26px;
   border: 1px solid var(--border);
   background: var(--bg2);
@@ -2013,10 +2031,25 @@ body.is-resizing *{cursor:col-resize!important}
   min-width: 48px;
   padding: 0 10px;
 }
-.editor-font-btn:hover, .editor-font-label:hover {
+.editor-font-choice {
+  min-width: 52px;
+  padding: 0 10px;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 11px;
+}
+.editor-font-choice:last-child {
+  border-right: none;
+}
+.editor-font-btn:hover, .editor-font-label:hover, .editor-font-choice:hover {
   border-color: var(--border2);
   color: var(--text);
   background: var(--bg3);
+}
+.editor-font-choice.active {
+  color: var(--text);
+  background: rgba(var(--accent-rgb), 0.16);
 }
 
 
@@ -2463,7 +2496,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .note-tag {
   font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
-  color: #315b63; background: rgba(127, 181, 191, 0.16);
+  color: #e8fafb; background: rgba(127, 181, 191, 0.16);
   border: 1px solid rgba(127, 181, 191, 0.28); border-radius: 3px;
   padding: 1px 6px; cursor: pointer; transition: all 0.12s;
   user-select: none;
@@ -2471,7 +2504,7 @@ body.is-resizing *{cursor:col-resize!important}
 .note-tag:hover {
   background: rgba(127, 181, 191, 0.22);
   border-color: rgba(127, 181, 191, 0.36);
-  color: #244a52;
+  color: #ffffff;
 }
 .note-tag-del { opacity: 0.5; margin-left: 3px; }
 .note-tag-del:hover { opacity: 1; }
@@ -2644,7 +2677,7 @@ kbd {
 /* ── CodeMirror 6 editor integration ── */
 .cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
 .cm-wrap .cm-editor {
-  flex: 1; height: 100%; font-size: var(--editor-font-size, 14px); font-family: 'JetBrains Mono', monospace;
+  flex: 1; height: 100%; font-size: var(--editor-font-size, 14px); font-family: var(--editor-font-family, 'JetBrains Mono', monospace);
   background: transparent !important;
 }
 .cm-editor.cm-focused { outline: none !important; }

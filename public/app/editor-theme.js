@@ -85,6 +85,21 @@ const SYNTAX_THEMES = {
 
 let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
 let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '14', 10) || 14));
+let activeEditorFontFamily = localStorage.getItem('pragma-editor-font-family') || 'mono';
+const EDITOR_FONT_FAMILIES = {
+  mono: "'JetBrains Mono', monospace",
+  inter: "'Inter', system-ui, sans-serif",
+  system: "system-ui, sans-serif",
+};
+
+function applyEditorFontFamily(mode = activeEditorFontFamily) {
+  activeEditorFontFamily = EDITOR_FONT_FAMILIES[mode] ? mode : 'mono';
+  localStorage.setItem('pragma-editor-font-family', activeEditorFontFamily);
+  const fontFamily = EDITOR_FONT_FAMILIES[activeEditorFontFamily];
+  document.documentElement.style.setProperty('--editor-font-family', fontFamily);
+  document.querySelectorAll('.editor-font-choice').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.font === activeEditorFontFamily));
+}
 
 function applyEditorFontSize(size = activeEditorFontSize) {
   activeEditorFontSize = Math.min(22, Math.max(11, size));
@@ -106,6 +121,10 @@ function resetEditorFont() {
   applyEditorFontSize(14);
 }
 
+function setEditorFontFamily(mode) {
+  applyEditorFontFamily(mode);
+}
+
 function setSyntaxTheme(name) {
   activeSyntaxTheme = name;
   localStorage.setItem('pragma-syntax-theme', name);
@@ -122,6 +141,7 @@ function setSyntaxTheme(name) {
 function initSyntaxThemePicker() {
   document.querySelectorAll('.syntax-dot').forEach(d =>
     d.classList.toggle('active', d.dataset.theme === activeSyntaxTheme));
+  applyEditorFontFamily(activeEditorFontFamily);
   applyEditorFontSize(activeEditorFontSize);
 }
 
@@ -165,7 +185,7 @@ function buildCmTheme() {
 
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
-    '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)' },
+    '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)', fontFamily: 'var(--editor-font-family, "JetBrains Mono", monospace)' },
     '.cm-content': { color: v.text2, caretColor: v.text, padding: '0', fontWeight: '500' },
     '.cm-cursor': { borderLeftColor: v.text },
     '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },

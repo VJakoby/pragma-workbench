@@ -142,7 +142,12 @@
                     <span class="syntax-dot" data-theme="nord" style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
                     <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
                   </div>
-                  <div class="editor-font-controls" title="Editor font size">
+                  <div class="editor-font-controls" title="Editor font controls">
+                    <div class="editor-font-family-group" role="group" aria-label="Editor font family">
+                      <button class="editor-font-choice" data-font="mono" onclick="setEditorFontFamily('mono')" title="Use JetBrains Mono editor font">Mono</button>
+                      <button class="editor-font-choice" data-font="inter" onclick="setEditorFontFamily('inter')" title="Use Inter editor font">Inter</button>
+                      <button class="editor-font-choice" data-font="system" onclick="setEditorFontFamily('system')" title="Use system editor font">System</button>
+                    </div>
                     <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
                     <button class="editor-font-label" id="editorFontSizeLabel" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
                     <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
