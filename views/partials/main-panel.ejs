@@ -26,22 +26,26 @@
 
       <div class="panel-view" id="view-matrix">
         <div class="matrix-view">
+          <div class="matrix-submodule-row utility-topbar-group">
+            <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-left matrix-submodule-btn active" id="matrixModulePassive" onclick="setMatrixToolboxModule('passive')" type="button">Passive Recon</button>
+            <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-right matrix-submodule-btn" id="matrixModuleEnumeration" onclick="setMatrixToolboxModule('enumeration')" type="button">Active Enumeration</button>
+          </div>
           <div class="matrix-toolbar">
             <div class="matrix-toolbar-left">
-              <div class="matrix-toolbar-title">MATRIX<span>// Passive Recon</span></div>
+              <div class="matrix-toolbar-title">MATRIX<span id="matrixToolbarModuleLabel">// Toolbox</span></div>
               <div class="matrix-toolbar-status-row">
                 <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
                 <div class="matrix-version-label" id="matrixVersionLabel"></div>
               </div>
             </div>
             <div class="matrix-toolbar-actions">
-              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX // Passive Recon status">Refresh</button>
-              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX // Passive Recon jobs">Jobs</button>
+              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX Toolbox status">Refresh</button>
+              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX Toolbox jobs">Jobs</button>
             </div>
           </div>
           <div class="matrix-grid">
-            <section class="matrix-card">
-              <div class="matrix-card-hdr">Passive Recon</div>
+            <section class="matrix-card matrix-card-wide matrix-module-panel" id="matrixPanelPassive">
+              <div class="matrix-card-hdr" id="matrixModulePanelHdr">MATRIX // Passive Recon</div>
               <div class="matrix-mode-row btn-group">
                 <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
                 <button class="btn-group-item" id="matrixModeSubdomains" onclick="setMatrixMode('subdomains')">Subdomains</button>
@@ -60,13 +64,35 @@
               </div>
               <input id="matrixImportFile" type="file" accept=".txt,.csv,.json,.log" hidden>
             </section>
-            <section class="matrix-card">
-              <div class="matrix-card-hdr">Recent Jobs</div>
-              <div class="matrix-jobs-list" id="matrixJobsList">No MATRIX // Passive Recon jobs loaded.</div>
+            <section class="matrix-card matrix-card-wide matrix-module-panel" id="matrixPanelEnumeration" hidden>
+              <div class="matrix-card-hdr">MATRIX // Active Enumeration</div>
+              <div class="matrix-enum-stack">
+                <div class="matrix-enum-block">
+                  <div class="matrix-label">Module</div>
+                  <div class="matrix-enum-title">Nmap</div>
+                  <div class="matrix-enum-copy">Enumeration lives here. Nmap profile execution is the first active module being wired into MATRIX.</div>
+                </div>
+                <div class="matrix-enum-block">
+                  <div class="matrix-label">Planned Flow</div>
+                  <div class="matrix-enum-copy">Choose a saved Nmap profile, supply targets, run it, and keep the raw output for Quick Log parsing.</div>
+                </div>
+              </div>
             </section>
-            <section class="matrix-card matrix-card-wide">
+            <section class="matrix-card matrix-submodule-card" id="matrixJobsCardPassive">
+              <div class="matrix-card-hdr">Recent Jobs</div>
+              <div class="matrix-jobs-list" id="matrixJobsListPassive">No recon jobs yet.</div>
+            </section>
+            <section class="matrix-card matrix-card-wide matrix-submodule-card" id="matrixOutputCardPassive">
               <div class="matrix-card-hdr">Job Output</div>
-              <div class="matrix-output" id="matrixOutput">Select or run a MATRIX // Passive Recon job.</div>
+              <div class="matrix-output" id="matrixOutputPassive">Run a recon job.</div>
+            </section>
+            <section class="matrix-card matrix-submodule-card" id="matrixJobsCardEnumeration" hidden>
+              <div class="matrix-card-hdr">Recent Jobs</div>
+              <div class="matrix-jobs-list" id="matrixJobsListEnumeration">No enumeration jobs yet.</div>
+            </section>
+            <section class="matrix-card matrix-card-wide matrix-submodule-card" id="matrixOutputCardEnumeration" hidden>
+              <div class="matrix-card-hdr">Job Output</div>
+              <div class="matrix-output" id="matrixOutputEnumeration">Run an enumeration job.</div>
             </section>
           </div>
         </div>

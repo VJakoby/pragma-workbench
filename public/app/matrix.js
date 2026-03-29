@@ -1,4 +1,5 @@
 let matrixState = {
+  toolboxModule: 'passive',
   mode: 'domains',
   currentJobId: null,
   pollTimer: null,
@@ -79,8 +80,21 @@ function matrixFormatJobType(type) {
     'domain-recon': 'Passive Domain Recon',
     'ip-recon': 'Passive IP Recon',
     'subdomain-passive-recon': 'Passive Subdomain Recon',
+    'nmap-enumeration': 'Active Enumeration',
   };
   return mapping[type] || type || 'matrix-job';
+}
+
+function matrixCurrentModuleLabel() {
+  return matrixState.toolboxModule === 'enumeration'
+    ? 'Active Enumeration'
+    : 'Passive Recon';
+}
+
+function matrixDefaultOutputMessage() {
+  return matrixState.toolboxModule === 'enumeration'
+    ? 'Run an enumeration job.'
+    : 'Run a recon job.';
 }
 
 function matrixDaysUntil(value) {
@@ -136,6 +150,14 @@ function matrixExtractEvents(events) {
 
 function matrixRenderKv(label, value) {
   return `<div class="matrix-kv"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || 'N/A')}</strong></div>`;
+}
+
+function matrixEscapeAttribute(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function matrixRenderSection(title, tone, content, assessment = null) {
@@ -293,6 +315,7 @@ function matrixRenderSubdomainResult(result) {
   const discovery = result?.discovery || {};
   const hostnames = Array.isArray(discovery.hostnames) ? discovery.hostnames : [];
   const tone = result.error ? 'error' : (hostnames.length ? 'ok' : 'warning');
+  const hostnameLines = hostnames.map(item => item.hostname || '').filter(Boolean).join('\n');
 
   return `
     <section class="matrix-result-card matrix-result-card--domain matrix-result-status--${tone}">
@@ -328,11 +351,19 @@ function matrixRenderSubdomainResult(result) {
 
       ${matrixRenderSection('Discovered Hostnames', 'highlights', `
         ${hostnames.length ? `
+          <div class="matrix-copy-toolbar">
+            <div class="matrix-copy-meta">${escapeHtml(`${hostnames.length} hostnames`)}</div>
+            <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(hostnameLines)}">Copy All</button>
+          </div>
+          <textarea class="matrix-copy-block" readonly spellcheck="false">${escapeHtml(hostnameLines)}</textarea>
           <div class="matrix-subdomain-list">
             ${hostnames.map(item => `
               <div class="matrix-subdomain-item">
-                <div class="matrix-subdomain-host">${escapeHtml(item.hostname || '')}</div>
-                <div class="matrix-subdomain-meta">${escapeHtml(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')}</div>
+                <div class="matrix-subdomain-host-wrap">
+                  <div class="matrix-subdomain-host">${escapeHtml(item.hostname || '')}</div>
+                  <div class="matrix-subdomain-meta">${escapeHtml(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')}</div>
+                </div>
+                <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(item.hostname || '')}">Copy</button>
               </div>
             `).join('')}
           </div>
@@ -446,9 +477,23 @@ function matrixRenderPayload(value) {
 }
 
 function matrixSetOutput(value) {
-  const node = document.getElementById('matrixOutput');
+  const node = document.getElementById(matrixState.toolboxModule === 'enumeration'
+    ? 'matrixOutputEnumeration'
+    : 'matrixOutputPassive');
   if (!node) return;
   node.innerHTML = matrixRenderPayload(value);
+}
+
+function matrixActiveJobsListNode() {
+  return document.getElementById(matrixState.toolboxModule === 'enumeration'
+    ? 'matrixJobsListEnumeration'
+    : 'matrixJobsListPassive');
+}
+
+function matrixActiveOutputNode() {
+  return document.getElementById(matrixState.toolboxModule === 'enumeration'
+    ? 'matrixOutputEnumeration'
+    : 'matrixOutputPassive');
 }
 
 function matrixParseImportedTargets(text) {
@@ -523,6 +568,7 @@ function onMatrixTargetsKeydown(event) {
 }
 
 async function initMatrix() {
+  setMatrixToolboxModule(matrixState.toolboxModule);
   setMatrixMode(matrixState.mode);
   document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
   document.getElementById('matrixTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
@@ -534,6 +580,28 @@ async function initMatrix() {
 
 function onMatrixViewOpen() {
   refreshMatrixStatus();
+  loadMatrixJobs();
+}
+
+function setMatrixToolboxModule(moduleName) {
+  matrixState.toolboxModule = moduleName === 'enumeration' ? 'enumeration' : 'passive';
+  document.getElementById('matrixModulePassive')?.classList.toggle('active', matrixState.toolboxModule === 'passive');
+  document.getElementById('matrixModuleEnumeration')?.classList.toggle('active', matrixState.toolboxModule === 'enumeration');
+  document.getElementById('matrixPanelPassive')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'passive');
+  document.getElementById('matrixPanelEnumeration')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'enumeration');
+  document.getElementById('matrixJobsCardPassive')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'passive');
+  document.getElementById('matrixOutputCardPassive')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'passive');
+  document.getElementById('matrixJobsCardEnumeration')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'enumeration');
+  document.getElementById('matrixOutputCardEnumeration')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'enumeration');
+
+  const toolbarModuleLabel = document.getElementById('matrixToolbarModuleLabel');
+  if (toolbarModuleLabel) toolbarModuleLabel.textContent = '// Toolbox';
+
+  const output = matrixActiveOutputNode();
+  if (output) {
+    output.textContent = matrixDefaultOutputMessage();
+  }
+
   loadMatrixJobs();
 }
 
@@ -639,17 +707,23 @@ function pollMatrixJob(jobId) {
 }
 
 async function loadMatrixJobs() {
-  const list = document.getElementById('matrixJobsList');
+  const list = matrixActiveJobsListNode();
   if (!list) return;
-  const response = await fetch('/api/matrix/jobs?limit=8');
+  const type = matrixState.toolboxModule === 'enumeration'
+    ? 'nmap-enumeration'
+    : '';
+  const suffix = type ? `?limit=8&type=${encodeURIComponent(type)}` : '?limit=8';
+  const response = await fetch(`/api/matrix/jobs${suffix}`);
   const data = await response.json();
   if (!response.ok) {
-    list.textContent = data.error || 'Could not load MATRIX // Recon jobs.';
+    list.textContent = data.error || 'Could not load MATRIX Toolbox jobs.';
     return;
   }
   const jobs = Array.isArray(data.jobs) ? data.jobs : [];
   if (!jobs.length) {
-    list.textContent = 'No MATRIX // Passive Recon jobs yet.';
+    list.textContent = matrixState.toolboxModule === 'enumeration'
+      ? 'No enumeration jobs yet.'
+      : 'No recon jobs yet.';
     return;
   }
   list.innerHTML = jobs.map(job => `
@@ -675,9 +749,27 @@ async function openMatrixJob(jobId) {
 window.initMatrix = initMatrix;
 window.onMatrixViewOpen = onMatrixViewOpen;
 window.refreshMatrixStatus = refreshMatrixStatus;
+window.setMatrixToolboxModule = setMatrixToolboxModule;
 window.setMatrixMode = setMatrixMode;
 window.clearMatrixForm = clearMatrixForm;
 window.submitMatrixJob = submitMatrixJob;
 window.loadMatrixJobs = loadMatrixJobs;
 window.openMatrixJob = openMatrixJob;
 window.importMatrixTargets = importMatrixTargets;
+window.copyMatrixText = async function copyMatrixText(button) {
+  const value = button?.dataset?.copy || '';
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    const original = button.textContent;
+    button.textContent = 'Copied';
+    setTimeout(() => {
+      button.textContent = original;
+    }, 1200);
+  } catch (_) {
+    button.textContent = 'Copy failed';
+    setTimeout(() => {
+      button.textContent = 'Copy';
+    }, 1200);
+  }
+};

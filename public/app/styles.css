@@ -3556,6 +3556,10 @@ body.enc-active-body .content-panel {
 .app-tooltip.visible{opacity:1}
 
 .matrix-view { display:flex; flex-direction:column; gap:14px; padding:18px; overflow:auto; font-family:'Inter',sans-serif; }
+.matrix-module-panel[hidden],
+.matrix-submodule-card[hidden] {
+  display:none !important;
+}
 .matrix-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg2); }
 .matrix-toolbar-left { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .matrix-toolbar-title {
@@ -3569,6 +3573,81 @@ body.enc-active-body .content-panel {
   letter-spacing:0.04em; line-height:1;
 }
 .matrix-toolbar-actions { display:flex; gap:8px; }
+.matrix-submodule-row {
+  display:flex;
+  gap:8px;
+  align-self:center;
+  position:relative;
+  z-index:2;
+  overflow:hidden;
+}
+.matrix-submodule-btn {
+  min-width:168px;
+  min-height:30px;
+  justify-content:center;
+  text-align:center;
+}
+.matrix-view .matrix-submodule-btn.active {
+  border-color: rgba(var(--accent-rgb),0.46);
+  color: #fff;
+  background: var(--accent);
+}
+.matrix-view .matrix-submodule-btn:not(.active):hover {
+  border-color: rgba(var(--accent-rgb),0.38);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.08);
+}
+.matrix-toolbox-tabs {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:100%;
+  max-width:520px;
+  align-self:flex-start;
+  gap:0;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--bg2);
+}
+.matrix-toolbox-tab {
+  appearance:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:38px;
+  padding:8px 16px;
+  margin:0;
+  border:0;
+  border-right:1px solid var(--border);
+  background:var(--bg3);
+  color:var(--text) !important;
+  font-family:'Inter',sans-serif;
+  font-size:13px !important;
+  font-weight:700;
+  letter-spacing:0.03em;
+  line-height:1;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color 0.12s ease, background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.matrix-toolbox-tab:last-child {
+  border-right:none;
+}
+.matrix-toolbox-tab:hover {
+  border-color: rgba(var(--accent-rgb),0.38);
+  color: var(--accent) !important;
+  background: rgba(var(--accent-rgb),0.08);
+}
+.matrix-toolbox-tab:focus-visible {
+  outline:none;
+  border-color: rgba(var(--accent-rgb),0.42);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.18);
+}
+.matrix-toolbox-tab.active {
+  background:var(--accent);
+  color:#fff !important;
+}
 .matrix-view .tb-btn,
 .matrix-view .btn-group-item,
 .matrix-view .matrix-job-item {
@@ -3638,6 +3717,19 @@ body.enc-active-body .content-panel {
 .matrix-card-wide { grid-column: 1 / -1; }
 .matrix-card-hdr { color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
 .matrix-mode-row { display:flex; width:max-content; }
+.matrix-enum-stack { display:flex; flex-direction:column; gap:10px; }
+.matrix-enum-block {
+  display:flex; flex-direction:column; gap:6px;
+  padding:12px; border:1px solid var(--border); border-radius:8px;
+  background:var(--bg3);
+}
+.matrix-enum-title {
+  color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700;
+  letter-spacing:0.03em; text-transform:uppercase;
+}
+.matrix-enum-copy {
+  color:var(--text2); font-family:'Inter',sans-serif; font-size:12px; line-height:1.5;
+}
 .matrix-label { color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
 .matrix-input, .matrix-textarea {
   width:100%; border:1px solid var(--border); border-radius:6px;
@@ -3696,10 +3788,10 @@ body.enc-active-body .content-panel {
 .matrix-result-card + .matrix-raw-details,
 .matrix-raw-details + .matrix-result-card { margin-top:12px; }
 .matrix-result-head {
-  display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
 }
 .matrix-result-top {
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
   text-align:center;
   min-height:18px; padding:4px 8px; border-bottom:1px solid var(--border);
   border-radius:3px 3px 0 0;
@@ -3727,6 +3819,9 @@ body.enc-active-body .content-panel {
 }
 .matrix-chip-row, .matrix-pill-row {
   display:flex; flex-wrap:wrap; gap:6px;
+}
+.matrix-result-head .matrix-chip-row {
+  justify-content:center;
 }
 .matrix-chip {
   display:inline-flex; align-items:center; justify-content:center;
@@ -3804,10 +3899,30 @@ body.enc-active-body .content-panel {
 .matrix-subdomain-list {
   display:flex; flex-direction:column; gap:8px;
 }
+.matrix-copy-toolbar {
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+}
+.matrix-copy-meta {
+  color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.05em;
+}
+.matrix-copy-btn {
+  min-width:72px;
+}
+.matrix-copy-block {
+  width:100%; min-height:140px; resize:vertical;
+  border:1px solid var(--border); border-radius:6px;
+  background:var(--bg3); color:var(--text);
+  padding:10px 12px;
+  font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.55;
+}
 .matrix-subdomain-item {
   display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
   padding:8px 10px; border:1px solid var(--border); border-radius:6px;
   background:var(--bg3);
+}
+.matrix-subdomain-host-wrap {
+  display:flex; flex-direction:column; gap:4px; min-width:0;
 }
 .matrix-subdomain-host {
   color:var(--text); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
@@ -3815,7 +3930,7 @@ body.enc-active-body .content-panel {
 }
 .matrix-subdomain-meta {
   color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
-  text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap;
+  text-transform:uppercase; letter-spacing:0.05em;
 }
 .matrix-raw-details {
   border:1px solid var(--border); border-radius:8px; background:var(--bg2); overflow:hidden;
