@@ -26,16 +26,18 @@
 
       <div class="panel-view" id="view-matrix">
         <div class="matrix-view">
-          <div class="matrix-submodule-row utility-topbar-group">
-            <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-left matrix-submodule-btn active" id="matrixModulePassive" onclick="setMatrixToolboxModule('passive')" type="button">Passive Recon</button>
-            <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-right matrix-submodule-btn" id="matrixModuleEnumeration" onclick="setMatrixToolboxModule('enumeration')" type="button">Active Enumeration</button>
-          </div>
           <div class="matrix-toolbar">
             <div class="matrix-toolbar-left">
               <div class="matrix-toolbar-title">MATRIX<span id="matrixToolbarModuleLabel">// Toolbox</span></div>
               <div class="matrix-toolbar-status-row">
                 <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
                 <div class="matrix-version-label" id="matrixVersionLabel"></div>
+              </div>
+            </div>
+            <div class="matrix-toolbar-center">
+              <div class="matrix-submodule-row utility-topbar-group">
+                <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-left matrix-submodule-btn active" id="matrixModulePassive" onclick="setMatrixToolboxModule('passive')" type="button">Passive Recon</button>
+                <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-right matrix-submodule-btn" id="matrixModuleEnumeration" onclick="setMatrixToolboxModule('enumeration')" type="button">Active Enumeration</button>
               </div>
             </div>
             <div class="matrix-toolbar-actions">
