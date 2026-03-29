@@ -124,6 +124,40 @@ function registerMatrixRoutes(app, { matrixUrl }) {
       body: JSON.stringify(req.body || {}),
     }, 12000);
   });
+
+  app.get('/api/matrix/enumeration/nmap/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/nmap/profiles', {}, 5000);
+  });
+
+  app.post('/api/matrix/enumeration/nmap/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/nmap/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.put('/api/matrix/enumeration/nmap/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/nmap/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.delete('/api/matrix/enumeration/nmap/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/nmap/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'DELETE',
+    }, 8000);
+  });
+
+  app.post('/api/matrix/enumeration/nmap/run', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/nmap/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 15000);
+  });
 }
 
 module.exports = { registerMatrixRoutes };

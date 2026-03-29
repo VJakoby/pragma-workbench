@@ -44,7 +44,7 @@
             </div>
           </div>
           <div class="matrix-grid">
-            <section class="matrix-card matrix-card-wide matrix-module-panel" id="matrixPanelPassive">
+            <section class="matrix-card matrix-module-panel" id="matrixPanelPassive">
               <div class="matrix-card-hdr" id="matrixModulePanelHdr">MATRIX // Passive Recon</div>
               <div class="matrix-mode-row btn-group">
                 <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
@@ -64,17 +64,49 @@
               </div>
               <input id="matrixImportFile" type="file" accept=".txt,.csv,.json,.log" hidden>
             </section>
-            <section class="matrix-card matrix-card-wide matrix-module-panel" id="matrixPanelEnumeration" hidden>
+            <section class="matrix-card matrix-module-panel" id="matrixPanelEnumeration" hidden>
               <div class="matrix-card-hdr">MATRIX // Active Enumeration</div>
               <div class="matrix-enum-stack">
                 <div class="matrix-enum-block">
                   <div class="matrix-label">Module</div>
                   <div class="matrix-enum-title">Nmap</div>
-                  <div class="matrix-enum-copy">Enumeration lives here. Nmap profile execution is the first active module being wired into MATRIX.</div>
+                  <div class="matrix-enum-copy" id="matrixEnumCapability">Checking Nmap runtime availability...</div>
                 </div>
                 <div class="matrix-enum-block">
-                  <div class="matrix-label">Planned Flow</div>
-                  <div class="matrix-enum-copy">Choose a saved Nmap profile, supply targets, run it, and keep the raw output for Quick Log parsing.</div>
+                  <label class="matrix-label" for="matrixNmapProfileSelect">Saved Profiles</label>
+                  <div class="matrix-inline-row">
+                    <select class="matrix-input matrix-select" id="matrixNmapProfileSelect" onchange="selectMatrixNmapProfile(this.value)"></select>
+                    <button class="tb-btn" type="button" onclick="loadMatrixNmapProfiles()">Refresh</button>
+                  </div>
+                </div>
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixEnumNaming">Naming</label>
+                  <input class="matrix-input" id="matrixEnumNaming" type="text" placeholder="optional: Internal edge sweep">
+                </div>
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixNmapProfileLabel">Profile Label</label>
+                  <input class="matrix-input" id="matrixNmapProfileLabel" type="text" placeholder="TCP Service Scan">
+                </div>
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixNmapProfileDescription">Description</label>
+                  <input class="matrix-input" id="matrixNmapProfileDescription" type="text" placeholder="Container-safe TCP connect service detection">
+                </div>
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
+                  <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
+                  <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself.</div>
+                </div>
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixEnumTargets">Targets</label>
+                  <textarea class="matrix-textarea" id="matrixEnumTargets" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                </div>
+                <div class="matrix-action-row matrix-enum-actions">
+                  <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                  <button class="tb-btn" type="button" onclick="saveMatrixNmapProfile()">Save Profile</button>
+                  <button class="tb-btn" type="button" onclick="newMatrixNmapProfile()">New Profile</button>
+                  <button class="tb-btn" type="button" onclick="deleteMatrixNmapProfile()">Delete</button>
+                  <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                  <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
                 </div>
               </div>
             </section>
