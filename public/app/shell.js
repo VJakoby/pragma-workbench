@@ -360,12 +360,15 @@ document.addEventListener('keydown', async e => {
       exitEditMode();
       return;
     }
+    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) {
+      closeContent();
+      return;
+    }
     const noteArea = document.getElementById('noteEditArea');
     if (activeView === 'notes' && (activeNoteId || activeConfigDoc) && noteArea && noteArea.style.display !== 'none') {
       await closeCurrentNote();
       return;
     }
-    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); }
   }
 });
 
