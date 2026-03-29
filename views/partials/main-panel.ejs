@@ -73,6 +73,7 @@
                   <div class="matrix-label">Module</div>
                   <div class="matrix-enum-title">Nmap</div>
                   <div class="matrix-enum-copy" id="matrixEnumCapability">Checking Nmap runtime availability...</div>
+                  <div class="matrix-enum-copy">Run a saved Nmap profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> to parse and add the discovered services.</div>
                 </div>
                 <div class="matrix-enum-block">
                   <label class="matrix-label" for="matrixNmapProfileSelect">Saved Profiles</label>
@@ -96,11 +97,12 @@
                 <div class="matrix-enum-block">
                   <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
                   <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
-                  <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself.</div>
+                  <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself, but the main workflow is still the raw Nmap text output.</div>
                 </div>
                 <div class="matrix-enum-block">
                   <label class="matrix-label" for="matrixEnumTargets">Targets</label>
                   <textarea class="matrix-textarea" id="matrixEnumTargets" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                  <div class="matrix-enum-copy">For best Quick Log results, run one host at a time when you want clean per-target port insertion.</div>
                 </div>
                 <div class="matrix-action-row matrix-enum-actions">
                   <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>

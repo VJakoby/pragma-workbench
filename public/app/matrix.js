@@ -116,6 +116,13 @@ function matrixSetEnumCapability(text) {
   if (node) node.textContent = text;
 }
 
+function matrixJobStatusTone(status) {
+  if (status === 'completed') return 'ok';
+  if (status === 'failed') return 'bad';
+  if (status === 'running' || status === 'queued') return 'warn';
+  return 'neutral';
+}
+
 function matrixDaysUntil(value) {
   if (!value) return null;
   const date = new Date(value);
@@ -300,10 +307,15 @@ function matrixReconMarkdown(result) {
   return '';
 }
 
-function matrixCopyMarkdownButton(result) {
+function matrixCopyMarkdownAction(result) {
   const markdown = matrixReconMarkdown(result);
   if (!markdown) return '';
-  return `<button class="tb-btn matrix-copy-btn matrix-markdown-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(markdown)}">Copy Markdown</button>`;
+  return `
+    <div class="matrix-export-row">
+      <div class="matrix-export-copy">Copy a compact markdown summary for manual note insertion.</div>
+      <button class="tb-btn matrix-copy-btn matrix-markdown-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(markdown)}">Copy Note Markdown</button>
+    </div>
+  `;
 }
 
 function matrixRenderSection(title, tone, content, assessment = null) {
@@ -340,7 +352,6 @@ function matrixRenderDomainResult(result) {
           <div class="matrix-result-subtitle">${escapeHtml(result.target || '')}</div>
         </div>
         <div class="matrix-chip-row">
-          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(result.resolved ? 'resolved' : 'unresolved', result.resolved ? 'ok' : 'warn')}
           ${matrixStatusChip('SPF', matrixChipTone(assessment.spf?.status))}
@@ -351,6 +362,7 @@ function matrixRenderDomainResult(result) {
       </div>
 
       <div class="matrix-result-body">
+      ${matrixCopyMarkdownAction(result)}
       <div class="matrix-section-grid">
         ${matrixRenderSection('Resolution', 'resolution', `
           ${matrixRenderKv('IPv4', Array.isArray(dns.a) && dns.a.length ? dns.a.join(', ') : 'None')}
@@ -423,7 +435,6 @@ function matrixRenderIpResult(result) {
           <div class="matrix-result-subtitle">${escapeHtml(summary.name || summary.handle || rdap.status || '')}</div>
         </div>
         <div class="matrix-chip-row">
-          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.public ? 'public' : (result.scope || 'private'), result.public ? 'ok' : 'warn')}
           ${matrixStatusChip(`IPv${escapeHtml(result.version || '')}`, 'neutral')}
           ${matrixStatusChip(rdap.status || 'rdap', rdap.status === 'ok' ? 'ok' : 'warn')}
@@ -431,6 +442,7 @@ function matrixRenderIpResult(result) {
       </div>
 
       <div class="matrix-result-body">
+      ${matrixCopyMarkdownAction(result)}
       <div class="matrix-section-grid">
         ${matrixRenderSection('Allocation', 'allocation', `
           ${matrixRenderKv('Network', summary.name || 'N/A')}
@@ -473,7 +485,6 @@ function matrixRenderSubdomainResult(result) {
           <div class="matrix-result-subtitle">Passive subdomain discovery</div>
         </div>
         <div class="matrix-chip-row">
-          ${matrixCopyMarkdownButton(result)}
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(`${discovery.returnedCount || 0} found`, hostnames.length ? 'ok' : 'warn')}
           ${matrixStatusChip('crt.sh', 'neutral')}
@@ -481,6 +492,7 @@ function matrixRenderSubdomainResult(result) {
       </div>
 
       <div class="matrix-result-body">
+      ${matrixCopyMarkdownAction(result)}
       <div class="matrix-section-grid">
         ${matrixRenderSection('Discovery', 'resolution', `
           ${matrixRenderKv('Root Domain', result.rootDomain || result.normalized || 'N/A')}
@@ -607,13 +619,25 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
         ${output.stdout ? `
           <section class="matrix-section matrix-section--neutral matrix-section-status--neutral">
             <div class="matrix-section-top">NMAP OUTPUT</div>
-            <div class="matrix-section-body"><pre class="matrix-raw-pre">${escapeHtml(output.stdout)}</pre></div>
+            <div class="matrix-section-body">
+              <div class="matrix-copy-toolbar">
+                <div class="matrix-copy-meta">Raw CLI output for Quick Log parsing</div>
+                <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(output.stdout)}">Copy Output</button>
+              </div>
+              <pre class="matrix-raw-pre">${escapeHtml(output.stdout)}</pre>
+            </div>
           </section>
         ` : ''}
         ${output.stderr ? `
           <section class="matrix-section matrix-section--warning matrix-section-status--warning">
             <div class="matrix-section-top">STDERR</div>
-            <div class="matrix-section-body"><pre class="matrix-raw-pre">${escapeHtml(output.stderr)}</pre></div>
+            <div class="matrix-section-body">
+              <div class="matrix-copy-toolbar">
+                <div class="matrix-copy-meta">Captured standard error</div>
+                <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(output.stderr)}">Copy STDERR</button>
+              </div>
+              <pre class="matrix-raw-pre">${escapeHtml(output.stderr)}</pre>
+            </div>
           </section>
         ` : ''}
       </div>
@@ -950,6 +974,24 @@ function matrixSyncProfileEditor(profile) {
   if (commandTemplate) commandTemplate.value = profile?.commandTemplate || '';
 }
 
+function matrixCurrentNmapProfileDraft() {
+  return {
+    label: document.getElementById('matrixNmapProfileLabel')?.value.trim() || '',
+    description: document.getElementById('matrixNmapProfileDescription')?.value.trim() || '',
+    commandTemplate: document.getElementById('matrixNmapCommandTemplate')?.value.trim() || '',
+  };
+}
+
+function matrixHasUnsavedNmapProfileChanges() {
+  if (!matrixState.selectedNmapProfileId) return false;
+  const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId);
+  if (!profile) return false;
+  const draft = matrixCurrentNmapProfileDraft();
+  return draft.label !== (profile.label || '')
+    || draft.description !== (profile.description || '')
+    || draft.commandTemplate !== (profile.commandTemplate || '');
+}
+
 function selectMatrixNmapProfile(profileId) {
   matrixState.selectedNmapProfileId = profileId || '';
   const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId) || null;
@@ -996,9 +1038,7 @@ function newMatrixNmapProfile() {
 }
 
 async function saveMatrixNmapProfile() {
-  const label = document.getElementById('matrixNmapProfileLabel')?.value.trim() || '';
-  const description = document.getElementById('matrixNmapProfileDescription')?.value.trim() || '';
-  const commandTemplate = document.getElementById('matrixNmapCommandTemplate')?.value.trim() || '';
+  const { label, description, commandTemplate } = matrixCurrentNmapProfileDraft();
   const body = { label, description, commandTemplate, enabled: true };
   const isUpdate = Boolean(matrixState.selectedNmapProfileId);
   const path = isUpdate
@@ -1056,6 +1096,10 @@ async function runMatrixEnumeration() {
   const profileId = matrixState.selectedNmapProfileId || document.getElementById('matrixNmapProfileSelect')?.value || '';
   if (!profileId) {
     matrixSetOutput({ error: 'Select a saved Nmap profile before running enumeration.' });
+    return;
+  }
+  if (matrixHasUnsavedNmapProfileChanges()) {
+    matrixSetOutput({ error: 'Profile has unsaved changes. Save first or discard.' });
     return;
   }
   const body = { text: targets, profileId };
@@ -1120,9 +1164,18 @@ async function loadMatrixJobs() {
   }
   list.innerHTML = jobs.map(job => `
     <button class="matrix-job-item" onclick="openMatrixJob('${job.id}')">
-      <span class="matrix-job-item-type">${escapeHtml(job.name || `${job.targetCount} targets`)}</span>
-      <span class="matrix-job-item-status ${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
-      <span class="matrix-job-item-meta">${escapeHtml(matrixFormatJobType(job.type))}</span>
+      <span class="matrix-job-item-main">
+        <span class="matrix-job-item-type">${escapeHtml(job.name || `${job.targetCount} targets`)}</span>
+        <span class="matrix-job-item-meta">${escapeHtml(matrixFormatJobType(job.type))}</span>
+      </span>
+      <span class="matrix-job-item-status-pill ${matrixJobStatusTone(job.status)}">${escapeHtml(job.status)}</span>
+      <span class="matrix-job-item-status-line ${escapeHtml(job.status)}">${escapeHtml(job.status === 'completed'
+        ? 'Job completed'
+        : job.status === 'failed'
+          ? 'Job failed'
+          : job.status === 'running'
+            ? 'Job running'
+            : 'Job queued')}</span>
     </button>
   `).join('');
 }
