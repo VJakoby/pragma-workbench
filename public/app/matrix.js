@@ -24,8 +24,8 @@ function matrixSetStatus(label, state) {
   if (badge) {
     badge.textContent = '';
     badge.className = `nav-item-count matrix-nav-status ${state || ''}`.trim();
-    badge.title = `Matrix // Recon ${label}`;
-    badge.setAttribute('aria-label', `Matrix // Recon ${label}`);
+    badge.title = `MATRIX // Recon ${label}`;
+    badge.setAttribute('aria-label', `MATRIX // Recon ${label}`);
   }
 }
 
@@ -100,6 +100,15 @@ function matrixRenderKv(label, value) {
   return `<div class="matrix-kv"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || 'N/A')}</strong></div>`;
 }
 
+function matrixRenderSection(title, tone, content) {
+  return `
+    <section class="matrix-section matrix-section--${tone}">
+      <div class="matrix-section-top">${escapeHtml(title)}</div>
+      <div class="matrix-section-body">${content}</div>
+    </section>
+  `;
+}
+
 function matrixRenderDomainResult(result) {
   const dns = result?.dns || {};
   const email = result?.emailSecurity || {};
@@ -112,8 +121,8 @@ function matrixRenderDomainResult(result) {
   if (dkim.wildcardSuspected) dkimFlags.push('wildcard suspected');
 
   return `
-    <section class="matrix-result-card">
-      <div class="matrix-result-head">
+    <section class="matrix-result-card matrix-result-card--domain">
+      <div class="matrix-result-head matrix-result-top">
         <div>
           <div class="matrix-result-title">${escapeHtml(result.normalized || result.target || 'Domain')}</div>
           <div class="matrix-result-subtitle">${escapeHtml(result.target || '')}</div>
@@ -125,58 +134,52 @@ function matrixRenderDomainResult(result) {
         </div>
       </div>
 
+      <div class="matrix-result-body">
       <div class="matrix-section-grid">
-        <section class="matrix-section">
-          <h4>Resolution</h4>
+        ${matrixRenderSection('Resolution', 'resolution', `
           ${matrixRenderKv('IPv4', Array.isArray(dns.a) && dns.a.length ? dns.a.join(', ') : 'None')}
           ${matrixRenderKv('IPv6', Array.isArray(dns.aaaa) && dns.aaaa.length ? dns.aaaa.join(', ') : 'None')}
           ${matrixRenderKv('CNAME', Array.isArray(dns.cname) && dns.cname.length ? dns.cname.join(', ') : 'None')}
           ${matrixRenderKv('Nameservers', Array.isArray(dns.ns) && dns.ns.length ? dns.ns.join(', ') : 'None')}
           ${matrixRenderKv('MX', Array.isArray(dns.mx) && dns.mx.some(item => item?.isNullMx) ? 'Null MX' : (Array.isArray(dns.mx) && dns.mx.length ? dns.mx.map(item => `${item.exchange || 'unknown'}${Number.isFinite(item.priority) ? ` (${item.priority})` : ''}`).join(', ') : 'None'))}
-        </section>
+        `)}
 
-        <section class="matrix-section">
-          <h4>Email Security</h4>
+        ${matrixRenderSection('Email Security', 'email', `
           ${matrixRenderKv('SPF', Array.isArray(email.spf) && email.spf.length ? email.spf.join(' | ') : 'None')}
           ${matrixRenderKv('DMARC', Array.isArray(email.dmarc) && email.dmarc.length ? email.dmarc.join(' | ') : 'None')}
           ${matrixRenderKv('DKIM', dkimFlags.length ? dkimFlags.join(', ') : 'Not found')}
           ${matrixRenderKv('Selectors Checked', Array.isArray(dkim.selectorsChecked) ? String(dkim.selectorsChecked.length) : '0')}
-        </section>
+        `)}
 
-        <section class="matrix-section">
-          <h4>TLS</h4>
+        ${matrixRenderSection('TLS', 'tls', `
           ${matrixRenderKv('Status', tls.status || 'Unknown')}
           ${matrixRenderKv('Protocol', tls.protocol || 'N/A')}
           ${matrixRenderKv('Issuer', cert?.issuer?.CN || cert?.issuer?.O || 'N/A')}
           ${matrixRenderKv('Subject CN', cert?.subject?.CN || 'N/A')}
           ${matrixRenderKv('Certificate Expiry', cert.validTo || 'N/A')}
           ${matrixRenderKv('Days Remaining', expiryDays == null ? 'N/A' : String(expiryDays))}
-        </section>
+        `)}
       </div>
 
-      <section class="matrix-section">
-        <h4>Highlights</h4>
+      ${matrixRenderSection('Highlights', 'highlights', `
         <div class="matrix-pill-row">${matrixJoinList(dns.ns || [])}</div>
         <div class="matrix-pill-row">${matrixFormatMx(dns.mx)}</div>
-      </section>
+      `)}
 
       ${Array.isArray(dkim.records) && dkim.records.length ? `
-        <section class="matrix-section">
-          <h4>DKIM Records</h4>
-          <div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>
-        </section>
+        ${matrixRenderSection('DKIM Records', 'dkim', `<div class="matrix-kv-list">${matrixExtractDkimRows(dkim)}</div>`)}
       ` : ''}
 
       ${(cert.subjectAltName || tls.cipher?.name) ? `
-        <section class="matrix-section">
-          <h4>Certificate Details</h4>
+        ${matrixRenderSection('Certificate Details', 'certificate', `
           <div class="matrix-kv-list">
             ${matrixRenderKv('SAN', cert.subjectAltName || 'N/A')}
             ${matrixRenderKv('Cipher', tls.cipher?.standardName || tls.cipher?.name || 'N/A')}
             ${matrixRenderKv('Valid From', cert.validFrom || 'N/A')}
           </div>
-        </section>
+        `)}
       ` : ''}
+      </div>
     </section>
   `;
 }
@@ -191,8 +194,8 @@ function matrixRenderIpResult(result) {
   const events = matrixExtractEvents(summary.events || rdap.document?.events);
 
   return `
-    <section class="matrix-result-card">
-      <div class="matrix-result-head">
+    <section class="matrix-result-card matrix-result-card--ip">
+      <div class="matrix-result-head matrix-result-top">
         <div>
           <div class="matrix-result-title">${escapeHtml(result.normalized || result.target || 'IP')}</div>
           <div class="matrix-result-subtitle">${escapeHtml(summary.name || summary.handle || rdap.status || '')}</div>
@@ -204,61 +207,61 @@ function matrixRenderIpResult(result) {
         </div>
       </div>
 
+      <div class="matrix-result-body">
       <div class="matrix-section-grid">
-        <section class="matrix-section">
-          <h4>Allocation</h4>
+        ${matrixRenderSection('Allocation', 'allocation', `
           ${matrixRenderKv('Network', summary.name || 'N/A')}
           ${matrixRenderKv('Handle', summary.handle || 'N/A')}
           ${matrixRenderKv('Type', summary.type || 'N/A')}
           ${matrixRenderKv('Range', summary.startAddress && summary.endAddress ? `${summary.startAddress} - ${summary.endAddress}` : 'N/A')}
           ${matrixRenderKv('Status', Array.isArray(summary.status) ? summary.status.join(', ') : 'N/A')}
-        </section>
+        `)}
 
-        <section class="matrix-section">
-          <h4>Ownership</h4>
+        ${matrixRenderSection('Ownership', 'ownership', `
           ${matrixRenderKv('Registrant', matrixExtractEntityName(registrant) || 'N/A')}
           ${matrixRenderKv('Abuse Contact', matrixExtractEntityEmail(abuse) || 'N/A')}
           ${matrixRenderKv('Registration', events.registration || 'N/A')}
           ${matrixRenderKv('Last Changed', events['last changed'] || 'N/A')}
-        </section>
+        `)}
       </div>
 
-      <section class="matrix-section">
-        <h4>RDAP Source</h4>
+      ${matrixRenderSection('RDAP Source', 'source', `
         <div class="matrix-kv-list">
           ${matrixRenderKv('Lookup URL', rdap.source || 'N/A')}
           ${matrixRenderKv('Parent Handle', summary.parentHandle || 'N/A')}
         </div>
-      </section>
+      `)}
+      </div>
     </section>
   `;
 }
 
 function matrixRenderJobOverview(job) {
   const counts = job?.result?.counts || {};
+  const jobName = job?.input?.name || job?.name || '';
   return `
-    <section class="matrix-result-card">
-      <div class="matrix-result-head">
+    <section class="matrix-result-card matrix-result-card--job">
+      <div class="matrix-result-head matrix-result-top">
         <div>
-          <div class="matrix-result-title">${escapeHtml(job.type || 'matrix-job')}</div>
-          <div class="matrix-result-subtitle">Job ${escapeHtml(job.id || '')}</div>
+          <div class="matrix-result-title">${escapeHtml(jobName || 'MATRIX // Recon')}</div>
+          <div class="matrix-result-subtitle">${escapeHtml(job.type || 'matrix-job')} • Job ${escapeHtml(job.id || '')}</div>
         </div>
         <div class="matrix-chip-row">
           ${matrixStatusChip(job.status || 'unknown', job.status === 'completed' ? 'ok' : (job.status === 'failed' ? 'bad' : 'warn'))}
           ${job.completedAt ? matrixStatusChip('complete', 'ok') : ''}
         </div>
       </div>
+      <div class="matrix-result-body">
       <div class="matrix-section-grid">
-        <section class="matrix-section">
-          <h4>Timing</h4>
+        ${matrixRenderSection('Timing', 'timing', `
           ${matrixRenderKv('Created', matrixFormatDate(job.createdAt))}
           ${matrixRenderKv('Started', matrixFormatDate(job.startedAt))}
           ${matrixRenderKv('Completed', matrixFormatDate(job.completedAt))}
-        </section>
-        <section class="matrix-section">
-          <h4>Counts</h4>
+        `)}
+        ${matrixRenderSection('Counts', 'counts', `
           ${Object.keys(counts).length ? Object.entries(counts).map(([key, value]) => matrixRenderKv(key, String(value))).join('') : matrixRenderKv('Targets', String(job.input?.targets?.length || 0))}
-        </section>
+        `)}
+      </div>
       </div>
     </section>
   `;
@@ -285,14 +288,15 @@ function matrixRenderPayload(value) {
 
   if (value?.submitting) {
     return `
-      <section class="matrix-result-card">
-        <div class="matrix-result-head">
+      <section class="matrix-result-card matrix-result-card--submit">
+        <div class="matrix-result-head matrix-result-top">
           <div>
-            <div class="matrix-result-title">Submitting ${escapeHtml(matrixState.mode)}</div>
+            <div class="matrix-result-title">Submitting ${escapeHtml(document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Recon')}</div>
             <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
           </div>
           <div class="matrix-chip-row">${matrixStatusChip('submitting', 'warn')}</div>
         </div>
+        <div class="matrix-result-body"></div>
       </section>
       ${matrixRenderRaw(value)}
     `;
@@ -308,18 +312,24 @@ function matrixRenderPayload(value) {
       if (item.kind === 'domain') return matrixRenderDomainResult(item);
       if (item.kind === 'ip') return matrixRenderIpResult(item);
       return `
-        <section class="matrix-result-card">
-          <div class="matrix-result-title">${escapeHtml(item.normalized || item.target || item.kind || 'Result')}</div>
-          ${matrixRenderRaw(item)}
+        <section class="matrix-result-card matrix-result-card--generic">
+          <div class="matrix-result-head matrix-result-top">
+            <div>
+              <div class="matrix-result-title">${escapeHtml(item.normalized || item.target || item.kind || 'Result')}</div>
+            </div>
+          </div>
+          <div class="matrix-result-body">${matrixRenderRaw(item)}</div>
         </section>
       `;
     }).join('');
   }
   if (base?.error || value?.error) {
     html += `
-      <section class="matrix-result-card">
-        <div class="matrix-result-title">Error</div>
-        <div class="matrix-empty-state">${escapeHtml(base.error || value.error)}</div>
+      <section class="matrix-result-card matrix-result-card--error">
+        <div class="matrix-result-head matrix-result-top">
+          <div><div class="matrix-result-title">Error</div></div>
+        </div>
+        <div class="matrix-result-body"><div class="matrix-empty-state">${escapeHtml(base.error || value.error)}</div></div>
       </section>
     `;
   }
@@ -384,6 +394,7 @@ async function onMatrixFileSelected(event) {
       imported: true,
       filename: file.name,
       detectedTargets: targets.length,
+      name: document.getElementById('matrixNaming')?.value.trim() || null,
       mode: matrixState.mode,
     });
   } catch (error) {
@@ -410,20 +421,25 @@ function onMatrixViewOpen() {
 async function refreshMatrixStatus() {
   const meta = document.getElementById('matrixToolbarMeta');
   try {
-    const [health, capabilities] = await Promise.all([
-      fetch('/api/matrix/health').then(r => r.json()),
-      fetch('/api/matrix/capabilities').then(r => r.json()),
+    const [healthResponse, capabilitiesResponse] = await Promise.all([
+      fetch('/api/matrix/health'),
+      fetch('/api/matrix/capabilities'),
     ]);
-    void health;
+    if (!healthResponse.ok || !capabilitiesResponse.ok) throw new Error('MATRIX proxy unavailable');
+    const [health, capabilities] = await Promise.all([
+      healthResponse.json(),
+      capabilitiesResponse.json(),
+    ]);
+    if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('MATRIX service unavailable');
     matrixState.capabilities = capabilities;
     matrixSetStatus('online', 'online');
     if (meta) {
       const version = capabilities?.version ? ` v${capabilities.version}` : '';
-      meta.textContent = `Matrix // Recon${version} via PRAGMA proxy`;
+      meta.textContent = `MATRIX // Recon${version} via PRAGMA proxy`;
     }
   } catch (error) {
     matrixSetStatus('offline', 'offline');
-    if (meta) meta.textContent = 'Matrix // Recon unreachable from PRAGMA';
+    if (meta) meta.textContent = 'MATRIX // Recon unreachable from PRAGMA';
   }
 }
 
@@ -449,8 +465,10 @@ function setMatrixMode(mode) {
 }
 
 function clearMatrixForm() {
+  const naming = document.getElementById('matrixNaming');
   const targets = document.getElementById('matrixTargets');
   const selectors = document.getElementById('matrixDkimSelectors');
+  if (naming) naming.value = '';
   if (targets) targets.value = '';
   if (selectors) selectors.value = '';
 }
@@ -458,8 +476,10 @@ function clearMatrixForm() {
 async function submitMatrixJob() {
   const targets = document.getElementById('matrixTargets').value;
   const dkimSelectors = document.getElementById('matrixDkimSelectors').value;
+  const name = document.getElementById('matrixNaming')?.value.trim() || '';
   const path = matrixState.mode === 'ips' ? '/api/matrix/recon/ips' : '/api/matrix/recon/domains';
   const body = { text: targets };
+  if (name) body.name = name;
   if (matrixState.mode === 'domains' && dkimSelectors.trim()) body.dkimSelectors = dkimSelectors;
 
   matrixSetOutput({ submitting: true, path, body });
@@ -501,19 +521,19 @@ async function loadMatrixJobs() {
   const response = await fetch('/api/matrix/jobs?limit=8');
   const data = await response.json();
   if (!response.ok) {
-    list.textContent = data.error || 'Could not load Matrix // Recon jobs.';
+    list.textContent = data.error || 'Could not load MATRIX // Recon jobs.';
     return;
   }
   const jobs = Array.isArray(data.jobs) ? data.jobs : [];
   if (!jobs.length) {
-    list.textContent = 'No Matrix // Recon jobs yet.';
+    list.textContent = 'No MATRIX // Recon jobs yet.';
     return;
   }
   list.innerHTML = jobs.map(job => `
     <button class="matrix-job-item" onclick="openMatrixJob('${job.id}')">
       <span class="matrix-job-item-type">${escapeHtml(job.type)}</span>
       <span class="matrix-job-item-status ${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
-      <span class="matrix-job-item-meta">${escapeHtml(job.targetCount)} targets</span>
+      <span class="matrix-job-item-meta">${escapeHtml(job.name || `${job.targetCount} targets`)}</span>
     </button>
   `).join('');
 }

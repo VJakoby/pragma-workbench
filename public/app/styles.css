@@ -3654,9 +3654,9 @@ body.enc-active-body .content-panel {
 }
 .matrix-empty-state { color:var(--muted); font-family:'Inter',sans-serif; font-size:13px; }
 .matrix-result-card {
-  display:flex; flex-direction:column; gap:12px;
-  padding:14px; border:1px solid var(--border);
-  border-radius:8px; background:var(--bg2);
+  display:flex; flex-direction:column;
+  border:1px solid var(--border); border-radius:8px; overflow:hidden;
+  background:var(--bg2); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.01);
 }
 .matrix-result-card + .matrix-result-card,
 .matrix-result-card + .matrix-raw-details,
@@ -3664,6 +3664,19 @@ body.enc-active-body .content-panel {
 .matrix-result-head {
   display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
 }
+.matrix-result-top {
+  padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05);
+  background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+}
+.matrix-result-body {
+  display:flex; flex-direction:column; gap:12px; padding:14px;
+}
+.matrix-result-card--job .matrix-result-top { color:#a5b4fc; border-bottom-color:rgba(129,140,248,0.22); background:linear-gradient(180deg, rgba(129,140,248,0.18), rgba(129,140,248,0.05)); }
+.matrix-result-card--domain .matrix-result-top { color:#c4b5fd; border-bottom-color:rgba(167,139,250,0.22); background:linear-gradient(180deg, rgba(167,139,250,0.18), rgba(167,139,250,0.05)); }
+.matrix-result-card--ip .matrix-result-top { color:#6ee7b7; border-bottom-color:rgba(16,185,129,0.22); background:linear-gradient(180deg, rgba(16,185,129,0.18), rgba(16,185,129,0.05)); }
+.matrix-result-card--submit .matrix-result-top { color:#fdba74; border-bottom-color:rgba(251,146,60,0.22); background:linear-gradient(180deg, rgba(251,146,60,0.18), rgba(251,146,60,0.05)); }
+.matrix-result-card--error .matrix-result-top { color:#fca5a5; border-bottom-color:rgba(248,113,113,0.22); background:linear-gradient(180deg, rgba(248,113,113,0.18), rgba(248,113,113,0.05)); }
+.matrix-result-card--generic .matrix-result-top { color:#cbd5e1; border-bottom-color:rgba(148,163,184,0.22); background:linear-gradient(180deg, rgba(148,163,184,0.16), rgba(148,163,184,0.05)); }
 .matrix-result-title {
   color:var(--text); font-family:'Inter',sans-serif; font-size:14px; font-weight:700;
 }
@@ -3699,13 +3712,32 @@ body.enc-active-body .content-panel {
   display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;
 }
 .matrix-section {
-  display:flex; flex-direction:column; gap:8px; padding:12px;
-  border:1px solid var(--border); border-radius:6px; background:rgba(0,0,0,0.04);
+  display:flex; flex-direction:column;
+  border:1px solid var(--border); border-radius:8px; overflow:hidden;
+  background:var(--bg2); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.01);
 }
-.matrix-section h4 {
-  color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
+.matrix-section-top {
+  display:flex; align-items:center; min-height:32px; padding:0 12px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  color:var(--text); font-family:'Inter',sans-serif; font-size:11px; font-weight:700;
   letter-spacing:0.08em; text-transform:uppercase;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
 }
+.matrix-section-body {
+  display:flex; flex-direction:column; gap:8px; padding:12px;
+  background:rgba(0,0,0,0.04);
+}
+.matrix-section--resolution .matrix-section-top { color:#c4b5fd; border-bottom-color:rgba(167,139,250,0.22); background:linear-gradient(180deg, rgba(167,139,250,0.18), rgba(167,139,250,0.06)); }
+.matrix-section--email .matrix-section-top { color:#86efac; border-bottom-color:rgba(52,211,153,0.22); background:linear-gradient(180deg, rgba(52,211,153,0.16), rgba(52,211,153,0.05)); }
+.matrix-section--tls .matrix-section-top { color:#fdba74; border-bottom-color:rgba(251,146,60,0.22); background:linear-gradient(180deg, rgba(251,146,60,0.16), rgba(251,146,60,0.05)); }
+.matrix-section--highlights .matrix-section-top { color:#93c5fd; border-bottom-color:rgba(96,165,250,0.22); background:linear-gradient(180deg, rgba(96,165,250,0.16), rgba(96,165,250,0.05)); }
+.matrix-section--dkim .matrix-section-top { color:#f9a8d4; border-bottom-color:rgba(244,114,182,0.22); background:linear-gradient(180deg, rgba(244,114,182,0.16), rgba(244,114,182,0.05)); }
+.matrix-section--certificate .matrix-section-top { color:#fde68a; border-bottom-color:rgba(250,204,21,0.2); background:linear-gradient(180deg, rgba(250,204,21,0.14), rgba(250,204,21,0.04)); }
+.matrix-section--allocation .matrix-section-top { color:#6ee7b7; border-bottom-color:rgba(16,185,129,0.22); background:linear-gradient(180deg, rgba(16,185,129,0.16), rgba(16,185,129,0.05)); }
+.matrix-section--ownership .matrix-section-top { color:#fca5a5; border-bottom-color:rgba(248,113,113,0.22); background:linear-gradient(180deg, rgba(248,113,113,0.16), rgba(248,113,113,0.05)); }
+.matrix-section--source .matrix-section-top { color:#cbd5e1; border-bottom-color:rgba(148,163,184,0.22); background:linear-gradient(180deg, rgba(148,163,184,0.16), rgba(148,163,184,0.05)); }
+.matrix-section--timing .matrix-section-top { color:#a5b4fc; border-bottom-color:rgba(129,140,248,0.22); background:linear-gradient(180deg, rgba(129,140,248,0.16), rgba(129,140,248,0.05)); }
+.matrix-section--counts .matrix-section-top { color:#67e8f9; border-bottom-color:rgba(34,211,238,0.22); background:linear-gradient(180deg, rgba(34,211,238,0.16), rgba(34,211,238,0.05)); }
 .matrix-kv-list { display:flex; flex-direction:column; gap:8px; }
 .matrix-kv {
   display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
