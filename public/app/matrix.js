@@ -20,6 +20,7 @@ function escapeHtml(value) {
 function matrixSetStatus(label, state) {
   const pill = document.getElementById('matrixServicePill');
   const badge = document.getElementById('matrix-status-badge');
+  const dot = document.getElementById('matrix-status-dot');
   const versionLabel = document.getElementById('matrixVersionLabel');
   const version = matrixState.capabilities?.version ? `v${matrixState.capabilities.version}` : '';
   if (pill) {
@@ -36,6 +37,11 @@ function matrixSetStatus(label, state) {
     badge.className = `nav-item-count matrix-nav-status ${state || ''}`.trim();
     badge.title = version || `MATRIX ${label}`;
     badge.setAttribute('aria-label', version ? `MATRIX ${label} ${version}` : `MATRIX ${label}`);
+  }
+  if (dot) {
+    dot.className = `nav-item-service-dot ${state || ''}`.trim();
+    dot.title = version || `MATRIX ${label}`;
+    dot.setAttribute('aria-label', version ? `MATRIX ${label} ${version}` : `MATRIX ${label}`);
   }
 }
 

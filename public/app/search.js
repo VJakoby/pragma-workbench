@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════
 function updateSearchNavBadge(status = 'checking') {
   const badge = document.getElementById('search-index-badge');
+  const dot = document.getElementById('search-status-dot');
   if (!badge) return;
   const count = Array.isArray(knownSources) ? knownSources.length : 0;
   badge.textContent = count > 0 ? String(count) : '0';
@@ -10,6 +11,11 @@ function updateSearchNavBadge(status = 'checking') {
   badge.title = count > 0
     ? `${count} indexed source${count === 1 ? '' : 's'} · ENGRAM ${status}`
     : `No indexed sources loaded · ENGRAM ${status}`;
+  if (dot) {
+    dot.className = `nav-item-service-dot ${status}`;
+    dot.title = badge.title;
+    dot.setAttribute('aria-label', badge.title);
+  }
 }
 
 if (document.readyState === 'loading') {

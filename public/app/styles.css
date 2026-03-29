@@ -381,6 +381,7 @@ body{
   color:var(--accent);
 }
 .nav-item-icon{font-size:17px;flex-shrink:0;width:22px;text-align:center}
+.nav-item-icon{position:relative}
 .nav-item-kb-folder .nav-item-icon{
   color:var(--muted);
 }
@@ -675,6 +676,28 @@ body{
 svg { vertical-align: middle; flex-shrink: 0; }
 .nav-item-icon { width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
 .sidebar .nav-item-icon svg { width:18px; height:18px; }
+.nav-item-service-dot {
+  display:none;
+  position:absolute;
+  right:1px;
+  bottom:1px;
+  width:7px;
+  height:7px;
+  border-radius:999px;
+  background:var(--muted);
+  border:1.5px solid var(--bg2);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.08);
+}
+.nav-item-service-dot.online {
+  background:var(--green);
+  box-shadow:0 0 4px rgba(var(--green-rgb),0.45);
+}
+.nav-item-service-dot.offline {
+  background:var(--red);
+}
+.nav-item-service-dot.checking {
+  background:var(--muted);
+}
 
 
 /* ── Preview side-by-side mode ── */
@@ -1555,6 +1578,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .sidebar.sidebar-icon-only .nav-item-icon svg {
   width: 20px; height: 20px;
+}
+.sidebar.sidebar-icon-only .nav-item-service-dot {
+  display:block;
 }
 .sidebar.sidebar-icon-only .sidebar-toggle-btn {
   width: 100%; justify-content: center; border-radius: 0; border: none;
