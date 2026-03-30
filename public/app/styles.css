@@ -2330,6 +2330,12 @@ body.is-resizing *{cursor:col-resize!important}
   border-left: none;
   border-right: 1px solid var(--border);
 }
+.target-selector-copy-ip .target-copy-text {
+  color: var(--green);
+}
+.target-selector-copy-ip:disabled .target-copy-text {
+  color: var(--muted);
+}
 .target-selector-copy:hover:not(:disabled) {
   color: var(--accent);
   background: rgba(var(--accent-rgb),0.08);
