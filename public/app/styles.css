@@ -579,6 +579,117 @@ body{
 }
 
 .card.hidden{display:none !important}
+
+.card-service {
+  padding: 14px 12px 12px;
+  border-radius: 8px;
+  background: var(--bg2);
+  border-color: var(--border);
+  box-shadow: none;
+  overflow: visible;
+}
+.card-service::before {
+  display: none;
+}
+.card-service:hover {
+  border-color: var(--border2);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 6px 22px rgba(0,0,0,0.22);
+}
+.card-service.active-card {
+  border-color: rgba(var(--accent-rgb),0.34);
+  background: color-mix(in srgb, var(--bg2) 88%, rgba(var(--accent-rgb),0.14));
+}
+.card-service-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -14px -12px 10px;
+}
+.card-service-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  align-self: stretch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  padding: 8px 12px;
+  color: color-mix(in srgb, var(--text) 88%, white 12%);
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--card-accent, var(--accent)) 22%, var(--bg4));
+  border-bottom: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 28%, var(--border));
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  box-sizing: border-box;
+}
+.card-service-body {
+  margin: 0 0 10px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+}
+.card-service-body .card-service-desc {
+  margin: 0;
+  padding: 0;
+}
+.card-service-port {
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 7px;
+  margin-top: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-service-desc {
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-line-clamp: 4;
+  opacity: 0.72;
+  color: var(--text2);
+  min-height: 5.2em;
+}
+.card-service-footer {
+  margin-top: auto;
+  padding: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.card-service-label,
+.card-service-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.card-service-label {
+  color: var(--text2);
+}
 /* empty state */
 .empty-state{
   grid-column:1/-1;
@@ -1675,7 +1786,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 
 /* List mode — compact single row per card */
 .cards-area.cards-list-mode {
-  grid-template-columns: repeat(2, 1fr) !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   padding: 6px 8px;
   gap: 4px;
 }
@@ -1712,6 +1823,43 @@ svg { vertical-align: middle; flex-shrink: 0; }
   position:static; flex-shrink:0; margin-left:4px;
   font-size:8px; padding:1px 5px;
   max-width:120px;
+}
+.cards-area.cards-list-mode .card-service {
+  padding: 8px 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-height: auto;
+}
+.cards-area.cards-list-mode .card-service::before {
+  display: none;
+}
+.cards-area.cards-list-mode .card-service-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: -8px -12px 8px;
+}
+.cards-area.cards-list-mode .card-service-body {
+  padding: 0;
+  background: transparent;
+  border: none;
+  margin: 0;
+}
+.cards-area.cards-list-mode .card-service-desc {
+  display: -webkit-box;
+  min-height: 0;
+}
+.cards-area.cards-list-mode .card-service-footer {
+  display: flex;
+  padding: 0 0 8px;
+}
+.cards-area.cards-list-mode .card-service-label {
+  display: none;
+}
+.cards-area.cards-list-mode .card-service-port {
+  margin-top: 0;
 }
 
     /* ── Note markdown hint bar ── */
@@ -1771,6 +1919,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-exploit     { color: var(--orange);  background: rgba(251,146,60,0.08); }
     .note-type-config      { color: var(--accent);  background: rgba(var(--accent-rgb),0.12); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
+    .card-service-type.note-type-general {
+      color: color-mix(in srgb, var(--text) 88%, white 12%);
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 22%, var(--bg4));
+      border-bottom-color: color-mix(in srgb, var(--card-accent, var(--accent)) 28%, var(--border));
+    }
 
     /* Borders only on the note list item badges, not the filter bar buttons */
     .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }

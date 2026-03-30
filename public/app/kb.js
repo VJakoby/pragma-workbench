@@ -41,6 +41,38 @@ function buildKbSearchText(item) {
     .toLowerCase();
 }
 
+function renderKbCardMarkup(item, { serviceStyle = false } = {}) {
+  const category = esc(item.category || '');
+  const name = esc(item.name || '');
+  const description = esc(item.description || '');
+  const metaInline = [item.port, item.category].filter(Boolean).map(esc).join(' · ');
+
+  if (!serviceStyle) {
+    return `
+      <span class="card-cat">${category}</span>
+      <span class="card-icon">${item.icon || ICONS.notes}</span>
+      <div class="card-port-name-row">
+        <span class="card-name">${name}</span>
+        ${metaInline ? `<span class="card-meta-inline">${metaInline}</span>` : ''}
+      </div>
+      <div class="card-desc">${description}</div>`;
+  }
+
+  const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
+  const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
+  return `
+    <div class="card-service-head">
+      <span class="note-item-type note-type-general card-service-type">${name}</span>
+    </div>
+    <div class="card-service-body">
+      <div class="card-desc card-service-desc">${servicePreview}</div>
+    </div>
+    <div class="card-service-footer">
+      <span class="card-service-label">${category || 'service note'}</span>
+      ${serviceMeta}
+    </div>`;
+}
+
 function getKbScopeTotal(view) {
   return getKbCollection(view).filter(item => {
     const folderOk = view !== 'services' || !activeCatFolder || (item.folder || '') === activeCatFolder;
@@ -236,20 +268,13 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   const grid = document.getElementById('cpBrowserGrid');
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = `card${view === 'services' ? ' card-service' : ''}`;
     card.dataset.id = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = `
-      <span class="card-cat">${esc(item.category || '')}</span>
-      <span class="card-icon">${item.icon || ICONS.notes}</span>
-      <div class="card-port-name-row">
-        <span class="card-name">${esc(item.name)}</span>
-        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-      </div>
-      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.innerHTML = renderKbCardMarkup(item, { serviceStyle: view === 'services' });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
@@ -460,20 +485,13 @@ function renderCards(view) {
 
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = `card${view === 'services' ? ' card-service' : ''}`;
     card.dataset.id  = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = `
-      <span class="card-cat">${esc(item.category || '')}</span>
-      <span class="card-icon">${item.icon || ICONS.notes}</span>
-      <div class="card-port-name-row">
-        <span class="card-name">${esc(item.name)}</span>
-        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-      </div>
-      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.innerHTML = renderKbCardMarkup(item, { serviceStyle: view === 'services' });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
