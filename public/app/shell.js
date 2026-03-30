@@ -304,6 +304,7 @@ document.addEventListener('keydown', async e => {
   }
 
   if (ctrl && key === 'l') { e.preventDefault(); toggleSvcPopover(); return; }
+  if (ctrl && key === 'm') { e.preventDefault(); toggleTodoPopover(); return; }
 
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const popover = document.getElementById('svcPopover');
