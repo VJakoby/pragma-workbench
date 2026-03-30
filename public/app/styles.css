@@ -373,10 +373,19 @@ body{
 
 .sidebar-section-hdr{
   padding:9px 13px 6px;
-  font-family:'Inter',sans-serif;
+  font-family:'JetBrains Mono', monospace;
   font-size:10px;font-weight:700;
-  letter-spacing:0.14em;text-transform:uppercase;
+  letter-spacing:0.08em;text-transform:uppercase;
   color:var(--text2);
+}
+.sidebar-subsection-hdr{
+  padding:8px 13px 4px 44px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
 }
 
 .nav-item{

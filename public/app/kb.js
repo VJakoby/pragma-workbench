@@ -121,6 +121,7 @@ async function refreshKbView(view) {
 
 function renderKnowledgeFolderNav() {
   const list = document.getElementById('kbNavList');
+  const subhdr = document.getElementById('kbNavSubhdr');
   if (!list) return;
   const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
   const currentFolder = activeView === 'services' && !activeKbRootFolder ? (activeCatFolder || '') : '';
@@ -144,6 +145,7 @@ function renderKnowledgeFolderNav() {
         <span class="nav-item-count">${section.count || '—'}</span>
       </div>`).join('')}
   `;
+  if (subhdr) subhdr.style.display = (folderCats.length || rootKbSections.length) ? '' : 'none';
 }
 
 async function openRootKbSection(folder, label, navEl) {
