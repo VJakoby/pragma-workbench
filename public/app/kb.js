@@ -41,6 +41,12 @@ function buildKbSearchText(item) {
     .toLowerCase();
 }
 
+function formatServiceCardTitle(name) {
+  return String(name || '')
+    .replace(/\s*\(port\s+[^)]+\)\s*$/i, '')
+    .trim();
+}
+
 function renderKbCardMarkup(item, { serviceStyle = false } = {}) {
   const category = esc(item.category || '');
   const name = esc(item.name || '');
@@ -60,17 +66,21 @@ function renderKbCardMarkup(item, { serviceStyle = false } = {}) {
 
   const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
   const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
+  const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
   return `
     <div class="card-service-head">
-      <span class="note-item-type note-type-general card-service-type">${name}</span>
+      <span class="note-item-type note-type-general card-service-type">${serviceTitle || name}</span>
+    </div>
+    <div class="card-service-footer">
+      <div class="card-service-badges">
+        <span class="card-service-label">${category || 'service note'}</span>
+        ${serviceMeta}
+      </div>
     </div>
     <div class="card-service-body">
       <div class="card-desc card-service-desc">${servicePreview}</div>
     </div>
-    <div class="card-service-footer">
-      <span class="card-service-label">${category || 'service note'}</span>
-      ${serviceMeta}
-    </div>`;
+    `;
 }
 
 function getKbScopeTotal(view) {

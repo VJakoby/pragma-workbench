@@ -605,7 +605,7 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: -14px -12px 10px;
+  margin: -14px -12px 8px;
 }
 .card-service-type {
   display: inline-flex;
@@ -619,7 +619,7 @@ body{
   white-space: nowrap;
   text-align: center;
   border-radius: 8px 8px 0 0;
-  padding: 8px 12px;
+  padding: 10px 12px;
   color: color-mix(in srgb, var(--text) 88%, white 12%);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
@@ -634,7 +634,7 @@ body{
   box-sizing: border-box;
 }
 .card-service-body {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   padding: 0;
   border-radius: 0;
   background: transparent;
@@ -663,21 +663,28 @@ body{
 }
 .card-service-desc {
   margin-top: 0;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
   -webkit-line-clamp: 4;
-  opacity: 0.72;
+  opacity: 0.64;
   color: var(--text2);
-  min-height: 5.2em;
+  min-height: 4.5em;
 }
 .card-service-footer {
-  margin-top: auto;
-  padding: 0 0 8px;
+  margin: 0 0 6px;
+  padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
   min-width: 0;
+}
+.card-service-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 .card-service-label,
 .card-service-meta {
@@ -688,7 +695,22 @@ body{
   text-transform: uppercase;
 }
 .card-service-label {
-  color: var(--text2);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.10);
+  border: 1px solid rgba(var(--accent-rgb),0.20);
+  border-radius: 999px;
+  padding: 2px 7px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+}
+.card-service-port {
+  flex: 0 1 auto;
 }
 /* empty state */
 .empty-state{
@@ -1853,10 +1875,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .cards-area.cards-list-mode .card-service-footer {
   display: flex;
-  padding: 0 0 8px;
+  padding: 0;
+  justify-content: flex-start;
 }
 .cards-area.cards-list-mode .card-service-label {
-  display: none;
+  display: inline-flex;
 }
 .cards-area.cards-list-mode .card-service-port {
   margin-top: 0;
