@@ -3581,7 +3581,7 @@ body.enc-active-body .content-panel {
 }
 .app-tooltip.visible{opacity:1}
 
-.matrix-view { display:flex; flex-direction:column; gap:14px; padding:0; overflow:auto; font-family:'Inter',sans-serif; }
+.matrix-view { display:flex; flex-direction:column; gap:0; padding:0; overflow:auto; font-family:'Inter',sans-serif; }
 .matrix-module-panel[hidden],
 .matrix-submodule-card[hidden] {
   display:none !important;
