@@ -319,6 +319,16 @@ async function clearActiveQuickLog() {
   }
 
   sess[config.key] = [];
+  const syncedNetworkNotes = config.key === 'services'
+    ? [...new Set(entries.map(entry => entry?.target_id).filter(Boolean))]
+        .map(targetId => syncSessionServicesToNetworkEnumerationNote(targetId, false))
+        .filter(Boolean)
+    : [];
+  const syncedWebNotes = config.key === 'paths'
+    ? [...new Set(entries.map(entry => entry?.target_id).filter(Boolean))]
+        .map(targetId => syncSessionPathsToNetworkEnumerationNote(targetId, false))
+        .filter(Boolean)
+    : [];
   const syncedCredentialsNote = config.key === 'loot' ? syncSessionLootToCredentialsNote(false) : false;
   saveNotes();
   renderSvcLogTable();
@@ -339,6 +349,8 @@ async function clearActiveQuickLog() {
       if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
+  syncedNetworkNotes.forEach(applySyncedNoteUpdate);
+  syncedWebNotes.forEach(applySyncedNoteUpdate);
   showToast(`✓ Cleared ${config.noun}`);
 }
 
@@ -497,15 +509,13 @@ function commitPortParse() {
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
   let added = 0;
-  let syncedNetworkNote = null;
   for (const r of _portParsed) {
     if (existing.has(`${r.port}/${r.proto}`)) continue;
     const entry = { id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
     sessions[activeSessionId].services.push(entry);
-    const note = syncServiceEntryToNetworkEnumerationNote(entry);
-    if (note) syncedNetworkNote = note;
     added++;
   }
+  const syncedNetworkNote = activeTargetId ? syncSessionServicesToNetworkEnumerationNote(activeTargetId, added > 0) : false;
   saveNotes();
   renderSvcLogTable();
   updateSvcTabCounts();
@@ -657,9 +667,11 @@ function commitPathParse() {
     sessions[activeSessionId].paths.push({ id: `path_${Date.now()}_${added}`, target_id: activeTargetId || null, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
     added++;
   }
+  const syncedNetworkNote = activeTargetId ? syncSessionPathsToNetworkEnumerationNote(activeTargetId, added > 0) : false;
   saveNotes();
   renderPathTable();
   updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
   showToast(`✓ Added ${added} path${added !== 1 ? 's' : ''}`);
   toggleToolPaste('paths');
 }
@@ -676,26 +688,36 @@ function addPathLog() {
   else { path = raw.split(/\s+/)[0]; notes = raw.slice(path.length).trim(); }
   if (!path.startsWith('/') && !path.includes('.')) { input.focus(); return; }
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  sessions[activeSessionId].paths.push({ id: `path_${Date.now()}`, target_id: activeTargetId || null, path, status, size: '', notes, added: Date.now() });
+  const entry = { id: `path_${Date.now()}`, target_id: activeTargetId || null, path, status, size: '', notes, added: Date.now() };
+  sessions[activeSessionId].paths.push(entry);
+  const syncedNetworkNote = syncSessionPathsToNetworkEnumerationNote(entry.target_id, true);
   input.value = '';
   input.focus();
   saveNotes();
   renderPathTable();
   updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function deletePathLog(pathId) {
   if (!activeSessionId) return;
+  const path = (sessions[activeSessionId].paths || []).find(p => p.id === pathId);
   sessions[activeSessionId].paths = (sessions[activeSessionId].paths || []).filter(p => p.id !== pathId);
+  const syncedNetworkNote = path?.target_id ? syncSessionPathsToNetworkEnumerationNote(path.target_id, false) : false;
   saveNotes();
   renderPathTable();
   updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function updatePathNotes(pathId, val) {
   if (!activeSessionId) return;
   const p = (sessions[activeSessionId].paths || []).find(path => path.id === pathId);
-  if (p) { p.notes = val; saveNotes(); }
+  if (!p) return;
+  p.notes = val;
+  const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
+  saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function getSessionPaths() {
@@ -769,6 +791,75 @@ function buildNetworkEnumerationTableRow(row) {
   return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
 }
 
+function replaceNetworkEnumerationTableInBody(body, rows) {
+  const lines = String(body || '').split('\n');
+  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  if (headerIdx === -1) return null;
+  const separatorIdx = headerIdx + 1;
+  if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
+
+  let tableEnd = separatorIdx + 1;
+  while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
+
+  const nextRows = rows.length
+    ? rows.map(buildNetworkEnumerationTableRow)
+    : ['|      |       |         |         |       |'];
+
+  lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
+  return lines.join('\n');
+}
+
+function parsePathForWebRow(entry) {
+  if (!entry) return null;
+  if (!String(entry.path || '').trim()) return null;
+  return {
+    path: escapeMarkdownTableCell(entry.path),
+    status: escapeMarkdownTableCell(entry.status),
+    size: escapeMarkdownTableCell(entry.size),
+    notes: escapeMarkdownTableCell(entry.notes),
+  };
+}
+
+function buildWebEndpointTableRow(row) {
+  return `| ${row.path} | ${row.status} | ${row.size} | ${row.notes} |`;
+}
+
+function replaceWebEndpointsTableInBody(body, rows) {
+  const source = String(body || '');
+  const lines = source.split('\n');
+  let headerIdx = lines.findIndex(line => /^##\s+Web$/i.test(line.trim()));
+
+  if (headerIdx === -1) {
+    const insertBeforeIdx = lines.findIndex(line => /^##\s+Notes$/i.test(line.trim()));
+    const section = [
+      '## Web',
+      '',
+      '| Path | Status | Size | Notes |',
+      '|------|--------|------|-------|',
+      '|      |        |      |       |',
+      '',
+    ];
+    const at = insertBeforeIdx === -1 ? lines.length : insertBeforeIdx;
+    lines.splice(at, 0, ...section);
+    headerIdx = at;
+  }
+
+  const tableHeaderIdx = lines.findIndex((line, idx) => idx > headerIdx && /^\|\s*Path\s*\|\s*Status\s*\|\s*Size\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  if (tableHeaderIdx === -1) return null;
+  const separatorIdx = tableHeaderIdx + 1;
+  if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
+
+  let tableEnd = separatorIdx + 1;
+  while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
+
+  const nextRows = rows.length
+    ? rows.map(buildWebEndpointTableRow)
+    : ['|      |        |      |       |'];
+
+  lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
+  return lines.join('\n');
+}
+
 function getSessionTargetById(targetId) {
   if (!activeSessionId || !targetId || !sessions[activeSessionId]) return null;
   const targets = sessions[activeSessionId].targets || [];
@@ -798,31 +889,6 @@ function populateNetworkEnumerationOverview(body, target = null) {
       return `| ${field} | ${next} |`;
     })
     .join('\n');
-}
-
-function upsertNetworkEnumerationRowIntoBody(body, row) {
-  const lines = String(body || '').split('\n');
-  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
-  if (headerIdx === -1) return null;
-  const separatorIdx = headerIdx + 1;
-  if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
-
-  let insertAt = separatorIdx + 1;
-  while (insertAt < lines.length && /^\|/.test(lines[insertAt].trim())) insertAt++;
-
-  const newRow = buildNetworkEnumerationTableRow(row);
-  const existingRows = lines.slice(separatorIdx + 1, insertAt).map(line => line.trim());
-  if (existingRows.includes(newRow.trim())) return body;
-
-  const placeholderIdx = lines.slice(separatorIdx + 1, insertAt).findIndex(line =>
-    /^\|\s*\|\s*\|\s*\|\s*\|\s*\|$/.test(line.replace(/\s/g, ''))
-  );
-  if (placeholderIdx !== -1) {
-    lines[separatorIdx + 1 + placeholderIdx] = newRow;
-  } else {
-    lines.splice(insertAt, 0, newRow);
-  }
-  return lines.join('\n');
 }
 
 function findTargetNetworkEnumerationNote(targetId) {
@@ -867,13 +933,46 @@ function ensureTargetNetworkEnumerationNote(targetId) {
 function syncServiceEntryToNetworkEnumerationNote(entry) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !entry?.target_id) return false;
 
-  const note = ensureTargetNetworkEnumerationNote(entry.target_id);
+  return syncSessionServicesToNetworkEnumerationNote(entry.target_id, true);
+}
+
+function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing = false) {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
+
+  const rows = getSessionServices()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parseServiceForNetworkRow)
+    .filter(Boolean);
+
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
 
-  const row = parseServiceForNetworkRow(entry);
-  if (!row) return false;
+  const target = getSessionTargetById(targetId);
+  const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
+  const nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  if (!nextBody || nextBody === note.body) return false;
 
-  const nextBody = upsertNetworkEnumerationRowIntoBody(note.body || '', row);
+  note.body = nextBody;
+  note.updated = Date.now();
+  return note;
+}
+
+function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = false) {
+  if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
+
+  const rows = getSessionPaths()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parsePathForWebRow)
+    .filter(Boolean);
+
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
+  if (!note) return false;
+
+  const target = getSessionTargetById(targetId);
+  const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
+  const nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -915,7 +1014,7 @@ function addServiceLog() {
     added: Date.now(),
   };
   sessions[activeSessionId].services.push(entry);
-  const syncedNetworkNote = syncServiceEntryToNetworkEnumerationNote(entry);
+  const syncedNetworkNote = syncSessionServicesToNetworkEnumerationNote(entry.target_id, true);
   input.value = '';
   input.focus();
   saveNotes();
@@ -926,15 +1025,22 @@ function addServiceLog() {
 
 function deleteServiceLog(svcId) {
   if (!activeSessionId) return;
+  const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
   sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
+  const syncedNetworkNote = svc?.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
   renderSvcLogTable();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function updateSvcNotes(svcId, val) {
   if (!activeSessionId) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
-  if (svc) { svc.notes = val; saveNotes(); }
+  if (!svc) return;
+  svc.notes = val;
+  const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
+  saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
 }
 
 function renderSvcLogTable() {
