@@ -16,6 +16,7 @@
   --accent-rgb: 167, 139, 250;
   --green:    #34d399;
   --green-rgb: 52, 211, 153;
+  --domain-blue: #60a5fa;
   --purple:   #a78bfa;
   --red:      #f87171;
   --orange:   #fb923c;
@@ -47,6 +48,7 @@
   --accent-rgb: 91, 33, 182;
   --green:    #059669;
   --green-rgb: 5, 150, 105;
+  --domain-blue: #2563eb;
   --purple:   #7c3aed;
   --red:      #dc2626;
   --orange:   #ea580c;
@@ -69,6 +71,7 @@
   --accent-rgb: 127, 115, 200;
   --green:    #63e6b2;
   --green-rgb: 99, 230, 178;
+  --domain-blue: #4ea3ff;
   --purple:   #8f82d8;
   --red:      #ffa0a0;
   --orange:   #ffb36b;
@@ -2334,6 +2337,12 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--green);
 }
 .target-selector-copy-ip:disabled .target-copy-text {
+  color: var(--muted);
+}
+.target-selector-copy-domain .target-copy-text {
+  color: var(--domain-blue);
+}
+.target-selector-copy-domain:disabled .target-copy-text {
   color: var(--muted);
 }
 .target-selector-copy:hover:not(:disabled) {
