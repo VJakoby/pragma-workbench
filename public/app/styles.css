@@ -3025,7 +3025,7 @@ body.enc-active-body .content-panel {
   margin-bottom: 0;
 }
 /* ── Tabs ── */
-.svc-tabs { display: flex; align-items: stretch; gap: 0; flex: 1; margin-left: 4px; }
+.svc-tabs { display: flex; align-items: center; gap: 0; flex: 1; margin-left: 4px; min-height: 28px; }
 .svc-tab {
   background: none; border: none; border-bottom: 2px solid transparent;
   color: var(--muted); cursor: pointer; font-family: 'Inter', sans-serif;
@@ -3059,11 +3059,14 @@ body.enc-active-body .content-panel {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  min-height: 24px;
-  padding: 2px 8px;
+  min-height: 28px;
+  padding: 0 10px;
   white-space: nowrap;
   transition: all 0.12s;
-  margin-bottom: 3px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .todo-clear-btn {
   background: var(--bg4);
@@ -3085,8 +3088,9 @@ body.enc-active-body .content-panel {
   border: 1px solid var(--border);
   color: var(--btn-color);
   font-size: 16px;
-  min-height: 24px;
-  padding: 2px 8px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0 8px;
   line-height: 1;
   margin-bottom: 0;
   margin-left: -2px;
