@@ -23,7 +23,7 @@
       "icon": "🎓",
       "title_prefix": "OSCP-TARGET",
       "default_tags": [
-        "oscp",
+        "oscp"
       ],
       "body_lines": [
         "# Target: <TARGET>",
