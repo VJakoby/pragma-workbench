@@ -47,13 +47,13 @@ function formatServiceCardTitle(name) {
     .trim();
 }
 
-function renderKbCardMarkup(item, { serviceStyle = false } = {}) {
+function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
   const category = esc(item.category || '');
   const name = esc(item.name || '');
   const description = esc(item.description || '');
   const metaInline = [item.port, item.category].filter(Boolean).map(esc).join(' · ');
 
-  if (!serviceStyle) {
+  if (cardStyle === 'default') {
     return `
       <span class="card-cat">${category}</span>
       <span class="card-icon">${item.icon || ICONS.notes}</span>
@@ -64,23 +64,44 @@ function renderKbCardMarkup(item, { serviceStyle = false } = {}) {
       <div class="card-desc">${description}</div>`;
   }
 
-  const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
-  const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
-  const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
-  return `
-    <div class="card-service-head">
-      <span class="note-item-type note-type-general card-service-type">${serviceTitle || name}</span>
-    </div>
-    <div class="card-service-footer">
-      <div class="card-service-badges">
-        <span class="card-service-label">${category || 'service note'}</span>
-        ${serviceMeta}
+  if (cardStyle === 'service') {
+    const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
+    const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
+    const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
+    return `
+      <div class="card-service-head">
+        <span class="note-item-type note-type-general card-service-type">${serviceTitle || name}</span>
       </div>
+      <div class="card-service-footer">
+        <div class="card-service-badges">
+          <span class="card-service-label">${category || 'service note'}</span>
+          ${serviceMeta}
+        </div>
+      </div>
+      <div class="card-service-body">
+        <div class="card-desc card-service-desc">${servicePreview}</div>
+      </div>
+      `;
+  }
+
+  const knowledgePreview = description || 'Open the note to view workflow details, commands, and reference material.';
+  const knowledgeCategory = category || 'knowledge';
+  return `
+    <div class="card-knowledge-head">
+      <span class="card-knowledge-title">${item.icon || ICONS.notes} ${name}</span>
     </div>
-    <div class="card-service-body">
-      <div class="card-desc card-service-desc">${servicePreview}</div>
+    <div class="card-knowledge-meta">
+      <span class="card-knowledge-tag">${esc(knowledgeCategory)}</span>
     </div>
-    `;
+    <div class="card-knowledge-body">
+      <div class="card-desc card-knowledge-desc">${knowledgePreview}</div>
+    </div>`;
+}
+
+function getKbCardStyle(view) {
+  if (view === 'services') return 'service';
+  if (view === 'tactics' || (typeof view === 'string' && view.startsWith('kb:'))) return 'knowledge';
+  return 'default';
 }
 
 function getKbScopeTotal(view) {
@@ -278,13 +299,14 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   const grid = document.getElementById('cpBrowserGrid');
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = `card${view === 'services' ? ' card-service' : ''}`;
+    const cardStyle = getKbCardStyle(view);
+    card.className = `card${cardStyle === 'service' ? ' card-service' : cardStyle === 'knowledge' ? ' card-knowledge' : ''}`;
     card.dataset.id = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = renderKbCardMarkup(item, { serviceStyle: view === 'services' });
+    card.innerHTML = renderKbCardMarkup(item, { cardStyle });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
@@ -495,13 +517,14 @@ function renderCards(view) {
 
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = `card${view === 'services' ? ' card-service' : ''}`;
+    const cardStyle = getKbCardStyle(view);
+    card.className = `card${cardStyle === 'service' ? ' card-service' : cardStyle === 'knowledge' ? ' card-knowledge' : ''}`;
     card.dataset.id  = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = renderKbCardMarkup(item, { serviceStyle: view === 'services' });
+    card.innerHTML = renderKbCardMarkup(item, { cardStyle });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
