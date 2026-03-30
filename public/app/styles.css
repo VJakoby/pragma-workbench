@@ -3764,7 +3764,7 @@ body.enc-active-body .content-panel {
 .matrix-enum-block {
   display:flex; flex-direction:column; gap:6px;
   padding:12px; border:1px solid var(--border); border-radius:8px;
-  background:var(--bg3);
+  background:var(--bg2);
 }
 .matrix-enum-title {
   color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700;
@@ -3791,7 +3791,7 @@ body.enc-active-body .content-panel {
   box-shadow:0 0 0 1px rgba(var(--accent-rgb),0.16);
 }
 .matrix-textarea { min-height:180px; resize:vertical; }
-.matrix-textarea-compact { min-height:98px; }
+.matrix-textarea-compact { min-height:72px; }
 .matrix-codearea {
   font-family:'JetBrains Mono',monospace;
   font-size:12px;
