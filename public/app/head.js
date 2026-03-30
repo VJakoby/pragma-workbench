@@ -85,47 +85,69 @@
       });
 
       // ── Nested list builder ──
-      function buildList(lines, ordered) {
+      const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
+      const parseBullet = (line) => {
+        const ordered = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+        if (ordered) return { indent: ordered[1].length, ordered: true, start: parseInt(ordered[2], 10), text: ordered[3] };
+        const unordered = line.match(/^(\s*)[-*+]\s+(.*)$/);
+        if (unordered) return { indent: unordered[1].length, ordered: false, start: null, text: unordered[2] };
+        return null;
+      };
+      function buildList(lines, startIndex = 0, baseIndent = null) {
+        const first = parseBullet(lines[startIndex] || '');
+        if (!first) return { html: '', nextIndex: startIndex };
+        const ordered = first.ordered;
         const tag = ordered ? 'ol' : 'ul';
-        const bulletRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*+]\s+/;
-        const firstNumber = ordered
-          ? parseInt((lines[0]?.match(/^\s*(\d+)\.\s+/) || [])[1] || '1', 10)
-          : null;
-        const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
+        const indent = baseIndent ?? first.indent;
+        let html = ordered && first.start > 1 ? `<${tag} start="${first.start}">` : `<${tag}>`;
+        let i = startIndex;
 
-        let html = ordered && firstNumber > 1 ? `<${tag} start="${firstNumber}">` : `<${tag}>`, i = 0;
         while (i < lines.length) {
-          const line = lines[i], indent = getIndent(line);
-          const text = line.replace(bulletRe, '');
-          i++;
+          const item = parseBullet(lines[i]);
+          if (!item || item.indent < indent || item.ordered !== ordered) break;
+          if (item.indent > indent) {
+            const nested = buildList(lines, i, item.indent);
+            html += nested.html;
+            i = nested.nextIndex;
+            continue;
+          }
 
           let extra = '';
+          i++;
           while (i < lines.length) {
-            const ni = getIndent(lines[i]);
-            const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
-            if (ni > indent && !isBullet) {
-              extra += '<br>' + lines[i].trim(); i++;
-            } else if (ni > indent && isBullet) {
-              const sub = [];
-              while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
-              extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
-            } else break;
+            const nextLine = lines[i];
+            const nextItem = parseBullet(nextLine);
+            const nextIndent = getIndent(nextLine);
+            if (nextItem && nextIndent === indent) break;
+            if (nextItem && nextIndent > indent) {
+              const nested = buildList(lines, i, nextIndent);
+              extra += nested.html;
+              i = nested.nextIndex;
+              continue;
+            }
+            if (nextIndent > indent) {
+              extra += '<br>' + nextLine.trim();
+              i++;
+              continue;
+            }
+            break;
           }
-          html += `<li>${text}${extra}</li>`;
+          html += `<li>${item.text}${extra}</li>`;
         }
-        return html + `</${tag}>`;
+
+        return { html: html + `</${tag}>`, nextIndex: i };
       }
 
       // Unordered lists (including indented nested)
       src = src.replace(/((?:^[ \t]*[-*+] .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
-        return buildList(lines, false);
+        return buildList(lines).html;
       });
 
       // Ordered lists (including indented nested)
       src = src.replace(/((?:^\s*\d+\. .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
-        return buildList(lines, true);
+        return buildList(lines).html;
       });
 
       // Paragraphs
