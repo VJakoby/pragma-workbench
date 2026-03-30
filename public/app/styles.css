@@ -859,8 +859,8 @@ body{
 #cpCreateBtn,
 #cpEditBtn,
 .content-panel-close{
-  background:transparent;border:1px solid transparent;cursor:pointer;
-  color:var(--muted);font-size:18px;padding:0 8px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);cursor:pointer;
+  color:color-mix(in srgb, var(--text) 88%, white 12%);font-size:18px;padding:0 8px;
   border-radius:6px;transition:all 0.12s;
   width:30px;height:28px;min-width:30px;min-height:28px;
   display:inline-flex;align-items:center;justify-content:center;line-height:1;
@@ -872,11 +872,17 @@ body{
   width:14px;
   height:14px;
 }
+#cpBackBtn:hover,
+#cpCreateBtn:hover,
+#cpEditBtn:hover,
 .content-panel-close:hover{
   background:rgba(var(--accent-rgb),0.08);
   border-color:rgba(var(--accent-rgb),0.28);
   color:var(--text);
 }
+#cpBackBtn:active,
+#cpCreateBtn:active,
+#cpEditBtn:active,
 .content-panel-close:active{
   background:rgba(var(--accent-rgb),0.12);
   border-color:rgba(var(--accent-rgb),0.38);
@@ -950,8 +956,8 @@ body{
 .nav-item-icon svg, .nav-item-icon { display:flex; align-items:center; }
 .icon-btn svg, .tb-btn svg { display:block; }
 .icon-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 }
 svg { vertical-align: middle; flex-shrink: 0; }
 .nav-item-icon { width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
@@ -1201,8 +1207,15 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 
 /* IP injection highlight */
-.ip-injected{color:var(--orange);font-weight:600}
-.code-block-wrap .ip-injected{color:var(--orange) !important}
+.ip-injected{font-weight:600}
+.ip-injected-ip{color:var(--green)}
+.ip-injected-domain{color:var(--domain-blue)}
+.ip-injected-label{color:var(--text2)}
+.ip-injected-attacker{color:var(--accent)}
+.code-block-wrap .ip-injected-ip{color:var(--green) !important}
+.code-block-wrap .ip-injected-domain{color:var(--domain-blue) !important}
+.code-block-wrap .ip-injected-label{color:var(--text2) !important}
+.code-block-wrap .ip-injected-attacker{color:var(--accent) !important}
 
 /* ── NOTES VIEW ── */
 .notes-layout{display:flex;flex:1;overflow:hidden;position:relative}

@@ -4,12 +4,14 @@
 function updateSearchNavBadge(status = 'checking') {
   const badge = document.getElementById('search-index-badge');
   if (!badge) return;
-  const count = Array.isArray(knownSources) ? knownSources.length : 0;
+  const count = Array.isArray(knownSources)
+    ? knownSources.reduce((sum, src) => sum + Math.max(0, Number(src.page_count) || 0), 0)
+    : 0;
   badge.textContent = count > 0 ? String(count) : '0';
   badge.className = `nav-item-count search-nav-badge ${status}`;
   badge.title = count > 0
-    ? `${count} indexed source${count === 1 ? '' : 's'} · ENGRAM ${status}`
-    : `No indexed sources loaded · ENGRAM ${status}`;
+    ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+    : `No indexed pages loaded · ENGRAM ${status}`;
 }
 
 if (document.readyState === 'loading') {
@@ -89,7 +91,11 @@ async function loadSearchSources() {
   try {
     const r = await fetch('/api/search-sources');
     const d = await r.json();
-    knownSources = (d.sources || []).map(s => ({ id: s.id, name: s.name }));
+    knownSources = (d.sources || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      page_count: Number(s.page_count) || 0,
+    }));
     updateSearchNavBadge(document.getElementById('engramPill')?.classList.contains('online') ? 'online'
       : document.getElementById('engramPill')?.classList.contains('offline') ? 'offline'
       : 'checking');

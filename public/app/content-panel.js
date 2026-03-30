@@ -69,7 +69,7 @@ function injectTargets(rawHtml) {
   const domain = esc(getDomain());
   const label  = esc(getTargetLabelValue());
   const attacker = esc(getAttackerIP());
-  const span   = (val) => `<span class="ip-injected">${val}</span>`;
+  const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
 
   const ipPatterns = [
     /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
@@ -119,15 +119,15 @@ function injectTargets(rawHtml) {
   ];
 
   let out = rawHtml;
-  for (const p of ipPatterns) out = out.replace(p, span(ip));
-  for (const p of domainPatterns) out = out.replace(p, span(domain));
-  for (const p of labelPatterns) out = out.replace(p, span(label));
-  for (const p of attackerPatterns) out = out.replace(p, span(attacker));
+  for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
+  for (const p of domainPatterns) out = out.replace(p, span(domain, 'ip-injected ip-injected-domain'));
+  for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
+  for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
 
   out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
-    const replaced = inner.replace(/\bIP\b/g, span(ip))
-                          .replace(/\bHOST\b/g, span(ip))
-                          .replace(/\bATTACKER\b/g, span(attacker));
+    const replaced = inner.replace(/\bIP\b/g, span(ip, 'ip-injected ip-injected-ip'))
+                          .replace(/\bHOST\b/g, span(ip, 'ip-injected ip-injected-ip'))
+                          .replace(/\bATTACKER\b/g, span(attacker, 'ip-injected ip-injected-attacker'));
     return open + replaced + close;
   });
 
@@ -138,10 +138,10 @@ function injectTargetsInCodeLine(rawLine) {
   let out = injectTargets(esc(rawLine));
   const ip = esc(getIP());
   const attacker = esc(getAttackerIP());
-  const span = (val) => `<span class="ip-injected">${val}</span>`;
-  out = out.replace(/\bIP\b/g, span(ip))
-           .replace(/\bHOST\b/g, span(ip))
-           .replace(/\bATTACKER\b/g, span(attacker));
+  const span = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
+  out = out.replace(/\bIP\b/g, span(ip, 'ip-injected ip-injected-ip'))
+           .replace(/\bHOST\b/g, span(ip, 'ip-injected ip-injected-ip'))
+           .replace(/\bATTACKER\b/g, span(attacker, 'ip-injected ip-injected-attacker'));
   return out;
 }
 
