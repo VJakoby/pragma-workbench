@@ -2229,7 +2229,7 @@ body.is-resizing *{cursor:col-resize!important}
   min-width: 0;
 }
 .session-list-item-meta {
-  font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .session-list-item-bottom {
