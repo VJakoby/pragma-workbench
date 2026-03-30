@@ -4,6 +4,25 @@
 let contentPanelBackState = null;
 let contentPanelCreateState = null;
 
+function setContentPanelHeader(icon, title, meta, opts = {}) {
+  const iconEl = document.getElementById('cpIcon');
+  const titleEl = document.getElementById('cpTitle');
+  const metaEl = document.getElementById('cpMeta');
+  const showIcon = opts.showIcon !== false;
+  if (iconEl) {
+    iconEl.innerHTML = showIcon ? icon : '';
+    iconEl.style.display = showIcon ? '' : 'none';
+  }
+  if (titleEl) titleEl.textContent = title || '';
+  if (metaEl) metaEl.textContent = meta || '';
+}
+
+function setContentPanelAccent(accent) {
+  const panel = document.getElementById('contentPanel');
+  if (!panel) return;
+  panel.style.setProperty('--cp-accent', accent || 'var(--accent)');
+}
+
 function setContentPanelBackState(state) {
   contentPanelBackState = state || null;
   const btn = document.getElementById('cpBackBtn');
@@ -250,7 +269,8 @@ async function openItem(view, id) {
 
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
-  document.getElementById('cpTitle').textContent = 'Loading…';
+  setContentPanelAccent(card?.style.getPropertyValue('--card-accent') || 'var(--accent)');
+  setContentPanelHeader('', 'Loading…', '', { showIcon: false });
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
   const endpoint = getKbFetchConfig(view).detailUrl(id);
@@ -289,7 +309,8 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
   renderContentPanelTabs(null);
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
-  document.getElementById('cpTitle').textContent = title;
+  setContentPanelAccent('var(--accent)');
+  setContentPanelHeader(ICONS.search, title, '', { showIcon: true });
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
   const normalizedPath = typeof filePath === 'string' && filePath.startsWith('file://')
     ? filePath.replace(/^file:\/\//, '')
@@ -368,9 +389,8 @@ function makeCollapsible(container) {
 }
 
 function renderContent(html, icon, title, meta, query = '') {
-  document.getElementById('cpIcon').innerHTML = icon;
-  document.getElementById('cpTitle').textContent = title;
-  document.getElementById('cpMeta').textContent = meta || '';
+  const isLocalKbDoc = !query && !!activeDoc?.isLocal && !activeDoc?.isBrowser;
+  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc });
   const el = document.getElementById('cpContent');
   const renderedHtml = injectTargets(html);
 

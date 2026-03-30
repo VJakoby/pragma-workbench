@@ -145,6 +145,7 @@ function buildCmdResults(q) {
   let html    = '';
   const folderDocIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
   const noteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  const stripLeadingEmoji = (text) => String(text || '').replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '').trim();
 
   const pushCmdItem = ({ type, id, label, icon, title, sub, tag }) => {
     cmdItems.push({ type, id, label });
@@ -187,7 +188,7 @@ function buildCmdResults(q) {
           id: s.id,
           label: s.name,
           icon: s.icon || ICONS.notes,
-          title: esc(s.name),
+          title: esc(stripLeadingEmoji(s.name)),
           sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || cat.label || '')}`,
           tag: 'service',
         });
@@ -213,7 +214,7 @@ function buildCmdResults(q) {
         id: s.id,
         label: s.name,
         icon: s.icon || ICONS.notes,
-        title: esc(s.name),
+        title: esc(stripLeadingEmoji(s.name)),
         sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || '')}`,
         tag: 'service',
       });
@@ -233,7 +234,7 @@ function buildCmdResults(q) {
         id: m.id,
         label: m.name,
         icon: m.icon || ICONS.guides,
-        title: esc(m.name),
+        title: esc(stripLeadingEmoji(m.name)),
         sub: esc(m.category || ''),
         tag: 'tactic',
       });
