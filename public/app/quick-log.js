@@ -319,11 +319,26 @@ async function clearActiveQuickLog() {
   }
 
   sess[config.key] = [];
+  const syncedCredentialsNote = config.key === 'loot' ? syncSessionLootToCredentialsNote(false) : false;
   saveNotes();
   renderSvcLogTable();
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
+  if (syncedCredentialsNote) {
+    renderNotesList();
+    renderSessionSidebar();
+    if (activeNoteId === syncedCredentialsNote.id && typeof noteEditor !== 'undefined' && noteEditor) {
+      cmSetValue(noteEditor, syncedCredentialsNote.body || '');
+      const moEl = document.getElementById('noteModifiedAt');
+      if (moEl) {
+        moEl.textContent = new Date(syncedCredentialsNote.updated).toLocaleString('en-GB', {
+          day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        });
+      }
+      if (typeof updateNotePreview === 'function') updateNotePreview();
+    }
+  }
   showToast(`✓ Cleared ${config.noun}`);
 }
 
@@ -1064,7 +1079,6 @@ function commitLootParse() {
   const type = _activeLootType;
   const existing = new Set(sessions[activeSessionId].loot.map(l => `${l.type}::${l.credential}::${l.host || ''}`));
   let added = 0;
-  let syncedCredentials = false;
 
   _lootParsed.forEach((item, idx) => {
     const key = `${type}::${item.credential}::${host}`;
@@ -1079,16 +1093,27 @@ function commitLootParse() {
       added: Date.now(),
     };
     sessions[activeSessionId].loot.push(entry);
-    if (syncLootEntryToCredentialsNote(entry)) syncedCredentials = true;
     added++;
   });
+
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(added > 0);
 
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
-  if (syncedCredentials) {
+  if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
+    if (activeNoteId === syncedCredentialsNote.id && typeof noteEditor !== 'undefined' && noteEditor) {
+      cmSetValue(noteEditor, syncedCredentialsNote.body || '');
+      const moEl = document.getElementById('noteModifiedAt');
+      if (moEl) {
+        moEl.textContent = new Date(syncedCredentialsNote.updated).toLocaleString('en-GB', {
+          day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        });
+      }
+      if (typeof updateNotePreview === 'function') updateNotePreview();
+    }
   }
   toggleToolPaste('loot');
   showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
@@ -1098,28 +1123,21 @@ function buildCredentialsTableRow(row) {
   return `| ${row.username} | ${row.password} | ${row.hash} | ${row.service} | ${row.notes} |`;
 }
 
-function upsertCredentialsRowIntoBody(body, row) {
+function replaceCredentialsTableInBody(body, rows) {
   const lines = String(body || '').split('\n');
   const headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
   if (headerIdx === -1) return null;
   const separatorIdx = headerIdx + 1;
   if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
 
-  let insertAt = separatorIdx + 1;
-  while (insertAt < lines.length && /^\|/.test(lines[insertAt].trim())) insertAt++;
+  let tableEnd = separatorIdx + 1;
+  while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
 
-  const newRow = buildCredentialsTableRow(row);
-  const existingRows = lines.slice(separatorIdx + 1, insertAt).map(line => line.trim());
-  if (existingRows.includes(newRow.trim())) return body;
+  const nextRows = rows.length
+    ? rows.map(buildCredentialsTableRow)
+    : ['|          |          |      |         |       |'];
 
-  const placeholderIdx = lines.slice(separatorIdx + 1, insertAt).findIndex(line =>
-    /^\|\s*\|\s*\|\s*\|\s*\|\s*\|$/.test(line.replace(/\s/g, ''))
-  );
-  if (placeholderIdx !== -1) {
-    lines[separatorIdx + 1 + placeholderIdx] = newRow;
-  } else {
-    lines.splice(insertAt, 0, newRow);
-  }
+  lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
   return lines.join('\n');
 }
 
@@ -1152,17 +1170,18 @@ function ensureSessionCredentialsNote() {
   return note;
 }
 
-function syncLootEntryToCredentialsNote(entry) {
-  if (!entry || !['cleartext', 'hash'].includes(entry.type)) return false;
+function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
-  const note = ensureSessionCredentialsNote();
+  const rows = getSessionLoot()
+    .map(parseLootForCredentialsRow)
+    .filter(Boolean);
+
+  let note = findSessionCredentialsNote();
+  if (!note && createIfMissing && rows.length) note = ensureSessionCredentialsNote();
   if (!note) return false;
 
-  const row = parseLootForCredentialsRow(entry);
-  if (!row) return false;
-
-  const nextBody = upsertCredentialsRowIntoBody(note.body || '', row);
+  const nextBody = replaceCredentialsTableInBody(note.body || '', rows);
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -1191,7 +1210,7 @@ function addLootEntry() {
     added: Date.now(),
   };
   sessions[activeSessionId].loot.push(entry);
-  const syncedCredentialsNote = syncLootEntryToCredentialsNote(entry);
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(true);
 
   credEl.value = '';
   noteEl.value = '';
@@ -1218,15 +1237,47 @@ function addLootEntry() {
 function deleteLootEntry(lootId) {
   if (!activeSessionId) return;
   sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  if (syncedCredentialsNote) {
+    renderNotesList();
+    renderSessionSidebar();
+    if (activeNoteId === syncedCredentialsNote.id && typeof noteEditor !== 'undefined' && noteEditor) {
+      cmSetValue(noteEditor, syncedCredentialsNote.body || '');
+      const moEl = document.getElementById('noteModifiedAt');
+      if (moEl) {
+        moEl.textContent = new Date(syncedCredentialsNote.updated).toLocaleString('en-GB', {
+          day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        });
+      }
+      if (typeof updateNotePreview === 'function') updateNotePreview();
+    }
+  }
 }
 
 function updateLootNote(lootId, val) {
   if (!activeSessionId) return;
   const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
-  if (entry) { entry.note = val; saveNotes(); }
+  if (!entry) return;
+  entry.note = val;
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
+  saveNotes();
+  if (syncedCredentialsNote) {
+    renderNotesList();
+    renderSessionSidebar();
+    if (activeNoteId === syncedCredentialsNote.id && typeof noteEditor !== 'undefined' && noteEditor) {
+      cmSetValue(noteEditor, syncedCredentialsNote.body || '');
+      const moEl = document.getElementById('noteModifiedAt');
+      if (moEl) {
+        moEl.textContent = new Date(syncedCredentialsNote.updated).toLocaleString('en-GB', {
+          day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        });
+      }
+      if (typeof updateNotePreview === 'function') updateNotePreview();
+    }
+  }
 }
 
 const LOOT_TYPE_CSS = {
