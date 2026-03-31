@@ -433,7 +433,10 @@ async function submitKbCreate() {
         switchView(clientView, document.getElementById(`nav-${clientView}`));
       }
     }
-    if (d.id) openItem(clientView, d.id);
+    if (d.id) {
+      await openItem(clientView, d.id);
+      if (typeof enterEditMode === 'function') enterEditMode();
+    }
     showToast('Created');
   } catch (e) {
     err.textContent = e.message;
