@@ -3,6 +3,76 @@
 // ═══════════════════════════════════════════════
 let cpEditSaveTimer = null;
 let cpEditSaving = false;
+let kbPreviewOpen = localStorage.getItem('pragma-kb-preview-open') === '1';
+
+function updateKbPreview() {
+  const pane = document.getElementById('kbPreviewPane');
+  const el = document.getElementById('kbPreviewContent');
+  if (!pane || !el || pane.style.display === 'none') return;
+  const md = kbEditor ? cmGetValue(kbEditor) : (activeDoc?.raw || '');
+  const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
+  el.innerHTML = injected;
+  if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible === 'function') makeCollapsible(el);
+  el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+function applyKbPreviewState() {
+  const split = document.getElementById('kbEditorSplit');
+  const handle = document.getElementById('kbPreviewHandle');
+  const pane = document.getElementById('kbPreviewPane');
+  const btn = document.getElementById('kbPreviewBtn');
+  if (!split || !handle || !pane || !btn) return;
+  split.classList.toggle('preview-open', kbPreviewOpen);
+  handle.style.display = kbPreviewOpen ? '' : 'none';
+  pane.style.display = kbPreviewOpen ? 'flex' : 'none';
+  btn.classList.toggle('active', kbPreviewOpen);
+  btn.title = kbPreviewOpen ? 'Hide preview' : 'Toggle markdown preview';
+  if (kbPreviewOpen) {
+    const saved = localStorage.getItem('pragma-kb-preview-split');
+    if (saved) split.style.setProperty('--kb-editor-h', saved);
+    updateKbPreview();
+    initKbPreviewDragHandle();
+  }
+}
+
+function toggleKbPreview() {
+  kbPreviewOpen = !kbPreviewOpen;
+  localStorage.setItem('pragma-kb-preview-open', kbPreviewOpen ? '1' : '0');
+  applyKbPreviewState();
+}
+
+function initKbPreviewDragHandle() {
+  const handle = document.getElementById('kbPreviewHandle');
+  const split = document.getElementById('kbEditorSplit');
+  if (!handle || !split || handle._dragInited) return;
+  handle._dragInited = true;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startPos = e.clientY;
+    const splitRect = split.getBoundingClientRect();
+    const dim = splitRect.height;
+    const startPct = parseFloat(getComputedStyle(split).getPropertyValue('--kb-editor-h')) || 52;
+
+    const onMove = ev => {
+      const delta = ev.clientY - startPos;
+      const newPct = Math.min(78, Math.max(22, startPct + (delta / dim) * 100));
+      split.style.setProperty('--kb-editor-h', newPct + '%');
+      localStorage.setItem('pragma-kb-preview-split', newPct + '%');
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
 
 function scheduleKbAutoSave() {
   clearTimeout(cpEditSaveTimer);
@@ -50,6 +120,7 @@ function enterEditMode() {
   cmSetValue(kbEditor, activeDoc.raw);
   cpEditDirty = false;
   setCpEditStatus('', activeDoc.meta || '');
+  applyKbPreviewState();
   setTimeout(() => kbEditor && kbEditor.focus(), 30);
 }
 
@@ -115,6 +186,7 @@ async function saveEdit(opts = {}) {
       document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
       wrapCodeBlocks(document.getElementById('cpContent'));
       wrapInlineCodes(document.getElementById('cpContent'));
+      updateKbPreview();
     } catch (_) {}
 
     setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
@@ -143,6 +215,7 @@ function cmInitKb(initialDoc) {
             setCpEditStatus('unsaved', '● unsaved');
           }
           scheduleKbAutoSave();
+          updateKbPreview();
         }
       }),
       CM.EditorView.lineWrapping,
