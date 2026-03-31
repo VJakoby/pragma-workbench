@@ -198,7 +198,7 @@ function renderNoteTypeGrid() {
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
       const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
-        ? `<span class="new-note-type-meta">${tmpl.variants.length} version${tmpl.variants.length !== 1 ? 's' : ''}</span>`
+        ? `<span class="new-note-type-meta">${tmpl.variants.length} variant${tmpl.variants.length !== 1 ? 's' : ''}</span>`
         : '';
       buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
     });
