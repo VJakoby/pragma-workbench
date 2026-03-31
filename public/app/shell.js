@@ -4,8 +4,20 @@ const ACCENT_COLORS = [
 ];
 
 const THEME_ORDER = ['dark', 'light'];
+const LAST_VIEW_KEY = 'ops-last-view';
+const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', 'search']);
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
+
+function getStoredLastView() {
+  const saved = localStorage.getItem(LAST_VIEW_KEY) || '';
+  return RESTORABLE_VIEWS.has(saved) ? saved : 'notes';
+}
+
+function storeLastView(view) {
+  if (!RESTORABLE_VIEWS.has(view)) return;
+  localStorage.setItem(LAST_VIEW_KEY, view);
+}
 
 function refreshThemeToggle(theme) {
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length] || 'dark';
@@ -168,10 +180,20 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
+
+  const lastView = getStoredLastView();
+  if (lastView === 'services' && typeof globalThis.restoreLastKbView === 'function') {
+    const restored = await globalThis.restoreLastKbView();
+    if (!restored) switchView('services', document.getElementById('nav-services'));
+  } else if (lastView !== 'notes') {
+    switchView(lastView, document.getElementById(`nav-${lastView}`));
+  }
 }
 
 function switchView(view, navEl) {
+  if (!RESTORABLE_VIEWS.has(view)) view = 'notes';
   activeView = view;
+  storeLastView(view);
   document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');

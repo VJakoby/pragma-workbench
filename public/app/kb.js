@@ -9,10 +9,29 @@ let activeKbRootFolder = '';
 let serviceCategoryMeta = [];
 let rootKbSections = [];
 let rootKbCollections = {};
+const LAST_KB_VIEW_KEY = 'ops-last-kb-view';
 
 function getActiveKbBrowserView() {
   return activeKbRootFolder ? `kb:${activeKbRootFolder}` : 'services';
 }
+
+function storeLastKbView(view) {
+  if (view === 'services' || (typeof view === 'string' && view.startsWith('kb:'))) {
+    localStorage.setItem(LAST_KB_VIEW_KEY, view);
+  }
+}
+
+async function restoreLastKbView() {
+  const saved = localStorage.getItem(LAST_KB_VIEW_KEY) || 'services';
+  if (!saved || saved === 'services' || !saved.startsWith('kb:')) return false;
+  const folder = saved.slice(3);
+  const section = rootKbSections.find(item => item.folder === folder);
+  if (!section) return false;
+  await openRootKbSection(encodeURIComponent(folder), encodeURIComponent(section.label), document.getElementById('nav-services'));
+  return true;
+}
+
+globalThis.restoreLastKbView = restoreLastKbView;
 
 function shouldOpenKbSidebarInSidePanel() {
   const noteArea = document.getElementById('noteEditArea');
@@ -165,6 +184,7 @@ async function openRootKbSection(folder, label, navEl) {
     activeKbRootFolder = folder;
     activeCat = 'all';
     activeCatFolder = '';
+    storeLastKbView(`kb:${folder}`);
     switchView('services', navEl);
     renderKnowledgeFolderNav();
     buildSidebar(`kb:${folder}`);
@@ -185,6 +205,7 @@ function openSidebarKbView(view, navEl) {
     activeKbRootFolder = '';
     activeCat = 'all';
     activeCatFolder = '';
+    storeLastKbView('services');
   }
   switchView(view, navEl);
   if (view === 'services') {
@@ -263,6 +284,7 @@ function openKnowledgeCategory(cat, folder, navEl) {
   activeCat = 'all';
   activeCatFolder = folder || '';
   activeKbRootFolder = '';
+  storeLastKbView('services');
   if (shouldOpenKbSidebarInSidePanel()) {
     openKbBrowserInPanel('services', {
       folder: activeCatFolder,
