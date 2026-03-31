@@ -633,8 +633,8 @@ body{
   padding: 7px 11px;
   color: color-mix(in srgb, var(--text) 96%, black 4%);
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
   letter-spacing: 0.03em;
   text-transform: none;
   background: color-mix(in srgb, var(--card-accent, var(--accent)) 16%, var(--bg4));
@@ -766,10 +766,10 @@ body{
   width: 100%;
   min-width: 0;
   padding: 7px 11px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: color-mix(in srgb, var(--text) 96%, black 4%);
   background: color-mix(in srgb, var(--card-accent, var(--accent)) 16%, var(--bg4));
   border-bottom: 1px solid color-mix(in srgb, var(--card-accent, var(--accent)) 24%, var(--border));
@@ -854,10 +854,10 @@ body{
 }
 .content-panel-title{
   flex:1;
-  font-family:'JetBrains Mono', monospace;
-  font-size:13px;
+  font-family:'Inter', sans-serif;
+  font-size:12px;
   font-weight:700;
-  letter-spacing:0.03em;
+  letter-spacing:0.02em;
   color: color-mix(in srgb, var(--text) 96%, black 4%);
   line-height:1.15;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -1689,10 +1689,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   width:100%;
   min-width:0;
   padding:7px 11px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:13px;
+  font-family:'Inter', sans-serif;
+  font-size:12px;
   font-weight:700;
-  letter-spacing:0.03em;
+  letter-spacing:0.02em;
   color: color-mix(in srgb, var(--text) 96%, black 4%);
   background: color-mix(in srgb, var(--result-accent) 12%, var(--bg4));
   border-bottom:1px solid color-mix(in srgb, var(--result-accent) 18%, var(--border));
@@ -2105,7 +2105,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .cards-area.cards-list-mode .card-service-type {
   padding: 7px 11px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
 }
 .cards-area.cards-list-mode .card-service-body {
@@ -2144,7 +2144,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .cards-area.cards-list-mode .card-knowledge-title {
   padding: 7px 11px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
 }
 .cards-area.cards-list-mode .card-knowledge-meta {
@@ -2216,6 +2216,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .note-type-config      { color: var(--accent);  background: rgba(var(--accent-rgb),0.12); }
     .note-type-scratch     { color: var(--muted);   background: var(--bg3); }
     .card-service-type.note-type-general {
+      font-family:'Inter', sans-serif;
+      letter-spacing:0.02em;
       color: color-mix(in srgb, var(--text) 88%, white 12%);
       background: color-mix(in srgb, var(--card-accent, var(--accent)) 22%, var(--bg4));
       border-bottom-color: color-mix(in srgb, var(--card-accent, var(--accent)) 28%, var(--border));
