@@ -248,14 +248,19 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
          data-query="${esc(query)}"
          data-sourcename="${esc(r.source_name||'')}"
          onclick="handleResultClick(this)">
-      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      <div class="result-card-head">
+        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      </div>
       <div class="search-meta-row">
         ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
         ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
       </div>
       <div class="result-meta">
-        <span class="result-source">${esc(r.source_name||'')}</span>
-        <span class="result-kind ${isLocal ? 'local' : 'online'}">${isLocal ? 'local' : 'online'}</span>
+        <span class="result-source">
+          <span class="result-source-label">source</span>
+          <span class="result-source-name">${esc(r.source_name||'')}</span>
+        </span>
+        <span class="result-kind ${isLocal ? 'local' : 'online'}"><span class="result-kind-dot"></span>${isLocal ? 'local' : 'online'}</span>
       </div>
       ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;
