@@ -35,7 +35,7 @@ function setNoteEditorMode(mode) {
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
     if (isConfig) {
-      badge.textContent = '⚙ Templates';
+      badge.textContent = '⚙ Note Templates';
       badge.className = 'note-item-type note-type-config';
     }
   }
@@ -136,7 +136,7 @@ async function openTemplatesConfig(navEl) {
   area.style.display = 'flex';
 
   const badge = ensureNoteTypeBadge();
-  badge.textContent = '⚙ Templates';
+  badge.textContent = '⚙ Note Templates';
   badge.className = 'note-item-type note-type-config';
 
   const title = document.getElementById('noteTitleInput');
