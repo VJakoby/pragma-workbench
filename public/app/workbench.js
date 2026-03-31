@@ -208,6 +208,7 @@ function renderNoteTypeGrid() {
 function updateEncryptedStorageUI() {
   const btn      = document.getElementById('encStorageBtn');
   const dlBtn    = document.getElementById('encDownloadBtn');
+  const bakBtn   = document.getElementById('bakDownloadBtn');
   const sidebar  = document.querySelector('.sidebar');
   if (!btn) return;
   const locked = encryptedStorageEnabled && !encryptedStoragePassword;
@@ -220,17 +221,62 @@ function updateEncryptedStorageUI() {
   btn.title = locked ? 'Encrypted Workbench (Locked)' : active ? 'Encrypted Workbench (Enabled)' : 'Encrypted Workbench';
   btn.setAttribute('aria-label', btn.title);
   if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
-  const bakBtn = document.getElementById('bakDownloadBtn');
-  if (bakBtn) bakBtn.style.display = '';
+  if (bakBtn) bakBtn.style.display = encryptedStorageEnabled ? 'none' : '';
 }
 
-function downloadWorkbench() {
-  const a = document.createElement('a');
-  a.href = '/api/notes/download';
-  a.download = 'pragma.workbench.enc';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+async function downloadWorkbench() {
+  try {
+    if (!encryptedStorageEnabled) {
+      const a = document.createElement('a');
+      a.href = '/api/notes/download';
+      a.download = 'pragma.workbench.enc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    if (!encryptedStoragePassword) {
+      showToast('⚠ Workbench is locked — unlock it before downloading an encrypted backup', 'err');
+      return;
+    }
+
+    let password;
+    try {
+      password = await showPasswordPrompt({
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+        title: 'Download Encrypted Backup',
+        description: 'Re-enter your current workbench password to generate and download an encrypted backup file.',
+        label: 'Current Password',
+        placeholder: 'Enter current password…',
+        submitLabel: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Backup',
+      });
+    } catch {
+      return;
+    }
+
+    if (password !== encryptedStoragePassword) {
+      showToast('⚠ Incorrect password — encrypted backup not downloaded', 'err');
+      return;
+    }
+
+    const payload = { notes, sessions };
+    const blob = await encryptPayload(JSON.stringify(payload), password);
+    if (encryptedStorageHint) blob.hint = encryptedStorageHint;
+
+    const file = new Blob([JSON.stringify(blob, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pragma.workbench.enc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('✓ Encrypted backup downloaded: pragma.workbench.enc');
+  } catch (err) {
+    showToast('⚠ Encrypted backup failed: ' + err.message, 'err');
+  }
 }
 
 async function downloadBackup() {
