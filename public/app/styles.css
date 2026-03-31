@@ -1049,6 +1049,30 @@ svg { vertical-align: middle; flex-shrink: 0; }
   flex:1;overflow-y:auto;padding:16px;
   font-size:15px;line-height:1.75;
 }
+.content-panel-body .md-content{
+  font-size:14px;
+  line-height:1.78;
+}
+.content-panel-body .md-content h1{
+  font-size:1.3em;
+  margin-bottom:14px;
+  padding-bottom:7px;
+}
+.content-panel-body .md-content h2{
+  font-size:1.04em;
+  margin:18px 0 7px;
+}
+.content-panel-body .md-content h3{
+  font-size:0.98em;
+  margin:14px 0 6px;
+}
+.content-panel-body .md-content table{
+  font-size:11px;
+}
+.content-panel-body .md-content th,
+.content-panel-body .md-content td{
+  padding:6px 10px;
+}
 .content-panel-body::-webkit-scrollbar{width:4px}
 .content-panel-body::-webkit-scrollbar-track{background:transparent}
 .content-panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -2373,6 +2397,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   z-index:20;
   transition:background 0.15s;
 }
+.drag-handle:hover,
+.drag-handle.dragging{
+  background: rgba(var(--accent-rgb),0.08);
+}
 /* Notes list — right edge */
 .drag-handle-right{
   top:0;right:-3px;bottom:0;width:6px;
@@ -2385,18 +2413,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   transform:translateY(-50%);
   border-radius:3px;
   background:rgba(var(--accent-rgb),0.18);
-  box-shadow:
-    0 -12px 0 rgba(var(--accent-rgb),0.12),
-    0 12px 0 rgba(var(--accent-rgb),0.12);
-  transition:background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  transition:background 0.15s, opacity 0.15s;
   opacity:0.75;
 }
 .drag-handle-right:hover::after,
 .drag-handle-right.dragging::after{
   background:var(--accent);
-  box-shadow:
-    0 -12px 0 rgba(var(--accent-rgb),0.45),
-    0 12px 0 rgba(var(--accent-rgb),0.45);
   opacity:1;
 }
 /* Content panel — left edge */
@@ -2411,18 +2433,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   transform:translateY(-50%);
   border-radius:3px;
   background:rgba(var(--accent-rgb),0.18);
-  box-shadow:
-    0 -12px 0 rgba(var(--accent-rgb),0.12),
-    0 12px 0 rgba(var(--accent-rgb),0.12);
-  transition:background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  transition:background 0.15s, opacity 0.15s;
   opacity:0.75;
 }
 .drag-handle-left:hover::after,
 .drag-handle-left.dragging::after{
   background:var(--accent);
-  box-shadow:
-    0 -12px 0 rgba(var(--accent-rgb),0.45),
-    0 12px 0 rgba(var(--accent-rgb),0.45);
   opacity:1;
 }
 /* Prevent text selection while dragging */
