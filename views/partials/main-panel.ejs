@@ -93,15 +93,18 @@
             <div class="notes-search-wrap">
               <input class="notes-search-input" id="noteSearchInput" type="text"
                 placeholder="Search notes&hellip;" oninput="onNoteSearch(this.value)" autocomplete="off" spellcheck="false">
+              <div class="notes-search-scope">
+                <span class="notes-search-scope-label">Search In</span>
+                <div class="notes-scope-bar">
+                  <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Current Session</button>
+                  <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
+                  <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All Sessions</button>
+                </div>
+              </div>
             </div>
             <div class="notes-list-view-toggle">
               <button class="notes-view-btn active" id="notesViewListBtn" onclick="setNotesListView('list',this)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> List</button>
               <button class="notes-view-btn" id="notesViewTimelineBtn" onclick="setNotesListView('timeline',this)" title="Timeline view (Alt+T)" style="gap:6px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Timeline</button>
-            </div>
-            <div class="notes-scope-bar">
-              <button class="note-scope-btn active" data-scope="session" onclick="setNoteScope('session',this)">Session</button>
-              <button class="note-scope-btn" data-scope="unassigned" onclick="setNoteScope('unassigned',this)">Unassigned</button>
-              <button class="note-scope-btn" data-scope="all" onclick="setNoteScope('all',this)">All</button>
             </div>
             <div class="target-filter-bar" id="targetFilterBar"></div>
             <div class="notes-type-filter" id="notesTypeFilter"></div>

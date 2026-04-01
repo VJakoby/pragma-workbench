@@ -2716,15 +2716,32 @@ body.is-resizing *{cursor:col-resize!important}
 .notes-search-wrap {
   padding: 6px 10px; border-bottom: 1px solid var(--border);
   background: var(--bg2); flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 7px;
 }
 .notes-search-input {
   width: 100%; background: var(--bg3); border: 1px solid var(--border);
   border-radius: 5px; padding: 5px 9px; font-size: 11px;
   font-family: 'Inter', sans-serif; color: var(--text);
+  min-height: 31px;
   outline: none; box-sizing: border-box;
 }
 .notes-search-input::placeholder { color: var(--muted); }
 .notes-search-input:focus { border-color: var(--accent); }
+.notes-search-scope {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.notes-search-scope-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .session-notes-badge {
   font-size: 11px; font-family: 'Inter', sans-serif;
   font-weight: 700; color: var(--muted); background: var(--bg3);
@@ -2887,21 +2904,39 @@ body.is-resizing *{cursor:col-resize!important}
   opacity: 1;
 }
 
-/* ── Notes scope bar (Session / Unassigned / All) ── */
+/* ── Notes search scope ── */
 .notes-scope-bar {
-  display: flex; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0; overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 1px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg3);
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.notes-scope-bar::-webkit-scrollbar { display: none; }
 .note-scope-btn {
-  flex: 1; background: none; border: none; cursor: pointer;
+  flex: 1 1 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-  color: var(--btn-color); padding: 6px 4px; min-width: 0;
-  border-bottom: 2px solid transparent;
-  transition: all 0.12s; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--btn-color); padding: 5px 8px; min-width: 0;
+  transition: all 0.12s; letter-spacing: 0.02em; text-transform: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.note-scope-btn:hover { color: var(--text2); }
-.note-scope-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.note-scope-btn:hover { color: var(--text2); background: var(--bg4); }
+.note-scope-btn.active {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.22);
+  background: rgba(var(--accent-rgb), 0.1);
+}
 
 /* ── Score tooltip ── */
 .score-help{

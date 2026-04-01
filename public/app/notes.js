@@ -192,15 +192,25 @@ function setNoteFilter(type, btn) {
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
   activeTargetFilter = null;
-  activeNoteSearch = '';
-  const si = document.getElementById('noteSearchInput');
-  if (si) si.value = '';
   document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  updateNoteSearchPlaceholder();
   renderNotesList();
 }
 
+function updateNoteSearchPlaceholder() {
+  const input = document.getElementById('noteSearchInput');
+  if (!input) return;
+  const placeholderByScope = {
+    session: 'Search current session notes…',
+    unassigned: 'Search unassigned notes…',
+    all: 'Search all session notes…',
+  };
+  input.placeholder = placeholderByScope[activeNoteScope] || 'Search notes…';
+}
+
 function renderNotesList() {
+  updateNoteSearchPlaceholder();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
     document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
