@@ -182,6 +182,63 @@ function updateTodoCount() {
   btn.classList.toggle('has-entries', openCount > 0);
 }
 
+function getSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].evidence || [];
+}
+
+function ensureSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  if (!Array.isArray(sessions[activeSessionId].evidence)) sessions[activeSessionId].evidence = [];
+  return sessions[activeSessionId].evidence;
+}
+
+function updateEvidenceCount() {
+  const entries = getSessionEvidence();
+  const btn = document.getElementById('evidenceTopbarCount');
+  if (!btn) return;
+  btn.textContent = entries.length || '';
+  btn.classList.toggle('has-entries', entries.length > 0);
+}
+
+function renderEvidenceClearAction() {
+  const btn = document.getElementById('evidenceClearBtn');
+  if (!btn) return;
+  const count = getSessionEvidence().length;
+  btn.textContent = count ? `Clear All (${count})` : 'Clear All';
+  btn.disabled = !activeSessionId || count === 0;
+}
+
+function renderEvidenceTargetOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceTargetInput');
+  if (!select) return;
+  const targets = getSessionTargets();
+  const current = selectedValue || activeTargetId || '';
+  const options = ['<option value="">Session-wide</option>'];
+  targets.forEach((target) => {
+    const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${label}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function evidenceTypeLabel(type) {
+  const labels = {
+    finding: 'Finding',
+    proof: 'Proof',
+    cred: 'Credential',
+    artifact: 'Artifact',
+    privesc: 'PrivEsc',
+    cleanup: 'Cleanup',
+    note: 'Note',
+  };
+  return labels[type] || (type ? String(type) : 'Evidence');
+}
+
+function evidenceSyncLabel(mode) {
+  return mode === 'none' ? 'No export' : 'Summary';
+}
+
 function renderTodoClearAction() {
   const btn = document.getElementById('todoClearBtn');
   if (!btn) return;
@@ -358,6 +415,158 @@ function clearCompletedTodos() {
   sessions[activeSessionId].todos = remaining;
   saveNotes();
   renderTodoList();
+}
+
+function renderEvidenceList() {
+  const listEl = document.getElementById('evidenceList');
+  if (!listEl) return;
+  renderEvidenceTargetOptions();
+  renderEvidenceClearAction();
+  updateEvidenceCount();
+
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    return;
+  }
+
+  const entries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  if (!entries.length) {
+    listEl.innerHTML = `<div class="todo-empty">No evidence yet. Add findings, proofs, credentials, artifacts, or cleanup items here.</div>`;
+    return;
+  }
+
+  const targets = getSessionTargets();
+  listEl.innerHTML = `
+    <table class="svc-table evidence-table">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Target</th>
+          <th>Sync</th>
+          <th>Details</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${entries.map((entry) => {
+        const target = entry.target_id ? targets.find(item => item.id === entry.target_id) : null;
+        const targetLabel = target ? esc(target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+        if (isQuickLogEditing('evidence', entry.id)) {
+          return `<tr>
+            <td>
+              <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                ${['finding','proof','cred','artifact','privesc','cleanup','note'].map((type) => `<option value="${type}"${type === entry.type ? ' selected' : ''}>${evidenceTypeLabel(type)}</option>`).join('')}
+              </select>
+            </td>
+            <td><input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></td>
+            <td>
+              <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <option value="">Session-wide</option>
+                ${targets.map((targetItem) => {
+                  const label = esc(targetItem.ip || targetItem.domain || targetItem.label || 'Unnamed');
+                  return `<option value="${esc(targetItem.id)}"${targetItem.id === entry.target_id ? ' selected' : ''}>${label}</option>`;
+                }).join('')}
+              </select>
+            </td>
+            <td>
+              <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
+                <option value="none"${(entry.sync_mode || 'export_only') === 'none' ? ' selected' : ''}>No export</option>
+              </select>
+            </td>
+            <td><input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></td>
+            <td>${renderQuickLogRowActions('evidence', entry.id, 'deleteEvidenceEntry')}</td>
+          </tr>`;
+        }
+        return `<tr>
+          <td><span class="loot-type-badge loot-type-other">${esc(evidenceTypeLabel(entry.type))}</span></td>
+          <td>${esc(entry.title || 'Untitled')}</td>
+          <td>${targetLabel}</td>
+          <td>${esc(evidenceSyncLabel(entry.sync_mode || 'export_only'))}</td>
+          <td>${esc(entry.details || '')}</td>
+          <td>${renderQuickLogRowActions('evidence', entry.id, 'deleteEvidenceEntry')}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  `;
+
+  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+}
+
+function addEvidenceEntry() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  const type = (document.getElementById('evidenceTypeInput')?.value || 'finding').trim();
+  const titleEl = document.getElementById('evidenceTitleInput');
+  const detailsEl = document.getElementById('evidenceDetailsInput');
+  const targetEl = document.getElementById('evidenceTargetInput');
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const title = (titleEl?.value || '').trim();
+  const details = (detailsEl?.value || '').trim();
+  const targetId = (targetEl?.value || '').trim() || null;
+  const syncMode = (syncEl?.value || 'export_only').trim();
+  if (!title) {
+    titleEl?.focus();
+    return;
+  }
+  entries.push({
+    id: `evidence_${Date.now()}`,
+    type,
+    title,
+    details,
+    target_id: targetId,
+    sync_mode: syncMode,
+    created: Date.now(),
+    updated: Date.now(),
+  });
+  if (titleEl) titleEl.value = '';
+  if (detailsEl) detailsEl.value = '';
+  if (targetEl) targetEl.value = activeTargetId || '';
+  if (syncEl) syncEl.value = 'export_only';
+  saveNotes();
+  renderEvidenceList();
+  titleEl?.focus();
+}
+
+function deleteEvidenceEntry(entryId) {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
+  sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
+  saveNotes();
+  renderEvidenceList();
+}
+
+function clearEvidenceEntries() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries?.length) return;
+  if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
+  sessions[activeSessionId].evidence = [];
+  saveNotes();
+  renderEvidenceList();
+}
+
+function commitEvidenceEdit(entryId) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
+  if (!entry) return;
+  const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
+  if (!title) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
+  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'finding').trim();
+  entry.title = title;
+  entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
+  entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
+  entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
+  entry.updated = Date.now();
+  clearQuickLogEditing();
+  saveNotes();
+  renderEvidenceList();
 }
 
 function getActiveQuickLogEntries() {
@@ -1122,6 +1331,7 @@ function rerenderQuickLogKind(kind) {
   if (kind === 'service') renderSvcLogTable();
   else if (kind === 'path') renderPathTable();
   else if (kind === 'loot') renderLootTable();
+  else if (kind === 'evidence') renderEvidenceList();
 }
 
 function startQuickLogEdit(kind, id) {
@@ -1153,6 +1363,7 @@ function handleQuickLogEditKeydown(event, kind, id) {
     if (kind === 'service') commitServiceEdit(id);
     else if (kind === 'path') commitPathEdit(id);
     else if (kind === 'loot') commitLootEdit(id);
+    else if (kind === 'evidence') commitEvidenceEdit(id);
     return;
   }
   if (event.key === 'Escape') {
@@ -1168,7 +1379,9 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
       ? `commitServiceEdit('${id}')`
       : kind === 'path'
         ? `commitPathEdit('${id}')`
-        : `commitLootEdit('${id}')`;
+        : kind === 'loot'
+          ? `commitLootEdit('${id}')`
+          : `commitEvidenceEdit('${id}')`;
     return `
       <div class="ql-row-actions">
         <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
@@ -1739,7 +1952,7 @@ function toggleSvcPopover() {
     popoverId: 'svcPopover',
     buttonId: 'svcTopbarBtn',
     labelId: 'svcSessionLabel',
-    closeOthers: [closeTodoPopover],
+    closeOthers: [closeTodoPopover, closeEvidencePopover],
     outsideHandler: _svcOutsideClose,
     onOpen: () => {
       updateSvcPopoverLayout();
@@ -1788,7 +2001,7 @@ function toggleTodoPopover() {
     popoverId: 'todoPopover',
     buttonId: 'todoTopbarBtn',
     labelId: 'todoSessionLabel',
-    closeOthers: [closeSvcPopover],
+    closeOthers: [closeSvcPopover, closeEvidencePopover],
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
@@ -1808,5 +2021,38 @@ function _todoOutsideClose(e) {
     }
   } else {
     closeTodoPopover();
+  }
+}
+
+function toggleEvidencePopover() {
+  if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+    closeEvidencePopover();
+    return;
+  }
+  openUtilityPopover({
+    popoverId: 'evidencePopover',
+    buttonId: 'evidenceTopbarBtn',
+    labelId: 'evidenceSessionLabel',
+    closeOthers: [closeSvcPopover, closeTodoPopover],
+    outsideHandler: _evidenceOutsideClose,
+    onOpen: () => {
+      renderEvidenceTargetOptions(activeTargetId || '');
+      renderEvidenceList();
+      setTimeout(() => document.getElementById('evidenceTitleInput')?.focus(), 40);
+    },
+  });
+}
+
+function closeEvidencePopover() {
+  closeUtilityPopover('evidencePopover', 'evidenceTopbarBtn');
+}
+
+function _evidenceOutsideClose(e) {
+  if (isEventInsideWrap(e, 'evidenceTopbarWrap')) {
+    if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_evidenceOutsideClose);
+    }
+  } else {
+    closeEvidencePopover();
   }
 }

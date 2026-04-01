@@ -633,7 +633,7 @@ function createSession() {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [] };
+  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -759,6 +759,8 @@ function switchSession(id) {
   refreshCodeBlocks();
   updateSvcTabCounts();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function deleteSession(id) {
@@ -786,6 +788,8 @@ async function deleteSession(id) {
   renderSessionList();
   renderNotesList();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 let _sessionRenameId = null;
@@ -920,6 +924,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          evidence: cloneList(session.evidence, [['id'], ['target_id'], ['type'], ['title'], ['details'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({

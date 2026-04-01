@@ -145,6 +145,60 @@
         </div>
       </div>
 
+      <div class="evidence-topbar-wrap" id="evidenceTopbarWrap">
+        <button class="svc-topbar-btn evidence-topbar-btn utility-topbar-segment utility-topbar-segment-middle" id="evidenceTopbarBtn" onclick="toggleEvidencePopover()" title="Session evidence tracker">
+          <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M12 9v6"/><circle cx="12" cy="12" r="10"/></svg> Evidence</span>
+          <span class="evidence-topbar-btn-count" id="evidenceTopbarCount"></span>
+        </button>
+        <div class="evidence-popover" id="evidencePopover">
+          <div class="evidence-popover-hdr">
+            <span class="evidence-popover-title">Evidence</span>
+            <span class="svc-popover-session-label" id="evidenceSessionLabel"></span>
+            <button class="evidence-clear-btn" id="evidenceClearBtn" onclick="clearEvidenceEntries()" disabled>Clear All</button>
+            <button class="icon-btn" onclick="closeEvidencePopover()" title="Close Evidence panel" style="font-size:14px;padding:2px 6px">&times;</button>
+          </div>
+          <div class="evidence-popover-body">
+            <div class="svc-hint">Capture important findings as structured session evidence. Items can optionally be included in markdown summary export.</div>
+            <div class="svc-info-box">
+              <span class="svc-info-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              </span>
+              <div class="svc-info-text">Evidence is stored separately from markdown notes. Use <strong>Include in Summary</strong> to add an item to the exported session summary without modifying any note body.</div>
+            </div>
+            <div class="evidence-input-grid">
+              <select class="svc-quick-input evidence-input-select" id="evidenceTypeInput">
+                <option value="finding">Finding</option>
+                <option value="proof">Proof</option>
+                <option value="cred">Credential</option>
+                <option value="artifact">Artifact</option>
+                <option value="privesc">PrivEsc</option>
+                <option value="cleanup">Cleanup</option>
+                <option value="note">Note</option>
+              </select>
+              <input class="svc-quick-input" id="evidenceTitleInput" type="text"
+                placeholder="Short title, e.g. SeImpersonatePrivilege present"
+                autocomplete="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter')document.getElementById('evidenceDetailsInput').focus()">
+              <select class="svc-quick-input evidence-input-select" id="evidenceTargetInput"></select>
+              <select class="svc-quick-input evidence-input-select" id="evidenceSyncInput">
+                <option value="export_only">Include in Summary</option>
+                <option value="none">Do not export</option>
+              </select>
+            </div>
+            <div class="svc-quick-input-row" style="margin-top:8px">
+              <input class="svc-quick-input" id="evidenceDetailsInput" type="text"
+                placeholder="Details, source, impact, proof location…"
+                autocomplete="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter')addEvidenceEntry()">
+              <button class="svc-quick-add-btn" onclick="addEvidenceEntry()">+ Add</button>
+            </div>
+            <div class="evidence-list-wrap">
+              <div id="evidenceList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="todo-topbar-wrap" id="todoTopbarWrap">
         <button class="svc-topbar-btn todo-topbar-btn utility-topbar-segment utility-topbar-segment-right" id="todoTopbarBtn" onclick="toggleTodoPopover()" title="Session TODOs">
           <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M9 7H7"/><path d="M9 12H7"/><path d="M9 17H7"/></svg> TODO</span>

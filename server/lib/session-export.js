@@ -190,6 +190,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const services = Array.isArray(session.services) ? [...session.services] : [];
   const paths = Array.isArray(session.paths) ? [...session.paths] : [];
   const loot = Array.isArray(session.loot) ? [...session.loot] : [];
+  const evidence = Array.isArray(session.evidence) ? [...session.evidence] : [];
   const sessionEvents = Array.isArray(session.events) ? [...session.events] : [];
 
   const noteEvents = allNotes.map((note) => ({
@@ -224,6 +225,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
     services,
     paths,
     loot,
+    evidence,
     events,
     notes: {
       all: allNotes,
@@ -451,6 +453,20 @@ function renderTimelineSection(model) {
   return lines.join('\n');
 }
 
+function renderEvidenceSection(model) {
+  const evidence = model.evidence
+    .filter((entry) => String(entry.sync_mode || 'export_only').trim() !== 'none')
+    .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
+  if (!evidence.length) return '';
+
+  const lines = ['## Evidence', '', '| Type | Title | Target | Details |', '|------|-------|--------|---------|'];
+  evidence.forEach((entry) => {
+    const target = entry.target_id ? model.targetById[entry.target_id] : null;
+    lines.push(`| ${escapeTableCell(entry.type)} | ${escapeTableCell(entry.title)} | ${escapeTableCell(target ? targetLabel(target) : 'Session-wide')} | ${escapeTableCell(entry.details)} |`);
+  });
+  return lines.join('\n');
+}
+
 function renderConsolidatedSession(model) {
   const lines = [
     `# ${model.session.codename}`,
@@ -493,6 +509,11 @@ function renderConsolidatedSession(model) {
         lines.push(`| ${escapeTableCell(entry.type)} | \`${escapeTableCell(entry.credential)}\` | ${escapeTableCell(entry.host || '—')} | ${escapeTableCell(entry.note)} |`);
       });
     lines.push('');
+  }
+
+  const evidenceSection = renderEvidenceSection(model);
+  if (evidenceSection) {
+    lines.push('---', '', evidenceSection, '');
   }
 
   if (model.events.length) {
