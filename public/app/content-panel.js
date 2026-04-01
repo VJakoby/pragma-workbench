@@ -70,53 +70,14 @@ function injectTargets(rawHtml) {
   const label  = esc(getTargetLabelValue());
   const attacker = esc(getAttackerIP());
   const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
-
-  const ipPatterns = [
-    /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
-    /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
-    /<rhost>/g, /<HOST>/g, /<host>/g,
-    /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
-    /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
-    /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
-    /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
-    /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
-    /\$HOST\b/g,
-    /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
-    /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
-    /\{HOST\}/g,  /\{host\}/g,  /\{\{host\}\}/g,  /\{\{HOST\}\}/g,
-    /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
-    /\b10\.10\.10\.X\b/g,  /\b10\.10\.X\.X\b/g,
-  ];
-
-  const domainPatterns = [
-    /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
-    /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
-    /<WORKGROUP>/g,
-    /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
-    /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
-    /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
-    /\$DOMAIN\b/g,  /\$FQDN\b/g,  /\$DC\b/g,
-    /\{DOMAIN\}/g,  /\{domain\}/g,  /\{FQDN\}/g,  /\{\{domain\}\}/g,
-    /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
-  ];
-
-  const labelPatterns = [
-    /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
-    /&lt;LABEL&gt;/g, /&lt;label&gt;/g, /&lt;TARGET_LABEL&gt;/g,
-    /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
-  ];
-
-  const attackerPatterns = [
-    /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
-    /<ATTACKER_IP>/g, /<attacker_ip>/g,
-    /&lt;ATTACKER&gt;/g, /&lt;attacker&gt;/g, /&lt;ATTACKER-IP&gt;/g, /&lt;attacker-ip&gt;/g,
-    /&lt;ATTACKER_IP&gt;/g, /&lt;attacker_ip&gt;/g,
-    /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
-    /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
-    /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
-    /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
-    /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
-  ];
+  const matcherFactory = globalThis.PRAGMA_PLACEHOLDERS?.getPlaceholderMatchers;
+  if (typeof matcherFactory !== 'function') return rawHtml;
+  const {
+    ipPatterns,
+    domainPatterns,
+    labelPatterns,
+    attackerPatterns,
+  } = matcherFactory({ htmlEscapedAngles: true });
 
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
@@ -124,25 +85,11 @@ function injectTargets(rawHtml) {
   for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
   for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
 
-  out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
-    const replaced = inner.replace(/\bIP\b/g, span(ip, 'ip-injected ip-injected-ip'))
-                          .replace(/\bHOST\b/g, span(ip, 'ip-injected ip-injected-ip'))
-                          .replace(/\bATTACKER\b/g, span(attacker, 'ip-injected ip-injected-attacker'));
-    return open + replaced + close;
-  });
-
   return out;
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  let out = injectTargets(esc(rawLine));
-  const ip = esc(getIP());
-  const attacker = esc(getAttackerIP());
-  const span = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
-  out = out.replace(/\bIP\b/g, span(ip, 'ip-injected ip-injected-ip'))
-           .replace(/\bHOST\b/g, span(ip, 'ip-injected ip-injected-ip'))
-           .replace(/\bATTACKER\b/g, span(attacker, 'ip-injected ip-injected-attacker'));
-  return out;
+  return injectTargets(esc(rawLine));
 }
 
 function highlightCodeBlock(codeEl) {
