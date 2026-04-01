@@ -455,7 +455,7 @@ function renderTimelineSection(model) {
 
 function renderEvidenceSection(model) {
   const evidence = model.evidence
-    .filter((entry) => String(entry.sync_mode || 'export_only').trim() !== 'none')
+    .filter((entry) => ['export_only', 'both'].includes(String(entry.sync_mode || 'export_only').trim()))
     .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
   if (!evidence.length) return '';
 

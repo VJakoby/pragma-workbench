@@ -222,6 +222,24 @@ function renderEvidenceTargetOptions(selectedValue = '') {
   select.innerHTML = options.join('');
 }
 
+function getSessionNotesForEvidence() {
+  if (!activeSessionId) return [];
+  return Object.values(notes)
+    .filter((note) => note.session_id === activeSessionId)
+    .sort((a, b) => (b.updated || 0) - (a.updated || 0));
+}
+
+function renderEvidenceNoteOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceNoteInput');
+  if (!select) return;
+  const noteItems = getSessionNotesForEvidence();
+  const options = ['<option value="">Select session note…</option>'];
+  noteItems.forEach((note) => {
+    options.push(`<option value="${esc(note.id)}"${note.id === selectedValue ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
 function evidenceTypeLabel(type) {
   const labels = {
     finding: 'Finding',
@@ -236,7 +254,95 @@ function evidenceTypeLabel(type) {
 }
 
 function evidenceSyncLabel(mode) {
-  return mode === 'none' ? 'No export' : 'Summary';
+  if (mode === 'none') return 'No sync';
+  if (mode === 'note') return 'Note';
+  if (mode === 'both') return 'Both';
+  return 'Summary';
+}
+
+function evidenceUsesNoteSync(mode) {
+  return mode === 'note' || mode === 'both';
+}
+
+function updateEvidenceSyncUi(selectedNoteId = '') {
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const row = document.getElementById('evidenceNoteRow');
+  if (!syncEl || !row) return;
+  const syncMode = (syncEl.value || 'export_only').trim();
+  const showNote = evidenceUsesNoteSync(syncMode);
+  row.style.display = showNote ? 'flex' : 'none';
+  renderEvidenceNoteOptions(selectedNoteId);
+}
+
+function buildEvidenceMarkerId(entryId) {
+  return `pragma:evidence:${entryId}`;
+}
+
+function removeEvidenceBlockFromBody(body, entryId) {
+  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
+  return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function buildEvidenceMarkdownBlock(entry) {
+  const marker = buildEvidenceMarkerId(entry.id);
+  const target = entry.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  const targetText = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+  const lines = [
+    `<!-- ${marker}:start -->`,
+    `- **${evidenceTypeLabel(entry.type)}:** ${entry.title}`,
+  ];
+  if (entry.details) lines.push(`  - Details: ${entry.details}`);
+  lines.push(`  - Target: ${targetText}`);
+  lines.push(`<!-- ${marker}:end -->`);
+  return lines.join('\n');
+}
+
+function upsertEvidenceBlockInBody(body, entry) {
+  const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
+  const block = buildEvidenceMarkdownBlock(entry);
+  const sectionMatch = cleanBody.match(/^##\s+Evidence\s*$/im);
+  if (!sectionMatch || sectionMatch.index == null) {
+    const prefix = cleanBody.trimEnd();
+    return `${prefix}${prefix ? '\n\n' : ''}## Evidence\n\n${block}\n`;
+  }
+  const sectionStart = sectionMatch.index;
+  const sectionHeader = sectionMatch[0];
+  const bodyAfterHeader = sectionStart + sectionHeader.length;
+  const rest = cleanBody.slice(bodyAfterHeader);
+  const nextSectionRel = rest.search(/\n##\s+/);
+  const insertAt = nextSectionRel === -1 ? cleanBody.length : bodyAfterHeader + nextSectionRel;
+  const before = cleanBody.slice(0, insertAt).replace(/\s*$/, '');
+  const after = cleanBody.slice(insertAt).replace(/^\s*/, '\n\n');
+  return `${before}\n\n${block}${after}`.replace(/\n{3,}/g, '\n\n');
+}
+
+function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
+  const syncedNotes = [];
+  const prevNoteId = prevEntry?.note_id || null;
+  const nextNoteId = nextEntry?.note_id || null;
+
+  if (prevEntry?.id && prevNoteId && notes[prevNoteId]) {
+    const prevNote = notes[prevNoteId];
+    const cleaned = removeEvidenceBlockFromBody(prevNote.body || '', prevEntry.id);
+    if (cleaned !== (prevNote.body || '')) {
+      prevNote.body = cleaned;
+      prevNote.updated = Date.now();
+      syncedNotes.push(prevNote);
+    }
+  }
+
+  if (nextEntry?.id && nextNoteId && notes[nextNoteId] && evidenceUsesNoteSync(nextEntry.sync_mode || 'export_only')) {
+    const nextNote = notes[nextNoteId];
+    const nextBody = upsertEvidenceBlockInBody(nextNote.body || '', nextEntry);
+    if (nextBody !== (nextNote.body || '')) {
+      nextNote.body = nextBody;
+      nextNote.updated = Date.now();
+      if (!syncedNotes.includes(nextNote)) syncedNotes.push(nextNote);
+    }
+  }
+
+  return syncedNotes;
 }
 
 function renderTodoClearAction() {
@@ -421,8 +527,10 @@ function renderEvidenceList() {
   const listEl = document.getElementById('evidenceList');
   if (!listEl) return;
   renderEvidenceTargetOptions();
+  renderEvidenceNoteOptions();
   renderEvidenceClearAction();
   updateEvidenceCount();
+  updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
 
   if (!activeSessionId || !sessions[activeSessionId]) {
     listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
@@ -444,6 +552,7 @@ function renderEvidenceList() {
           <th>Title</th>
           <th>Target</th>
           <th>Sync</th>
+          <th>Note</th>
           <th>Details</th>
           <th></th>
         </tr>
@@ -471,18 +580,28 @@ function renderEvidenceList() {
             <td>
               <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
                 <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
+                <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
+                <option value="note"${(entry.sync_mode || 'export_only') === 'note' ? ' selected' : ''}>Note</option>
                 <option value="none"${(entry.sync_mode || 'export_only') === 'none' ? ' selected' : ''}>No export</option>
+              </select>
+            </td>
+            <td>
+              <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <option value="">Select note…</option>
+                ${getSessionNotesForEvidence().map((note) => `<option value="${esc(note.id)}"${note.id === entry.note_id ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`).join('')}
               </select>
             </td>
             <td><input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></td>
             <td>${renderQuickLogRowActions('evidence', entry.id, 'deleteEvidenceEntry')}</td>
           </tr>`;
         }
+        const note = entry.note_id ? getSessionNotesForEvidence().find((item) => item.id === entry.note_id) : null;
         return `<tr>
           <td><span class="loot-type-badge loot-type-other">${esc(evidenceTypeLabel(entry.type))}</span></td>
           <td>${esc(entry.title || 'Untitled')}</td>
           <td>${targetLabel}</td>
           <td>${esc(evidenceSyncLabel(entry.sync_mode || 'export_only'))}</td>
+          <td>${esc(note?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—'))}</td>
           <td>${esc(entry.details || '')}</td>
           <td>${renderQuickLogRowActions('evidence', entry.id, 'deleteEvidenceEntry')}</td>
         </tr>`;
@@ -502,30 +621,42 @@ function addEvidenceEntry() {
   const detailsEl = document.getElementById('evidenceDetailsInput');
   const targetEl = document.getElementById('evidenceTargetInput');
   const syncEl = document.getElementById('evidenceSyncInput');
+  const noteEl = document.getElementById('evidenceNoteInput');
   const title = (titleEl?.value || '').trim();
   const details = (detailsEl?.value || '').trim();
   const targetId = (targetEl?.value || '').trim() || null;
   const syncMode = (syncEl?.value || 'export_only').trim();
+  const noteId = evidenceUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
   if (!title) {
     titleEl?.focus();
     return;
   }
-  entries.push({
+  if (evidenceUsesNoteSync(syncMode) && !noteId) {
+    noteEl?.focus();
+    return;
+  }
+  const entry = {
     id: `evidence_${Date.now()}`,
     type,
     title,
     details,
     target_id: targetId,
+    note_id: noteId,
     sync_mode: syncMode,
     created: Date.now(),
     updated: Date.now(),
-  });
+  };
+  entries.push(entry);
+  const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
   if (titleEl) titleEl.value = '';
   if (detailsEl) detailsEl.value = '';
   if (targetEl) targetEl.value = activeTargetId || '';
   if (syncEl) syncEl.value = 'export_only';
+  if (noteEl) noteEl.value = '';
   saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
   renderEvidenceList();
+  updateEvidenceSyncUi();
   titleEl?.focus();
 }
 
@@ -533,9 +664,12 @@ function deleteEvidenceEntry(entryId) {
   if (!activeSessionId) return;
   const entries = ensureSessionEvidence();
   if (!entries) return;
+  const entry = entries.find((item) => item.id === entryId);
   if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
   sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
+  const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
   saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
   renderEvidenceList();
 }
 
@@ -543,9 +677,16 @@ function clearEvidenceEntries() {
   if (!activeSessionId) return;
   const entries = ensureSessionEvidence();
   if (!entries?.length) return;
+  const syncedNotes = [];
+  entries.forEach((entry) => {
+    applyEvidenceNoteSyncChanges(entry, null).forEach((note) => {
+      if (!syncedNotes.includes(note)) syncedNotes.push(note);
+    });
+  });
   if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
   sessions[activeSessionId].evidence = [];
   saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
   renderEvidenceList();
 }
 
@@ -553,6 +694,7 @@ function commitEvidenceEdit(entryId) {
   if (!activeSessionId) return;
   const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
   if (!entry) return;
+  const prevEntry = { ...entry };
   const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
   if (!title) {
     focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
@@ -563,9 +705,16 @@ function commitEvidenceEdit(entryId) {
   entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
   entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
+  entry.note_id = evidenceUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  if (evidenceUsesNoteSync(entry.sync_mode) && !entry.note_id) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
   entry.updated = Date.now();
+  const syncedNotes = applyEvidenceNoteSyncChanges(prevEntry, entry);
   clearQuickLogEditing();
   saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
   renderEvidenceList();
 }
 

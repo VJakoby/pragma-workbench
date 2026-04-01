@@ -180,10 +180,16 @@
                 autocomplete="off" spellcheck="false"
                 onkeydown="if(event.key==='Enter')document.getElementById('evidenceDetailsInput').focus()">
               <select class="svc-quick-input evidence-input-select" id="evidenceTargetInput"></select>
-              <select class="svc-quick-input evidence-input-select" id="evidenceSyncInput">
+              <select class="svc-quick-input evidence-input-select" id="evidenceSyncInput" onchange="updateEvidenceSyncUi()">
                 <option value="export_only">Include in Summary</option>
+                <option value="both">Summary + Note</option>
+                <option value="note">Note only</option>
                 <option value="none">Do not export</option>
               </select>
+            </div>
+            <div class="evidence-note-row" id="evidenceNoteRow" style="display:none">
+              <span class="evidence-note-label">Sync Note</span>
+              <select class="svc-quick-input evidence-input-select" id="evidenceNoteInput"></select>
             </div>
             <div class="svc-quick-input-row" style="margin-top:8px">
               <input class="svc-quick-input" id="evidenceDetailsInput" type="text"
