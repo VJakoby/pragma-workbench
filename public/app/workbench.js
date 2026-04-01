@@ -487,6 +487,7 @@ async function initNotes() {
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function executeAppSave() {
