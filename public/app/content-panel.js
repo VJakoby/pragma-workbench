@@ -145,20 +145,62 @@ function injectTargetsInCodeLine(rawLine) {
   return out;
 }
 
+function highlightCodeBlock(codeEl) {
+  if (!codeEl || codeEl.dataset.hljsDone === '1') return;
+  if (!window.hljs?.highlightElement) return;
+
+  const rawText = codeEl.textContent || '';
+  codeEl.textContent = rawText;
+  window.hljs.highlightElement(codeEl);
+  codeEl.dataset.hljsDone = '1';
+}
+
 function wrapCodeBlocks(container) {
   container.querySelectorAll('pre').forEach(pre => {
-    if (pre.parentElement.classList.contains('code-block-wrap')) return;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'code-block-wrap';
-    pre.parentNode.insertBefore(wrap, pre);
-    wrap.appendChild(pre);
+    let wrap = pre.parentElement;
+    if (!wrap?.classList?.contains('code-block-wrap')) {
+      wrap = document.createElement('div');
+      wrap.className = 'code-block-wrap';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+    }
 
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.textContent || '';
-    const lines = rawText.replace(/\n$/, '').split('\n');
+    const hasLanguageClass = [...(codeEl.classList || [])].some((cls) => cls.startsWith('language-'));
 
-    codeEl.innerHTML = lines.map((line) => {
+    let copyBtn = wrap.querySelector('.code-block-copy-btn');
+    if (hasLanguageClass) {
+      codeEl.textContent = rawText;
+      delete codeEl.dataset.hljsDone;
+      highlightCodeBlock(codeEl);
+
+      if (!copyBtn) {
+        copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'code-block-copy-btn';
+        copyBtn.textContent = 'Copy';
+        wrap.appendChild(copyBtn);
+
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(rawText.trimEnd()).then(() => {
+            wrap.classList.add('flash');
+            copyBtn.textContent = 'Copied';
+            showToast('✓ Copied to clipboard');
+            setTimeout(() => {
+              wrap.classList.remove('flash');
+              copyBtn.textContent = 'Copy';
+            }, 1200);
+          });
+        });
+      }
+      return;
+    }
+
+    if (copyBtn) copyBtn.remove();
+
+    codeEl.innerHTML = rawText.replace(/\n$/, '').split('\n').map((line) => {
       if (!line.trim()) return '<span class="code-line-blank">&nbsp;</span>';
       const injected = injectTargetsInCodeLine(line);
       return '<span class="code-line">' +
@@ -217,6 +259,13 @@ function refreshCodeBlocks() {
   if (!el || !activeDoc) return;
   renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
 }
+
+window.addEventListener('pragma-hljs-ready', () => {
+  ['cpContent', 'notePreviewContent', 'kbPreviewContent', 'newNotePreviewContent'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) wrapCodeBlocks(el);
+  });
+});
 
 function renderContentPanelTabs(doc = activeDoc) {
   const tabs = document.getElementById('cpQuickTabs');
