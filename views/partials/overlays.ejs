@@ -77,6 +77,15 @@
         <label>New session codename</label>
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
       </div>
+      <div class="session-field">
+        <label>Initial target (optional)</label>
+        <div class="session-inline-field">
+          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+        </div>
+        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
+      </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>

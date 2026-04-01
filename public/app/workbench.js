@@ -568,6 +568,9 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionTargetIP').value = '';
+  document.getElementById('newSessionTargetDomain').value = '';
+  document.getElementById('newSessionTargetLabel').value = '';
   updateSessionAttackerIpField();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
@@ -616,16 +619,35 @@ function renderSessionList() {
 
 function createSession() {
   const name = document.getElementById('newSessionName').value.trim();
+  const targetIp = document.getElementById('newSessionTargetIP').value.trim();
+  const targetDomain = document.getElementById('newSessionTargetDomain').value.trim();
+  const targetLabel = document.getElementById('newSessionTargetLabel').value.trim();
   if (!name) { document.getElementById('newSessionName').focus(); return; }
   const id = 'sess_' + Date.now();
-  const sess = { id, codename: name, created: Date.now(), targets: [], attacker_ip: '', todos: [] };
+  const targets = [];
+  if (targetIp || targetDomain || targetLabel) {
+    targets.push({
+      id: 'tgt_' + Date.now(),
+      ip: targetIp,
+      domain: targetDomain,
+      label: targetLabel,
+    });
+  }
+  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
+  if (targets.length) {
+    activeTargetId = targets[0].id;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  }
   switchSession(id);
   saveNotes();
   renderSessionList();
   updateSessionAttackerIpField();
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionTargetIP').value = '';
+  document.getElementById('newSessionTargetDomain').value = '';
+  document.getElementById('newSessionTargetLabel').value = '';
 }
 
 function updateSessionAttackerIpField() {
