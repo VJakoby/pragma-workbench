@@ -123,8 +123,9 @@ function autoSaveActiveConfig() {
 
 async function openTemplatesConfig(navEl) {
   if (activeNoteId && notes[activeNoteId]) {
+    const noteId = activeNoteId;
     clearTimeout(noteSaveTimer);
-    await persistActiveNote({ reason: 'note-switch', immediate: true });
+    await persistActiveNote({ reason: 'note-switch', immediate: true, noteId });
   }
   activeNoteId = null;
   activeConfigDoc = 'templates';
@@ -482,16 +483,16 @@ function duplicateCurrentNote() {
 async function openNote(id) {
   if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
     clearTimeout(noteSaveTimer);
-    await persistActiveNote({ reason: 'note-switch', immediate: true });
+    await persistActiveNote({ reason: 'note-switch', immediate: true, noteId: activeNoteId });
   }
   const wasConfig = !!activeConfigDoc;
   if (wasConfig) {
     activeConfigDoc = null;
     setNoteEditorMode('note');
   }
-  activeNoteId = id;
   const n = notes[id];
   if (!n) return;
+  activeNoteId = id;
 
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
@@ -527,7 +528,7 @@ async function openNote(id) {
 }
 
 function togglePinNote() {
-  if (!activeNoteId) return;
+  if (!activeNoteId || !notes[activeNoteId]) return;
   notes[activeNoteId].pinned = !notes[activeNoteId].pinned;
   notes[activeNoteId].updated = Date.now();
   const pinBtn = document.getElementById('notePinBtn');
@@ -572,16 +573,18 @@ function renderBacklinks(noteId) {
   }).join('');
 }
 
-function syncActiveNoteDraft() {
-  if (!activeNoteId || !notes[activeNoteId]) return false;
-  notes[activeNoteId].title = document.getElementById('noteTitleInput').value;
-  notes[activeNoteId].body = cmGetValue(noteEditor);
-  notes[activeNoteId].updated = Date.now();
+function syncActiveNoteDraft(noteId = activeNoteId) {
+  if (!noteId || !notes[noteId]) return false;
+  notes[noteId].title = document.getElementById('noteTitleInput').value;
+  notes[noteId].body = cmGetValue(noteEditor);
+  notes[noteId].updated = Date.now();
   return true;
 }
 
 async function persistActiveNote(opts = {}) {
-  if (!syncActiveNoteDraft()) return false;
+  const noteId = opts.noteId || activeNoteId;
+  if (!syncActiveNoteDraft(noteId)) return false;
+  const note = notes[noteId];
   const ok = await saveNotes({
     reason: opts.reason || 'note-edit',
     immediate: !!opts.immediate,
@@ -589,11 +592,12 @@ async function persistActiveNote(opts = {}) {
   });
   renderNotesList();
   renderSessionSidebar();
-  if (activeNoteId) renderBacklinks(activeNoteId);
+  if (!note || notes[noteId] !== note) return ok;
+  if (activeNoteId === noteId) renderBacklinks(noteId);
   const moEl = document.getElementById('noteModifiedAt');
-  if (moEl) moEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
+  if (moEl && activeNoteId === noteId) moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  updateNotePreview();
+  if (activeNoteId === noteId) updateNotePreview();
   return ok;
 }
 
@@ -628,8 +632,10 @@ async function closeCurrentNote() {
     return;
   }
   if (!activeNoteId) return;
+  const closingNoteId = activeNoteId;
   clearTimeout(noteSaveTimer);
-  await persistActiveNote({ reason: 'note-close', immediate: true });
+  await persistActiveNote({ reason: 'note-close', immediate: true, noteId: closingNoteId });
+  if (activeNoteId !== closingNoteId) return;
   activeNoteId = null;
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
