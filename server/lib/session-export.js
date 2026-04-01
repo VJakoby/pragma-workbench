@@ -46,6 +46,10 @@ function escapeTableCell(value) {
   return String(value || '').replace(/\|/g, '\\|').replace(/\n/g, ' ').trim();
 }
 
+function escapeFenceContent(value) {
+  return String(value || '').replace(/```/g, '\\`\\`\\`').trim();
+}
+
 function loadTemplateMeta(templatesFile) {
   const byType = {};
   BUILTIN_TYPE_ORDER.forEach((type) => {
@@ -459,12 +463,34 @@ function renderEvidenceSection(model) {
     .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
   if (!evidence.length) return '';
 
-  const lines = ['## Evidence', '', '| Type | Title | Target | Details |', '|------|-------|--------|---------|'];
+  const lines = ['## Evidence', ''];
   evidence.forEach((entry) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
-    lines.push(`| ${escapeTableCell(entry.type)} | ${escapeTableCell(entry.title)} | ${escapeTableCell(target ? targetLabel(target) : 'Session-wide')} | ${escapeTableCell(entry.details)} |`);
+    lines.push(`### ${entry.title || 'Untitled'}`);
+    lines.push('');
+    lines.push(`- Type: ${evidenceType(entry.type)}`);
+    lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
+    if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
+    if (entry.details) lines.push(`- Details: ${entry.details}`);
+    if (entry.source_command) {
+      lines.push('', '```text', escapeFenceContent(entry.source_command), '```');
+    }
+    lines.push('');
   });
-  return lines.join('\n');
+  return lines.join('\n').trimEnd();
+}
+
+function evidenceType(type) {
+  const labels = {
+    finding: 'Finding',
+    proof: 'Proof',
+    cred: 'Credential',
+    artifact: 'Artifact',
+    privesc: 'PrivEsc',
+    cleanup: 'Cleanup',
+    note: 'Note',
+  };
+  return labels[String(type || '').trim()] || (type ? String(type) : 'Evidence');
 }
 
 function renderConsolidatedSession(model) {

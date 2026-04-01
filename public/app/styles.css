@@ -3623,7 +3623,13 @@ body.enc-active-body .content-panel {
   box-sizing:border-box;
   align-self:center;
 }
-.svc-topbar-wrap, .evidence-topbar-wrap, .todo-topbar-wrap { position: relative; flex-shrink: 0; }
+.svc-topbar-wrap, .evidence-topbar-wrap, .todo-topbar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-self: stretch;
+  height: 100%;
+}
 .svc-topbar-btn {
   display: flex; align-items: center; gap: 6px;
   background: var(--bg3); border: 1px solid var(--border);
@@ -3632,6 +3638,7 @@ body.enc-active-body .content-panel {
   font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
   color: var(--btn-color); white-space: nowrap;
   height: 100%; box-sizing: border-box; align-self: stretch;
+  width: 100%;
 }
 .utility-topbar-segment{
   min-width:92px;
@@ -3997,7 +4004,8 @@ body.enc-active-body .content-panel {
   color: var(--muted);
 }
 .evidence-table {
-  table-layout: fixed;
+  width: 100%;
+  table-layout: auto;
 }
 .evidence-table th:nth-child(1),
 .evidence-table td:nth-child(1) {
@@ -4005,7 +4013,7 @@ body.enc-active-body .content-panel {
 }
 .evidence-table th:nth-child(3),
 .evidence-table td:nth-child(3) {
-  width: 120px;
+  min-width: 148px;
 }
 .evidence-table th:nth-child(4),
 .evidence-table td:nth-child(4) {
@@ -4013,13 +4021,50 @@ body.enc-active-body .content-panel {
 }
 .evidence-table th:nth-child(5),
 .evidence-table td:nth-child(5) {
-  width: 150px;
+  min-width: 136px;
+}
+.evidence-table th:nth-child(6),
+.evidence-table td:nth-child(6) {
+  min-width: 260px;
 }
 .evidence-table th:nth-child(7),
 .evidence-table td:nth-child(7) {
   width: 96px;
   padding-left: 4px;
   padding-right: 4px;
+}
+.evidence-compact-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+.evidence-target-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text2);
+}
+.evidence-proof-cell {
+  white-space: normal;
+  line-height: 1.45;
+  min-width: 0;
+}
+.evidence-proof-cell .ql-row-input + .ql-row-input {
+  margin-top: 6px;
+}
+.evidence-proof-line {
+  display: block;
+}
+.evidence-proof-line + .evidence-proof-line {
+  margin-top: 4px;
+}
+.evidence-proof-key {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 6px;
 }
 /* ── Paths table ── */
 .path-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 13px; }

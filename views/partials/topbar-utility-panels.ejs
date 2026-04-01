@@ -193,7 +193,11 @@
             </div>
             <div class="svc-quick-input-row" style="margin-top:8px">
               <input class="svc-quick-input" id="evidenceDetailsInput" type="text"
-                placeholder="Details, source, impact, proof location…"
+                placeholder="Proof details, output snippet, artifact path, validation note…"
+                autocomplete="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter')document.getElementById('evidenceCommandInput').focus()">
+              <input class="svc-quick-input" id="evidenceCommandInput" type="text"
+                placeholder="Optional source command"
                 autocomplete="off" spellcheck="false"
                 onkeydown="if(event.key==='Enter')addEvidenceEntry()">
               <button class="svc-quick-add-btn" onclick="addEvidenceEntry()">+ Add</button>
