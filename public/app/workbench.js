@@ -225,6 +225,7 @@ function updateEncryptedStorageUI() {
 }
 
 async function downloadWorkbench() {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   try {
     if (!encryptedStorageEnabled) {
       const a = document.createElement('a');
@@ -280,6 +281,7 @@ async function downloadWorkbench() {
 }
 
 async function downloadBackup() {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   try {
     const res = await fetch('/api/notes/download-backup');
     if (!res.ok) {
@@ -306,6 +308,7 @@ async function downloadBackup() {
 }
 
 async function toggleEncryptedStorage(e) {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   try { e?.stopPropagation?.(); } catch (_) {}
 
   if (encryptedStorageEnabled && !encryptedStoragePassword) {
@@ -567,6 +570,7 @@ function renderSessionSidebar() {
 }
 
 function openSessionModal() {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   document.getElementById('newSessionName').value = '';
   document.getElementById('newSessionTargetIP').value = '';
   document.getElementById('newSessionTargetDomain').value = '';

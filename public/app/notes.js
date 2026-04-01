@@ -8,6 +8,34 @@ let activeTargetFilter = null;
 let activeNoteSearch = '';
 let activeNewNoteType = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
+const NOTE_SCOPE_COOKIE = 'pragma_note_scope';
+
+function getCookieValue(name) {
+  const prefix = `${name}=`;
+  return document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length) || '';
+}
+
+function setCookieValue(name, value, days = 365) {
+  const maxAge = days * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
+}
+
+function restoreNoteScope() {
+  const saved = decodeURIComponent(getCookieValue(NOTE_SCOPE_COOKIE) || '').trim();
+  if (['session', 'unassigned', 'all'].includes(saved)) activeNoteScope = saved;
+}
+
+function syncNoteScopeButtons() {
+  document.querySelectorAll('.note-scope-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.scope === activeNoteScope);
+  });
+}
+
+restoreNoteScope();
 
 function setNoteEditorMode(mode) {
   const isConfig = mode === 'config';
@@ -192,8 +220,9 @@ function setNoteFilter(type, btn) {
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
   activeTargetFilter = null;
-  document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  setCookieValue(NOTE_SCOPE_COOKIE, scope);
+  syncNoteScopeButtons();
+  if (btn) btn.classList.add('active');
   updateNoteSearchPlaceholder();
   renderNotesList();
 }
@@ -210,6 +239,7 @@ function updateNoteSearchPlaceholder() {
 }
 
 function renderNotesList() {
+  syncNoteScopeButtons();
   updateNoteSearchPlaceholder();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
@@ -354,6 +384,7 @@ function resetNewNoteModalState() {
 }
 
 function openNewNoteModal() {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   document.getElementById('newNoteOverlay').classList.add('open');
   resetNewNoteModalState();
 }

@@ -71,6 +71,7 @@ applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (l
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
+let observerModeEnabled = localStorage.getItem('ops-observer-mode') === '1';
 
 function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
@@ -107,6 +108,37 @@ function toggleSidebar(force) {
   }
   if (sidebarState !== 'full') requestAnimationFrame(() => applySidebarState(sidebarState));
 })();
+
+function applyObserverModeState() {
+  document.body.classList.toggle('observer-mode', observerModeEnabled);
+  localStorage.setItem('ops-observer-mode', observerModeEnabled ? '1' : '0');
+  const btn = document.getElementById('observerModeBtn');
+  const nav = document.getElementById('nav-observer-mode');
+  if (btn) {
+    btn.classList.toggle('active', observerModeEnabled);
+    btn.title = observerModeEnabled ? 'Exit observer mode' : 'Enter observer mode';
+  }
+  if (nav) {
+    nav.classList.toggle('active', observerModeEnabled);
+    nav.title = observerModeEnabled ? 'Exit observer mode' : 'Observer mode';
+  }
+  if (observerModeEnabled) {
+    const notesNav = document.getElementById('nav-notes');
+    if (typeof switchView === 'function') switchView('notes', notesNav);
+    if (typeof closeNewNoteModal === 'function') closeNewNoteModal();
+    if (typeof closeSessionModal === 'function') closeSessionModal();
+    if (typeof closeTargetsPanel === 'function') closeTargetsPanel();
+  }
+  if (typeof applyNotePreviewState === 'function') applyNotePreviewState();
+}
+
+function toggleObserverMode(force) {
+  observerModeEnabled = typeof force === 'boolean' ? force : !observerModeEnabled;
+  applyObserverModeState();
+}
+
+window.toggleObserverMode = toggleObserverMode;
+window.isObserverModeEnabled = () => observerModeEnabled;
 
 async function init() {
   initTarget();
@@ -168,6 +200,7 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
+  applyObserverModeState();
 }
 
 function switchView(view, navEl) {
@@ -183,6 +216,9 @@ function switchView(view, navEl) {
     navEl.classList.add('active');
   } else {
     document.getElementById(`nav-${view}`)?.classList.add('active');
+  }
+  if (observerModeEnabled) {
+    document.getElementById('nav-observer-mode')?.classList.add('active');
   }
 
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
@@ -296,7 +332,7 @@ document.addEventListener('keydown', async e => {
 
   if (ctrl && key === 'e') {
     const contentPanel = document.getElementById('contentPanel');
-    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal) {
+    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal && !observerModeEnabled) {
       e.preventDefault();
       toggleEditMode();
       return;

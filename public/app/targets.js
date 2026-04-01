@@ -77,6 +77,7 @@ function copyActiveTargetDomain() {
 }
 
 function openTargetsPanel() {
+  if (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) return;
   const sess = activeSessionId && sessions[activeSessionId];
   document.getElementById('targetsPanelTitle').textContent =
     sess ? `Targets — ${sess.codename}` : 'Targets';
