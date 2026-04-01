@@ -6,6 +6,7 @@ let _pathParsed = [];
 let _lootParsed = [];
 let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
+let _editingTodoId = null;
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 const SVC_TAB_CONFIG = {
@@ -210,14 +211,48 @@ function renderTodoList() {
         <span class="todo-check-box">${todo.done ? '&#10003;' : ''}</span>
       </button>
       <div class="todo-item-body">
-        <div class="todo-item-text">${esc(todo.text || '')}</div>
+        ${_editingTodoId === todo.id ? `
+          <div class="todo-item-edit-wrap">
+            <input
+              class="todo-item-input"
+              id="todoEditInput_${todo.id}"
+              type="text"
+              value="${esc(todo.text || '')}"
+              autocomplete="off"
+              spellcheck="false"
+              onkeydown="handleTodoEditKeydown(event, '${todo.id}')"
+            >
+          </div>
+        ` : `
+          <div class="todo-item-text">${esc(todo.text || '')}</div>
+        `}
       </div>
-      <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
-      </button>
+      <div class="todo-item-actions">
+        ${_editingTodoId === todo.id ? `
+          <button class="svc-quick-add-btn todo-save-btn" onclick="event.stopPropagation(); commitTodoEdit('${todo.id}')" title="Save TODO" aria-label="Save TODO">Save</button>
+          <button class="svc-del-btn todo-cancel-btn" onclick="event.stopPropagation(); cancelTodoEdit('${todo.id}')" title="Cancel edit" aria-label="Cancel edit">Cancel</button>
+        ` : `
+          <button class="svc-del-btn todo-edit-btn" onclick="event.stopPropagation(); startTodoEdit('${todo.id}')" title="Edit TODO" aria-label="Edit TODO">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+        `}
+        <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
     </div>
   `).join('');
   syncTodoUi();
+
+  if (_editingTodoId) {
+    const input = document.getElementById(`todoEditInput_${_editingTodoId}`);
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }, 0);
+    }
+  }
 }
 
 function addTodoEntry() {
@@ -246,6 +281,52 @@ function addTodoEntry() {
   input.focus();
 }
 
+function startTodoEdit(todoId) {
+  if (!activeSessionId) return;
+  if (!getSessionTodos().some(item => item.id === todoId)) return;
+  _editingTodoId = todoId;
+  renderTodoList();
+}
+
+function cancelTodoEdit(todoId) {
+  if (_editingTodoId !== todoId) return;
+  _editingTodoId = null;
+  renderTodoList();
+}
+
+function commitTodoEdit(todoId) {
+  if (!activeSessionId) return;
+  const todo = getSessionTodos().find(item => item.id === todoId);
+  const input = document.getElementById(`todoEditInput_${todoId}`);
+  if (!todo || !input) return;
+
+  const nextText = input.value.trim();
+  if (!nextText) {
+    showToast('⚠ TODO text cannot be empty', 'err');
+    input.focus();
+    return;
+  }
+
+  _editingTodoId = null;
+  if (nextText !== todo.text) {
+    todo.text = nextText;
+    saveNotes();
+  }
+  renderTodoList();
+}
+
+function handleTodoEditKeydown(event, todoId) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    commitTodoEdit(todoId);
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelTodoEdit(todoId);
+  }
+}
+
 function toggleTodoDone(todoId) {
   if (!activeSessionId) return;
   const todo = getSessionTodos().find(item => item.id === todoId);
@@ -260,6 +341,7 @@ function deleteTodoEntry(todoId) {
   if (!activeSessionId) return;
   const todos = ensureSessionTodos();
   if (!todos) return;
+  if (_editingTodoId === todoId) _editingTodoId = null;
   sessions[activeSessionId].todos = todos.filter(item => item.id !== todoId);
   saveNotes();
   renderTodoList();
@@ -271,6 +353,7 @@ function clearCompletedTodos() {
   if (!todos) return;
   const remaining = todos.filter(item => !item.done);
   if (remaining.length === todos.length) return;
+  if (_editingTodoId && todos.some(item => item.id === _editingTodoId && item.done)) _editingTodoId = null;
   sessions[activeSessionId].todos = remaining;
   saveNotes();
   renderTodoList();

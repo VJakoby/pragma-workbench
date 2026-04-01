@@ -37,6 +37,7 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.svc-clear-btn[title]',
   '.svc-quick-add-btn[title]',
   '.todo-check-btn[title]',
+  '.todo-edit-btn[title]',
   '.todo-del-btn[title]',
   '.session-item-export-btn[title]',
   '.target-item-del[title]',
