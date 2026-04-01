@@ -7,6 +7,7 @@ let _lootParsed = [];
 let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 let _editingTodoId = null;
+let _editingQuickLog = null;
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 const SVC_TAB_CONFIG = {
@@ -785,6 +786,7 @@ function addPathLog() {
 function deletePathLog(pathId) {
   if (!activeSessionId) return;
   const path = (sessions[activeSessionId].paths || []).find(p => p.id === pathId);
+  if (isQuickLogEditing('path', pathId)) clearQuickLogEditing();
   sessions[activeSessionId].paths = (sessions[activeSessionId].paths || []).filter(p => p.id !== pathId);
   const syncedNetworkNote = path?.target_id ? syncSessionPathsToNetworkEnumerationNote(path.target_id, false) : false;
   saveNotes();
@@ -800,6 +802,28 @@ function updatePathNotes(pathId, val) {
   p.notes = val;
   const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
   saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
+}
+
+function commitPathEdit(pathId) {
+  if (!activeSessionId) return;
+  const p = (sessions[activeSessionId].paths || []).find(path => path.id === pathId);
+  if (!p) return;
+  const status = (document.getElementById(`pathEditStatus_${pathId}`)?.value || '').trim();
+  const path = (document.getElementById(`pathEditPath_${pathId}`)?.value || '').trim();
+  const notes = (document.getElementById(`pathEditNotes_${pathId}`)?.value || '').trim();
+  if (!path) {
+    showToast('⚠ Path cannot be empty', 'err');
+    focusQuickLogEditInput(`pathEditPath_${pathId}`);
+    return;
+  }
+  p.status = status;
+  p.path = path;
+  p.notes = notes;
+  clearQuickLogEditing();
+  const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
+  saveNotes();
+  renderPathTable();
   applySyncedNoteUpdate(syncedNetworkNote);
 }
 
@@ -819,15 +843,22 @@ function renderPathTable() {
   }
   el.innerHTML = `<table class="path-table">
     <thead><tr><th>Status</th><th>Path</th><th>Notes</th><th></th></tr></thead>
-    <tbody>${paths.map(p => `<tr>
+    <tbody>${paths.map(p => isQuickLogEditing('path', p.id) ? `<tr>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditStatus_${p.id}" type="text" value="${esc(p.status || '')}" placeholder="200"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditPath_${p.id}" type="text" value="${esc(p.path || '')}" placeholder="/admin"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditNotes_${p.id}" type="text" value="${esc(p.notes || '')}" placeholder="notes…"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td>${renderQuickLogRowActions('path', p.id, 'deletePathLog')}</td>
+    </tr>` : `<tr>
       <td><span class="path-status ${statusClass(p.status)}">${esc(p.status || '—')}</span></td>
       <td style="color:var(--text);word-break:break-all">${esc(p.path)}</td>
-      <td><input class="svc-notes-cell" type="text" value="${esc(p.notes || '')}" placeholder="notes…"
-        onclick="event.stopPropagation()"
-        onchange="updatePathNotes('${p.id}',this.value)" onblur="updatePathNotes('${p.id}',this.value)"></td>
-      <td><button class="svc-del-btn" onclick="event.stopPropagation();deletePathLog('${p.id}')" title="Remove">✕</button></td>
+      <td>${esc(p.notes || '')}</td>
+      <td>${renderQuickLogRowActions('path', p.id, 'deletePathLog')}</td>
     </tr>`).join('')}
     </tbody></table>`;
+  if (_editingQuickLog?.kind === 'path') focusQuickLogEditInput(`pathEditPath_${_editingQuickLog.id}`);
 }
 
 function parseSvcInput(raw) {
@@ -1079,6 +1110,83 @@ function applySyncedNoteUpdate(note) {
   }
 }
 
+function isQuickLogEditing(kind, id) {
+  return _editingQuickLog?.kind === kind && _editingQuickLog?.id === id;
+}
+
+function clearQuickLogEditing() {
+  _editingQuickLog = null;
+}
+
+function rerenderQuickLogKind(kind) {
+  if (kind === 'service') renderSvcLogTable();
+  else if (kind === 'path') renderPathTable();
+  else if (kind === 'loot') renderLootTable();
+}
+
+function startQuickLogEdit(kind, id) {
+  _editingQuickLog = { kind, id };
+  rerenderQuickLogKind(kind);
+}
+
+function cancelQuickLogEdit(kind, id) {
+  if (!isQuickLogEditing(kind, id)) return;
+  clearQuickLogEditing();
+  rerenderQuickLogKind(kind);
+}
+
+function focusQuickLogEditInput(id) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  setTimeout(() => {
+    input.focus();
+    if (typeof input.setSelectionRange === 'function') {
+      const pos = input.value.length;
+      input.setSelectionRange(pos, pos);
+    }
+  }, 0);
+}
+
+function handleQuickLogEditKeydown(event, kind, id) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    if (kind === 'service') commitServiceEdit(id);
+    else if (kind === 'path') commitPathEdit(id);
+    else if (kind === 'loot') commitLootEdit(id);
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelQuickLogEdit(kind, id);
+  }
+}
+
+function renderQuickLogRowActions(kind, id, deleteFnName) {
+  const deleteCall = `${deleteFnName}('${id}')`;
+  if (isQuickLogEditing(kind, id)) {
+    const saveCall = kind === 'service'
+      ? `commitServiceEdit('${id}')`
+      : kind === 'path'
+        ? `commitPathEdit('${id}')`
+        : `commitLootEdit('${id}')`;
+    return `
+      <div class="ql-row-actions">
+        <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
+        <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); cancelQuickLogEdit('${kind}','${id}')" title="Cancel edit" aria-label="Cancel edit">Cancel</button>
+        <button class="svc-del-btn" onclick="event.stopPropagation(); ${deleteCall}" title="Remove">✕</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="ql-row-actions">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('${kind}','${id}')" title="Edit row" aria-label="Edit row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="svc-del-btn" onclick="event.stopPropagation(); ${deleteCall}" title="Remove">✕</button>
+    </div>
+  `;
+}
+
 function addServiceLog() {
   const input = document.getElementById('svcQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
@@ -1109,6 +1217,7 @@ function addServiceLog() {
 function deleteServiceLog(svcId) {
   if (!activeSessionId) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
+  if (isQuickLogEditing('service', svcId)) clearQuickLogEditing();
   sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
   const syncedNetworkNote = svc?.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
@@ -1123,6 +1232,32 @@ function updateSvcNotes(svcId, val) {
   svc.notes = val;
   const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
+}
+
+function commitServiceEdit(svcId) {
+  if (!activeSessionId) return;
+  const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
+  if (!svc) return;
+  const port = (document.getElementById(`svcEditPort_${svcId}`)?.value || '').trim();
+  const proto = (document.getElementById(`svcEditProto_${svcId}`)?.value || '').trim().toLowerCase() || 'tcp';
+  const service = (document.getElementById(`svcEditService_${svcId}`)?.value || '').trim();
+  const version = (document.getElementById(`svcEditVersion_${svcId}`)?.value || '').trim();
+  const notes = (document.getElementById(`svcEditNotes_${svcId}`)?.value || '').trim();
+  if (!port) {
+    showToast('⚠ Port cannot be empty', 'err');
+    focusQuickLogEditInput(`svcEditPort_${svcId}`);
+    return;
+  }
+  svc.port = port;
+  svc.proto = proto;
+  svc.service = service;
+  svc.version = version;
+  svc.notes = notes;
+  clearQuickLogEditing();
+  const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
+  saveNotes();
+  renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
 }
 
@@ -1143,18 +1278,34 @@ function renderSvcLogTable() {
   tableEl.innerHTML = `
     <table class="svc-table">
       <thead><tr><th>Port</th><th>Service</th><th>Version</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${sorted.map(s => `
+      <tbody>${sorted.map(s => isQuickLogEditing('service', s.id) ? `
+        <tr>
+          <td>
+            <div class="ql-port-edit-wrap">
+              <input class="svc-notes-cell ql-row-input ql-port-input" id="svcEditPort_${s.id}" type="text" value="${esc(s.port || '')}" placeholder="445"
+                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+              <input class="svc-notes-cell ql-row-input ql-proto-input" id="svcEditProto_${s.id}" type="text" value="${esc(s.proto || 'tcp')}" placeholder="tcp"
+                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+            </div>
+          </td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditService_${s.id}" type="text" value="${esc(s.service || '')}" placeholder="service"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditVersion_${s.id}" type="text" value="${esc(s.version || '')}" placeholder="version"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditNotes_${s.id}" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
+        </tr>` : `
         <tr>
           <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(s.proto)}</span>` : ''}</td>
           <td>${esc(s.service || '—')}</td>
           <td style="color:var(--text2)">${esc(s.version || '')}</td>
-          <td><input class="svc-notes-cell" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
-            onclick="event.stopPropagation()"
-            onchange="updateSvcNotes('${s.id}',this.value)" onblur="updateSvcNotes('${s.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteServiceLog('${s.id}')" title="Remove">✕</button></td>
+          <td>${esc(s.notes || '')}</td>
+          <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
+  if (_editingQuickLog?.kind === 'service') focusQuickLogEditInput(`svcEditPort_${_editingQuickLog.id}`);
 }
 
 function setLootType(btn, type) {
@@ -1425,6 +1576,7 @@ function addLootEntry() {
 
 function deleteLootEntry(lootId) {
   if (!activeSessionId) return;
+  if (isQuickLogEditing('loot', lootId)) clearQuickLogEditing();
   sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
   saveNotes();
@@ -1469,6 +1621,31 @@ function updateLootNote(lootId, val) {
   }
 }
 
+function commitLootEdit(lootId) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
+  if (!entry) return;
+  const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();
+  const credential = (document.getElementById(`lootEditCredential_${lootId}`)?.value || '').trim();
+  const host = (document.getElementById(`lootEditHost_${lootId}`)?.value || '').trim();
+  const note = (document.getElementById(`lootEditNote_${lootId}`)?.value || '').trim();
+  if (!credential) {
+    showToast('⚠ Credential cannot be empty', 'err');
+    focusQuickLogEditInput(`lootEditCredential_${lootId}`);
+    return;
+  }
+  entry.type = ['cleartext', 'hash', 'token', 'key', 'other'].includes(type) ? type : 'other';
+  entry.credential = credential;
+  entry.host = host;
+  entry.note = note;
+  clearQuickLogEditing();
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedCredentialsNote);
+}
+
 const LOOT_TYPE_CSS = {
   cleartext: 'loot-type-cleartext',
   hash: 'loot-type-hash',
@@ -1491,19 +1668,30 @@ function renderLootTable() {
       <thead><tr><th>Type</th><th>Credential</th><th>Host</th><th>Context</th><th></th></tr></thead>
       <tbody>${entries.map(l => {
         const typeCss = LOOT_TYPE_CSS[l.type] || 'loot-type-other';
-        return `<tr>
+        return isQuickLogEditing('loot', l.id) ? `<tr>
+          <td>
+            <select class="svc-notes-cell ql-row-input ql-row-select" id="lootEditType_${l.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')">
+              ${['cleartext', 'hash', 'token', 'key', 'other'].map(type => `<option value="${type}" ${l.type === type ? 'selected' : ''}>${type}</option>`).join('')}
+            </select>
+          </td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditCredential_${l.id}" type="text" value="${esc(l.credential || '')}" placeholder="credential"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditHost_${l.id}" type="text" value="${esc(l.host || '')}" placeholder="host"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditNote_${l.id}" type="text" value="${esc(l.note || '')}" placeholder="context…"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
+        </tr>` : `<tr>
           <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
           <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
           <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
-          <td style="min-width:160px;width:35%"><input class="svc-notes-cell" type="text" value="${esc(l.note || '')}" placeholder="context…"
-            onclick="event.stopPropagation()"
-            onchange="updateLootNote('${l.id}',this.value)"
-            onblur="updateLootNote('${l.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteLootEntry('${l.id}')" title="Remove">✕</button></td>
+          <td style="min-width:160px;width:35%">${esc(l.note || '')}</td>
+          <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>`;
+  if (_editingQuickLog?.kind === 'loot') focusQuickLogEditInput(`lootEditCredential_${_editingQuickLog.id}`);
 }
 
 function copyLootCred(lootId) {

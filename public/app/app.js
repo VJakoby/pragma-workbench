@@ -38,6 +38,7 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.svc-quick-add-btn[title]',
   '.todo-check-btn[title]',
   '.todo-edit-btn[title]',
+  '.ql-row-edit-btn[title]',
   '.todo-del-btn[title]',
   '.session-item-export-btn[title]',
   '.target-item-del[title]',

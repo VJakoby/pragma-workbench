@@ -3496,6 +3496,9 @@ body.enc-active-body .content-panel {
   color: var(--accent);
 }
 .svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
+.utility-topbar-segment-left.svc-topbar-btn.open {
+  border-right-color: transparent;
+}
 .svc-topbar-btn-count {
   background: rgba(var(--green-rgb),0.2); color: var(--green);
   font-size: 11px; font-weight: 700;
@@ -3901,7 +3904,9 @@ body.enc-active-body .content-panel {
   background: transparent;
   border: 1px solid transparent;
   color: var(--btn-color);
-  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   padding: 5px 8px;
   min-width: 30px;
   min-height: 28px;
@@ -3923,6 +3928,9 @@ body.enc-active-body .content-panel {
   color: var(--text);
 }
 .todo-save-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   min-width: 52px;
   padding-inline: 10px;
 }
@@ -4077,13 +4085,69 @@ body.enc-active-body .content-panel {
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(4),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(4) {
-  width: 28%;
+  width: 22%;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(5),
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(5) {
+  width: 96px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 .svc-del-btn {
   background: none; border: none; cursor: pointer; color: var(--muted);
-  font-size: 14px; padding: 0 4px; border-radius: 3px; transition: color 0.12s;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 4px; border-radius: 3px; transition: color 0.12s;
 }
 .svc-del-btn:hover { color: var(--red); }
+.ql-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ql-row-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ql-row-save-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 42px;
+  padding: 5px 6px;
+}
+.ql-row-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.ql-row-input:focus {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12);
+}
+.ql-row-select {
+  appearance: none;
+  text-transform: capitalize;
+}
+.ql-port-edit-wrap {
+  display: flex;
+  gap: 6px;
+}
+.ql-port-input,
+.ql-proto-input {
+  min-width: 54px;
+}
+.svc-popover.svc-popover-loot-open #svcPanelLoot .ql-row-save-btn,
+.svc-popover.svc-popover-loot-open #svcPanelLoot .ql-row-edit-btn,
+.svc-popover.svc-popover-loot-open #svcPanelLoot .svc-del-btn {
+  width: auto;
+  min-width: 0;
+  justify-content: center;
+}
 .svc-notes-cell {
   background: none; border: none; outline: none;
   font-family: 'JetBrains Mono', monospace; font-size: 13px;
