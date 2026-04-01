@@ -105,7 +105,7 @@ registerKbRoutes(app, {
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });
 registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
-registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage });
+registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage, renderMarkdown });
 
 if (chokidar) {
   chokidar.watch(KB_DIR, { ignoreInitial: true }).on('all', (event, filePath) => {

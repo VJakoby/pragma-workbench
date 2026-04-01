@@ -5,11 +5,15 @@ let cpEditSaveTimer = null;
 let cpEditSaving = false;
 let kbPreviewOpen = localStorage.getItem('pragma-kb-preview-open') === '1';
 
-function updateKbPreview() {
+async function updateKbPreview() {
   const pane = document.getElementById('kbPreviewPane');
   const el = document.getElementById('kbPreviewContent');
   if (!pane || !el || pane.style.display === 'none') return;
   const md = kbEditor ? cmGetValue(kbEditor) : (activeDoc?.raw || '');
+  if (window.markdownPreview?.renderInto) {
+    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    return;
+  }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
   el.innerHTML = injected;

@@ -29,13 +29,17 @@ function continueOrderedListFallback(view) {
   return true;
 }
 
-function updateNotePreview() {
+async function updateNotePreview() {
   if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
   if (!pane || pane.style.display === 'none') return;
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
+  if (window.markdownPreview?.renderInto) {
+    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    return;
+  }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
   el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;

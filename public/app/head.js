@@ -79,7 +79,7 @@
         const items = m.trim().split('\n').map(l => {
           const checked = /^[ \t]*[-*+] \[[xX]\]/.test(l);
           const text = l.replace(/^[ \t]*[-*+] \[[ xX]\] /, '');
-          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span>${text}</span></li>`;
+          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span class="task-text">${text}</span></li>`;
         }).join('');
         return `<ul class="task-list">${items}</ul>`;
       });
@@ -168,6 +168,87 @@
       return src;
     }
   };
+
+  window.markdownPreview = (() => {
+    const stateByElement = new WeakMap();
+
+    function renderFallback(markdown) {
+      const source = String(markdown || '');
+      return window.marked ? window.marked.parse(source) : source.replace(/\n/g, '<br>');
+    }
+
+    function normalizeTaskLists(root) {
+      const blockTags = new Set(['BLOCKQUOTE', 'DIV', 'OL', 'P', 'PRE', 'TABLE', 'UL']);
+
+      root.querySelectorAll('li > input[type="checkbox"]').forEach((input) => {
+        const li = input.closest('li');
+        if (!li) return;
+        li.classList.add('task-item');
+        if (li.parentElement?.tagName === 'UL') li.parentElement.classList.add('task-list');
+
+        input.classList.add('task-checkbox');
+        input.removeAttribute('disabled');
+        input.onclick = () => {
+          if (typeof toggleCheckbox === 'function') toggleCheckbox(input);
+        };
+
+        let textWrap = input.nextElementSibling;
+        if (!(textWrap instanceof HTMLElement) || textWrap.tagName !== 'SPAN') {
+          textWrap = document.createElement('span');
+          let node = input.nextSibling;
+          while (node) {
+            const nextNode = node.nextSibling;
+            if (node.nodeType === Node.ELEMENT_NODE && blockTags.has(node.nodeName)) break;
+            textWrap.appendChild(node);
+            node = nextNode;
+          }
+          li.appendChild(textWrap);
+        }
+        textWrap.classList.add('task-text');
+      });
+    }
+
+    async function renderInto(el, markdown, { injectTargets: shouldInjectTargets = false } = {}) {
+      if (!el) return false;
+
+      const previous = stateByElement.get(el);
+      if (previous?.controller) previous.controller.abort();
+
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const requestId = (previous?.requestId || 0) + 1;
+      stateByElement.set(el, { controller, requestId });
+
+      let html = '';
+      try {
+        const response = await fetch('/api/markdown/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown: String(markdown || '') }),
+          signal: controller?.signal,
+        });
+        const data = await response.json();
+        if (!response.ok || typeof data.html !== 'string') throw new Error(data.error || 'Markdown render failed');
+        html = data.html;
+      } catch (err) {
+        if (err?.name === 'AbortError') return false;
+        html = renderFallback(markdown);
+      }
+
+      const current = stateByElement.get(el);
+      if (!current || current.requestId !== requestId) return false;
+
+      const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
+      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+      normalizeTaskLists(el);
+      if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+      if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+      if (typeof makeCollapsible === 'function') makeCollapsible(el);
+      el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+      return true;
+    }
+
+    return { renderInto };
+  })();
   // ── SVG Icon library (Lucide-style, 16x16 viewBox) ──
   window.ICONS = {
     notes:      '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>',

@@ -354,15 +354,19 @@ function closeNewNoteModal() {
 
 function closeNewNoteModalIfOutside(e) { if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal(); }
 
-function renderNewNotePreview(type) {
+async function renderNewNotePreview(type) {
   const wrap = document.getElementById('newNotePreviewWrap');
   const content = document.getElementById('newNotePreviewContent');
   if (!wrap || !content || !type) return;
 
   const tmpl = resolveTemplateForCreation(type, NOTE_TEMPLATE_VARIANT_SELECTIONS[type] || null);
   const md = buildNoteBodyFromTemplate(tmpl);
-  const rendered = typeof marked !== 'undefined' && marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  content.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(rendered) : rendered;
+  if (window.markdownPreview?.renderInto) {
+    await window.markdownPreview.renderInto(content, md);
+  } else {
+    const rendered = typeof marked !== 'undefined' && marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+    content.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(rendered) : rendered;
+  }
   wrap.style.display = '';
 }
 
