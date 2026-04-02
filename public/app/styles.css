@@ -3558,6 +3558,24 @@ body.enc-active-body .content-panel {
   outline: none; transition: border-color 0.15s;
   box-sizing: border-box;
 }
+.evidence-flag-select {
+  padding-right: 10px;
+  font-family: 'Inter', sans-serif;
+}
+.evidence-flag-preview {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow: auto;
+}
 .pw-input:focus { border-color: var(--accent); }
 .pw-input::placeholder { color: var(--muted); }
 .pw-input.error { border-color: var(--red); }
