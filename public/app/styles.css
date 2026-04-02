@@ -492,7 +492,6 @@ body{
 }
 body.reading-mode .target-selector,
 body.reading-mode .utility-topbar-group,
-body.reading-mode .cmd-trigger,
 body.reading-mode .topbar > .tb-btn:not(.reading-toggle-btn),
 body.reading-mode .theme-toggle{
   display:none !important;
