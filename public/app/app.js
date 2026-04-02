@@ -43,7 +43,7 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.session-item-export-btn[title]',
   '.target-item-del[title]',
   '.svc-del-btn[title]',
-  '.notes-list-reopen-btn[title]',
+  '.notes-list-edge-btn[title]',
   '.cmd-trigger[title]',
   '.theme-toggle-btn[title]',
   '.sidebar-info-btn[title]',
