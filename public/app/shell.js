@@ -71,6 +71,26 @@ applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (l
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
+let readingModeEnabled = (localStorage.getItem('ops-reading-mode') ?? localStorage.getItem('ops-observer-mode')) === '1';
+
+function applyReadingModeState() {
+  document.body.classList.toggle('reading-mode', readingModeEnabled);
+  localStorage.setItem('ops-reading-mode', readingModeEnabled ? '1' : '0');
+  localStorage.removeItem('ops-observer-mode');
+  const nav = document.getElementById('nav-reading-mode');
+  if (nav) nav.classList.toggle('active', readingModeEnabled);
+  if (readingModeEnabled && typeof updateNotePreview === 'function' && activeNoteId && notes[activeNoteId]) {
+    updateNotePreview();
+  }
+}
+
+function toggleReadingMode() {
+  readingModeEnabled = !readingModeEnabled;
+  if (readingModeEnabled && activeView !== 'notes') {
+    switchView('notes', document.getElementById('nav-notes'));
+  }
+  applyReadingModeState();
+}
 
 function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
@@ -154,6 +174,7 @@ async function init() {
   renderNoteTypeGrid();
   renderNotesList();
   if (activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
+  applyReadingModeState();
 
   document.getElementById('svc-count').textContent = SERVICES.length;
   document.getElementById('tactics-count').textContent = TACTICS.length;
@@ -206,6 +227,9 @@ function switchView(view, navEl) {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
     checkEngramStatus();
     if (!knownSources.length) loadSearchSources();
+  }
+  if (readingModeEnabled) {
+    document.getElementById('nav-reading-mode')?.classList.add('active');
   }
 }
 
