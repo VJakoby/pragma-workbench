@@ -268,11 +268,6 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
-.reading-toggle-btn.active{
-  border-color:var(--accent);
-  color:var(--accent);
-  background:rgba(var(--accent-rgb),0.1);
-}
 
 .theme-toggle{
   display:flex;align-items:center;

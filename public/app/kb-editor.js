@@ -78,20 +78,6 @@ function initKbPreviewDragHandle() {
   });
 }
 
-async function prepareContentPanelDocSwitch() {
-  const editBody = document.getElementById('cpEditBody');
-  if (!editBody || editBody.style.display === 'none') return true;
-
-  if (cpEditDirty && typeof saveEdit === 'function') {
-    await saveEdit({ auto: true });
-    if (cpEditDirty) return false;
-  }
-
-  exitEditMode();
-  applyKbPreviewState();
-  return true;
-}
-
 function scheduleKbAutoSave() {
   clearTimeout(cpEditSaveTimer);
   cpEditSaveTimer = setTimeout(() => { saveEdit({ auto: true }); }, 700);
@@ -115,7 +101,6 @@ function setCpEditStatus(cls, msg) {
 }
 
 async function toggleEditMode() {
-  if (typeof window.exitReadingModeForAction === 'function') window.exitReadingModeForAction();
   const editBody = document.getElementById('cpEditBody');
   const isEditing = editBody.style.display !== 'none';
   if (isEditing) {

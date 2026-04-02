@@ -177,16 +177,6 @@
       return window.marked ? window.marked.parse(source) : source.replace(/\n/g, '<br>');
     }
 
-    function applyRenderedHtml(el, html, { injectTargets: shouldInjectTargets = false } = {}) {
-      const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
-      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
-      normalizeTaskLists(el);
-      if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
-      if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
-      if (typeof makeCollapsible === 'function') makeCollapsible(el);
-      el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
-    }
-
     function normalizeTaskLists(root) {
       const blockTags = new Set(['BLOCKQUOTE', 'DIV', 'OL', 'P', 'PRE', 'TABLE', 'UL']);
 
@@ -228,8 +218,6 @@
       const requestId = (previous?.requestId || 0) + 1;
       stateByElement.set(el, { controller, requestId });
 
-      applyRenderedHtml(el, renderFallback(markdown), { injectTargets: shouldInjectTargets });
-
       let html = '';
       try {
         const response = await fetch('/api/markdown/render', {
@@ -248,7 +236,14 @@
 
       const current = stateByElement.get(el);
       if (!current || current.requestId !== requestId) return false;
-      applyRenderedHtml(el, html, { injectTargets: shouldInjectTargets });
+
+      const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
+      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+      normalizeTaskLists(el);
+      if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+      if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+      if (typeof makeCollapsible === 'function') makeCollapsible(el);
+      el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
       return true;
     }
 

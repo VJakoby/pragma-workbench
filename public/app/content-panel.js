@@ -245,10 +245,6 @@ function renderContentPanelTabs(doc = activeDoc) {
 }
 
 async function openItem(view, id) {
-  if (typeof prepareContentPanelDocSwitch === 'function') {
-    const ready = await prepareContentPanelDocSwitch();
-    if (!ready) return;
-  }
   view = decodeURIComponent(view);
   id = decodeURIComponent(id);
   const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
@@ -297,18 +293,13 @@ async function openItem(view, id) {
     setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
     renderContentPanelTabs(activeDoc);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
-    document.getElementById('cpEditBtn').style.display =
-      (typeof window.isReadingModeEnabled === 'function' && window.isReadingModeEnabled()) ? 'none' : '';
+    document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
 }
 
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
-  if (typeof prepareContentPanelDocSwitch === 'function') {
-    const ready = await prepareContentPanelDocSwitch();
-    if (!ready) return;
-  }
   clearContentPanelBackState();
   clearContentPanelCreateState();
   renderContentPanelTabs(null);
