@@ -13,7 +13,7 @@
               <button class="svc-tab" id="svcTabPaths" onclick="switchSvcTab('paths')">Paths <span class="svc-tab-count" id="svcTabCountPaths"></span></button>
               <button class="svc-tab" id="svcTabLoot" onclick="switchSvcTab('loot')">Loot <span class="svc-tab-count" id="svcTabCountLoot"></span></button>
             </div>
-            <button class="svc-clear-btn" id="svcClearBtn" onclick="clearActiveQuickLog()" disabled>Clear All</button>
+            <button class="svc-clear-btn svc-mutate-control" id="svcClearBtn" onclick="clearActiveQuickLog()" disabled>Clear All</button>
             <button class="icon-btn" onclick="closeSvcPopover()" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>
 
@@ -25,7 +25,7 @@
               </span>
               <div class="svc-info-text">Added entries are also written into the target note titled <strong>Network Enumeration</strong>, in the <strong>Open Ports &amp; Services</strong> section.</div>
             </div>
-            <div class="svc-quick-input-row">
+            <div class="svc-quick-input-row svc-mutate-control">
               <input class="svc-quick-input" id="svcQuickInput" type="text"
                 placeholder="80/tcp http apache 2.4.49&hellip;"
                 autocomplete="off" spellcheck="false"
@@ -33,7 +33,7 @@
               <button class="svc-quick-add-btn" onclick="addServiceLog()">+ Add</button>
               <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
             </div>
-            <div id="portPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
+            <div class="svc-mutate-control" id="portPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
               <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">nmap &middot; rustscan &middot; masscan</strong></div>
               <textarea id="portPasteInput" placeholder="Paste tool output here&hellip;" spellcheck="false"
                 style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
@@ -61,7 +61,7 @@
               </span>
               <div class="svc-info-text">Added entries are also written into the target note titled <strong>Network Enumeration</strong>, in the <strong>Web</strong> section.</div>
             </div>
-            <div class="svc-quick-input-row">
+            <div class="svc-quick-input-row svc-mutate-control">
               <input class="svc-quick-input" id="pathQuickInput" type="text"
                 placeholder="/admin  or  200 /login.php"
                 autocomplete="off" spellcheck="false"
@@ -69,7 +69,7 @@
               <button class="svc-quick-add-btn" onclick="addPathLog()">+ Add</button>
               <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('paths')" id="pathPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
             </div>
-            <div id="pathPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
+            <div class="svc-mutate-control" id="pathPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
               <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">gobuster &middot; ffuf &middot; dirbuster</strong></div>
               <textarea id="pathPasteInput" placeholder="Paste tool output here&hellip;" spellcheck="false"
                 style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
@@ -97,7 +97,7 @@
               </span>
               <div class="svc-info-text">Cleartext and hash entries are also written into the session note titled <strong>Credentials</strong>, in its credentials table. Token, key, and other entries stay only in Quick Log.</div>
             </div>
-            <div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
+            <div class="svc-mutate-control" style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">
               <span style="font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;align-self:center;flex-shrink:0">Type</span>
               <button class="loot-type-btn active" data-ltype="cleartext" onclick="setLootType(this,'cleartext')">Cleartext</button>
               <button class="loot-type-btn" data-ltype="hash" onclick="setLootType(this,'hash')">Hash</button>
@@ -105,14 +105,14 @@
               <button class="loot-type-btn" data-ltype="key" onclick="setLootType(this,'key')">Key</button>
               <button class="loot-type-btn" data-ltype="other" onclick="setLootType(this,'other')">Other</button>
             </div>
-            <div class="svc-quick-input-row" style="margin-bottom:6px">
+            <div class="svc-quick-input-row svc-mutate-control" style="margin-bottom:6px">
               <input class="svc-quick-input" id="lootCredInput" type="text"
                 placeholder="username:password  /  hash  /  token  /  key&hellip;"
                 autocomplete="off" spellcheck="false"
                 onkeydown="if(event.key==='Enter')document.getElementById('lootHostInput').focus()">
               <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('loot')" id="lootPasteToggle" title="Paste user/password list"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
             </div>
-            <div id="lootPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:0;margin-bottom:6px">
+            <div class="svc-mutate-control" id="lootPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:0;margin-bottom:6px">
               <div class="svc-hint" style="margin-bottom:2px">Paste one credential per line: <strong style="color:var(--text2)">username:password</strong> or just <strong style="color:var(--text2)">username</strong></div>
               <textarea id="lootPasteInput" placeholder="admin:Summer2024!&#10;svc-backup&#10;jdoe:Password123" spellcheck="false"
                 style="width:100%;height:110px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
@@ -127,7 +127,7 @@
                   style="background:var(--bg3);color:var(--muted);border-color:var(--border)">Cancel</button>
               </div>
             </div>
-            <div class="svc-quick-input-row">
+            <div class="svc-quick-input-row svc-mutate-control">
               <input class="svc-quick-input" id="lootHostInput" type="text"
                 placeholder="Host / IP"
                 autocomplete="off" spellcheck="false" style="flex:0 0 150px"

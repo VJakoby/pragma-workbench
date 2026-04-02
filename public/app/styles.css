@@ -486,9 +486,25 @@ body{
   flex:1;display:flex;flex-direction:column;overflow:hidden;
 }
 body.reading-mode .target-selector,
-body.reading-mode .utility-topbar-group,
 body.reading-mode .topbar > .tb-btn:not(.reading-toggle-btn),
-body.reading-mode .theme-toggle{
+body.reading-mode .topbar > .theme-toggle:not(#themeToggle){
+  display:none !important;
+}
+body.reading-mode .utility-topbar-group{
+  display:flex !important;
+}
+body.reading-mode .utility-topbar-group .todo-topbar-wrap{
+  display:none !important;
+}
+body.reading-mode .utility-topbar-group .utility-topbar-segment-left{
+  border-right:none;
+}
+body.reading-mode #svcPopover .svc-mutate-control,
+body.reading-mode #svcPopover .ql-row-actions,
+body.reading-mode #svcPopover .svc-table th:last-child,
+body.reading-mode #svcPopover .svc-table td:last-child,
+body.reading-mode #svcPopover .path-table th:last-child,
+body.reading-mode #svcPopover .path-table td:last-child{
   display:none !important;
 }
 body.reading-mode .topbar{
@@ -514,7 +530,9 @@ body.reading-mode .session-active-arrow{
 body.reading-mode .session-encrypt-row{
   display:none !important;
 }
-body.reading-mode #notesNewBtn{
+body.reading-mode #notesNewBtn,
+body.reading-mode #notesListNewBtn,
+body.reading-mode #notesListCreateBtn{
   display:none !important;
 }
 body.reading-mode #servicesNewBtn,

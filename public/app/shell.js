@@ -79,6 +79,11 @@ function applyReadingModeState() {
   localStorage.removeItem('ops-observer-mode');
   const nav = document.getElementById('nav-reading-mode');
   if (nav) nav.classList.toggle('active', readingModeEnabled);
+  if (readingModeEnabled) {
+    if (typeof clearQuickLogEditing === 'function') clearQuickLogEditing();
+    if (typeof closeTodoPopover === 'function') closeTodoPopover();
+    if (typeof closeSvcPopover === 'function') closeSvcPopover();
+  }
   if (readingModeEnabled && typeof updateNotePreview === 'function' && activeNoteId && notes[activeNoteId]) {
     updateNotePreview();
   }
