@@ -70,7 +70,7 @@ function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
     const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
     return `
       <div class="card-service-head">
-        <span class="note-item-type note-type-general card-service-type">${serviceTitle || name}</span>
+        <span class="note-type-general card-service-type">${serviceTitle || name}</span>
       </div>
       <div class="card-service-footer">
         <div class="card-service-badges">
