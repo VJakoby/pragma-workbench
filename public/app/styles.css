@@ -419,15 +419,15 @@ body{
   padding:6px 13px;
   margin:0 14px 0 8px;
   cursor:pointer;transition:all 0.12s;
-  border-left:2px solid transparent;
   border-radius:6px;
   font-size:14px;color:var(--text2);
   user-select:none;
+  box-sizing:border-box;
+  overflow:hidden;
 }
 .nav-item:hover{background:var(--bg3);color:var(--text)}
 .nav-item.active{
   background:rgba(var(--accent-rgb),0.12);
-  border-left-color:transparent;
   color:var(--accent);
   box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),0.1);
 }
@@ -3052,6 +3052,7 @@ body.is-resizing *{cursor:col-resize!important}
   color: inherit;
   cursor: pointer;
   min-width: 0;
+  position: relative;
 }
 .target-selector-main {
   flex: 1 1 auto;
@@ -3062,6 +3063,7 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 11px;
   overflow: hidden;
   min-width: 96px;
+  border-radius: 0;
 }
 .target-selector-copy {
   min-width: 0;
@@ -3072,6 +3074,7 @@ body.is-resizing *{cursor:col-resize!important}
   border-left: 1px solid var(--border);
   color: var(--muted);
   transition: all 0.15s;
+  border-radius: 0;
 }
 .target-selector-copy-ip,
 .target-selector-copy-domain {
@@ -3080,10 +3083,12 @@ body.is-resizing *{cursor:col-resize!important}
 .target-selector-copy-domain {
   border-left: 1px solid var(--border);
   border-right: none;
+  border-radius: 0 5px 5px 0;
 }
 .target-selector-copy-ip {
   border-left: none;
   border-right: 1px solid var(--border);
+  border-radius: 5px 0 0 5px;
 }
 .target-selector-copy-ip .target-copy-text {
   color: var(--green);
@@ -3100,7 +3105,6 @@ body.is-resizing *{cursor:col-resize!important}
 .target-selector-copy:hover:not(:disabled) {
   color: var(--accent);
   background: rgba(var(--accent-rgb),0.08);
-  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.14);
 }
 .target-selector-copy:disabled {
   color: var(--muted);
