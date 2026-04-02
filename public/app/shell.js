@@ -71,6 +71,7 @@ applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (l
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
+let readingModeEnabled = (localStorage.getItem('ops-reading-mode') ?? localStorage.getItem('ops-observer-mode')) === '1';
 
 function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
@@ -107,6 +108,45 @@ function toggleSidebar(force) {
   }
   if (sidebarState !== 'full') requestAnimationFrame(() => applySidebarState(sidebarState));
 })();
+
+function applyReadingModeState() {
+  document.body.classList.toggle('reading-mode', readingModeEnabled);
+  localStorage.setItem('ops-reading-mode', readingModeEnabled ? '1' : '0');
+  localStorage.removeItem('ops-observer-mode');
+  const btn = document.getElementById('readingModeBtn');
+  const nav = document.getElementById('nav-reading-mode');
+  if (btn) {
+    btn.classList.toggle('active', readingModeEnabled);
+    btn.title = readingModeEnabled ? 'Exit reading mode' : 'Enter reading mode';
+  }
+  if (nav) {
+    nav.classList.toggle('active', readingModeEnabled);
+    nav.title = readingModeEnabled ? 'Exit reading mode' : 'Reading mode';
+  }
+  if (readingModeEnabled) {
+    const notesNav = document.getElementById('nav-notes');
+    if (typeof switchView === 'function') switchView('notes', notesNav);
+    if (typeof closeNewNoteModal === 'function') closeNewNoteModal();
+    if (typeof closeSessionModal === 'function') closeSessionModal();
+    if (typeof closeTargetsPanel === 'function') closeTargetsPanel();
+  }
+  if (typeof applyNotePreviewState === 'function') applyNotePreviewState();
+}
+
+function toggleReadingMode(force) {
+  readingModeEnabled = typeof force === 'boolean' ? force : !readingModeEnabled;
+  applyReadingModeState();
+}
+
+function exitReadingModeForAction() {
+  if (!readingModeEnabled) return false;
+  toggleReadingMode(false);
+  return true;
+}
+
+window.toggleReadingMode = toggleReadingMode;
+window.isReadingModeEnabled = () => readingModeEnabled;
+window.exitReadingModeForAction = exitReadingModeForAction;
 
 async function init() {
   initTarget();
@@ -168,6 +208,7 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
+  applyReadingModeState();
 }
 
 function switchView(view, navEl) {
@@ -183,6 +224,9 @@ function switchView(view, navEl) {
     navEl.classList.add('active');
   } else {
     document.getElementById(`nav-${view}`)?.classList.add('active');
+  }
+  if (readingModeEnabled) {
+    document.getElementById('nav-reading-mode')?.classList.add('active');
   }
 
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
@@ -296,7 +340,7 @@ document.addEventListener('keydown', async e => {
 
   if (ctrl && key === 'e') {
     const contentPanel = document.getElementById('contentPanel');
-    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal) {
+    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal && !readingModeEnabled) {
       e.preventDefault();
       toggleEditMode();
       return;
