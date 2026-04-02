@@ -353,7 +353,6 @@ function openKnowledgeCategory(cat, folder, navEl) {
 }
 
 function openKbCreateModal(view, opts = {}) {
-  if (typeof window.exitReadingModeForAction === 'function') window.exitReadingModeForAction();
   kbCreateView = view === 'services' ? 'services' : view === 'tactics' ? 'tactics' : view;
   kbCreateFolder = opts.folder || '';
   kbCreateFolderLabel = opts.label || '';

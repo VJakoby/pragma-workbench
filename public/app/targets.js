@@ -77,7 +77,6 @@ function copyActiveTargetDomain() {
 }
 
 function openTargetsPanel() {
-  if (typeof window.exitReadingModeForAction === 'function') window.exitReadingModeForAction();
   const sess = activeSessionId && sessions[activeSessionId];
   document.getElementById('targetsPanelTitle').textContent =
     sess ? `Targets — ${sess.codename}` : 'Targets';

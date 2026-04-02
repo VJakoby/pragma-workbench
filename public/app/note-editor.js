@@ -86,7 +86,7 @@ function applyNotePreviewState() {
   const btn    = document.getElementById('notePreviewBtn');
   if (!split || !handle || !pane || !btn) return;
 
-  const open = notePreviewOpen || (typeof window.isReadingModeEnabled === 'function' && window.isReadingModeEnabled());
+  const open = notePreviewOpen;
   split.classList.toggle('preview-open', open);
   handle.style.display = open ? '' : 'none';
   pane.style.display   = open ? 'flex' : 'none';

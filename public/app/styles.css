@@ -268,11 +268,6 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
-.reading-toggle-btn.active{
-  border-color:var(--accent);
-  color:var(--accent);
-  background:rgba(var(--accent-rgb),0.1);
-}
 
 .theme-toggle{
   display:flex;align-items:center;
@@ -489,71 +484,6 @@ body{
 /* ── MAIN PANEL ── */
 .main-panel{
   flex:1;display:flex;flex-direction:column;overflow:hidden;
-}
-body.reading-mode .target-selector,
-body.reading-mode .utility-topbar-group,
-body.reading-mode .cmd-trigger,
-body.reading-mode .topbar > .tb-btn:not(.reading-toggle-btn),
-body.reading-mode .theme-toggle{
-  display:none !important;
-}
-body.reading-mode .topbar{
-  gap:8px;
-}
-body.reading-mode .topbar-actions{
-  margin-left:auto;
-}
-body.reading-mode .notes-editor-hdr,
-body.reading-mode .note-md-hint,
-body.reading-mode .note-timestamps,
-body.reading-mode .note-tags-row,
-body.reading-mode .note-backlinks{
-  display:none !important;
-}
-body.reading-mode .session-active{
-  pointer-events:none;
-  cursor:default;
-}
-body.reading-mode .session-active-arrow{
-  display:none;
-}
-body.reading-mode .session-encrypt-row{
-  display:none !important;
-}
-body.reading-mode #notesNewBtn{
-  display:none !important;
-}
-body.reading-mode #servicesNewBtn,
-body.reading-mode #tacticsNewBtn,
-body.reading-mode #kbNavSubhdr,
-body.reading-mode #kbNavList{
-  display:none !important;
-}
-body.reading-mode .note-editor-split{
-  flex:1;
-}
-body.reading-mode .note-editor-split .cm-wrap,
-body.reading-mode .note-preview-handle{
-  display:none !important;
-}
-body.reading-mode .note-preview-pane{
-  display:flex !important;
-  flex:1 1 auto;
-  min-height:0;
-  border-top:none;
-  border-left:none;
-}
-body.reading-mode .note-preview-label{
-  display:none !important;
-}
-body.reading-mode .note-preview-content{
-  padding:22px 24px;
-  font-size:15px;
-  line-height:1.82;
-}
-body.reading-mode #cpCreateBtn,
-body.reading-mode #cpEditBtn{
-  display:none !important;
 }
 
 /* panel tabs (Services / Methodologies / Notes / Search) */
