@@ -79,9 +79,10 @@
 }
 
 [data-theme="dim"] .nav-item.active{
-  background: rgba(var(--accent-rgb),0.16);
+  background: rgba(var(--accent-rgb),0.13);
   color: #eef3fb;
-  border-left-color: var(--accent);
+  border-left-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.16);
 }
 [data-theme="dim"] .nav-item.active .nav-item-count{
   background: rgba(var(--accent-rgb),0.2);
@@ -231,7 +232,7 @@ body{
   color:var(--muted);font-size:14px;
   font-family:'Inter',sans-serif;
   flex:1;max-width:520px;min-width:0;
-  height:30px;box-sizing:border-box;align-self:center;
+  height:32px;box-sizing:border-box;align-self:center;
   overflow:hidden;white-space:nowrap;
 }
 .cmd-trigger:hover{border-color:var(--accent);color:var(--text2)}
@@ -261,7 +262,7 @@ body{
   color:var(--btn-color);font-size:13px;
   font-family:'Inter',sans-serif;
   white-space:nowrap;
-  height:30px;box-sizing:border-box;align-self:center;
+  height:32px;box-sizing:border-box;align-self:center;
   display:flex;align-items:center;justify-content:center;
   line-height:1;
 }
@@ -273,7 +274,7 @@ body{
   background:var(--bg3);
   border:1px solid var(--border);
   border-radius:6px;
-  height:30px;
+  height:32px;
   box-sizing:border-box;
   overflow:hidden;
   flex-shrink:0;
@@ -418,14 +419,16 @@ body{
   padding:6px 13px;
   cursor:pointer;transition:all 0.12s;
   border-left:2px solid transparent;
+  border-radius:6px;
   font-size:14px;color:var(--text2);
   user-select:none;
 }
 .nav-item:hover{background:var(--bg3);color:var(--text)}
 .nav-item.active{
-  background:rgba(124,58,237,0.15);
-  border-left-color:var(--accent);
+  background:rgba(var(--accent-rgb),0.12);
+  border-left-color:transparent;
   color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),0.1);
 }
 .nav-item-icon{font-size:17px;flex-shrink:0;width:22px;text-align:center}
 .nav-item-kb-folder .nav-item-icon{
@@ -2136,7 +2139,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-radius: 6px; padding: 0 7px; cursor: pointer;
   color: var(--muted); font-size: 16px;
   transition: all 0.15s; flex-shrink: 0;
-  width: 30px; min-width: 30px; height: 30px; box-sizing: border-box; align-self: center;
+  width: 32px; min-width: 32px; height: 32px; box-sizing: border-box; align-self: center;
   display: flex; align-items: center; justify-content: center;
   line-height: 1;
 }
@@ -2974,7 +2977,7 @@ body.is-resizing *{cursor:col-resize!important}
   min-width: 0;
   max-width: min(720px, 72vw);
   overflow: hidden;
-  height: 30px;
+  height: 32px;
   box-sizing: border-box;
   align-self: center;
 }
