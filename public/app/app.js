@@ -10,6 +10,56 @@ function openCmd() {
   setTimeout(() => document.getElementById('cmdInput').focus(), 30);
 }
 
+function buildNoteSearchSnippet(note, query) {
+  const q = String(query || '').trim().toLowerCase();
+  const body = String(note?.body || '').replace(/\s+/g, ' ').trim();
+  if (!q) return body.slice(0, 90);
+  const idx = body.toLowerCase().indexOf(q);
+  if (idx === -1) return body.slice(0, 90);
+  const start = Math.max(0, idx - 26);
+  const end = Math.min(body.length, idx + q.length + 40);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < body.length ? '…' : '';
+  return prefix + body.slice(start, end) + suffix;
+}
+
+function highlightCmdMatch(text, query) {
+  const source = String(text || '');
+  const q = String(query || '').trim();
+  if (!q) return esc(source);
+  const lower = source.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx === -1) return esc(source);
+  const before = esc(source.slice(0, idx));
+  const match = esc(source.slice(idx, idx + q.length));
+  const after = esc(source.slice(idx + q.length));
+  return `${before}<span class="cmd-item-match">${match}</span>${after}`;
+}
+
+function getCommandPaletteNoteResults(query) {
+  const q = String(query || '').trim().toLowerCase();
+  return Object.values(notes)
+    .map(note => {
+      const title = String(note?.title || '');
+      const body = String(note?.body || '');
+      const tags = Array.isArray(note?.tags) ? note.tags : [];
+      const titleLower = title.toLowerCase();
+      const bodyLower = body.toLowerCase();
+      const tagHit = tags.find(tag => String(tag || '').toLowerCase().includes(q));
+      const titleIdx = q ? titleLower.indexOf(q) : -1;
+      const bodyIdx = q ? bodyLower.indexOf(q) : -1;
+      const score =
+        (titleIdx === 0 ? 120 : titleIdx > -1 ? 90 : 0) +
+        (bodyIdx === 0 ? 70 : bodyIdx > -1 ? 55 : 0) +
+        (tagHit ? 40 : 0) +
+        Math.max(0, 20 - Math.min(titleIdx > -1 ? titleIdx : 20, 20));
+      return { note, score, tagHit };
+    })
+    .filter(entry => q && entry.score > 0)
+    .sort((a, b) => (b.score - a.score) || ((b.note.updated || 0) - (a.note.updated || 0)))
+    .slice(0, 8);
+}
+
 function closeCmd() {
   document.getElementById('cmdOverlay').classList.remove('open');
   cmdSelected = 0; cmdItems = [];
@@ -141,7 +191,7 @@ window.addEventListener('resize', () => {
 });
 
 function buildCmdResults(q) {
-  const ql    = q.toLowerCase().trim();
+  const ql    = String(q || '').toLowerCase().trim();
   const res   = document.getElementById('cmdResults');
   cmdItems    = [];
   let html    = '';
@@ -244,21 +294,27 @@ function buildCmdResults(q) {
   }
 
   // Notes
-  const noteList = Object.values(notes).filter(n =>
-    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql) ||
-    (n.tags||[]).some(t => t.toLowerCase().includes(ql))
-  ).slice(0, 3);
+  const noteList = ql
+    ? getCommandPaletteNoteResults(ql).slice(0, 5)
+    : [];
 
   if (noteList.length) {
     html += `<div class="cmd-group-hdr">Session Notes</div>`;
-    noteList.forEach(n => {
+    noteList.forEach(({ note: n, tagHit }) => {
+      const sessionName = n.session_id && sessions[n.session_id]?.codename
+        ? sessions[n.session_id].codename
+        : 'No session';
+      const snippet = buildNoteSearchSnippet(n, ql);
+      const subParts = [esc(sessionName)];
+      if (tagHit) subParts.push(`#${esc(tagHit)}`);
+      if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
       html += pushCmdItem({
         type: 'note',
         id: n.id,
         label: n.title,
         icon: noteIcon,
         title: esc(n.title || 'Untitled'),
-        sub: esc((n.body || '').slice(0, 60)),
+        sub: subParts.join(' · '),
         tag: 'note',
       });
     });
@@ -279,7 +335,7 @@ function buildCmdResults(q) {
 
   if (!html) {
     html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, tactics and notes…
+      Type to search services, tactics, KB sections and notes…
     </div>`;
   }
 
