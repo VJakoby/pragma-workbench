@@ -405,7 +405,7 @@ body{
   color:var(--text2);
 }
 .sidebar-subsection-hdr{
-  padding:8px 13px 4px 44px;
+  padding:8px 13px 4px 22px;
   font-family:'JetBrains Mono', monospace;
   font-size:10px;
   font-weight:700;
@@ -2622,15 +2622,16 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* ── Session block in sidebar ── */
 .session-active {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; cursor: pointer;
+  margin: 0 14px 0 8px;
   transition: all 0.12s;
-  border-left: 2px solid transparent;
   border-radius: 6px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .session-active:hover {
   background: rgba(var(--accent-rgb),0.12);
-  border-left-color: transparent;
   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.1);
 }
 .session-active-dot {
@@ -2807,8 +2808,8 @@ body.is-resizing *{cursor:col-resize!important}
   font-size: 11px; font-family: 'Inter', sans-serif;
   font-weight: 700; color: var(--muted); background: var(--bg3);
   border: 1px solid var(--border); border-radius: 999px;
-  padding: 1px 7px; min-width: 22px; text-align: center;
-  line-height: 1.2; margin-left: 2px; flex-shrink: 0;
+  padding: 1px 6px; min-width: 20px; text-align: center;
+  line-height: 1.2; margin-left: 0; flex-shrink: 0;
 }
 .target-copy-btn { font-weight: 600; }
 .session-active-info { flex: 1 1 auto; min-width: 0; }
@@ -2825,29 +2826,31 @@ body.is-resizing *{cursor:col-resize!important}
   line-height: 1.2;
   margin-top: 1px;
 }
-.session-active-arrow { color: var(--muted); font-size: 14px; flex-shrink: 0; }
+.session-active-arrow { color: var(--muted); font-size: 13px; flex-shrink: 0; width: 13px; display:flex; align-items:center; justify-content:center; }
 
 /* Encrypted session button */
 .session-encrypt-row {
-  padding: 4px 14px 10px;
-  display: flex; flex-direction: column; gap: 6px;
+  padding: 4px 14px 10px 8px;
+  display: flex; flex-direction: column; gap: 5px;
 }
 .session-encrypt-btn {
   width: 100%;
   min-width: 0;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
+  display: flex; align-items: center; justify-content: flex-start; gap: 10px;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 7px 12px;
+  padding: 6px 13px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.01em; text-transform: none;
-  color: var(--muted);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0; text-transform: none;
+  color: var(--text2);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
   text-align: center;
+  min-height: 32px;
+  box-sizing: border-box;
 }
 .session-encrypt-btn:hover {
   border-color: var(--border2);
@@ -2879,8 +2882,8 @@ body.is-resizing *{cursor:col-resize!important}
 .session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
 }
 .session-field input {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
@@ -2913,8 +2916,8 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
 .session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
 .session-list-hdr {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
 }
 .session-list-item {
@@ -3657,6 +3660,34 @@ body.enc-active-body .content-panel {
 .pw-strength-bar.medium  { background: var(--yellow); }
 .pw-strength-bar.strong  { background: var(--green); }
 .pw-strength-bar.perfect { background: var(--accent); }
+.pw-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 7px 9px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  border-radius: 6px;
+}
+.pw-info-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pw-info-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text2);
+}
+.pw-info-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
 .pw-error-msg {
   font-family: 'JetBrains Mono', monospace; font-size: 13px;
   color: var(--red); display: none; margin-top: 2px;
