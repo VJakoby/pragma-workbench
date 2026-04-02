@@ -1665,9 +1665,21 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .notes-editor-hdr-row2{
   display:flex;align-items:center;gap:4px;
+  flex-wrap:wrap;
   padding:4px 10px 4px 10px;
   border-top:1px solid var(--border);
   background:var(--bg);
+}
+.notes-editor-hdr-spacer{
+  flex:1 1 auto;
+  min-width:0;
+}
+.note-header-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-left:auto;
+  flex-shrink:0;
 }
 .note-title-input{
   flex:1;background:none;border:none;outline:none;
@@ -2638,6 +2650,10 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 0 8px;
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 6px; height: 30px; box-sizing: border-box; align-self: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .syntax-dot {
   display: flex; align-items: center; gap: 5px;
@@ -2657,6 +2673,9 @@ body.is-resizing *{cursor:col-resize!important}
 .editor-font-controls {
   display: flex; align-items: center; gap: 4px;
   margin-left: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 .editor-font-family-group {
   display: flex;
@@ -2665,6 +2684,8 @@ body.is-resizing *{cursor:col-resize!important}
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg2);
+  min-width: 0;
+  max-width: 100%;
 }
 .editor-font-btn, .editor-font-label, .editor-font-choice {
   height: 26px;
