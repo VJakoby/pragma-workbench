@@ -384,7 +384,7 @@ function resetNewNoteModalState() {
 }
 
 function openNewNoteModal() {
-  if (typeof window.exitObserverModeForAction === 'function') window.exitObserverModeForAction();
+  if (typeof window.exitReadingModeForAction === 'function') window.exitReadingModeForAction();
   document.getElementById('newNoteOverlay').classList.add('open');
   resetNewNoteModalState();
 }

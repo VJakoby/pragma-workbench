@@ -71,7 +71,7 @@ applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (l
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
-let observerModeEnabled = localStorage.getItem('ops-observer-mode') === '1';
+let readingModeEnabled = (localStorage.getItem('ops-reading-mode') ?? localStorage.getItem('ops-observer-mode')) === '1';
 
 function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
@@ -109,20 +109,21 @@ function toggleSidebar(force) {
   if (sidebarState !== 'full') requestAnimationFrame(() => applySidebarState(sidebarState));
 })();
 
-function applyObserverModeState() {
-  document.body.classList.toggle('observer-mode', observerModeEnabled);
-  localStorage.setItem('ops-observer-mode', observerModeEnabled ? '1' : '0');
-  const btn = document.getElementById('observerModeBtn');
-  const nav = document.getElementById('nav-observer-mode');
+function applyReadingModeState() {
+  document.body.classList.toggle('reading-mode', readingModeEnabled);
+  localStorage.setItem('ops-reading-mode', readingModeEnabled ? '1' : '0');
+  localStorage.removeItem('ops-observer-mode');
+  const btn = document.getElementById('readingModeBtn');
+  const nav = document.getElementById('nav-reading-mode');
   if (btn) {
-    btn.classList.toggle('active', observerModeEnabled);
-    btn.title = observerModeEnabled ? 'Exit reading mode' : 'Enter reading mode';
+    btn.classList.toggle('active', readingModeEnabled);
+    btn.title = readingModeEnabled ? 'Exit reading mode' : 'Enter reading mode';
   }
   if (nav) {
-    nav.classList.toggle('active', observerModeEnabled);
-    nav.title = observerModeEnabled ? 'Exit reading mode' : 'Reading mode';
+    nav.classList.toggle('active', readingModeEnabled);
+    nav.title = readingModeEnabled ? 'Exit reading mode' : 'Reading mode';
   }
-  if (observerModeEnabled) {
+  if (readingModeEnabled) {
     const notesNav = document.getElementById('nav-notes');
     if (typeof switchView === 'function') switchView('notes', notesNav);
     if (typeof closeNewNoteModal === 'function') closeNewNoteModal();
@@ -132,20 +133,20 @@ function applyObserverModeState() {
   if (typeof applyNotePreviewState === 'function') applyNotePreviewState();
 }
 
-function toggleObserverMode(force) {
-  observerModeEnabled = typeof force === 'boolean' ? force : !observerModeEnabled;
-  applyObserverModeState();
+function toggleReadingMode(force) {
+  readingModeEnabled = typeof force === 'boolean' ? force : !readingModeEnabled;
+  applyReadingModeState();
 }
 
-function exitObserverModeForAction() {
-  if (!observerModeEnabled) return false;
-  toggleObserverMode(false);
+function exitReadingModeForAction() {
+  if (!readingModeEnabled) return false;
+  toggleReadingMode(false);
   return true;
 }
 
-window.toggleObserverMode = toggleObserverMode;
-window.isObserverModeEnabled = () => observerModeEnabled;
-window.exitObserverModeForAction = exitObserverModeForAction;
+window.toggleReadingMode = toggleReadingMode;
+window.isReadingModeEnabled = () => readingModeEnabled;
+window.exitReadingModeForAction = exitReadingModeForAction;
 
 async function init() {
   initTarget();
@@ -207,7 +208,7 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
-  applyObserverModeState();
+  applyReadingModeState();
 }
 
 function switchView(view, navEl) {
@@ -224,8 +225,8 @@ function switchView(view, navEl) {
   } else {
     document.getElementById(`nav-${view}`)?.classList.add('active');
   }
-  if (observerModeEnabled) {
-    document.getElementById('nav-observer-mode')?.classList.add('active');
+  if (readingModeEnabled) {
+    document.getElementById('nav-reading-mode')?.classList.add('active');
   }
 
   const catSection = document.querySelector('.sidebar-section:has(#cat-hdr)');
@@ -339,7 +340,7 @@ document.addEventListener('keydown', async e => {
 
   if (ctrl && key === 'e') {
     const contentPanel = document.getElementById('contentPanel');
-    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal && !observerModeEnabled) {
+    if (contentPanel && !contentPanel.classList.contains('hidden-panel') && activeDoc?.isLocal && !readingModeEnabled) {
       e.preventDefault();
       toggleEditMode();
       return;

@@ -115,7 +115,7 @@ function setCpEditStatus(cls, msg) {
 }
 
 async function toggleEditMode() {
-  if (typeof window.exitObserverModeForAction === 'function') window.exitObserverModeForAction();
+  if (typeof window.exitReadingModeForAction === 'function') window.exitReadingModeForAction();
   const editBody = document.getElementById('cpEditBody');
   const isEditing = editBody.style.display !== 'none';
   if (isEditing) {

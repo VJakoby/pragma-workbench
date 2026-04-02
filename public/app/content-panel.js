@@ -298,7 +298,7 @@ async function openItem(view, id) {
     renderContentPanelTabs(activeDoc);
     renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     document.getElementById('cpEditBtn').style.display =
-      (typeof window.isObserverModeEnabled === 'function' && window.isObserverModeEnabled()) ? 'none' : '';
+      (typeof window.isReadingModeEnabled === 'function' && window.isReadingModeEnabled()) ? 'none' : '';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
