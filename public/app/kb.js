@@ -112,6 +112,16 @@ function getKbScopeTotal(view) {
   }).length;
 }
 
+function filterContentPanelCards(query = '') {
+  const grid = document.getElementById('cpBrowserGrid');
+  if (!grid) return;
+  const q = String(query || '').toLowerCase().trim();
+  grid.querySelectorAll('.card').forEach(card => {
+    const haystack = card.dataset.search || card.textContent.toLowerCase();
+    card.classList.toggle('hidden', !!q && !haystack.includes(q));
+  });
+}
+
 function getKbBackendView(view) {
   if (view === 'services') return 'services';
   if (view === 'tactics') return 'tactics';
@@ -295,7 +305,14 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     return;
   }
 
-  body.innerHTML = `<div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
+  body.innerHTML = `
+    <div class="content-panel-browser-toolbar">
+      <div class="local-search content-panel-browser-search">
+        <span class="local-search-icon">&#8981;</span>
+        <input type="text" id="cpBrowserSearch" placeholder="filter&hellip;" autocomplete="off" oninput="filterContentPanelCards(this.value)">
+      </div>
+    </div>
+    <div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
   const grid = document.getElementById('cpBrowserGrid');
   items.forEach((item, idx) => {
     const card = document.createElement('div');
@@ -311,6 +328,7 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     grid.appendChild(card);
   });
 
+  document.getElementById('cpBrowserSearch')?.focus();
   document.getElementById('cpReadBody').scrollTop = 0;
 }
 
