@@ -11,6 +11,7 @@ function sanitizeRenderedHtml(html) {
     A: new Set(['href', 'target', 'rel']),
     IMG: new Set(['src', 'alt', 'title', 'style']),
     INPUT: new Set(['type', 'checked', 'disabled', 'class']),
+    OL: new Set(['start']),
     SPAN: new Set(['class']),
     CODE: new Set(['class']),
     TH: new Set(['style']),

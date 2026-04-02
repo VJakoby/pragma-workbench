@@ -27,6 +27,7 @@
             <div class="shortcuts-group-hdr">Tools</div>
             <div class="shortcuts-table">
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>L</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle TODO</span>        <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>M</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>M</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>.</kbd></span></div>
             </div>
@@ -75,6 +76,15 @@
       <div class="session-field">
         <label>New session codename</label>
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
+      </div>
+      <div class="session-field">
+        <label>Initial target (optional)</label>
+        <div class="session-inline-field">
+          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+        </div>
+        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
       </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">+ Create Session</button>

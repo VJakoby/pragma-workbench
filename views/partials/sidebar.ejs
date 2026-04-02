@@ -8,20 +8,24 @@
             <div class="session-active-target" id="sessionTarget">click to set</div>
           </div>
           <span class="session-notes-badge" id="sessionNotesBadge" style="display:none"></span>
-          <span class="session-active-arrow">&rsaquo;</span>
+          <span class="session-active-arrow" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </span>
         </div>
         <div class="session-encrypt-row">
           <button class="session-encrypt-btn" id="encStorageBtn" onclick="toggleEncryptedStorage(event)" title="Encrypted Workbench" aria-label="Encrypted Workbench"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encrypted Workbench</span></button>
           <button class="session-encrypt-btn" id="encDownloadBtn" onclick="downloadWorkbench()" title="Download encrypted workbench backup" aria-label="Download encrypted workbench backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Backup</span></button>
           <button class="session-encrypt-btn" id="bakDownloadBtn" onclick="downloadBackup()" title="Download latest backup" aria-label="Download latest backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><polyline points="9,12 12,15 15,12"/><line x1="12" y1="9" x2="12" y2="15"/></svg> Backup Workbench</span></button>
         </div>
+        <div class="sidebar-subtle-divider"></div>
       </div>
-      <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Engagement</div>
-        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes" title="Session Notes">
+        <div class="nav-item active" onclick="switchView('notes',this)" id="nav-notes" title="Notes">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-          <span class="nav-item-label">Session Notes</span>
+          <span class="nav-item-label">Notes</span>
           <span class="nav-item-count" id="notes-count">&mdash;</span>
         </div>
       </div>
@@ -38,12 +42,13 @@
           <span class="nav-item-label">Tactics</span>
           <span class="nav-item-count" id="tactics-count">&mdash;</span>
         </div>
-        <div id="kbNavList"></div>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search indexed knowledge bases">
           <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <span class="nav-item-label">Search KB</span>
+          <span class="nav-item-label">KB Search</span>
           <span class="nav-item-count search-nav-badge checking" id="search-index-badge">&mdash;</span>
         </div>
+        <div class="sidebar-subsection-hdr" id="kbNavSubhdr" style="display:none">Discovered Sections</div>
+        <div id="kbNavList"></div>
       </div>
 
       <div class="sidebar-section" style="display:none">

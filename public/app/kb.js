@@ -41,12 +41,85 @@ function buildKbSearchText(item) {
     .toLowerCase();
 }
 
+function formatServiceCardTitle(name) {
+  return String(name || '')
+    .replace(/\s*\(port\s+[^)]+\)\s*$/i, '')
+    .trim();
+}
+
+function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
+  const category = esc(item.category || '');
+  const name = esc(item.name || '');
+  const description = esc(item.description || '');
+  const metaInline = [item.port, item.category].filter(Boolean).map(esc).join(' · ');
+
+  if (cardStyle === 'default') {
+    return `
+      <span class="card-cat">${category}</span>
+      <span class="card-icon">${item.icon || ICONS.notes}</span>
+      <div class="card-port-name-row">
+        <span class="card-name">${name}</span>
+        ${metaInline ? `<span class="card-meta-inline">${metaInline}</span>` : ''}
+      </div>
+      <div class="card-desc">${description}</div>`;
+  }
+
+  if (cardStyle === 'service') {
+    const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
+    const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
+    const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
+    return `
+      <div class="card-service-head">
+        <span class="note-type-general card-service-type">${serviceTitle || name}</span>
+      </div>
+      <div class="card-service-footer">
+        <div class="card-service-badges">
+          <span class="card-service-label">${category || 'service note'}</span>
+          ${serviceMeta}
+        </div>
+      </div>
+      <div class="card-service-body">
+        <div class="card-desc card-service-desc">${servicePreview}</div>
+      </div>
+      `;
+  }
+
+  const knowledgePreview = description || 'Open the note to view workflow details, commands, and reference material.';
+  const knowledgeCategory = category || 'knowledge';
+  return `
+    <div class="card-knowledge-head">
+      <span class="card-knowledge-title">${item.icon || ICONS.notes} ${name}</span>
+    </div>
+    <div class="card-knowledge-meta">
+      <span class="card-knowledge-tag">${esc(knowledgeCategory)}</span>
+    </div>
+    <div class="card-knowledge-body">
+      <div class="card-desc card-knowledge-desc">${knowledgePreview}</div>
+    </div>`;
+}
+
+function getKbCardStyle(view) {
+  if (view === 'services') return 'service';
+  if (view === 'tactics' || (typeof view === 'string' && view.startsWith('kb:'))) return 'knowledge';
+  return 'default';
+}
+
 function getKbScopeTotal(view) {
   return getKbCollection(view).filter(item => {
     const folderOk = view !== 'services' || !activeCatFolder || (item.folder || '') === activeCatFolder;
     const catOk = activeCat === 'all' || String(item.category || '').toLowerCase() === String(activeCat || '').toLowerCase();
     return folderOk && catOk;
   }).length;
+}
+
+function filterContentPanelCards(query = '') {
+  const grid = document.getElementById('cpBrowserGrid');
+  if (!grid) return;
+  const q = String(query || '').toLowerCase().trim();
+  grid.querySelectorAll('.card').forEach(card => {
+    const haystack = card.dataset.search || card.textContent.toLowerCase();
+    card.classList.toggle('hidden', !!q && !haystack.includes(q));
+  });
 }
 
 function getKbBackendView(view) {
@@ -121,6 +194,7 @@ async function refreshKbView(view) {
 
 function renderKnowledgeFolderNav() {
   const list = document.getElementById('kbNavList');
+  const subhdr = document.getElementById('kbNavSubhdr');
   if (!list) return;
   const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
   const currentFolder = activeView === 'services' && !activeKbRootFolder ? (activeCatFolder || '') : '';
@@ -144,6 +218,7 @@ function renderKnowledgeFolderNav() {
         <span class="nav-item-count">${section.count || '—'}</span>
       </div>`).join('')}
   `;
+  if (subhdr) subhdr.style.display = (folderCats.length || rootKbSections.length) ? '' : 'none';
 }
 
 async function openRootKbSection(folder, label, navEl) {
@@ -230,28 +305,30 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     return;
   }
 
-  body.innerHTML = `<div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
+  body.innerHTML = `
+    <div class="content-panel-browser-toolbar">
+      <div class="local-search content-panel-browser-search">
+        <span class="local-search-icon">&#8981;</span>
+        <input type="text" id="cpBrowserSearch" placeholder="filter&hellip;" autocomplete="off" oninput="filterContentPanelCards(this.value)">
+      </div>
+    </div>
+    <div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
   const grid = document.getElementById('cpBrowserGrid');
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = 'card';
+    const cardStyle = getKbCardStyle(view);
+    card.className = `card${cardStyle === 'service' ? ' card-service' : cardStyle === 'knowledge' ? ' card-knowledge' : ''}`;
     card.dataset.id = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = `
-      <span class="card-cat">${esc(item.category || '')}</span>
-      <span class="card-icon">${item.icon || ICONS.notes}</span>
-      <div class="card-port-name-row">
-        <span class="card-name">${esc(item.name)}</span>
-        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-      </div>
-      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.innerHTML = renderKbCardMarkup(item, { cardStyle });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
 
+  document.getElementById('cpBrowserSearch')?.focus();
   document.getElementById('cpReadBody').scrollTop = 0;
 }
 
@@ -374,7 +451,10 @@ async function submitKbCreate() {
         switchView(clientView, document.getElementById(`nav-${clientView}`));
       }
     }
-    if (d.id) openItem(clientView, d.id);
+    if (d.id) {
+      await openItem(clientView, d.id);
+      if (typeof enterEditMode === 'function') enterEditMode();
+    }
     showToast('Created');
   } catch (e) {
     err.textContent = e.message;
@@ -458,20 +538,14 @@ function renderCards(view) {
 
   items.forEach((item, idx) => {
     const card = document.createElement('div');
-    card.className = 'card';
+    const cardStyle = getKbCardStyle(view);
+    card.className = `card${cardStyle === 'service' ? ' card-service' : cardStyle === 'knowledge' ? ' card-knowledge' : ''}`;
     card.dataset.id  = item.id;
     card.dataset.cat = item.category || '';
     card.dataset.folder = item.folder || '';
     card.dataset.search = buildKbSearchText(item);
     card.style.setProperty('--card-accent', accentFor(idx));
-    card.innerHTML = `
-      <span class="card-cat">${esc(item.category || '')}</span>
-      <span class="card-icon">${item.icon || ICONS.notes}</span>
-      <div class="card-port-name-row">
-        <span class="card-name">${esc(item.name)}</span>
-        ${(item.port || item.category) ? `<span class="card-meta-inline">${[item.port, item.category].filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-      </div>
-      <div class="card-desc">${esc(item.description || '')}</div>`;
+    card.innerHTML = renderKbCardMarkup(item, { cardStyle });
     card.onclick = () => openItem(view, item.id);
     grid.appendChild(card);
   });
