@@ -335,6 +335,7 @@ function openKnowledgeCategory(cat, folder, navEl) {
 }
 
 function openKbCreateModal(view, opts = {}) {
+  if (typeof window.exitObserverModeForAction === 'function') window.exitObserverModeForAction();
   kbCreateView = view === 'services' ? 'services' : view === 'tactics' ? 'tactics' : view;
   kbCreateFolder = opts.folder || '';
   kbCreateFolderLabel = opts.label || '';

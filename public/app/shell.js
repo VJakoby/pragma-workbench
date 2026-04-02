@@ -116,11 +116,11 @@ function applyObserverModeState() {
   const nav = document.getElementById('nav-observer-mode');
   if (btn) {
     btn.classList.toggle('active', observerModeEnabled);
-    btn.title = observerModeEnabled ? 'Exit observer mode' : 'Enter observer mode';
+    btn.title = observerModeEnabled ? 'Exit reading mode' : 'Enter reading mode';
   }
   if (nav) {
     nav.classList.toggle('active', observerModeEnabled);
-    nav.title = observerModeEnabled ? 'Exit observer mode' : 'Observer mode';
+    nav.title = observerModeEnabled ? 'Exit reading mode' : 'Reading mode';
   }
   if (observerModeEnabled) {
     const notesNav = document.getElementById('nav-notes');
@@ -137,8 +137,15 @@ function toggleObserverMode(force) {
   applyObserverModeState();
 }
 
+function exitObserverModeForAction() {
+  if (!observerModeEnabled) return false;
+  toggleObserverMode(false);
+  return true;
+}
+
 window.toggleObserverMode = toggleObserverMode;
 window.isObserverModeEnabled = () => observerModeEnabled;
+window.exitObserverModeForAction = exitObserverModeForAction;
 
 async function init() {
   initTarget();
