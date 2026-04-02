@@ -415,8 +415,9 @@ body{
 }
 
 .nav-item{
-  display:flex;align-items:center;gap:9px;
+  display:flex;align-items:center;gap:10px;
   padding:6px 13px;
+  margin:0 14px 0 8px;
   cursor:pointer;transition:all 0.12s;
   border-left:2px solid transparent;
   border-radius:6px;
@@ -2780,7 +2781,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .notes-search-input {
   width: 100%; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 5px; padding: 5px 9px; font-size: 11px;
+  border-radius: 6px; padding: 5px 9px; font-size: 11px;
   font-family: 'Inter', sans-serif; color: var(--text);
   min-height: 31px;
   outline: none; box-sizing: border-box;
