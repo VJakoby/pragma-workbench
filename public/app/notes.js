@@ -37,6 +37,52 @@ function syncNoteScopeButtons() {
 
 restoreNoteScope();
 
+function getLeadingNoteH1(body) {
+  const match = String(body || '').match(/^\s*#\s+(.+?)\s*(?:\n|$)/);
+  return match ? match[1].trim() : '';
+}
+
+function replaceLeadingNoteH1(body, title) {
+  const source = String(body || '');
+  const nextTitle = String(title || '').trim();
+  if (!nextTitle) return source;
+  if (/^\s*#\s+.+?(?:\n|$)/.test(source)) {
+    return source.replace(/^\s*#\s+.+?(?=\n|$)/, `# ${nextTitle}`);
+  }
+  return `# ${nextTitle}\n\n${source.trimStart()}`.trimEnd() + '\n';
+}
+
+function syncNoteTitleAndHeading(note, nextTitle, nextBody) {
+  const prevTitle = String(note?.title || '').trim();
+  const prevBody = String(note?.body || '');
+  let title = String(nextTitle || '').trim();
+  let body = String(nextBody || '');
+
+  const prevH1 = getLeadingNoteH1(prevBody);
+  let currentH1 = getLeadingNoteH1(body);
+  const titleChanged = title !== prevTitle;
+  const h1Changed = currentH1 !== prevH1;
+  const wasSynced = !prevTitle || !prevH1 || prevTitle === prevH1;
+
+  if (!body.trim()) {
+    if (title) body = `# ${title}\n\n`;
+    return { title, body };
+  }
+
+  if (titleChanged && wasSynced && currentH1 && !h1Changed) {
+    body = replaceLeadingNoteH1(body, title);
+    currentH1 = getLeadingNoteH1(body);
+  } else if (h1Changed && currentH1 && wasSynced && !titleChanged) {
+    title = currentH1;
+  } else if (!title && currentH1) {
+    title = currentH1;
+  } else if (title && !currentH1 && wasSynced) {
+    body = replaceLeadingNoteH1(body, title);
+  }
+
+  return { title, body };
+}
+
 function setNoteEditorMode(mode) {
   const isConfig = mode === 'config';
   const editor = document.getElementById('notesEditor');
@@ -615,17 +661,30 @@ function renderBacklinks(noteId) {
 }
 
 function syncActiveNoteDraft(noteId = activeNoteId) {
-  if (!noteId || !notes[noteId]) return false;
-  notes[noteId].title = document.getElementById('noteTitleInput').value;
-  notes[noteId].body = cmGetValue(noteEditor);
-  notes[noteId].updated = Date.now();
-  return true;
+  if (!noteId || !notes[noteId]) return { ok: false, changed: false };
+  const note = notes[noteId];
+  const prevTitle = note.title || '';
+  const prevBody = note.body || '';
+  const titleInput = document.getElementById('noteTitleInput');
+  const synced = syncNoteTitleAndHeading(note, titleInput?.value || '', cmGetValue(noteEditor));
+  const changed = synced.title !== prevTitle || synced.body !== prevBody;
+  note.title = synced.title;
+  note.body = synced.body;
+  if (titleInput && titleInput.value !== synced.title) titleInput.value = synced.title;
+  if (noteEditor && cmGetValue(noteEditor) !== synced.body) cmSetValue(noteEditor, synced.body);
+  if (changed) note.updated = Date.now();
+  return { ok: true, changed };
 }
 
 async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
-  if (!syncActiveNoteDraft(noteId)) return false;
+  const syncResult = syncActiveNoteDraft(noteId);
+  if (!syncResult.ok) return false;
   const note = notes[noteId];
+  if (!syncResult.changed) {
+    if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
+    return true;
+  }
   const ok = await saveNotes({
     reason: opts.reason || 'note-edit',
     immediate: !!opts.immediate,

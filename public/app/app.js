@@ -43,7 +43,7 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.session-item-export-btn[title]',
   '.target-item-del[title]',
   '.svc-del-btn[title]',
-  '.notes-list-reopen-btn[title]',
+  '.notes-list-edge-btn[title]',
   '.cmd-trigger[title]',
   '.theme-toggle-btn[title]',
   '.sidebar-info-btn[title]',
@@ -387,6 +387,14 @@ function showPasswordPrompt(opts = {}) {
         <div class="pw-strength-bar" id="pwBar4"></div>
       </div>` : '';
 
+    const requirementsInfo = opts.confirm ? `
+      <div class="pw-info">
+        <div class="pw-info-label">Requirements</div>
+        <div class="pw-info-text">
+          Minimum length: <strong>8 characters</strong>. Stronger at <strong>14+</strong>. Best score uses <strong>mixed case</strong> and <strong>a number + symbol</strong>. Long passphrases of <strong>20+</strong> also score highly.
+        </div>
+      </div>` : '';
+
     const hintField = opts.hint ? `
       <div class="pw-field" style="margin-top:4px">
         <label style="color:var(--muted)">Password Hint <span style="font-weight:400;font-size:10px">(optional — stored in plain text)</span></label>
@@ -408,6 +416,7 @@ function showPasswordPrompt(opts = {}) {
           <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput1')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         ${strengthMeter}
+        ${requirementsInfo}
       </div>
       ${confirmField}
       ${hintField}

@@ -116,8 +116,10 @@ function renderTargetsList() {
       <div class="target-item-ip">${esc(t.ip || '—')}</div>
       <div class="target-item-domain">${esc(t.domain || '')}</div>
       ${t.label ? `<span class="target-item-label">${esc(t.label)}</span>` : ''}
-      <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label" style="margin-left:auto">${ICONS.edit}</button>
-      <button class="target-item-del" onclick="event.stopPropagation();deleteTarget('${t.id}')" title="Remove">✕</button>
+      <div class="target-item-actions">
+        <button class="target-item-del" onclick="event.stopPropagation();renameTarget('${t.id}')" title="Rename label">${ICONS.edit}</button>
+        <button class="target-item-del" onclick="event.stopPropagation();deleteTarget('${t.id}')" title="Remove">✕</button>
+      </div>
     </div>`).join('');
 }
 
