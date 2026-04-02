@@ -13,13 +13,22 @@ const {
   renderConsolidatedSession,
 } = require('../lib/session-export');
 
-function registerNotesRoutes(app, { sessionsDir, templatesFile, storage }) {
+function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderMarkdown }) {
   function expandTemplateBody(template) {
     return {
       ...template,
       body: Array.isArray(template?.body_lines) ? template.body_lines.join('\n') : (template?.body || ''),
     };
   }
+
+  app.post('/api/markdown/render', (req, res) => {
+    try {
+      const markdown = String(req.body?.markdown || '');
+      res.json({ ok: true, html: renderMarkdown(markdown) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   app.get('/api/templates', async (req, res) => {
     try {

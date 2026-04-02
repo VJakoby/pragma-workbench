@@ -304,6 +304,7 @@ document.addEventListener('keydown', async e => {
   }
 
   if (ctrl && key === 'l') { e.preventDefault(); toggleSvcPopover(); return; }
+  if (ctrl && key === 'm') { e.preventDefault(); toggleTodoPopover(); return; }
 
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const popover = document.getElementById('svcPopover');
@@ -360,12 +361,15 @@ document.addEventListener('keydown', async e => {
       exitEditMode();
       return;
     }
+    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) {
+      closeContent();
+      return;
+    }
     const noteArea = document.getElementById('noteEditArea');
     if (activeView === 'notes' && (activeNoteId || activeConfigDoc) && noteArea && noteArea.style.display !== 'none') {
       await closeCurrentNote();
       return;
     }
-    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); }
   }
 });
 

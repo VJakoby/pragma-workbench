@@ -79,53 +79,75 @@
         const items = m.trim().split('\n').map(l => {
           const checked = /^[ \t]*[-*+] \[[xX]\]/.test(l);
           const text = l.replace(/^[ \t]*[-*+] \[[ xX]\] /, '');
-          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span>${text}</span></li>`;
+          return `<li class="task-item"><input type="checkbox" class="task-checkbox" ${checked ? 'checked' : ''} onclick="toggleCheckbox(this)"><span class="task-text">${text}</span></li>`;
         }).join('');
         return `<ul class="task-list">${items}</ul>`;
       });
 
       // ── Nested list builder ──
-      function buildList(lines, ordered) {
+      const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
+      const parseBullet = (line) => {
+        const ordered = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+        if (ordered) return { indent: ordered[1].length, ordered: true, start: parseInt(ordered[2], 10), text: ordered[3] };
+        const unordered = line.match(/^(\s*)[-*+]\s+(.*)$/);
+        if (unordered) return { indent: unordered[1].length, ordered: false, start: null, text: unordered[2] };
+        return null;
+      };
+      function buildList(lines, startIndex = 0, baseIndent = null) {
+        const first = parseBullet(lines[startIndex] || '');
+        if (!first) return { html: '', nextIndex: startIndex };
+        const ordered = first.ordered;
         const tag = ordered ? 'ol' : 'ul';
-        const bulletRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*+]\s+/;
-        const firstNumber = ordered
-          ? parseInt((lines[0]?.match(/^\s*(\d+)\.\s+/) || [])[1] || '1', 10)
-          : null;
-        const getIndent = l => { const m = l.match(/^(\s*)/); return m ? m[1].length : 0; };
+        const indent = baseIndent ?? first.indent;
+        let html = ordered && first.start > 1 ? `<${tag} start="${first.start}">` : `<${tag}>`;
+        let i = startIndex;
 
-        let html = ordered && firstNumber > 1 ? `<${tag} start="${firstNumber}">` : `<${tag}>`, i = 0;
         while (i < lines.length) {
-          const line = lines[i], indent = getIndent(line);
-          const text = line.replace(bulletRe, '');
-          i++;
+          const item = parseBullet(lines[i]);
+          if (!item || item.indent < indent || item.ordered !== ordered) break;
+          if (item.indent > indent) {
+            const nested = buildList(lines, i, item.indent);
+            html += nested.html;
+            i = nested.nextIndex;
+            continue;
+          }
 
           let extra = '';
+          i++;
           while (i < lines.length) {
-            const ni = getIndent(lines[i]);
-            const isBullet = /^\s*[-*+]\s/.test(lines[i]) || /^\s*\d+\.\s/.test(lines[i]);
-            if (ni > indent && !isBullet) {
-              extra += '<br>' + lines[i].trim(); i++;
-            } else if (ni > indent && isBullet) {
-              const sub = [];
-              while (i < lines.length && getIndent(lines[i]) > indent) { sub.push(lines[i]); i++; }
-              extra += buildList(sub, /^\s*\d+\.\s/.test(sub[0]));
-            } else break;
+            const nextLine = lines[i];
+            const nextItem = parseBullet(nextLine);
+            const nextIndent = getIndent(nextLine);
+            if (nextItem && nextIndent === indent) break;
+            if (nextItem && nextIndent > indent) {
+              const nested = buildList(lines, i, nextIndent);
+              extra += nested.html;
+              i = nested.nextIndex;
+              continue;
+            }
+            if (nextIndent > indent) {
+              extra += '<br>' + nextLine.trim();
+              i++;
+              continue;
+            }
+            break;
           }
-          html += `<li>${text}${extra}</li>`;
+          html += `<li>${item.text}${extra}</li>`;
         }
-        return html + `</${tag}>`;
+
+        return { html: html + `</${tag}>`, nextIndex: i };
       }
 
       // Unordered lists (including indented nested)
       src = src.replace(/((?:^[ \t]*[-*+] .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
-        return buildList(lines, false);
+        return buildList(lines).html;
       });
 
       // Ordered lists (including indented nested)
       src = src.replace(/((?:^\s*\d+\. .+(?:\n|$)(?:(?:^[ \t]+.*(?:\n|$))|(?:^\s*$\n?))*)+)/gm, m => {
         const lines = m.trimEnd().split('\n').filter(l => l.trim());
-        return buildList(lines, true);
+        return buildList(lines).html;
       });
 
       // Paragraphs
@@ -146,6 +168,87 @@
       return src;
     }
   };
+
+  window.markdownPreview = (() => {
+    const stateByElement = new WeakMap();
+
+    function renderFallback(markdown) {
+      const source = String(markdown || '');
+      return window.marked ? window.marked.parse(source) : source.replace(/\n/g, '<br>');
+    }
+
+    function normalizeTaskLists(root) {
+      const blockTags = new Set(['BLOCKQUOTE', 'DIV', 'OL', 'P', 'PRE', 'TABLE', 'UL']);
+
+      root.querySelectorAll('li > input[type="checkbox"]').forEach((input) => {
+        const li = input.closest('li');
+        if (!li) return;
+        li.classList.add('task-item');
+        if (li.parentElement?.tagName === 'UL') li.parentElement.classList.add('task-list');
+
+        input.classList.add('task-checkbox');
+        input.removeAttribute('disabled');
+        input.onclick = () => {
+          if (typeof toggleCheckbox === 'function') toggleCheckbox(input);
+        };
+
+        let textWrap = input.nextElementSibling;
+        if (!(textWrap instanceof HTMLElement) || textWrap.tagName !== 'SPAN') {
+          textWrap = document.createElement('span');
+          let node = input.nextSibling;
+          while (node) {
+            const nextNode = node.nextSibling;
+            if (node.nodeType === Node.ELEMENT_NODE && blockTags.has(node.nodeName)) break;
+            textWrap.appendChild(node);
+            node = nextNode;
+          }
+          li.appendChild(textWrap);
+        }
+        textWrap.classList.add('task-text');
+      });
+    }
+
+    async function renderInto(el, markdown, { injectTargets: shouldInjectTargets = false } = {}) {
+      if (!el) return false;
+
+      const previous = stateByElement.get(el);
+      if (previous?.controller) previous.controller.abort();
+
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const requestId = (previous?.requestId || 0) + 1;
+      stateByElement.set(el, { controller, requestId });
+
+      let html = '';
+      try {
+        const response = await fetch('/api/markdown/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markdown: String(markdown || '') }),
+          signal: controller?.signal,
+        });
+        const data = await response.json();
+        if (!response.ok || typeof data.html !== 'string') throw new Error(data.error || 'Markdown render failed');
+        html = data.html;
+      } catch (err) {
+        if (err?.name === 'AbortError') return false;
+        html = renderFallback(markdown);
+      }
+
+      const current = stateByElement.get(el);
+      if (!current || current.requestId !== requestId) return false;
+
+      const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
+      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+      normalizeTaskLists(el);
+      if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+      if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+      if (typeof makeCollapsible === 'function') makeCollapsible(el);
+      el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+      return true;
+    }
+
+    return { renderInto };
+  })();
   // ── SVG Icon library (Lucide-style, 16x16 viewBox) ──
   window.ICONS = {
     notes:      '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>',

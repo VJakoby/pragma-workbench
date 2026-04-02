@@ -25,7 +25,14 @@
     <%- include('topbar-utility-panels') %>
 
     <button class="cmd-trigger" onclick="openCmd()" title="&#8984;K">
-      <span class="cmd-trigger-icon">&#8984;</span>
+      <span class="cmd-trigger-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 7h4v4H7a3 3 0 1 1 0-6h4v6"/>
+          <path d="M17 7h-4v4h4a3 3 0 1 0 0-6h-4v6"/>
+          <path d="M7 17h4v-4H7a3 3 0 1 0 0 6h4v-6"/>
+          <path d="M17 17h-4v-4h4a3 3 0 1 1 0 6h-4v-6"/>
+        </svg>
+      </span>
       <span class="cmd-trigger-text">Quick open, search anything&hellip;</span>
       <span class="cmd-trigger-kbd">&#8984;K</span>
     </button>

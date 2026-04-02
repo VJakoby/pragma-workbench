@@ -4,6 +4,25 @@
 let contentPanelBackState = null;
 let contentPanelCreateState = null;
 
+function setContentPanelHeader(icon, title, meta, opts = {}) {
+  const iconEl = document.getElementById('cpIcon');
+  const titleEl = document.getElementById('cpTitle');
+  const metaEl = document.getElementById('cpMeta');
+  const showIcon = opts.showIcon !== false;
+  if (iconEl) {
+    iconEl.innerHTML = showIcon ? icon : '';
+    iconEl.style.display = showIcon ? '' : 'none';
+  }
+  if (titleEl) titleEl.textContent = title || '';
+  if (metaEl) metaEl.textContent = meta || '';
+}
+
+function setContentPanelAccent(accent) {
+  const panel = document.getElementById('contentPanel');
+  if (!panel) return;
+  panel.style.setProperty('--cp-accent', accent || 'var(--accent)');
+}
+
 function setContentPanelBackState(state) {
   contentPanelBackState = state || null;
   const btn = document.getElementById('cpBackBtn');
@@ -50,96 +69,85 @@ function injectTargets(rawHtml) {
   const domain = esc(getDomain());
   const label  = esc(getTargetLabelValue());
   const attacker = esc(getAttackerIP());
-  const span   = (val) => `<span class="ip-injected">${val}</span>`;
-
-  const ipPatterns = [
-    /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
-    /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
-    /<rhost>/g, /<HOST>/g, /<host>/g,
-    /&lt;IP&gt;/g,  /&lt;ip&gt;/g,  /&lt;TARGET_IP&gt;/g,
-    /&lt;target_ip&gt;/g,  /&lt;TARGET&gt;/g,  /&lt;RHOST&gt;/g,
-    /&lt;rhost&gt;/g,  /&lt;HOST&gt;/g,  /&lt;host&gt;/g,
-    /\bTARGET_IP\b/g,  /\bRHOST\b/g,  /\bTARGET\b/g,
-    /\$IP\b/g,  /\$RHOST\b/g,  /\$TARGET\b/g,  /\$TARGET_IP\b/g,
-    /\$HOST\b/g,
-    /\{IP\}/g,  /\{ip\}/g,  /\{RHOST\}/g,  /\{rhost\}/g,  /\{TARGET\}/g,
-    /\{\{ip\}\}/g,  /\{\{IP\}\}/g,  /\{\{target\}\}/g,  /\{\{rhost\}\}/g,
-    /\{HOST\}/g,  /\{host\}/g,  /\{\{host\}\}/g,  /\{\{HOST\}\}/g,
-    /\bTARGET_IP_ADDRESS\b/g,  /&lt;MACHINE_IP&gt;/g,  /\bMACHINE_IP\b/g,
-    /\b10\.10\.10\.X\b/g,  /\b10\.10\.X\.X\b/g,
-  ];
-
-  const domainPatterns = [
-    /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
-    /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
-    /<WORKGROUP>/g,
-    /&lt;DOMAIN&gt;/g,  /&lt;domain&gt;/g,  /&lt;TARGET_DOMAIN&gt;/g,
-    /&lt;FQDN&gt;/g,  /&lt;fqdn&gt;/g,  /&lt;DC&gt;/g,  /&lt;dc&gt;/g,
-    /\bTARGET_DOMAIN\b/g,  /\bDOMAIN\b(?=[\s"'\`>])/g,
-    /\$DOMAIN\b/g,  /\$FQDN\b/g,  /\$DC\b/g,
-    /\{DOMAIN\}/g,  /\{domain\}/g,  /\{FQDN\}/g,  /\{\{domain\}\}/g,
-    /&lt;WORKGROUP&gt;/g,  /\bWORKGROUP\b(?=[\s"'\`>])/g,
-  ];
-
-  const labelPatterns = [
-    /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
-    /&lt;LABEL&gt;/g, /&lt;label&gt;/g, /&lt;TARGET_LABEL&gt;/g,
-    /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
-  ];
-
-  const attackerPatterns = [
-    /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
-    /<ATTACKER_IP>/g, /<attacker_ip>/g,
-    /&lt;ATTACKER&gt;/g, /&lt;attacker&gt;/g, /&lt;ATTACKER-IP&gt;/g, /&lt;attacker-ip&gt;/g,
-    /&lt;ATTACKER_IP&gt;/g, /&lt;attacker_ip&gt;/g,
-    /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
-    /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
-    /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
-    /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
-    /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
-  ];
+  const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
+  const matcherFactory = globalThis.PRAGMA_PLACEHOLDERS?.getPlaceholderMatchers;
+  if (typeof matcherFactory !== 'function') return rawHtml;
+  const {
+    ipPatterns,
+    domainPatterns,
+    labelPatterns,
+    attackerPatterns,
+  } = matcherFactory({ htmlEscapedAngles: true });
 
   let out = rawHtml;
-  for (const p of ipPatterns) out = out.replace(p, span(ip));
-  for (const p of domainPatterns) out = out.replace(p, span(domain));
-  for (const p of labelPatterns) out = out.replace(p, span(label));
-  for (const p of attackerPatterns) out = out.replace(p, span(attacker));
-
-  out = out.replace(/(<code[^>]*>)([\s\S]*?)(<\/code>)/g, (_, open, inner, close) => {
-    const replaced = inner.replace(/\bIP\b/g, span(ip))
-                          .replace(/\bHOST\b/g, span(ip))
-                          .replace(/\bATTACKER\b/g, span(attacker));
-    return open + replaced + close;
-  });
+  for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
+  for (const p of domainPatterns) out = out.replace(p, span(domain, 'ip-injected ip-injected-domain'));
+  for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
+  for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
 
   return out;
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  let out = injectTargets(esc(rawLine));
-  const ip = esc(getIP());
-  const attacker = esc(getAttackerIP());
-  const span = (val) => `<span class="ip-injected">${val}</span>`;
-  out = out.replace(/\bIP\b/g, span(ip))
-           .replace(/\bHOST\b/g, span(ip))
-           .replace(/\bATTACKER\b/g, span(attacker));
-  return out;
+  return injectTargets(esc(rawLine));
+}
+
+function highlightCodeBlock(codeEl) {
+  if (!codeEl || codeEl.dataset.hljsDone === '1') return;
+  if (!window.hljs?.highlightElement) return;
+
+  const rawText = codeEl.textContent || '';
+  codeEl.textContent = rawText;
+  window.hljs.highlightElement(codeEl);
+  codeEl.dataset.hljsDone = '1';
 }
 
 function wrapCodeBlocks(container) {
   container.querySelectorAll('pre').forEach(pre => {
-    if (pre.parentElement.classList.contains('code-block-wrap')) return;
-
-    const wrap = document.createElement('div');
-    wrap.className = 'code-block-wrap';
-    pre.parentNode.insertBefore(wrap, pre);
-    wrap.appendChild(pre);
+    let wrap = pre.parentElement;
+    if (!wrap?.classList?.contains('code-block-wrap')) {
+      wrap = document.createElement('div');
+      wrap.className = 'code-block-wrap';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+    }
 
     const codeEl = pre.querySelector('code') || pre;
     const rawText = codeEl.textContent || '';
-    const lines = rawText.replace(/\n$/, '').split('\n');
+    const hasLanguageClass = [...(codeEl.classList || [])].some((cls) => cls.startsWith('language-'));
 
-    codeEl.innerHTML = lines.map((line) => {
+    let copyBtn = wrap.querySelector('.code-block-copy-btn');
+    if (hasLanguageClass) {
+      codeEl.textContent = rawText;
+      delete codeEl.dataset.hljsDone;
+      highlightCodeBlock(codeEl);
+
+      if (!copyBtn) {
+        copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'code-block-copy-btn';
+        copyBtn.textContent = 'Copy';
+        wrap.appendChild(copyBtn);
+
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(rawText.trimEnd()).then(() => {
+            wrap.classList.add('flash');
+            copyBtn.textContent = 'Copied';
+            showToast('✓ Copied to clipboard');
+            setTimeout(() => {
+              wrap.classList.remove('flash');
+              copyBtn.textContent = 'Copy';
+            }, 1200);
+          });
+        });
+      }
+      return;
+    }
+
+    if (copyBtn) copyBtn.remove();
+
+    codeEl.innerHTML = rawText.replace(/\n$/, '').split('\n').map((line) => {
       if (!line.trim()) return '<span class="code-line-blank">&nbsp;</span>';
       const injected = injectTargetsInCodeLine(line);
       return '<span class="code-line">' +
@@ -199,6 +207,13 @@ function refreshCodeBlocks() {
   renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
 }
 
+window.addEventListener('pragma-hljs-ready', () => {
+  ['cpContent', 'notePreviewContent', 'kbPreviewContent', 'newNotePreviewContent'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) wrapCodeBlocks(el);
+  });
+});
+
 function renderContentPanelTabs(doc = activeDoc) {
   const tabs = document.getElementById('cpQuickTabs');
   if (!tabs) return;
@@ -250,7 +265,8 @@ async function openItem(view, id) {
 
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
-  document.getElementById('cpTitle').textContent = 'Loading…';
+  setContentPanelAccent(card?.style.getPropertyValue('--card-accent') || 'var(--accent)');
+  setContentPanelHeader('', 'Loading…', '', { showIcon: false });
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
 
   const endpoint = getKbFetchConfig(view).detailUrl(id);
@@ -289,7 +305,8 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
   renderContentPanelTabs(null);
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
-  document.getElementById('cpTitle').textContent = title;
+  setContentPanelAccent('var(--accent)');
+  setContentPanelHeader(ICONS.search, title, '', { showIcon: true });
   document.getElementById('cpContent').innerHTML = `<p style="color:var(--muted);text-align:center;padding:60px 0">Loading…</p>`;
   const normalizedPath = typeof filePath === 'string' && filePath.startsWith('file://')
     ? filePath.replace(/^file:\/\//, '')
@@ -368,9 +385,8 @@ function makeCollapsible(container) {
 }
 
 function renderContent(html, icon, title, meta, query = '') {
-  document.getElementById('cpIcon').innerHTML = icon;
-  document.getElementById('cpTitle').textContent = title;
-  document.getElementById('cpMeta').textContent = meta || '';
+  const isLocalKbDoc = !query && !!activeDoc?.isLocal && !activeDoc?.isBrowser;
+  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc });
   const el = document.getElementById('cpContent');
   const renderedHtml = injectTargets(html);
 
