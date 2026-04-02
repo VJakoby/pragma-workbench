@@ -2996,7 +2996,7 @@ body.is-resizing *{cursor:col-resize!important}
   min-width: 0;
 }
 .target-selector-main {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3014,6 +3014,10 @@ body.is-resizing *{cursor:col-resize!important}
   border-left: 1px solid var(--border);
   color: var(--muted);
   transition: all 0.15s;
+}
+.target-selector-copy-ip,
+.target-selector-copy-domain {
+  max-width: 180px;
 }
 .target-selector-copy-domain {
   border-left: 1px solid var(--border);
@@ -3073,6 +3077,7 @@ body.is-resizing *{cursor:col-resize!important}
 .target-sel-label-main{
   flex:0 1 auto;
   min-width:0;
+  max-width: 260px;
   overflow:hidden;
   text-overflow:ellipsis;
   text-align:center;
@@ -3087,14 +3092,15 @@ body.is-resizing *{cursor:col-resize!important}
   display:block;
   width:100%;
   min-width:0;
+  max-width:100%;
   padding:0 10px;
   box-sizing:border-box;
   font-family:'JetBrains Mono',monospace;
   font-size:12px;
   font-weight:700;
   white-space:nowrap;
-  overflow:visible;
-  text-overflow:clip;
+  overflow:hidden;
+  text-overflow:ellipsis;
   text-align:center;
 }
 .target-sel-arrow {
@@ -4208,6 +4214,21 @@ body.enc-active-body .content-panel {
 .svc-table tr:hover td { background: rgba(124,58,237,0.06); }
 .svc-table td:first-child { color: var(--green); font-weight: 700; white-space: nowrap; }
 .svc-table td:nth-child(2) { color: var(--accent); font-weight: 700; }
+.svc-table-ports {
+  table-layout: fixed;
+}
+.svc-table-ports th:nth-child(1),
+.svc-table-ports td:nth-child(1) {
+  width: 86px;
+}
+.svc-table-ports th:nth-child(2),
+.svc-table-ports td:nth-child(2) {
+  width: 92px;
+}
+.svc-table-ports th:nth-child(5),
+.svc-table-ports td:nth-child(5) {
+  width: 84px;
+}
 #portParsePreview,
 #pathParsePreview {
   max-height: min(34vh, 320px);
