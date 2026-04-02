@@ -1507,7 +1507,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding:10px 12px;cursor:pointer;
   border-bottom:1px solid var(--border);
   transition:background 0.12s,border-color 0.12s, box-shadow 0.12s;
-  border-left:3px solid transparent;
+  border-left:4px solid transparent;
   background:color-mix(in srgb, var(--bg2) 84%, transparent);
 }
 .note-item:hover{

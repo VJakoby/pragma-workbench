@@ -630,21 +630,30 @@ function renderBacklinks(noteId) {
 }
 
 function syncActiveNoteDraft(noteId = activeNoteId) {
-  if (!noteId || !notes[noteId]) return false;
+  if (!noteId || !notes[noteId]) return { ok: false, changed: false };
+  const note = notes[noteId];
+  const prevTitle = note.title || '';
+  const prevBody = note.body || '';
   const titleInput = document.getElementById('noteTitleInput');
-  const synced = syncNoteTitleAndHeading(notes[noteId], titleInput?.value || '', cmGetValue(noteEditor));
-  notes[noteId].title = synced.title;
-  notes[noteId].body = synced.body;
+  const synced = syncNoteTitleAndHeading(note, titleInput?.value || '', cmGetValue(noteEditor));
+  const changed = synced.title !== prevTitle || synced.body !== prevBody;
+  note.title = synced.title;
+  note.body = synced.body;
   if (titleInput && titleInput.value !== synced.title) titleInput.value = synced.title;
   if (noteEditor && cmGetValue(noteEditor) !== synced.body) cmSetValue(noteEditor, synced.body);
-  notes[noteId].updated = Date.now();
-  return true;
+  if (changed) note.updated = Date.now();
+  return { ok: true, changed };
 }
 
 async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
-  if (!syncActiveNoteDraft(noteId)) return false;
+  const syncResult = syncActiveNoteDraft(noteId);
+  if (!syncResult.ok) return false;
   const note = notes[noteId];
+  if (!syncResult.changed) {
+    if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
+    return true;
+  }
   const ok = await saveNotes({
     reason: opts.reason || 'note-edit',
     immediate: !!opts.immediate,
