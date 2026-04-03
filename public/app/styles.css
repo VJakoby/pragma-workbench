@@ -2295,14 +2295,14 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .sidebar.sidebar-icon-only .nav-item {
   padding: 9px 0;
-  margin: 3px 8px;
+  margin: 3px 6px;
   min-height: 42px;
   justify-content: center;
   gap: 0;
 }
 .sidebar.sidebar-icon-only .session-active {
   padding: 10px 0;
-  margin: 3px 8px;
+  margin: 3px 6px;
   min-height: 42px;
   justify-content: center;
 }
