@@ -937,7 +937,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   const marker = typeof buildEvidenceMarkerId === 'function' ? buildEvidenceMarkerId(entryId) : `pragma:evidence:${entryId}`;
   const sourceCommand = deriveEvidenceCommand(block.text);
   const confirmed = await openEvidenceFlagDialog({
-    title: deriveEvidenceTitle(block.text, notes[activeNoteId].title || 'Evidence'),
+    title: '',
     type: deriveEvidenceType(block.text),
     details: deriveEvidenceDetails(block.text, sourceCommand),
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
