@@ -8,7 +8,25 @@ let activeTargetFilter = null;
 let activeNoteSearch = '';
 let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
+let _evidenceSelectionPromptTimer = null;
+let _evidenceSelectionPromptState = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
+const EVIDENCE_TYPE_OPTIONS = [
+  { value: 'enumeration', label: 'Enumeration' },
+  { value: 'initial_access', label: 'Initial Access' },
+  { value: 'execution', label: 'Execution' },
+  { value: 'persistence', label: 'Persistence' },
+  { value: 'privilege_escalation', label: 'Privilege Escalation' },
+  { value: 'credential_access', label: 'Credential Access' },
+  { value: 'discovery', label: 'Discovery' },
+  { value: 'lateral_movement', label: 'Lateral Movement' },
+  { value: 'pivoting', label: 'Pivoting' },
+  { value: 'collection', label: 'Collection' },
+  { value: 'exfiltration', label: 'Exfiltration' },
+  { value: 'cleanup', label: 'Cleanup' },
+  { value: 'proof', label: 'Proof' },
+];
+window.EVIDENCE_TYPE_OPTIONS = EVIDENCE_TYPE_OPTIONS;
 
 function getLeadingNoteH1(body) {
   const match = String(body || '').match(/^\s*#\s+(.+?)\s*(?:\n|$)/);
@@ -117,6 +135,7 @@ function setNoteEditorMode(mode) {
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
+  if (isConfig) hideEvidenceSelectionPrompt();
 }
 
 function ensureNoteTypeBadge() {
@@ -208,6 +227,7 @@ async function openTemplatesConfig(navEl) {
 
 function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
+  hideEvidenceSelectionPrompt();
   activeConfigDoc = null;
   setNoteEditorMode('note');
   document.getElementById('notesEmpty').style.display = 'flex';
@@ -540,6 +560,7 @@ function duplicateCurrentNote() {
 }
 
 async function openNote(id) {
+  hideEvidenceSelectionPrompt();
   if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
     clearTimeout(noteSaveTimer);
     await persistActiveNote({ reason: 'note-switch', immediate: true, noteId: activeNoteId });
@@ -654,10 +675,11 @@ function stripInlineEvidenceMarkers(text) {
     .trim();
 }
 
-function getNoteEvidenceBlockSelection() {
+function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
   if (!noteEditor) return null;
   const main = noteEditor.state.selection?.main;
   if (!main) return null;
+  if (requireSelection && main.empty) return null;
   const doc = noteEditor.state.doc;
   let from = main.from;
   let to = main.to;
@@ -698,12 +720,19 @@ function deriveEvidenceTitle(text, fallback = 'Evidence') {
 
 function deriveEvidenceType(text) {
   const lower = String(text || '').toLowerCase();
-  if (/(password|hash|ntlm|credential|token|apikey|api key|secret)/.test(lower)) return 'cred';
-  if (/(cleanup|remove|revert|deleted|deleted exploit|remove uploaded)/.test(lower)) return 'cleanup';
-  if (/(uploaded|dropped|binary|webshell|artifact)/.test(lower)) return 'artifact';
-  if (/(seimpersonate|system shell|root shell|local admin|privilege escalation|privesc)/.test(lower)) return 'privesc';
+  if (/(cleanup|remove|revert|deleted|remove uploaded|clear history|rm\s+-rf)/.test(lower)) return 'cleanup';
+  if (/(password|hash|ntlm|credential|token|apikey|api key|secret|kerberoast|asrep|sam dump|lsass|mimikatz)/.test(lower)) return 'credential_access';
+  if (/(seimpersonate|system shell|root shell|local admin|privilege escalation|privesc|sudo -l|printspoofer|juicypotato|godpotato)/.test(lower)) return 'privilege_escalation';
+  if (/(chisel|ligolo|pivot|socks|rportfwd|portfwd|ssh -d|ssh -l|proxychains|meterpreter route)/.test(lower)) return 'pivoting';
+  if (/(psexec|wmiexec|smbexec|winrm|evil-winrm|ssh |xfreerdp|rdesktop|mssqlclient|runas|atexec|dcomexec)/.test(lower)) return 'lateral_movement';
+  if (/(persistence|autorun|scheduled task|schtasks|run key|registry run|startup|service create)/.test(lower)) return 'persistence';
+  if (/(download|collect|dump|copy .*loot|tar |zip |scp |rsync |secretsdump|sam|ntds|browser data)/.test(lower)) return 'collection';
+  if (/(exfil|upload .*attacker|curl .*http|wget .*http|nc .* >|ftp |sftp )/.test(lower)) return 'exfiltration';
+  if (/(shell|powershell|cmd\.exe|bash -c|sh -c|python -c|invoke-expression|iex |rundll32|mshta|certutil|regsvr32)/.test(lower)) return 'execution';
+  if (/(login|foothold|reverse shell|webshell|sqlmap|exploit|initial access|auth bypass|rce|cve-|metasploit)/.test(lower)) return 'initial_access';
+  if (/(nmap|rustscan|masscan|gobuster|ffuf|dirsearch|nikto|feroxbuster|enum4linux|ldapsearch|snmpwalk)/.test(lower)) return 'enumeration';
   if (/```|`[^`]+`|^\s*(?:\$|#)\s+\S/m.test(String(text || ''))) return 'proof';
-  return 'finding';
+  return 'discovery';
 }
 
 function deriveEvidenceCommand(text) {
@@ -724,16 +753,119 @@ function deriveEvidenceDetails(text, sourceCommand) {
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'finding', preview = '' } = {}) {
+function getCurrentEvidenceSelectionSignature() {
+  const main = noteEditor?.state?.selection?.main;
+  if (!main || main.empty) return '';
+  return `${main.from}:${main.to}`;
+}
+
+function clearEvidenceSelectionPromptTimer() {
+  if (_evidenceSelectionPromptTimer) {
+    clearTimeout(_evidenceSelectionPromptTimer);
+    _evidenceSelectionPromptTimer = null;
+  }
+}
+
+function hideEvidenceSelectionPrompt() {
+  clearEvidenceSelectionPromptTimer();
+  _evidenceSelectionPromptState = null;
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  prompt?.classList.remove('open');
+}
+
+function isEvidenceBlockAlreadyFlagged(block) {
+  if (!block || !noteEditor) return false;
+  const doc = noteEditor.state.doc;
+  const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
+  const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
+  return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
+}
+
+function positionEvidenceSelectionPrompt(prompt) {
+  if (!prompt || !noteEditor || !_evidenceSelectionPromptState?.block) return;
+  const coords = noteEditor.coordsAtPos(_evidenceSelectionPromptState.block.to) || noteEditor.dom.getBoundingClientRect();
+  const margin = 12;
+  const promptRect = prompt.getBoundingClientRect();
+  let left = coords.left;
+  let top = coords.bottom + 8;
+  left = Math.max(margin, Math.min(window.innerWidth - promptRect.width - margin, left));
+  if (top + promptRect.height > window.innerHeight - margin) {
+    top = Math.max(margin, coords.top - promptRect.height - 8);
+  }
+  prompt.style.left = `${Math.round(left)}px`;
+  prompt.style.top = `${Math.round(top)}px`;
+}
+
+function showEvidenceSelectionPrompt(block) {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (!prompt || !noteEditor || !block || !block.text.trim()) return;
+  _evidenceSelectionPromptState = {
+    block,
+    signature: getCurrentEvidenceSelectionSignature(),
+  };
+  prompt.classList.add('open');
+  requestAnimationFrame(() => positionEvidenceSelectionPrompt(prompt));
+}
+
+function syncEvidenceSelectionPrompt(update) {
+  if (activeConfigDoc || !activeNoteId || !notes[activeNoteId] || !activeSessionId || !sessions[activeSessionId]) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+  if (update.docChanged) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+  if (!update.selectionSet) return;
+
+  const main = update.state.selection?.main;
+  if (!main || main.empty || !noteEditor?.hasFocus) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+
+  const block = getNoteEvidenceBlockSelection({ requireSelection: true });
+  if (!block || !block.text.trim() || isEvidenceBlockAlreadyFlagged(block)) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+
+  clearEvidenceSelectionPromptTimer();
+  const signature = getCurrentEvidenceSelectionSignature();
+  _evidenceSelectionPromptState = { block, signature };
+  _evidenceSelectionPromptTimer = setTimeout(() => {
+    if (!_evidenceSelectionPromptState || _evidenceSelectionPromptState.signature !== getCurrentEvidenceSelectionSignature()) return;
+    showEvidenceSelectionPrompt(block);
+  }, 750);
+}
+
+window.addEventListener('resize', () => {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+});
+
+window.addEventListener('scroll', () => {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+}, true);
+
+function flagPromptedSelectionAsEvidence() {
+  if (!_evidenceSelectionPromptState?.block) return;
+  flagSelectionAsEvidence({ blockOverride: _evidenceSelectionPromptState.block });
+}
+
+function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '' } = {}) {
   return new Promise((resolve) => {
     _evidenceFlagResolver = resolve;
     const overlay = document.getElementById('evidenceFlagOverlay');
     const titleEl = document.getElementById('evidenceFlagTitle');
     const typeEl = document.getElementById('evidenceFlagType');
-    const previewEl = document.getElementById('evidenceFlagPreview');
+    const detailsEl = document.getElementById('evidenceFlagDetails');
+    const commandEl = document.getElementById('evidenceFlagCommand');
     if (titleEl) titleEl.value = title;
     if (typeEl) typeEl.value = type;
-    if (previewEl) previewEl.textContent = preview;
+    if (detailsEl) detailsEl.value = details;
+    if (commandEl) commandEl.value = command;
     overlay?.classList.add('open');
     setTimeout(() => {
       titleEl?.focus();
@@ -756,12 +888,14 @@ function cancelEvidenceFlagDialog() {
 
 function confirmEvidenceFlagDialog() {
   const title = (document.getElementById('evidenceFlagTitle')?.value || '').trim();
-  const type = (document.getElementById('evidenceFlagType')?.value || 'finding').trim();
+  const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
+  const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
+  const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
   if (!title) {
     document.getElementById('evidenceFlagTitle')?.focus();
     return;
   }
-  finishEvidenceFlagDialog({ title, type });
+  finishEvidenceFlagDialog({ title, type, details, source_command });
 }
 
 function handleEvidenceFlagKey(event) {
@@ -770,13 +904,13 @@ function handleEvidenceFlagKey(event) {
     cancelEvidenceFlagDialog();
     return;
   }
-  if (event.key === 'Enter') {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
     event.preventDefault();
     confirmEvidenceFlagDialog();
   }
 }
 
-async function flagSelectionAsEvidence() {
+async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   if (activeConfigDoc) return;
   if (!activeNoteId || !notes[activeNoteId] || !noteEditor) return;
   if (!activeSessionId || !sessions[activeSessionId]) {
@@ -784,17 +918,14 @@ async function flagSelectionAsEvidence() {
     return;
   }
   if (typeof ensureSessionEvidence !== 'function') return;
+  hideEvidenceSelectionPrompt();
 
-  const block = getNoteEvidenceBlockSelection();
+  const block = blockOverride || getNoteEvidenceBlockSelection();
   if (!block || !block.text.trim()) {
     showToast('⚠ Select a line or block to flag as evidence', 'err');
     return;
   }
-
-  const doc = noteEditor.state.doc;
-  const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
-  const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
-  if (/pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine)) {
+  if (isEvidenceBlockAlreadyFlagged(block)) {
     showToast('⚠ This block is already flagged as evidence', 'err');
     return;
   }
@@ -808,15 +939,16 @@ async function flagSelectionAsEvidence() {
   const confirmed = await openEvidenceFlagDialog({
     title: deriveEvidenceTitle(block.text, notes[activeNoteId].title || 'Evidence'),
     type: deriveEvidenceType(block.text),
-    preview: stripInlineEvidenceMarkers(block.text),
+    details: deriveEvidenceDetails(block.text, sourceCommand),
+    command: sourceCommand || stripInlineEvidenceMarkers(block.text),
   });
   if (!confirmed) return;
   const entry = {
     id: entryId,
     type: confirmed.type,
     title: confirmed.title,
-    details: deriveEvidenceDetails(block.text, sourceCommand),
-    source_command: sourceCommand,
+    details: confirmed.details,
+    source_command: confirmed.source_command,
     target_id: notes[activeNoteId].target_id || activeTargetId || null,
     note_id: activeNoteId,
     sync_mode: 'export_only',
@@ -898,6 +1030,7 @@ async function deleteCurrentNote() {
 }
 
 async function closeCurrentNote() {
+  hideEvidenceSelectionPrompt();
   if (activeConfigDoc) {
     clearTimeout(noteSaveTimer);
     const ok = await persistTemplatesConfig({ reason: 'config-close' });

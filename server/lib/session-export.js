@@ -482,6 +482,17 @@ function renderEvidenceSection(model) {
 
 function evidenceType(type) {
   const labels = {
+    enumeration: 'Enumeration',
+    initial_access: 'Initial Access',
+    execution: 'Execution',
+    persistence: 'Persistence',
+    privilege_escalation: 'Privilege Escalation',
+    credential_access: 'Credential Access',
+    discovery: 'Discovery',
+    lateral_movement: 'Lateral Movement',
+    pivoting: 'Pivoting',
+    collection: 'Collection',
+    exfiltration: 'Exfiltration',
     finding: 'Finding',
     proof: 'Proof',
     cred: 'Credential',

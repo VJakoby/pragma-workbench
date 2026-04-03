@@ -241,6 +241,9 @@ function renderEvidenceNoteOptions(selectedValue = '') {
 }
 
 function evidenceTypeLabel(type) {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const configuredHit = configured.find((item) => item.value === type);
+  if (configuredHit) return configuredHit.label;
   const labels = {
     finding: 'Finding',
     proof: 'Proof',
@@ -251,6 +254,17 @@ function evidenceTypeLabel(type) {
     note: 'Note',
   };
   return labels[type] || (type ? String(type) : 'Evidence');
+}
+
+function buildEvidenceTypeOptionsHtml(selectedType = '') {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const options = configured.map(({ value, label }) =>
+    `<option value="${esc(value)}"${value === selectedType ? ' selected' : ''}>${esc(label)}</option>`
+  );
+  if (selectedType && !configured.find((item) => item.value === selectedType)) {
+    options.push(`<option value="${esc(selectedType)}" selected>${esc(evidenceTypeLabel(selectedType))}</option>`);
+  }
+  return options.join('');
 }
 
 function evidenceSyncLabel(mode) {
@@ -581,7 +595,7 @@ function renderEvidenceList() {
           return `<tr>
             <td>
               <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
-                ${['finding','proof','cred','artifact','privesc','cleanup','note'].map((type) => `<option value="${type}"${type === entry.type ? ' selected' : ''}>${evidenceTypeLabel(type)}</option>`).join('')}
+                ${buildEvidenceTypeOptionsHtml(entry.type)}
               </select>
             </td>
             <td><input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></td>
@@ -639,7 +653,7 @@ function addEvidenceEntry() {
   if (!activeSessionId) return;
   const entries = ensureSessionEvidence();
   if (!entries) return;
-  const type = (document.getElementById('evidenceTypeInput')?.value || 'finding').trim();
+  const type = (document.getElementById('evidenceTypeInput')?.value || 'discovery').trim();
   const titleEl = document.getElementById('evidenceTitleInput');
   const detailsEl = document.getElementById('evidenceDetailsInput');
   const commandEl = document.getElementById('evidenceCommandInput');
@@ -727,7 +741,7 @@ function commitEvidenceEdit(entryId) {
     focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
     return;
   }
-  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'finding').trim();
+  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
   entry.title = title;
   entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
   entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();

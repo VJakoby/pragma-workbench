@@ -279,17 +279,23 @@
       <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
     </div>
     <div class="pw-body">
-      <div class="pw-description">Review the evidence title before saving it to the session tracker.</div>
+      <div class="pw-description">Review the selected note block, choose the evidence type, and add any supporting context before saving it to the session tracker.</div>
       <div class="pw-field">
         <label>Type</label>
         <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="finding">Finding</option>
-          <option value="proof">Proof</option>
-          <option value="cred">Credential</option>
-          <option value="artifact">Artifact</option>
-          <option value="privesc">PrivEsc</option>
+          <option value="enumeration">Enumeration</option>
+          <option value="initial_access">Initial Access</option>
+          <option value="execution">Execution</option>
+          <option value="persistence">Persistence</option>
+          <option value="privilege_escalation">Privilege Escalation</option>
+          <option value="credential_access">Credential Access</option>
+          <option value="discovery">Discovery</option>
+          <option value="lateral_movement">Lateral Movement</option>
+          <option value="pivoting">Pivoting</option>
+          <option value="collection">Collection</option>
+          <option value="exfiltration">Exfiltration</option>
           <option value="cleanup">Cleanup</option>
-          <option value="note">Note</option>
+          <option value="proof">Proof</option>
         </select>
       </div>
       <div class="pw-field">
@@ -297,15 +303,28 @@
         <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
       </div>
       <div class="pw-field">
-        <label>Selected Block</label>
-        <div class="evidence-flag-preview" id="evidenceFlagPreview"></div>
+        <label>Details</label>
+        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </div>
+      <div class="pw-field">
+        <label>Command / Block</label>
+        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
       </div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
-        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Flag Evidence</button>
+        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
       </div>
     </div>
   </div>
+</div>
+
+<div class="evidence-selection-prompt" id="evidenceSelectionPrompt">
+  <button class="evidence-selection-prompt-btn" onclick="flagPromptedSelectionAsEvidence()">
+    <span aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
+    </span>
+    <span>Flag as Evidence</span>
+  </button>
 </div>
 
 <div class="pw-overlay" id="kbCreateOverlay" onclick="if(event.target===this)closeKbCreateModal()">
