@@ -2257,7 +2257,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-color: rgba(var(--accent-rgb),0.38);
   color: var(--accent);
 }
-.sidebar-toggle-btn.sidebar-collapsed { color: var(--accent); border-color: rgba(124,58,237,0.35); }
+.sidebar-toggle-btn.sidebar-collapsed {
+  color: var(--accent);
+  border-color: rgba(124,58,237,0.35);
+  margin-left: -9px;
+}
 .sidebar-toggle-mark {
   display: flex;
   align-items: center;
@@ -2316,13 +2320,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   width: 20px; height: 20px;
 }
 .sidebar.sidebar-icon-only .sidebar-toggle-btn {
-  width: auto;
-  min-width: 0;
+  width: 32px;
+  min-width: 32px;
   justify-content: center;
   border-radius: 6px;
   border: 1px solid var(--border);
   padding: 0;
-  margin: 3px 8px;
+  margin: 3px 6px;
   min-height: 32px;
 }
 
