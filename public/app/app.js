@@ -330,7 +330,7 @@ function buildCmdResults(q) {
   // Search action
   if (ql) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
-    html += `<div class="cmd-group-hdr">Search</div>
+    html += `<div class="cmd-group-hdr">KB Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">

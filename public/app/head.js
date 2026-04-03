@@ -239,6 +239,7 @@
 
       const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
       el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+      if (typeof enhanceNoteWikiLinks === 'function') enhanceNoteWikiLinks(el);
       normalizeTaskLists(el);
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
       if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);

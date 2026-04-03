@@ -1608,7 +1608,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .note-preview-content::-webkit-scrollbar { width: 3px; }
 .note-preview-content::-webkit-scrollbar-thumb { background: var(--border2); }
 #notePreviewBtn.active { color: var(--accent); }
-#notePreviewBtn {
+#notePreviewBtn,
+#noteCloseBtn {
   height: 30px;
   padding: 0 12px;
   font-size: 12px;
