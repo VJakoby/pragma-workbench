@@ -1727,6 +1727,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   gap:4px;
   margin-left:auto;
   flex-shrink:0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 4px;
+  background: var(--bg3);
+  height: 32px;
+  box-sizing: border-box;
 }
 .note-title-input{
   flex:1;background:none;border:none;outline:none;
@@ -2803,20 +2809,34 @@ body.is-resizing *{cursor:col-resize!important}
 .editor-font-family-group {
   display: flex;
   align-items: center;
+  gap: 4px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg2);
-  height: 26px;
+  padding: 3px 4px;
+  background: var(--bg3);
+  height: 32px;
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
 }
-.editor-font-btn, .editor-font-label, .editor-font-choice {
-  height: 100%;
+.editor-font-size-group{
+  display:flex;
+  align-items:center;
+  gap:4px;
   border: 1px solid var(--border);
-  background: var(--bg2);
-  color: var(--text2);
+  border-radius: 6px;
+  padding: 3px 4px;
+  background: var(--bg3);
+  height: 32px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.editor-font-btn, .editor-font-label, .editor-font-choice {
+  height: auto;
+  min-height: 22px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--btn-color);
   border-radius: 6px;
   font-family: 'Inter', sans-serif;
   font-size: 12px;
@@ -2825,15 +2845,16 @@ body.is-resizing *{cursor:col-resize!important}
   transition: all 0.12s;
   box-sizing: border-box;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .editor-font-btn {
-  height: 26px;
-  min-width: 34px;
+  min-width: 32px;
   padding: 0 10px;
   font-size: 11px;
 }
 .editor-font-label {
-  height: 26px;
   min-width: 50px;
   padding: 0 10px;
   font-size: 11px;
@@ -2841,22 +2862,49 @@ body.is-resizing *{cursor:col-resize!important}
 .editor-font-choice {
   min-width: 56px;
   padding: 0 10px;
-  border: none;
-  border-right: 1px solid var(--border);
-  border-radius: 0;
   font-size: 11px;
 }
-.editor-font-choice:last-child {
-  border-right: none;
-}
 .editor-font-btn:hover, .editor-font-label:hover, .editor-font-choice:hover {
-  border-color: var(--border2);
+  border-color: rgba(var(--accent-rgb),0.28);
   color: var(--text);
-  background: var(--bg3);
+  background: rgba(var(--accent-rgb),0.08);
+}
+.editor-font-btn:active, .editor-font-label:active, .editor-font-choice:active {
+  border-color: rgba(var(--accent-rgb),0.38);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.12);
 }
 .editor-font-choice.active {
   color: var(--text);
-  background: rgba(var(--accent-rgb), 0.16);
+  background: transparent;
+  border-color: rgba(var(--accent-rgb),0.32);
+}
+.editor-font-size-group .editor-font-label{
+  background: transparent;
+}
+.note-header-actions .icon-btn{
+  min-width: 24px;
+  min-height: 22px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+}
+.note-header-actions .icon-btn:hover{
+  background: rgba(var(--accent-rgb),0.08);
+  border-color: var(--border);
+}
+.note-header-actions .icon-btn:active{
+  background: rgba(var(--accent-rgb),0.12);
+  border-color: var(--border);
+}
+.note-header-actions .icon-btn.danger:hover{
+  background: rgba(248,113,113,0.1);
+  color: var(--red);
+}
+.note-header-actions .icon-btn.danger:active{
+  background: rgba(248,113,113,0.16);
+  color: var(--red);
 }
 
 
