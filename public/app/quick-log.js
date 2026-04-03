@@ -570,7 +570,7 @@ function renderEvidenceList() {
 
   const entries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
   if (!entries.length) {
-    listEl.innerHTML = `<div class="todo-empty">No evidence yet. Add findings, proofs, credentials, artifacts, or cleanup items here.</div>`;
+    listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
     return;
   }
 
@@ -2242,9 +2242,7 @@ function toggleEvidencePopover() {
     closeOthers: [closeSvcPopover, closeTodoPopover],
     outsideHandler: _evidenceOutsideClose,
     onOpen: () => {
-      renderEvidenceTargetOptions(activeTargetId || '');
       renderEvidenceList();
-      setTimeout(() => document.getElementById('evidenceTitleInput')?.focus(), 40);
     },
   });
 }

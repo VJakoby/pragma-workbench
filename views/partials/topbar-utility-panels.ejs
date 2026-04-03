@@ -158,55 +158,12 @@
             <button class="icon-btn" onclick="closeEvidencePopover()" title="Close Evidence panel" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>
           <div class="evidence-popover-body">
-            <div class="svc-hint">Prefer flagging selections directly from the note editor. Manual evidence entry remains available here for anything not already in notes.</div>
+            <div class="svc-hint">Create evidence by selecting a command or proof block in the note editor, then using <strong style="color:var(--text2)">Flag as Evidence</strong>.</div>
             <div class="svc-info-box">
               <span class="svc-info-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               </span>
-              <div class="svc-info-text">Evidence is stored separately from markdown notes. Use <strong>Include in Summary</strong> to add an item to the exported session summary without modifying any note body.</div>
-            </div>
-            <div class="evidence-input-grid">
-              <select class="svc-quick-input evidence-input-select" id="evidenceTypeInput">
-                <option value="enumeration">Enumeration</option>
-                <option value="initial_access">Initial Access</option>
-                <option value="execution">Execution</option>
-                <option value="persistence">Persistence</option>
-                <option value="privilege_escalation">Privilege Escalation</option>
-                <option value="credential_access">Credential Access</option>
-                <option value="discovery">Discovery</option>
-                <option value="lateral_movement">Lateral Movement</option>
-                <option value="pivoting">Pivoting</option>
-                <option value="collection">Collection</option>
-                <option value="exfiltration">Exfiltration</option>
-                <option value="cleanup">Cleanup</option>
-                <option value="proof">Proof</option>
-              </select>
-              <input class="svc-quick-input" id="evidenceTitleInput" type="text"
-                placeholder="Short title, e.g. SeImpersonatePrivilege present"
-                autocomplete="off" spellcheck="false"
-                onkeydown="if(event.key==='Enter')document.getElementById('evidenceDetailsInput').focus()">
-              <select class="svc-quick-input evidence-input-select" id="evidenceTargetInput"></select>
-              <select class="svc-quick-input evidence-input-select" id="evidenceSyncInput" onchange="updateEvidenceSyncUi()">
-                <option value="export_only">Include in Summary</option>
-                <option value="both">Summary + Note</option>
-                <option value="note">Note only</option>
-                <option value="none">Do not export</option>
-              </select>
-            </div>
-            <div class="evidence-note-row" id="evidenceNoteRow" style="display:none">
-              <span class="evidence-note-label">Sync Note</span>
-              <select class="svc-quick-input evidence-input-select" id="evidenceNoteInput"></select>
-            </div>
-            <div class="svc-quick-input-row" style="margin-top:8px">
-              <input class="svc-quick-input" id="evidenceDetailsInput" type="text"
-                placeholder="Proof details, output snippet, artifact path, validation note…"
-                autocomplete="off" spellcheck="false"
-                onkeydown="if(event.key==='Enter')document.getElementById('evidenceCommandInput').focus()">
-              <input class="svc-quick-input" id="evidenceCommandInput" type="text"
-                placeholder="Optional source command"
-                autocomplete="off" spellcheck="false"
-                onkeydown="if(event.key==='Enter')addEvidenceEntry()">
-              <button class="svc-quick-add-btn" onclick="addEvidenceEntry()">+ Add</button>
+              <div class="svc-info-text">Evidence is stored separately from markdown notes, but is sourced from flagged note content so it stays tied to the original proof. Summary export still includes eligible evidence entries automatically.</div>
             </div>
             <div class="evidence-list-wrap">
               <div id="evidenceList"></div>

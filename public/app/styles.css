@@ -4305,6 +4305,14 @@ body.enc-active-body .content-panel {
 .evidence-table {
   width: 100%;
   table-layout: auto;
+  font-size: 12px;
+}
+.evidence-table th {
+  font-size: 10px;
+  padding: 4px 7px;
+}
+.evidence-table td {
+  padding: 4px 7px;
 }
 .evidence-table th:nth-child(1),
 .evidence-table td:nth-child(1) {
@@ -4312,11 +4320,11 @@ body.enc-active-body .content-panel {
 }
 .evidence-table th:nth-child(3),
 .evidence-table td:nth-child(3) {
-  min-width: 148px;
+  min-width: 116px;
 }
 .evidence-table th:nth-child(4),
 .evidence-table td:nth-child(4) {
-  width: 92px;
+  width: 116px;
 }
 .evidence-table th:nth-child(5),
 .evidence-table td:nth-child(5) {
@@ -4340,13 +4348,14 @@ body.enc-active-body .content-panel {
 }
 .evidence-target-cell {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text2);
 }
 .evidence-proof-cell {
   white-space: normal;
-  line-height: 1.45;
+  line-height: 1.4;
   min-width: 0;
+  font-size: 11px;
 }
 .evidence-proof-cell .ql-row-input + .ql-row-input {
   margin-top: 6px;
@@ -4672,13 +4681,13 @@ body.enc-active-body .content-panel {
 #pathParsePreview .path-table {
   table-layout: fixed;
 }
-.svc-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.svc-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .svc-table th {
-  text-align: left; padding: 4px 8px; font-size: 11px; font-weight: 700;
+  text-align: left; padding: 4px 7px; font-size: 10px; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
   border-bottom: 1px solid var(--border); background: var(--bg3);
 }
-.svc-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+.svc-table td { padding: 4px 7px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
 .svc-table tr:last-child td { border-bottom: none; }
 .svc-table tr:hover td { background: rgba(124,58,237,0.06); }
 .svc-table td:first-child { color: var(--green); font-weight: 700; white-space: nowrap; }
