@@ -846,8 +846,10 @@ function toggleToolPaste(kind) {
   if (!panel || !toggle) return;
   const isOpen = panel.style.display === 'flex';
   panel.style.display = isOpen ? 'none' : 'flex';
-  toggle.style.color = isOpen ? '' : 'var(--accent)';
-  toggle.style.borderColor = isOpen ? '' : 'var(--accent)';
+  toggle.style.color = isOpen ? '' : 'var(--text)';
+  toggle.style.borderColor = isOpen ? '' : 'rgba(var(--accent-rgb),0.32)';
+  toggle.style.background = isOpen ? '' : 'rgba(var(--accent-rgb),0.08)';
+  toggle.style.boxShadow = isOpen ? '' : 'inset 0 0 0 1px rgba(var(--accent-rgb),0.12)';
   if (!isOpen) {
     document.getElementById(inputMap[kind])?.focus();
   } else {
@@ -857,6 +859,18 @@ function toggleToolPaste(kind) {
 }
 
 function resetPastePanel(kind) {
+  const toggleMap = {
+    ports: 'portPasteToggle',
+    paths: 'pathPasteToggle',
+    loot: 'lootPasteToggle',
+  };
+  const toggle = document.getElementById(toggleMap[kind]);
+  if (toggle) {
+    toggle.style.color = '';
+    toggle.style.borderColor = '';
+    toggle.style.background = '';
+    toggle.style.boxShadow = '';
+  }
   if (kind === 'ports') {
     document.getElementById('portPasteInput').value = '';
     document.getElementById('portParsePreview').style.display = 'none';
@@ -959,7 +973,7 @@ function parseAndPreviewPorts() {
   const dupes = _portParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_portParsed.length}</span> port${_portParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
-  html += '</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
+  html += '</div><table class="svc-table svc-table-ports" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
   html += _portParsed.map(r => {
     const isDupe = existing.has(`${r.port}/${r.proto}`);
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(r.port)}${r.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(r.proto)}</span>` : ''}</td><td>${esc(r.service || '—')}</td><td style="color:var(--text2)">${esc(r.version || '')}</td></tr>`;
@@ -1667,7 +1681,7 @@ function renderSvcLogTable() {
   }
 
   tableEl.innerHTML = `
-    <table class="svc-table">
+    <table class="svc-table svc-table-ports">
       <thead><tr><th>Port</th><th>Service</th><th>Version</th><th>Notes</th><th></th></tr></thead>
       <tbody>${sorted.map(s => isQuickLogEditing('service', s.id) ? `
         <tr>

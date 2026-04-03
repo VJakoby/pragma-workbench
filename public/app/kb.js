@@ -70,7 +70,7 @@ function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
     const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
     return `
       <div class="card-service-head">
-        <span class="note-item-type note-type-general card-service-type">${serviceTitle || name}</span>
+        <span class="note-type-general card-service-type">${serviceTitle || name}</span>
       </div>
       <div class="card-service-footer">
         <div class="card-service-badges">
@@ -110,6 +110,16 @@ function getKbScopeTotal(view) {
     const catOk = activeCat === 'all' || String(item.category || '').toLowerCase() === String(activeCat || '').toLowerCase();
     return folderOk && catOk;
   }).length;
+}
+
+function filterContentPanelCards(query = '') {
+  const grid = document.getElementById('cpBrowserGrid');
+  if (!grid) return;
+  const q = String(query || '').toLowerCase().trim();
+  grid.querySelectorAll('.card').forEach(card => {
+    const haystack = card.dataset.search || card.textContent.toLowerCase();
+    card.classList.toggle('hidden', !!q && !haystack.includes(q));
+  });
 }
 
 function getKbBackendView(view) {
@@ -295,7 +305,14 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     return;
   }
 
-  body.innerHTML = `<div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
+  body.innerHTML = `
+    <div class="content-panel-browser-toolbar">
+      <div class="local-search content-panel-browser-search">
+        <span class="local-search-icon">&#8981;</span>
+        <input type="text" id="cpBrowserSearch" placeholder="filter&hellip;" autocomplete="off" oninput="filterContentPanelCards(this.value)">
+      </div>
+    </div>
+    <div class="cards-area content-panel-browser" id="cpBrowserGrid"></div>`;
   const grid = document.getElementById('cpBrowserGrid');
   items.forEach((item, idx) => {
     const card = document.createElement('div');
@@ -311,6 +328,7 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
     grid.appendChild(card);
   });
 
+  document.getElementById('cpBrowserSearch')?.focus();
   document.getElementById('cpReadBody').scrollTop = 0;
 }
 

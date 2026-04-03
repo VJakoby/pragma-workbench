@@ -79,9 +79,14 @@
 
       <div class="panel-view active" id="view-notes">
         <div class="notes-layout">
-          <button class="notes-list-reopen-btn" id="notesListReopenBtn" onclick="toggleNotesList()" title="Show notes list" aria-label="Show notes list">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><polyline points="13,9 16,12 13,15"/></svg>
-          </button>
+          <div class="notes-list-edge-rail" id="notesListEdgeRail" aria-label="Collapsed notes controls">
+            <button class="notes-list-edge-btn notes-list-reopen-btn" id="notesListReopenBtn" onclick="toggleNotesList()" title="Show notes list" aria-label="Show notes list">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><polyline points="13,9 16,12 13,15"/></svg>
+            </button>
+            <button class="notes-list-edge-btn notes-list-create-btn" id="notesListCreateBtn" onclick="openNewNoteModal()" title="New note" aria-label="Create new note">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
           <div class="notes-list">
             <div class="notes-list-hdr">
               <span>SESSION NOTES</span>
@@ -151,13 +156,15 @@
                       <button class="editor-font-choice" data-font="mono" onclick="setEditorFontFamily('mono')" title="Use JetBrains Mono editor font">Mono</button>
                       <button class="editor-font-choice" data-font="inter" onclick="setEditorFontFamily('inter')" title="Use Inter editor font">Inter</button>
                     </div>
-                    <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
-                    <button class="editor-font-label" id="editorFontSizeLabel" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
-                    <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
+                    <div class="editor-font-size-group" role="group" aria-label="Editor font size">
+                      <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
+                      <button class="editor-font-label" id="editorFontSizeLabel" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
+                      <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
+                    </div>
                   </div>
                   <button class="tb-btn" id="noteFlagEvidenceBtn" onclick="flagSelectionAsEvidence()" title="Flag selected block as evidence"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg> Flag</span></button>
-                  <span style="flex:1"></span>
-                  <div id="noteHeaderActions" style="display:flex;align-items:center;gap:4px">
+                  <div class="notes-editor-hdr-spacer"></div>
+                  <div id="noteHeaderActions" class="note-header-actions">
                     <button class="icon-btn" id="noteExportBtn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                     <button class="icon-btn" id="noteDuplicateBtn" onclick="duplicateCurrentNote()" title="Duplicate note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                     <button class="icon-btn danger" id="noteDeleteBtn" onclick="deleteCurrentNote()" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
