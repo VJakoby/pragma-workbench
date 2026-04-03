@@ -314,7 +314,7 @@ function renderNotesList() {
         ${tagsHtml}
         ${sessLabel}
       </div>
-      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}</div>
+      <div class="note-item-title">${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}${esc(n.title||'Untitled')}</div>
       <div class="note-item-content">
         <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       </div>
