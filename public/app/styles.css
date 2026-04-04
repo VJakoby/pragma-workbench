@@ -3021,7 +3021,14 @@ body.is-resizing *{cursor:col-resize!important}
 }
 
 /* Session modal */
-.session-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.session-modal-body {
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(78vh, 720px);
+  min-height: 0;
+}
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
   font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
@@ -3056,7 +3063,18 @@ body.is-resizing *{cursor:col-resize!important}
 .session-btn.primary:hover { background: var(--accent2); }
 .session-btn.secondary { background: var(--bg3); color: var(--text2); }
 .session-btn.secondary:hover { background: var(--bg4); color: var(--text); }
-.session-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: min(38vh, 340px);
+  padding-right: 4px;
+}
+.session-list::-webkit-scrollbar { width: 5px; }
+.session-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 999px; }
 .session-list-hdr {
   font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
@@ -3785,6 +3803,40 @@ body.enc-active-body .content-panel {
 }
 .evidence-flag-command {
   min-height: 104px;
+}
+.evidence-flag-toggle-row {
+  margin-top: 2px;
+}
+.evidence-flag-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+}
+.evidence-flag-check input {
+  margin: 0;
+}
+.evidence-flag-loot-fields {
+  margin-top: 10px;
+  padding: 10px 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.evidence-flag-loot-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  gap: 10px;
+}
+.evidence-flag-loot-value {
+  min-height: 72px;
+}
+.evidence-flag-loot-sync {
+  margin-top: 6px;
 }
 .evidence-selection-prompt {
   position: fixed;

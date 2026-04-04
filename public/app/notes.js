@@ -365,7 +365,7 @@ function exportCurrentNote() {
   if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
   if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
   if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
-  lines.push('---', '', n.body || '');
+  lines.push('---', '', stripEvidenceMarkersForExport(n.body || ''));
   const filename = slugify(n.title || 'untitled') + '.md';
   downloadText(lines.join('\n'), filename);
   showToast('✓ Exported ' + filename);
@@ -675,6 +675,13 @@ function stripInlineEvidenceMarkers(text) {
     .trim();
 }
 
+function stripEvidenceMarkersForExport(text) {
+  return String(text || '')
+    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}
+
 function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
   if (!noteEditor) return null;
   const main = noteEditor.state.selection?.main;
@@ -751,6 +758,29 @@ function deriveEvidenceDetails(text, sourceCommand) {
   if (!clean) return '';
   if (sourceCommand && clean === sourceCommand) return '';
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
+}
+
+function deriveLootType(text) {
+  const lower = String(text || '').toLowerCase();
+  if (/(bearer\s+[a-z0-9._-]+|token|jwt|apikey|api key|sessionid|cookie)/.test(lower)) return 'token';
+  if (/(-----begin .*private key-----|ssh-rsa|ssh-ed25519|\.ppk\b|private key)/.test(lower)) return 'key';
+  if (/(ntlm|hash|aad3b435b51404eeaad3b435b51404ee|[a-f0-9]{32}:[a-f0-9]{32}|[a-f0-9]{32})/.test(lower)) return 'hash';
+  if (/[^\s:]+:[^\s]+/.test(String(text || ''))) return 'cleartext';
+  return 'other';
+}
+
+function deriveLootValue(text, sourceCommand = '') {
+  const clean = stripInlineEvidenceMarkers(text).trim();
+  if (!clean) return sourceCommand || '';
+  return clean.length > 600 ? clean.slice(0, 600).trim() : clean;
+}
+
+function getEvidenceFlagDefaultLootHost() {
+  const ip = typeof getIP === 'function' ? getIP() : '';
+  if (ip && ip !== '<IP>') return ip;
+  const domain = typeof getDomain === 'function' ? getDomain() : '';
+  if (domain && domain !== '<DOMAIN>') return domain;
+  return '';
 }
 
 function getCurrentEvidenceSelectionSignature() {
@@ -854,7 +884,22 @@ function flagPromptedSelectionAsEvidence() {
   flagSelectionAsEvidence({ blockOverride: _evidenceSelectionPromptState.block });
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '' } = {}) {
+function syncEvidenceFlagLootUi() {
+  const enabledEl = document.getElementById('evidenceFlagAlsoLoot');
+  const fieldsEl = document.getElementById('evidenceFlagLootFields');
+  const typeEl = document.getElementById('evidenceFlagLootType');
+  const syncWrapEl = document.getElementById('evidenceFlagLootSyncWrap');
+  const syncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+  const enabled = !!enabledEl?.checked;
+  if (fieldsEl) fieldsEl.style.display = enabled ? 'block' : 'none';
+  if (!syncWrapEl || !syncEl) return;
+  const syncRelevant = enabled && ['cleartext', 'hash'].includes((typeEl?.value || '').trim());
+  syncWrapEl.style.display = syncRelevant ? 'block' : 'none';
+  syncEl.disabled = !syncRelevant;
+  if (!syncRelevant) syncEl.checked = false;
+}
+
+function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '', loot = null } = {}) {
   return new Promise((resolve) => {
     _evidenceFlagResolver = resolve;
     const overlay = document.getElementById('evidenceFlagOverlay');
@@ -862,10 +907,23 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', 
     const typeEl = document.getElementById('evidenceFlagType');
     const detailsEl = document.getElementById('evidenceFlagDetails');
     const commandEl = document.getElementById('evidenceFlagCommand');
+    const alsoLootEl = document.getElementById('evidenceFlagAlsoLoot');
+    const lootTypeEl = document.getElementById('evidenceFlagLootType');
+    const lootValueEl = document.getElementById('evidenceFlagLootValue');
+    const lootHostEl = document.getElementById('evidenceFlagLootHost');
+    const lootNoteEl = document.getElementById('evidenceFlagLootNote');
+    const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
     if (titleEl) titleEl.value = title;
     if (typeEl) typeEl.value = type;
     if (detailsEl) detailsEl.value = details;
     if (commandEl) commandEl.value = command;
+    if (alsoLootEl) alsoLootEl.checked = !!loot?.enabled;
+    if (lootTypeEl) lootTypeEl.value = loot?.type || 'other';
+    if (lootValueEl) lootValueEl.value = loot?.value || '';
+    if (lootHostEl) lootHostEl.value = loot?.host || '';
+    if (lootNoteEl) lootNoteEl.value = loot?.note || '';
+    if (lootSyncEl) lootSyncEl.checked = !!loot?.sync_to_credentials;
+    syncEvidenceFlagLootUi();
     overlay?.classList.add('open');
     setTimeout(() => {
       titleEl?.focus();
@@ -895,7 +953,27 @@ function confirmEvidenceFlagDialog() {
     document.getElementById('evidenceFlagTitle')?.focus();
     return;
   }
-  finishEvidenceFlagDialog({ title, type, details, source_command });
+  let loot = null;
+  if (document.getElementById('evidenceFlagAlsoLoot')?.checked) {
+    const lootType = (document.getElementById('evidenceFlagLootType')?.value || 'other').trim();
+    const lootValue = (document.getElementById('evidenceFlagLootValue')?.value || '').trim();
+    const lootHost = (document.getElementById('evidenceFlagLootHost')?.value || '').trim();
+    const lootNote = (document.getElementById('evidenceFlagLootNote')?.value || '').trim();
+    const syncToCredentials = !!document.getElementById('evidenceFlagLootSyncCredentials')?.checked;
+    if (!lootValue) {
+      document.getElementById('evidenceFlagLootValue')?.focus();
+      return;
+    }
+    loot = {
+      enabled: true,
+      type: lootType,
+      value: lootValue,
+      host: lootHost,
+      note: lootNote,
+      sync_to_credentials: syncToCredentials,
+    };
+  }
+  finishEvidenceFlagDialog({ title, type, details, source_command, loot });
 }
 
 function handleEvidenceFlagKey(event) {
@@ -936,11 +1014,20 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   const entryId = `evidence_${Date.now()}`;
   const marker = typeof buildEvidenceMarkerId === 'function' ? buildEvidenceMarkerId(entryId) : `pragma:evidence:${entryId}`;
   const sourceCommand = deriveEvidenceCommand(block.text);
+  const defaultLootType = deriveLootType(block.text);
   const confirmed = await openEvidenceFlagDialog({
     title: '',
     type: deriveEvidenceType(block.text),
     details: deriveEvidenceDetails(block.text, sourceCommand),
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
+    loot: {
+      enabled: false,
+      type: defaultLootType,
+      value: deriveLootValue(block.text, sourceCommand),
+      host: getEvidenceFlagDefaultLootHost(),
+      note: '',
+      sync_to_credentials: ['cleartext', 'hash'].includes(defaultLootType),
+    },
   });
   if (!confirmed) return;
   const entry = {
@@ -965,11 +1052,27 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   });
 
   entries.push(entry);
+  let syncedLootCredentialsNote = null;
+  let lootDuplicate = false;
+  if (confirmed.loot?.enabled && typeof addLootEntryFromData === 'function') {
+    const lootResult = addLootEntryFromData({
+      type: confirmed.loot.type,
+      credential: confirmed.loot.value,
+      host: confirmed.loot.host,
+      note: confirmed.loot.note,
+      syncToCredentials: !!confirmed.loot.sync_to_credentials,
+    });
+    syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
+    lootDuplicate = !!lootResult?.duplicate;
+  }
   clearTimeout(noteSaveTimer);
   syncActiveNoteDraft(activeNoteId);
   await saveNotes({ reason: 'note-evidence-flag', immediate: true });
   renderNotesList();
   renderSessionSidebar();
+  if (typeof renderLootTable === 'function') renderLootTable();
+  if (typeof updateSvcTabCounts === 'function') updateSvcTabCounts();
+  if (syncedLootCredentialsNote && typeof applySyncedNoteUpdate === 'function') applySyncedNoteUpdate(syncedLootCredentialsNote);
   if (typeof renderEvidenceList === 'function') renderEvidenceList();
   if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
   const modifiedEl = document.getElementById('noteModifiedAt');
@@ -979,6 +1082,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     });
   }
   setNoteSaveIndicator('saved', 'saved');
+  if (lootDuplicate) showToast('ℹ Loot already logged');
   showToast(`✓ Flagged as ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Evidence'}`);
 }
 

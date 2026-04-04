@@ -1840,7 +1840,7 @@ function escapeCredentialsCell(value) {
 }
 
 function parseLootForCredentialsRow(entry) {
-  if (!entry || !['cleartext', 'hash'].includes(entry.type)) return null;
+  if (!entry || !['cleartext', 'hash'].includes(entry.type) || entry.sync_credentials === false) return null;
   const credential = String(entry.credential || '').trim();
   const host = String(entry.host || '').trim();
   const note = String(entry.note || '').trim();
@@ -2045,6 +2045,33 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   return note;
 }
 
+function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
+  if (!activeSessionId) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  const cleanCredential = String(credential || '').trim();
+  if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  const cleanType = String(type || 'other').trim() || 'other';
+  const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const cleanNote = String(note || '').trim();
+  const dupeKey = `${cleanType}::${cleanCredential}::${cleanHost}`;
+  const existing = new Set(sessions[activeSessionId].loot.map((l) => `${l.type}::${l.credential}::${l.host || ''}`));
+  if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
+
+  const entry = {
+    id: `loot_${Date.now()}`,
+    type: cleanType,
+    credential: cleanCredential,
+    host: cleanHost,
+    note: cleanNote,
+    sync_credentials: !!syncToCredentials && ['cleartext', 'hash'].includes(cleanType),
+    added: Date.now(),
+  };
+  sessions[activeSessionId].loot.push(entry);
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(!!syncToCredentials && ['cleartext', 'hash'].includes(cleanType));
+  return { entry, syncedCredentialsNote, duplicate: false };
+}
+
 function addLootEntry() {
   const credEl = document.getElementById('lootCredInput');
   const hostEl = document.getElementById('lootHostInput');
@@ -2053,20 +2080,17 @@ function addLootEntry() {
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
   if (!cred || !activeSessionId) { credEl?.focus(); return; }
-  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
-
-  const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
-
-  const entry = {
-    id: `loot_${Date.now()}`,
+  const { entry, syncedCredentialsNote } = addLootEntryFromData({
     type: _activeLootType,
     credential: cred,
-    host: autoHost,
+    host,
     note,
-    added: Date.now(),
-  };
-  sessions[activeSessionId].loot.push(entry);
-  const syncedCredentialsNote = syncSessionLootToCredentialsNote(true);
+    syncToCredentials: true,
+  });
+  if (!entry) {
+    credEl?.focus();
+    return;
+  }
 
   credEl.value = '';
   noteEl.value = '';

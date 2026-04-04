@@ -50,6 +50,13 @@ function escapeFenceContent(value) {
   return String(value || '').replace(/```/g, '\\`\\`\\`').trim();
 }
 
+function stripEvidenceMarkers(text) {
+  return String(text || '')
+    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}
+
 function loadTemplateMeta(templatesFile) {
   const byType = {};
   BUILTIN_TYPE_ORDER.forEach((type) => {
@@ -256,6 +263,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
 function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), target);
   const label = targetLabel(target);
+  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target));
   return [
     `# ${title}`,
     '',
@@ -266,12 +274,13 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
     '',
     '---',
     '',
-    injectTargetPlaceholders(note.body || '', target),
+    body,
   ].join('\n');
 }
 
 function renderSessionNoteFile({ note, session, typeMeta, storage }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
+  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }));
   return [
     `# ${title}`,
     '',
@@ -281,7 +290,7 @@ function renderSessionNoteFile({ note, session, typeMeta, storage }) {
     '',
     '---',
     '',
-    injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }),
+    body,
   ].join('\n');
 }
 
@@ -326,7 +335,7 @@ function renderTimelineSummary(model) {
           const target = note.target_id ? model.targetById[note.target_id] : null;
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
           const title = injectTargetPlaceholders(noteTitle(note, model.storage), target || model.sessionContext);
-          const preview = (note.body || '')
+          const preview = stripEvidenceMarkers(note.body || '')
             .split('\n')
             .map((line) => line.trim())
             .find((line) => line && !line.startsWith('#') && !line.startsWith('---') && line.length > 3);
@@ -419,7 +428,7 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const target = note.target_id ? model.targetById[note.target_id] : null;
     const placeholderContext = target || model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
-    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
+    const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
     lines.push(`#### ${resolvedTitle}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
