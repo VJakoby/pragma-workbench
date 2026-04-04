@@ -21,7 +21,6 @@ function refreshThemeToggle(theme) {
 }
 
 function applyTheme(theme) {
-  if (theme === 'dim') theme = 'dark';
   if (theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
@@ -41,9 +40,7 @@ function applyTheme(theme) {
 }
 
 function toggleTheme() {
-  const currentTheme = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dim'
-    ? 'dark'
-    : (document.documentElement.getAttribute('data-theme') || 'dark');
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const currentIndex = THEME_ORDER.indexOf(currentTheme);
   const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length] || 'dark';
   setTheme(nextTheme);
@@ -67,7 +64,7 @@ function setTheme(theme) {
   }, 50);
 }
 
-applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (localStorage.getItem('ops-theme') || 'dark'));
+applyTheme(localStorage.getItem('ops-theme') || 'dark');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
