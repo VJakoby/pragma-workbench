@@ -688,13 +688,17 @@ function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
   if (!main) return null;
   if (requireSelection && main.empty) return null;
   const doc = noteEditor.state.doc;
-  let from = main.from;
-  let to = main.to;
-  if (to > from && doc.sliceString(to - 1, to) === '\n') to -= 1;
-  const startLine = doc.lineAt(from);
-  const endLine = doc.lineAt(Math.max(from, to));
-  const blockFrom = startLine.from;
-  const blockTo = endLine.to;
+  let blockFrom = main.from;
+  let blockTo = main.to;
+
+  if (main.empty) {
+    const line = doc.lineAt(main.from);
+    blockFrom = line.from;
+    blockTo = line.to;
+  } else if (blockTo > blockFrom && doc.sliceString(blockTo - 1, blockTo) === '\n') {
+    blockTo -= 1;
+  }
+
   return {
     from: blockFrom,
     to: blockTo,
@@ -1037,6 +1041,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     details: confirmed.details,
     source_command: confirmed.source_command,
     target_id: notes[activeNoteId].target_id || activeTargetId || null,
+    source_note_id: activeNoteId,
     note_id: activeNoteId,
     sync_mode: 'export_only',
     created: Date.now(),
