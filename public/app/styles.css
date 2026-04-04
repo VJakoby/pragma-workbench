@@ -2133,7 +2133,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .cmd-item{
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:10px;
   margin:3px 0 8px;
   padding:9px 10px;
   cursor:pointer;
@@ -2175,8 +2175,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
   justify-content:center;
   line-height:1;
   border-radius:7px;
-  background:color-mix(in srgb, var(--bg3) 88%, var(--bg4));
-  border:1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  background:color-mix(in srgb, var(--bg3) 92%, transparent);
+  border:1px solid color-mix(in srgb, var(--border) 64%, transparent);
 }
 .cmd-item-main{
   flex:1;
