@@ -1,15 +1,15 @@
 # #️ PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
+> A local workbench for pentesting/ctf notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
 
 ---
 ## 🚩 My Problem
 
-Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
+Pentesting/ctf workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
 
 ## ❌ What it is NOT
 
-- **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
+- **Not a reporting tool** — notes are for operational use, only structured drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
 - **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation
 - **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
@@ -181,7 +181,7 @@ Custom templates appear in the picker with a purple border and a **Custom** head
 
 ## 🔐 Security
 
-PRAGMA is a single-operator, localhost-first tool. It is designed for use on a controlled machine, ideally a dedicated pentest VM.
+PRAGMA is a single-operator, localhost-first tool. It is designed for use on a controlled machine, ideally a dedicated pentest/ctf virtual machine (VM).
 
 High-level security position:
 
