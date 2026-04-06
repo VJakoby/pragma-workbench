@@ -24,25 +24,39 @@
 
     <%- include('topbar-utility-panels') %>
 
-    <button class="cmd-trigger" onclick="openCmd()" title="&#8984;K">
+    <button class="cmd-trigger" onclick="openCmd()" title="Quick open (Cmd+K)">
       <span class="cmd-trigger-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M7 7h4v4H7a3 3 0 1 1 0-6h4v6"/>
-          <path d="M17 7h-4v4h4a3 3 0 1 0 0-6h-4v6"/>
-          <path d="M7 17h4v-4H7a3 3 0 1 0 0 6h4v-6"/>
-          <path d="M17 17h-4v-4h4a3 3 0 1 1 0 6h-4v-6"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-3.5-3.5"/>
         </svg>
       </span>
       <span class="cmd-trigger-text">Quick open, search anything&hellip;</span>
-      <span class="cmd-trigger-kbd">&#8984;K</span>
+      <span class="cmd-trigger-kbd">Cmd+K</span>
     </button>
 
     <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
 
     <div class="topbar-actions">
       <div class="theme-toggle" id="themeBtn" role="group" aria-label="Theme selector">
-        <button class="theme-toggle-btn" id="themeLightBtn" onclick="setTheme('light')" title="Use light theme" aria-pressed="false">Light</button>
-        <button class="theme-toggle-btn" id="themeDarkBtn" onclick="setTheme('dark')" title="Use dark theme" aria-pressed="false">Dark</button>
+        <button class="theme-toggle-btn" id="themeLightBtn" onclick="setTheme('light')" title="Use light theme" aria-label="Use light theme" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2.2"/>
+            <path d="M12 19.8V22"/>
+            <path d="m4.93 4.93 1.56 1.56"/>
+            <path d="m17.51 17.51 1.56 1.56"/>
+            <path d="M2 12h2.2"/>
+            <path d="M19.8 12H22"/>
+            <path d="m4.93 19.07 1.56-1.56"/>
+            <path d="m17.51 6.49 1.56-1.56"/>
+          </svg>
+        </button>
+        <button class="theme-toggle-btn" id="themeDarkBtn" onclick="setTheme('dark')" title="Use dark theme" aria-label="Use dark theme" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>

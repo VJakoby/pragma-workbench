@@ -160,8 +160,8 @@ function cmThemeVars() {
       text2: '#333333',
       muted: '#6a737d',
       bg3: '#f3f3f3',
-      selection: 'rgba(37, 99, 235, 0.56)',
-      selectionOutline: 'rgba(37, 99, 235, 0.78)',
+      selection: 'rgba(37, 99, 235, 0.72)',
+      selectionOutline: 'rgba(29, 78, 216, 0.92)',
       activeLine: '#f5f5f5',
     };
   }

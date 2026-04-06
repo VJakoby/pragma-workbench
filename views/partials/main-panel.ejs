@@ -26,6 +26,13 @@
 
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">
+          <div class="search-toolbar-brand-row">
+            <div class="topbar-logo search-toolbar-logo">ENGRAM<span>// Indexed Search Surface</span></div>
+            <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
+              <span class="engram-pill-dot"></span>
+              <span id="engramPillLabel">ENGRAM&hellip;</span>
+            </div>
+          </div>
           <div class="search-input-row">
             <div class="search-big">
               <span class="search-big-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -42,10 +49,6 @@
               </div>
             </div>
             <button class="search-clear-btn" onclick="clearSearch()">&times; Clear</button>
-            <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
-              <span class="engram-pill-dot"></span>
-              <span id="engramPillLabel">ENGRAM&hellip;</span>
-            </div>
           </div>
           <div class="search-controls-row">
             <span class="ctrl-label">Scope</span>
@@ -143,6 +146,7 @@
                   </div>
                 </div>
                 <div class="notes-editor-hdr-row2">
+                  <button class="tb-btn" id="noteCloseBtn" onclick="closeCurrentNote()" title="Close note"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close</span></button>
                   <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span></button>
                   <div class="syntax-theme-picker" title="Editor syntax theme" style="margin-left:2px">
                     <span class="syntax-dot" data-theme="quietlight" style="--dot-color:#007acc" onclick="setSyntaxTheme('quietlight')">Quiet Light</span>
@@ -156,23 +160,24 @@
                       <button class="editor-font-choice" data-font="mono" onclick="setEditorFontFamily('mono')" title="Use JetBrains Mono editor font">Mono</button>
                       <button class="editor-font-choice" data-font="inter" onclick="setEditorFontFamily('inter')" title="Use Inter editor font">Inter</button>
                     </div>
-                    <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
-                    <button class="editor-font-label" id="editorFontSizeLabel" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
-                    <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
+                    <div class="editor-font-size-group" role="group" aria-label="Editor font size">
+                      <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
+                      <button class="editor-font-label" id="editorFontSizeLabel" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
+                      <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
+                    </div>
                   </div>
                   <div class="notes-editor-hdr-spacer"></div>
                   <div id="noteHeaderActions" class="note-header-actions">
                     <button class="icon-btn" id="noteExportBtn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                     <button class="icon-btn" id="noteDuplicateBtn" onclick="duplicateCurrentNote()" title="Duplicate note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                     <button class="icon-btn danger" id="noteDeleteBtn" onclick="deleteCurrentNote()" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-                    <button class="icon-btn" onclick="closeCurrentNote()" title="Close note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                   </div>
                 </div>
               </div>
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
-                <span><code>`code`</code></span><span><code>```block```</code></span><span>- list</span><span>&gt; quote</span>
-                <span title="Wiki link to another note">[[link]]</span>
+                <span><code>`code`</code></span><span><code>```block```</code></span><span>- list</span><span>1. list</span><span>- [ ] task</span><span>&gt; quote</span>
+                <span title="Wiki link to another note">[[internal-link]]</span>
               </div>
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts" id="noteCreatedWrap">Created: <strong id="noteCreatedAt">&mdash;</strong></span>
