@@ -13,6 +13,15 @@ function updateSearchNavBadge(status = 'checking') {
   badge.title = count > 0
     ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
     : `No indexed pages loaded · ENGRAM ${status}`;
+  if (dot) {
+    dot.className = `nav-item-service-dot ${status}`.trim();
+    dot.title = count > 0
+      ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+      : `No indexed pages loaded · ENGRAM ${status}`;
+    dot.setAttribute('aria-label', count > 0
+      ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+      : `No indexed pages loaded · ENGRAM ${status}`);
+  }
 }
 
 if (document.readyState === 'loading') {

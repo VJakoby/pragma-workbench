@@ -1,6 +1,6 @@
 'use strict';
 
-function registerMatrixRoutes(app, { matrixUrl }) {
+function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
   async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
     if (typeof fetch !== 'undefined') {
       const controller = new AbortController();
@@ -50,21 +50,35 @@ function registerMatrixRoutes(app, { matrixUrl }) {
     });
   }
 
+  const matrixBaseUrls = [...new Set([...(Array.isArray(matrixUrls) ? matrixUrls : []), matrixUrl].filter(Boolean))];
+
   async function proxyJson(res, path, opts = {}, timeoutMs = 8000) {
-    try {
-      const response = await fetchWithTimeout(`${matrixUrl}${path}`, opts, timeoutMs);
-      const data = await response.json();
-      if (!response.ok) {
-        return res.status(response.status || 502).json({
-          error: data.error || 'MATRIX request failed',
-          detail: data.detail || null,
-        });
+    let lastError = null;
+
+    for (const baseUrl of matrixBaseUrls) {
+      try {
+        const response = await fetchWithTimeout(`${baseUrl}${path}`, opts, timeoutMs);
+        const data = await response.json();
+        if (!response.ok) {
+          return res.status(response.status || 502).json({
+            error: data.error || 'MATRIX request failed',
+            detail: data.detail || null,
+          });
+        }
+        if (baseUrl !== matrixBaseUrls[0]) {
+          console.log(`[PRAGMA] MATRIX fallback succeeded via ${baseUrl}`);
+        }
+        return res.json(data);
+      } catch (error) {
+        lastError = error;
+        console.warn(`[PRAGMA] MATRIX proxy error via ${baseUrl}: ${error.message}`);
       }
-      return res.json(data);
-    } catch (error) {
-      console.warn(`[PRAGMA] MATRIX proxy error: ${error.message}`);
-      return res.status(502).json({ error: 'MATRIX unreachable', detail: error.message });
     }
+
+    return res.status(502).json({
+      error: 'MATRIX unreachable',
+      detail: lastError ? lastError.message : 'No MATRIX endpoints configured',
+    });
   }
 
   app.get('/api/matrix/health', async (req, res) => {

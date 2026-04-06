@@ -317,3 +317,15 @@ This means most new frontend work should target one of those focused modules ins
 
 ---
 Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+
+
+## Optional MATRIX Fallback URLs
+
+If PRAGMA may need to reach MATRIX in different run modes, use `MATRIX_URLS` to provide comma-separated fallbacks, for example:
+
+```env
+MATRIX_ENABLED=true
+MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
+```
+
+PRAGMA will try each URL in order until one responds.

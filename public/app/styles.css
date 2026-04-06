@@ -939,7 +939,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .nav-item-icon { width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
 .sidebar .nav-item-icon svg { width:18px; height:18px; }
 .nav-item-service-dot {
-  display:none;
+  display:block;
   position:absolute;
   right:1px;
   bottom:1px;
@@ -5014,6 +5014,7 @@ body.enc-active-body .content-panel {
 }
 .matrix-textarea { min-height:180px; resize:vertical; }
 .matrix-textarea-compact { min-height:72px; }
+.matrix-module-panel#matrixPanelPassive .matrix-textarea { min-height:110px; }
 .matrix-codearea {
   font-family:'JetBrains Mono',monospace;
   font-size:12px;

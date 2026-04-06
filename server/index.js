@@ -78,6 +78,7 @@ const {
   TEMPLATES_FILE,
   SEARCH_URL,
   MATRIX_URL,
+  MATRIX_URLS,
   MATRIX_ENABLED,
   HOST,
 } = createPaths(path.resolve(__dirname, '..'));
@@ -140,7 +141,7 @@ registerKbRoutes(app, {
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });
-if (MATRIX_ENABLED) registerMatrixRoutes(app, { matrixUrl: MATRIX_URL });
+if (MATRIX_ENABLED) registerMatrixRoutes(app, { matrixUrl: MATRIX_URL, matrixUrls: MATRIX_URLS });
 registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
 registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage, renderMarkdown });
 
