@@ -6,6 +6,8 @@ let matrixState = {
   capabilities: null,
   nmapProfiles: [],
   selectedNmapProfileId: '',
+  masscanProfiles: [],
+  selectedMasscanProfileId: '',
   enumerationTool: 'nmap',
 };
 
@@ -90,6 +92,7 @@ function matrixFormatJobType(type) {
     'ip-recon': 'Passive IP Recon',
     'subdomain-passive-recon': 'Passive Subdomain Recon',
     'nmap-enumeration': 'Active Enumeration',
+    'masscan-enumeration': 'Active Enumeration',
   };
   return mapping[type] || type || 'matrix-job';
 }
@@ -123,7 +126,7 @@ function matrixActiveEnumerationTool() {
 
 function matrixEnumerationDefaultOutputMessage() {
   const tool = matrixActiveEnumerationTool();
-  if (tool === 'masscan') return 'Masscan is not wired into MATRIX yet.';
+  if (tool === 'masscan') return 'Run a Masscan enumeration job.';
   if (tool === 'ffuf') return 'ffuf is not wired into MATRIX yet.';
   return 'Run an enumeration job.';
 }
@@ -550,14 +553,14 @@ function matrixRenderSubdomainResult(result) {
 function matrixRenderJobOverview(job) {
   const counts = job?.result?.counts || {};
   const jobName = job?.input?.name || job?.name || '';
-  const fallbackTitle = job?.type === 'nmap-enumeration'
+  const fallbackTitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
     ? 'MATRIX // Active Enumeration'
     : 'MATRIX // Passive Recon';
   const targetCount = Array.isArray(job?.input?.targets) && job.input.targets.length
     ? job.input.targets.length
     : (Object.prototype.hasOwnProperty.call(counts, 'Targets') ? counts.Targets : 0);
-  const overviewSubtitle = job?.type === 'nmap-enumeration'
-    ? (job?.input?.profileLabel || 'Nmap Scan')
+  const overviewSubtitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
+    ? (job?.input?.profileLabel || (job?.type === 'masscan-enumeration' ? 'Masscan Scan' : 'Nmap Scan'))
     : `${matrixFormatJobType(job.type)} • Job ${job.id || ''}`;
   return `
     <section class="matrix-result-card matrix-result-card--job">
@@ -578,7 +581,7 @@ function matrixRenderJobOverview(job) {
           ${matrixRenderKv('Completed', matrixFormatDate(job.completedAt))}
         `)}
         ${matrixRenderSection('Counts', 'counts', `
-          ${job?.type === 'nmap-enumeration'
+          ${job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
             ? matrixRenderKv('Targets', String(targetCount))
             : (Object.keys(counts).length
               ? Object.entries(counts).map(([key, value]) => matrixRenderKv(key, String(value))).join('')
@@ -597,16 +600,16 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
   const output = result.output || {};
   const isRunning = job?.status === 'queued' || job?.status === 'running';
   const statusTone = job?.status === 'completed' ? 'ok' : (job?.status === 'failed' ? 'bad' : 'warn');
-  const commandLabel = command.rendered || (isRunning ? 'Execution in progress' : 'Command unavailable');
   const targetsLabel = Array.isArray(result.targets) && result.targets.length
     ? result.targets.join(', ')
     : (Array.isArray(job?.input?.targets) && job.input.targets.length ? job.input.targets.join(', ') : 'N/A');
+  const toolLabel = job?.type === 'masscan-enumeration' ? 'Masscan' : 'Nmap';
 
   return `
     <section class="matrix-result-card matrix-result-card--generic">
       <div class="matrix-result-head matrix-result-top">
         <div>
-          <div class="matrix-result-title">${escapeHtml(result.profile?.label || job?.input?.profileLabel || 'Nmap')}</div>
+          <div class="matrix-result-title">${escapeHtml(result.profile?.label || job?.input?.profileLabel || toolLabel)}</div>
         </div>
         <div class="matrix-chip-row">
           ${matrixStatusChip(job?.status || 'unknown', statusTone)}
@@ -617,9 +620,9 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
       <div class="matrix-result-body">
         <div class="matrix-section-grid">
           ${matrixRenderSection('Command', 'resolution', `
-            ${matrixRenderKv('Profile', result.profile?.label || job?.input?.profileLabel || 'N/A')}
+            ${matrixRenderKv('Profile', result.profile?.label || job?.input?.profileLabel || toolLabel)}
             ${matrixRenderKv('Targets', targetsLabel)}
-            ${matrixRenderKv('Command', command.rendered || (isRunning ? 'Waiting for Nmap to complete' : 'N/A'))}
+            ${matrixRenderKv('Command', command.rendered || (isRunning ? `Waiting for ${toolLabel} to complete` : 'N/A'))}
           `)}
           ${matrixRenderSection('Execution', 'counts', `
             ${matrixRenderKv('Status', job?.status || 'unknown')}
@@ -630,7 +633,7 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
         </div>
         ${output.stdout ? `
           <section class="matrix-section matrix-section--neutral matrix-section-status--neutral">
-            <div class="matrix-section-top">NMAP OUTPUT</div>
+            <div class="matrix-section-top">${escapeHtml(toolLabel.toUpperCase())} OUTPUT</div>
             <div class="matrix-section-body">
               <div class="matrix-copy-toolbar">
                 <div class="matrix-copy-meta">Raw CLI output for Quick Log parsing</div>
@@ -685,7 +688,9 @@ function matrixRenderPayload(value) {
           <div>
             <div class="matrix-result-title">Submitting ${escapeHtml(
               matrixState.toolboxModule === 'enumeration'
-                ? (document.getElementById('matrixEnumNaming')?.value.trim() || 'MATRIX // Active Enumeration')
+                ? ((matrixActiveEnumerationTool() === 'masscan'
+                  ? document.getElementById('matrixEnumNamingMasscan')?.value.trim()
+                  : document.getElementById('matrixEnumNaming')?.value.trim()) || 'MATRIX // Active Enumeration')
                 : (document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Passive Recon')
             )}</div>
             <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
@@ -703,7 +708,7 @@ function matrixRenderPayload(value) {
   }
 
   let html = matrixRenderJobOverview({ ...base, result: resultEnvelope });
-  if ((base?.type || summary?.type) === 'nmap-enumeration' || resultEnvelope?.command?.rendered) {
+  if ((base?.type || summary?.type) === 'nmap-enumeration' || (base?.type || summary?.type) === 'masscan-enumeration' || resultEnvelope?.command?.rendered) {
     html += matrixRenderEnumerationResult(base, resultEnvelope);
   }
   if (results.length) {
@@ -841,11 +846,13 @@ async function initMatrix() {
   document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
   document.getElementById('matrixTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
   document.getElementById('matrixEnumTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
+  document.getElementById('matrixEnumTargetsMasscan')?.addEventListener('keydown', onMatrixTargetsKeydown);
   setMatrixEnumerationTool(matrixState.enumerationTool);
   await Promise.allSettled([
     refreshMatrixStatus(),
     loadMatrixJobs(),
     loadMatrixNmapProfiles(),
+    loadMatrixMasscanProfiles(),
   ]);
 }
 
@@ -865,6 +872,11 @@ function setMatrixEnumerationTool(toolName) {
   if (matrixState.toolboxModule === 'enumeration') {
     const output = matrixActiveOutputNode();
     if (output) output.textContent = matrixEnumerationDefaultOutputMessage();
+  }
+  if (matrixState.enumerationTool === 'nmap') {
+    loadMatrixNmapProfiles().catch(() => {});
+  } else if (matrixState.enumerationTool === 'masscan') {
+    loadMatrixMasscanProfiles().catch(() => {});
   }
 }
 
@@ -890,6 +902,7 @@ function setMatrixToolboxModule(moduleName) {
   if (matrixState.toolboxModule === 'enumeration') {
     setMatrixEnumerationTool(matrixState.enumerationTool);
     if (matrixActiveEnumerationTool() === 'nmap') loadMatrixNmapProfiles();
+    if (matrixActiveEnumerationTool() === 'masscan') loadMatrixMasscanProfiles();
   }
 
   loadMatrixJobs();
@@ -911,10 +924,18 @@ async function refreshMatrixStatus() {
     matrixSetEnumCapability(capabilities?.runtime?.nmap?.available
       ? `Nmap available${capabilities.runtime.nmap.version ? ` • ${capabilities.runtime.nmap.version}` : ''}`
       : `Nmap unavailable${capabilities?.runtime?.nmap?.detail ? ` • ${capabilities.runtime.nmap.detail}` : ''}`);
+    const masscanNode = document.getElementById('matrixMasscanCapability');
+    if (masscanNode) {
+      masscanNode.textContent = capabilities?.runtime?.masscan?.available
+        ? `Masscan available${capabilities.runtime.masscan.version ? ` • ${capabilities.runtime.masscan.version}` : ''}`
+        : `Masscan unavailable${capabilities?.runtime?.masscan?.detail ? ` • ${capabilities.runtime.masscan.detail}` : ''}`;
+    }
     matrixSetStatus('online', 'online');
   } catch (error) {
     matrixState.capabilities = null;
     matrixSetEnumCapability('MATRIX unavailable');
+    const masscanNode = document.getElementById('matrixMasscanCapability');
+    if (masscanNode) masscanNode.textContent = 'MATRIX unavailable';
     matrixSetStatus('offline', 'offline');
   }
 }
@@ -949,9 +970,11 @@ function setMatrixMode(mode) {
 
 function clearMatrixForm() {
   if (matrixState.toolboxModule === 'enumeration') {
-    if (matrixActiveEnumerationTool() !== 'nmap') return;
-    const naming = document.getElementById('matrixEnumNaming');
-    const targets = document.getElementById('matrixEnumTargets');
+    const isNmap = matrixActiveEnumerationTool() === 'nmap';
+    const isMasscan = matrixActiveEnumerationTool() === 'masscan';
+    if (!isNmap && !isMasscan) return;
+    const naming = document.getElementById(isNmap ? 'matrixEnumNaming' : 'matrixEnumNamingMasscan');
+    const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : 'matrixEnumTargetsMasscan');
     if (naming) naming.value = '';
     if (targets) targets.value = '';
     return;
@@ -1011,6 +1034,23 @@ function matrixCurrentNmapProfileDraft() {
   };
 }
 
+function matrixSyncMasscanProfileEditor(profile) {
+  const label = document.getElementById('matrixMasscanProfileLabel');
+  const description = document.getElementById('matrixMasscanProfileDescription');
+  const commandTemplate = document.getElementById('matrixMasscanCommandTemplate');
+  if (label) label.value = profile?.label || '';
+  if (description) description.value = profile?.description || '';
+  if (commandTemplate) commandTemplate.value = profile?.commandTemplate || '';
+}
+
+function matrixCurrentMasscanProfileDraft() {
+  return {
+    label: document.getElementById('matrixMasscanProfileLabel')?.value.trim() || '',
+    description: document.getElementById('matrixMasscanProfileDescription')?.value.trim() || '',
+    commandTemplate: document.getElementById('matrixMasscanCommandTemplate')?.value.trim() || '',
+  };
+}
+
 function matrixHasUnsavedNmapProfileChanges() {
   if (!matrixState.selectedNmapProfileId) return false;
   const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId);
@@ -1021,10 +1061,26 @@ function matrixHasUnsavedNmapProfileChanges() {
     || draft.commandTemplate !== (profile.commandTemplate || '');
 }
 
+function matrixHasUnsavedMasscanProfileChanges() {
+  if (!matrixState.selectedMasscanProfileId) return false;
+  const profile = matrixState.masscanProfiles.find(item => item.id === matrixState.selectedMasscanProfileId);
+  if (!profile) return false;
+  const draft = matrixCurrentMasscanProfileDraft();
+  return draft.label !== (profile.label || '')
+    || draft.description !== (profile.description || '')
+    || draft.commandTemplate !== (profile.commandTemplate || '');
+}
+
 function selectMatrixNmapProfile(profileId) {
   matrixState.selectedNmapProfileId = profileId || '';
   const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId) || null;
   matrixSyncProfileEditor(profile);
+}
+
+function selectMatrixMasscanProfile(profileId) {
+  matrixState.selectedMasscanProfileId = profileId || '';
+  const profile = matrixState.masscanProfiles.find(item => item.id === matrixState.selectedMasscanProfileId) || null;
+  matrixSyncMasscanProfileEditor(profile);
 }
 
 async function loadMatrixNmapProfiles() {
@@ -1059,11 +1115,50 @@ async function loadMatrixNmapProfiles() {
   }
 }
 
+async function loadMatrixMasscanProfiles() {
+  const select = document.getElementById('matrixMasscanProfileSelect');
+  if (!select) return;
+
+  try {
+    const response = await fetch('/api/matrix/enumeration/masscan/profiles');
+    const data = await response.json();
+    if (!response.ok) {
+      select.innerHTML = '<option value="">Profiles unavailable</option>';
+      matrixState.masscanProfiles = [];
+      return;
+    }
+
+    const profiles = Array.isArray(data.profiles) ? data.profiles : [];
+    matrixState.masscanProfiles = profiles;
+    const selected = profiles.find(item => item.id === matrixState.selectedMasscanProfileId)
+      ? matrixState.selectedMasscanProfileId
+      : (profiles[0]?.id || '');
+    matrixState.selectedMasscanProfileId = selected;
+
+    select.innerHTML = [
+      '<option value="">New profile</option>',
+      ...profiles.map(profile => `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.label)}</option>`),
+    ].join('');
+    select.value = selected;
+    matrixSyncMasscanProfileEditor(profiles.find(item => item.id === selected) || null);
+  } catch (_) {
+    select.innerHTML = '<option value="">Profiles unavailable</option>';
+    matrixState.masscanProfiles = [];
+  }
+}
+
 function newMatrixNmapProfile() {
   matrixState.selectedNmapProfileId = '';
   const select = document.getElementById('matrixNmapProfileSelect');
   if (select) select.value = '';
   matrixSyncProfileEditor(null);
+}
+
+function newMatrixMasscanProfile() {
+  matrixState.selectedMasscanProfileId = '';
+  const select = document.getElementById('matrixMasscanProfileSelect');
+  if (select) select.value = '';
+  matrixSyncMasscanProfileEditor(null);
 }
 
 async function saveMatrixNmapProfile() {
@@ -1090,6 +1185,30 @@ async function saveMatrixNmapProfile() {
   matrixSetOutput({ profile: data, saved: true });
 }
 
+async function saveMatrixMasscanProfile() {
+  const { label, description, commandTemplate } = matrixCurrentMasscanProfileDraft();
+  const body = { label, description, commandTemplate, enabled: true };
+  const isUpdate = Boolean(matrixState.selectedMasscanProfileId);
+  const path = isUpdate
+    ? `/api/matrix/enumeration/masscan/profiles/${encodeURIComponent(matrixState.selectedMasscanProfileId)}`
+    : '/api/matrix/enumeration/masscan/profiles';
+
+  const response = await fetch(path, {
+    method: isUpdate ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    matrixSetOutput(data);
+    return;
+  }
+
+  matrixState.selectedMasscanProfileId = data.id;
+  await loadMatrixMasscanProfiles();
+  matrixSetOutput({ profile: data, saved: true });
+}
+
 async function deleteMatrixNmapProfile() {
   if (!matrixState.selectedNmapProfileId) {
     matrixSetOutput({ error: 'Select a profile to delete' });
@@ -1111,36 +1230,66 @@ async function deleteMatrixNmapProfile() {
   matrixSetOutput('Profile deleted.');
 }
 
+async function deleteMatrixMasscanProfile() {
+  if (!matrixState.selectedMasscanProfileId) {
+    matrixSetOutput({ error: 'Select a profile to delete' });
+    return;
+  }
+
+  const response = await fetch(`/api/matrix/enumeration/masscan/profiles/${encodeURIComponent(matrixState.selectedMasscanProfileId)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    matrixSetOutput(data);
+    return;
+  }
+
+  matrixState.selectedMasscanProfileId = '';
+  await loadMatrixMasscanProfiles();
+  matrixSetOutput('Profile deleted.');
+}
+
 async function runMatrixEnumeration() {
-  if (matrixActiveEnumerationTool() !== 'nmap') {
+  const tool = matrixActiveEnumerationTool();
+  if (tool !== 'nmap' && tool !== 'masscan') {
     matrixSetOutput({ error: `${matrixActiveEnumerationTool()} is not wired into MATRIX yet.` });
     return;
   }
-  if (!matrixState.capabilities?.runtime?.nmap?.available) {
+
+  const runtime = tool === 'masscan'
+    ? matrixState.capabilities?.runtime?.masscan
+    : matrixState.capabilities?.runtime?.nmap;
+  if (!runtime?.available) {
     matrixSetOutput({
-      error: 'Nmap runtime unavailable',
-      detail: matrixState.capabilities?.runtime?.nmap?.detail || 'Install nmap in MATRIX before running enumeration jobs.',
+      error: `${tool === 'masscan' ? 'Masscan' : 'Nmap'} runtime unavailable`,
+      detail: runtime?.detail || `Install ${tool} in MATRIX before running enumeration jobs.`,
     });
     return;
   }
 
-  const targets = document.getElementById('matrixEnumTargets')?.value || '';
-  const name = document.getElementById('matrixEnumNaming')?.value.trim() || '';
-  const profileId = matrixState.selectedNmapProfileId || document.getElementById('matrixNmapProfileSelect')?.value || '';
+  const isNmap = tool === 'nmap';
+  const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : 'matrixEnumTargetsMasscan')?.value || '';
+  const name = document.getElementById(isNmap ? 'matrixEnumNaming' : 'matrixEnumNamingMasscan')?.value.trim() || '';
+  const profileId = isNmap
+    ? (matrixState.selectedNmapProfileId || document.getElementById('matrixNmapProfileSelect')?.value || '')
+    : (matrixState.selectedMasscanProfileId || document.getElementById('matrixMasscanProfileSelect')?.value || '');
   if (!profileId) {
-    matrixSetOutput({ error: 'Select a saved Nmap profile before running enumeration.' });
+    matrixSetOutput({ error: `Select a saved ${isNmap ? 'Nmap' : 'Masscan'} profile before running enumeration.` });
     return;
   }
-  if (matrixHasUnsavedNmapProfileChanges()) {
+  if ((isNmap && matrixHasUnsavedNmapProfileChanges()) || (!isNmap && matrixHasUnsavedMasscanProfileChanges())) {
     matrixSetOutput({ error: 'Profile has unsaved changes. Save first or discard.' });
     return;
   }
   const body = { text: targets, profileId };
   if (name) body.name = name;
 
-  matrixSetOutput({ submitting: true, path: '/api/matrix/enumeration/nmap/run', body });
+  const path = isNmap ? '/api/matrix/enumeration/nmap/run' : '/api/matrix/enumeration/masscan/run';
+  matrixSetOutput({ submitting: true, path, body });
 
-  const response = await fetch('/api/matrix/enumeration/nmap/run', {
+  const response = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -1174,10 +1323,7 @@ function pollMatrixJob(jobId) {
 async function loadMatrixJobs() {
   const list = matrixActiveJobsListNode();
   if (!list) return;
-  const type = matrixState.toolboxModule === 'enumeration'
-    ? 'nmap-enumeration'
-    : '';
-  const suffix = type ? `?limit=16&type=${encodeURIComponent(type)}` : '?limit=32';
+  const suffix = matrixState.toolboxModule === 'enumeration' ? '?limit=32' : '?limit=32';
   const response = await fetch(`/api/matrix/jobs${suffix}`);
   const data = await response.json();
   if (!response.ok) {
@@ -1186,7 +1332,7 @@ async function loadMatrixJobs() {
   }
   const jobs = (Array.isArray(data.jobs) ? data.jobs : []).filter(job => (
     matrixState.toolboxModule === 'enumeration'
-      ? job?.type === 'nmap-enumeration'
+      ? job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
       : job?.type === 'domain-recon' || job?.type === 'ip-recon' || job?.type === 'subdomain-passive-recon'
   )).slice(0, 8);
   if (!jobs.length) {
@@ -1237,6 +1383,11 @@ window.selectMatrixNmapProfile = selectMatrixNmapProfile;
 window.newMatrixNmapProfile = newMatrixNmapProfile;
 window.saveMatrixNmapProfile = saveMatrixNmapProfile;
 window.deleteMatrixNmapProfile = deleteMatrixNmapProfile;
+window.loadMatrixMasscanProfiles = loadMatrixMasscanProfiles;
+window.selectMatrixMasscanProfile = selectMatrixMasscanProfile;
+window.newMatrixMasscanProfile = newMatrixMasscanProfile;
+window.saveMatrixMasscanProfile = saveMatrixMasscanProfile;
+window.deleteMatrixMasscanProfile = deleteMatrixMasscanProfile;
 window.runMatrixEnumeration = runMatrixEnumeration;
 window.loadMatrixJobs = loadMatrixJobs;
 window.openMatrixJob = openMatrixJob;

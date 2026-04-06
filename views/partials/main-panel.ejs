@@ -126,8 +126,45 @@
                   <div class="matrix-enum-block">
                     <div class="matrix-label">Module</div>
                     <div class="matrix-enum-title">Masscan</div>
-                    <div class="matrix-enum-copy">Masscan is not wired into MATRIX yet. This page is reserved for saved Masscan command profiles and raw output once the backend route exists.</div>
-                    <div class="matrix-enum-copy">Use Nmap for now if you need immediate enumeration output inside PRAGMA.</div>
+                    <div class="matrix-enum-copy" id="matrixMasscanCapability">Checking Masscan runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved Masscan profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> when you want to extract discovered services manually.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixMasscanProfileSelect" onchange="selectMatrixMasscanProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixMasscanProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNamingMasscan">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNamingMasscan" type="text" placeholder="optional: Fast edge sweep">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixMasscanProfileLabel" type="text" placeholder="Top TCP 1000">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixMasscanProfileDescription" type="text" placeholder="Fast scan of the top 1000 TCP ports">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanCommandTemplate">Masscan Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixMasscanCommandTemplate" placeholder="masscan --top-ports 1000 --rate 1000 {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Keep Masscan output raw-first for copy and later parsing.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargetsMasscan">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargetsMasscan" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                    <div class="matrix-enum-copy">Masscan is best used for broad fast discovery. Use tighter targets and explicit port ranges when you want more controlled output.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixMasscanProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixMasscanProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixMasscanProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
                   </div>
                 </div>
                 <div class="matrix-enum-tool-panel" id="matrixEnumToolFfuf" hidden>

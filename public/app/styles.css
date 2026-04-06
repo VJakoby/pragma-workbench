@@ -4803,7 +4803,7 @@ body.enc-active-body .content-panel {
 }
 .app-tooltip.visible{opacity:1}
 
-.matrix-view { display:flex; flex-direction:column; gap:0; padding:0; overflow:auto; font-family:'Inter',sans-serif; }
+.matrix-view { display:flex; flex-direction:column; gap:12px; padding:12px; overflow:auto; font-family:'Inter',sans-serif; }
 .matrix-module-panel[hidden],
 .matrix-submodule-card[hidden] {
   display:none !important;
@@ -4973,8 +4973,8 @@ body.enc-active-body .content-panel {
   background:var(--muted);
   border-color:var(--border2);
 }
-.matrix-grid { display:grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap:14px; align-items:start; }
-.matrix-card { display:flex; flex-direction:column; gap:10px; padding:14px; border:1px solid var(--border); border-radius:4px; background:var(--bg2); min-height:0; }
+.matrix-grid { display:grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap:16px; align-items:start; }
+.matrix-card { display:flex; flex-direction:column; gap:12px; padding:16px; border:1px solid var(--border); border-radius:4px; background:var(--bg2); min-height:0; }
 .matrix-card-wide { grid-column: 1 / -1; }
 .matrix-card-hdr { color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
 .matrix-mode-row { display:flex; width:max-content; }

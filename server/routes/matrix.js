@@ -187,6 +187,40 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
       body: JSON.stringify(req.body || {}),
     }, 15000);
   });
+
+  app.get('/api/matrix/enumeration/masscan/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/masscan/profiles', {}, 5000);
+  });
+
+  app.post('/api/matrix/enumeration/masscan/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/masscan/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.put('/api/matrix/enumeration/masscan/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/masscan/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.delete('/api/matrix/enumeration/masscan/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/masscan/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'DELETE',
+    }, 8000);
+  });
+
+  app.post('/api/matrix/enumeration/masscan/run', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/masscan/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 15000);
+  });
 }
 
 module.exports = { registerMatrixRoutes };
