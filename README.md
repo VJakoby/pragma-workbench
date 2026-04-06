@@ -106,12 +106,30 @@ A persistent in-session capture tool accessible from the topbar:
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
 
+<<<<<<< evidence-feature
+Ports, paths, loot, and TODO items persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
+
+**Evidence**
+
+PRAGMA also includes a dedicated Evidence workflow for preserving proof directly from session notes, rather than retyping it into a second table.
+
+- **Selection-driven capture** — select a command, line, or markdown block in the note editor and use **Add as Evidence**
+- **Typed evidence entries** — supported categories include Enumeration, Initial Access, Execution, Persistence, Privilege Escalation, Credential Access, Discovery, Lateral Movement, Pivoting, Collection, Exfiltration, Cleanup, and Proof
+- **Source-linked tracking** — each Evidence entry stays linked to the original note and supports jumping back to the exact flagged source block
+- **Optional Loot creation** — when adding Evidence, you can also create a Loot entry from the same selection and optionally sync cleartext/hash material into the `Credentials` note
+- **Evidence management** — the Evidence panel supports filtering by type and target, inline editing, and unflagging while keeping the original note content
+- **Clean markdown export** — Evidence markers are used internally in notes, but are stripped from exported markdown/session exports so generated files stay readable
+
+This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
+
+=======
 Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
 
 **TODO**
 
 A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
 
+>>>>>>> project-refactor-dev
 **Knowledge Base & Tactics**
 - Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
 - Editable in-UI with live disk write-back and auto re-index on change
