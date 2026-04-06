@@ -105,9 +105,11 @@ A persistent in-session capture tool accessible from the topbar:
 - **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
+Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
 
-<<<<<<< evidence-feature
-Ports, paths, loot, and TODO items persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
+**TODO**
+
+A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
 
 **Evidence**
 
@@ -122,14 +124,6 @@ PRAGMA also includes a dedicated Evidence workflow for preserving proof directly
 
 This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
 
-=======
-Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
-
-**TODO**
-
-A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
-
->>>>>>> project-refactor-dev
 **Knowledge Base & Tactics**
 - Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
 - Editable in-UI with live disk write-back and auto re-index on change

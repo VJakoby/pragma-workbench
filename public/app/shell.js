@@ -4,7 +4,9 @@ const ACCENT_COLORS = [
 ];
 
 const THEME_ORDER = ['dark', 'light'];
+const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
+const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', 'search']);
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 

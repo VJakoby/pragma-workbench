@@ -1322,16 +1322,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-color:rgba(var(--green-rgb),0.28);
   color:#111827;
 }
-
-<<<<<<< evidence-feature
-[data-theme="dim"] .md-content code:not(pre code){
-  background:rgba(var(--accent-rgb),0.1);
-  border-color:rgba(var(--accent-rgb),0.22);
-  color:#ece6ff;
-}
-
-=======
->>>>>>> project-refactor-dev
 /* IP injection highlight */
 .ip-injected{font-weight:600}
 .ip-injected-ip{color:var(--green)}
@@ -1818,7 +1808,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
   letter-spacing: 0.05em; border-radius: 4px; padding: 2px 8px;
   border: 1px solid transparent; flex-shrink: 0; margin-left: auto;
 }
-<<<<<<< evidence-feature
 .engram-pill.online  { color: var(--green);  background: rgba(var(--green-rgb),0.1);  border-color: rgba(var(--green-rgb),0.3); }
 .engram-pill.offline { color: var(--red);    background: rgba(248,113,113,0.1);        border-color: rgba(248,113,113,0.3); }
 .engram-pill.checking{ color: var(--muted);  background: var(--bg3);                   border-color: var(--border); }
@@ -1828,19 +1817,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .engram-pill.online  .engram-pill-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
 .engram-pill.offline .engram-pill-dot { background: var(--red); }
 .engram-pill.checking .engram-pill-dot { background: var(--muted); }
-
-=======
-.engram-pill.online  { color: var(--green);  background: rgba(var(--green-rgb),0.1);  border-color: rgba(var(--green-rgb),0.3); }
-.engram-pill.offline { color: var(--red);    background: rgba(248,113,113,0.1);        border-color: rgba(248,113,113,0.3); }
-.engram-pill.checking{ color: var(--muted);  background: var(--bg3);                   border-color: var(--border); }
-.engram-pill-dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-}
-.engram-pill.online  .engram-pill-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.engram-pill.offline .engram-pill-dot { background: var(--red); }
-.engram-pill.checking .engram-pill-dot { background: var(--muted); }
-
->>>>>>> project-refactor-dev
 .results-list{
   flex:1;
   overflow-y:auto;
@@ -2150,12 +2126,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding:1px 5px;
 }
 
-<<<<<<< evidence-feature
-.cmd-results{flex:1 1 auto;overflow-y:auto;min-height:0}
-.cmd-results::-webkit-scrollbar{width:3px}
-.cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
-
-=======
 .cmd-results{
   flex:1 1 auto;
   overflow-y:auto;
@@ -2164,8 +2134,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .cmd-results::-webkit-scrollbar{width:3px}
 .cmd-results::-webkit-scrollbar-thumb{background:var(--border2)}
-
->>>>>>> project-refactor-dev
 .cmd-group-hdr{
   padding:8px 10px 5px;
   font-family:'JetBrains Mono', monospace;
@@ -2323,21 +2291,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .sidebar-toggle-btn:hover .sidebar-toggle-mark,
 .sidebar-toggle-btn:active .sidebar-toggle-mark { color: var(--accent2); }
-<<<<<<< evidence-feature
-.sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
-/* ── Sidebar icon-only mode ── */
-.sidebar { transition: width 0.18s ease, border-color 0.4s, box-shadow 0.4s; }
-.sidebar.sidebar-icon-only {
-  width: 44px !important; min-width: 44px;
-}
-=======
 .sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
 /* ── Sidebar icon-only mode ── */
 .sidebar { transition: width 0.16s ease, border-color 0.12s ease, box-shadow 0.12s ease; }
 .sidebar.sidebar-icon-only {
   width: 44px !important; min-width: 44px;
 }
->>>>>>> project-refactor-dev
 .sidebar.sidebar-icon-only .sidebar-section-hdr,
 .sidebar.sidebar-icon-only .sidebar-subsection-hdr,
 .sidebar.sidebar-icon-only .nav-item-label,
@@ -2661,17 +2620,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
   background: rgba(249,115,22,0.16);
   box-shadow: inset 0 0 0 1px rgba(249,115,22,0.22);
 }
-<<<<<<< evidence-feature
-.note-item-pin { display: inline-block; font-size: 10px; margin-left: 3px; color: #f97316; vertical-align: middle; }
-
-/* ── Note timestamps bar ── */
-.note-timestamps {
-  display: flex; gap: 10px; align-items: center;
-  padding: 3px 14px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-=======
 .note-item-pin { display: inline-block; font-size: 10px; margin-right: 4px; color: #f97316; vertical-align: middle; }
 
 /* ── Note timestamps bar ── */
@@ -2682,18 +2630,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   position: relative;
->>>>>>> project-refactor-dev
 }
 .note-ts {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   color: var(--muted); white-space: nowrap;
 }
 .note-ts strong { color: var(--text2); font-weight: 600; }
-<<<<<<< evidence-feature
-.note-save-status { font-size: 11px; }
-
-/* ── Note wiki links [[...]] ── */
-=======
 .note-save-status {
   font-size: 10px;
   position: absolute;
@@ -2705,7 +2647,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 
 /* ── Note wiki links [[...]] ── */
->>>>>>> project-refactor-dev
 .note-wikilink {
   color: var(--accent); cursor: pointer;
   background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
@@ -3576,13 +3517,6 @@ body.is-resizing *{cursor:col-resize!important}
   line-height: 1;
   box-sizing: border-box;
 }
-<<<<<<< evidence-feature
-
-/* Tag filter in sidebar */
-.tag-filter-scroll {
-  padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
-}
-=======
 [data-theme="light"] .note-item-tag {
   color: #315b63;
   background: rgba(127, 181, 191, 0.14);
@@ -3593,7 +3527,6 @@ body.is-resizing *{cursor:col-resize!important}
 .tag-filter-scroll {
   padding: 0 10px 8px; display: flex; flex-wrap: wrap; gap: 4px;
 }
->>>>>>> project-refactor-dev
 .tag-filter-chip {
   font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
   color: var(--muted); background: var(--bg3); border: 1px solid var(--border);
@@ -3720,32 +3653,6 @@ body.is-resizing *{cursor:col-resize!important}
 .shortcut-keys {
   display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
-<<<<<<< evidence-feature
-.shortcut-keys {
-  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
-}
-kbd {
-  font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700;
-  color: var(--text); background: var(--bg4);
-  border: 1px solid var(--border2); border-bottom-width: 2px;
-  border-radius: 4px; padding: 2px 7px; line-height: 1.6;
-}
-
-/* ── Logo image (future) — uncomment when logo is added
-── */
-
-/* ── Result card right column: score + badges stacked ── */
-.result-card-right {
-  display: flex; flex-direction: column; align-items: flex-end;
-  gap: 4px; flex-shrink: 0; margin-left: 10px;
-}
-.result-card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-
-/* note-textarea and cp-edit-textarea styled via CodeMirror */
-
-/* ── CodeMirror 6 editor integration ── */
-.cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-=======
 kbd {
   font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
   color: var(--text); background: var(--bg4);
@@ -3767,7 +3674,6 @@ kbd {
 
 /* ── CodeMirror 6 editor integration ── */
 .cm-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
->>>>>>> project-refactor-dev
 .cm-wrap .cm-editor {
   flex: 1; height: 100%; font-size: var(--editor-font-size, 14px); font-family: var(--editor-font-family, 'JetBrains Mono', monospace);
   background: transparent !important;

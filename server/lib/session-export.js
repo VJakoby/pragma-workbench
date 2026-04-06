@@ -454,7 +454,6 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
     const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
     lines.push(`#### ${resolvedTitle}`);
-    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
     const headingText = leadingHeading?.text || resolvedTitle;
     const renderTitleHeading = normalizeHeadingText(headingText) !== normalizeHeadingText(bucket.label);
