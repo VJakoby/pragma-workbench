@@ -26,6 +26,12 @@
 
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">
+          <div class="search-toolbar-status-row">
+            <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
+              <span class="engram-pill-dot"></span>
+              <span id="engramPillLabel">ENGRAM&hellip;</span>
+            </div>
+          </div>
           <div class="search-input-row">
             <div class="search-big">
               <span class="search-big-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -42,10 +48,6 @@
               </div>
             </div>
             <button class="search-clear-btn" onclick="clearSearch()">&times; Clear</button>
-            <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
-              <span class="engram-pill-dot"></span>
-              <span id="engramPillLabel">ENGRAM&hellip;</span>
-            </div>
           </div>
           <div class="search-controls-row">
             <span class="ctrl-label">Scope</span>

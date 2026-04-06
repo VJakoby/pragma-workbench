@@ -1709,6 +1709,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   background: var(--bg2);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
+.search-toolbar-status-row{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  min-height: 0;
+}
 .search-input-row{
   display:flex;align-items:center;gap:8px;
 }
@@ -1732,15 +1738,17 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .search-big-icon svg { width:14px; height:14px; }
 .search-clear-btn{
   background:var(--bg3);border:1px solid var(--border);border-radius:6px;
-  color:var(--muted);padding:0 12px;cursor:pointer;transition:all 0.15s;
-  font-size:12px;font-family:'Inter',sans-serif;white-space:nowrap;
-  height:36px;
+  color:var(--muted);padding:0 10px;cursor:pointer;
+  transition:background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  font-size:11px;font-family:'Inter',sans-serif;white-space:nowrap;
+  height:32px;
+  align-self:center;
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  letter-spacing:0.03em;
 }
 .search-clear-btn:hover{border-color:var(--border2);color:var(--text)}
-.search-input-row .engram-pill{margin-left:0}
 
 .search-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 2px}
 .ctrl-label{
@@ -1781,7 +1789,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 
 .search-status{
   font-family:'Inter',sans-serif;font-size:11px;font-weight:600;
-  color:var(--text2);margin-left:auto;
+  color:var(--text2);
 }
 .search-meta{
   font-family:'Inter',sans-serif;font-size:11px;
