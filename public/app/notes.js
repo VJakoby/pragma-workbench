@@ -175,6 +175,7 @@ async function openTemplatesConfig(navEl) {
   }
   activeNoteId = null;
   activeConfigDoc = 'templates';
+  if (typeof persistLastLocation === 'function') persistLastLocation({ view: 'notes', noteId: null, configDoc: 'templates' });
   switchView('notes', navEl || document.getElementById('nav-config-templates'));
   renderNotesList();
 
@@ -206,6 +207,7 @@ async function openTemplatesConfig(navEl) {
 function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
   activeConfigDoc = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('configDoc');
   setNoteEditorMode('note');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
@@ -549,6 +551,7 @@ async function openNote(id) {
   const n = notes[id];
   if (!n) return;
   activeNoteId = id;
+  if (typeof persistLastLocation === 'function') persistLastLocation({ view: 'notes', noteId: id, configDoc: null });
 
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
@@ -766,6 +769,7 @@ async function deleteCurrentNote() {
   catch { return; }
   delete notes[activeNoteId];
   activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   saveNotes();
   renderNotesList();
   renderSessionSidebar();
@@ -789,6 +793,7 @@ async function closeCurrentNote() {
   await persistActiveNote({ reason: 'note-close', immediate: true, noteId: closingNoteId });
   if (activeNoteId !== closingNoteId) return;
   activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
   document.getElementById('noteReassignDropdown')?.classList.remove('open');
