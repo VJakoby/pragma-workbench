@@ -101,7 +101,7 @@ function setNoteEditorMode(mode) {
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
     if (isConfig) {
-      badge.textContent = '⚙ Templates';
+      badge.textContent = '⚙ Note Templates';
       badge.className = 'note-item-type note-type-config';
     }
   }
@@ -197,6 +197,7 @@ async function openTemplatesConfig(navEl) {
   }
   activeNoteId = null;
   activeConfigDoc = 'templates';
+  if (typeof persistLastLocation === 'function') persistLastLocation({ view: 'notes', noteId: null, configDoc: 'templates' });
   switchView('notes', navEl || document.getElementById('nav-config-templates'));
   renderNotesList();
 
@@ -205,7 +206,7 @@ async function openTemplatesConfig(navEl) {
   area.style.display = 'flex';
 
   const badge = ensureNoteTypeBadge();
-  badge.textContent = '⚙ Templates';
+  badge.textContent = '⚙ Note Templates';
   badge.className = 'note-item-type note-type-config';
 
   const title = document.getElementById('noteTitleInput');
@@ -229,6 +230,7 @@ function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
   hideEvidenceSelectionPrompt();
   activeConfigDoc = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('configDoc');
   setNoteEditorMode('note');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
@@ -337,7 +339,7 @@ function renderNotesList() {
         ${tagsHtml}
         ${sessLabel}
       </div>
-      <div class="note-item-title">${esc(n.title||'Untitled')}${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}</div>
+      <div class="note-item-title">${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}${esc(n.title||'Untitled')}</div>
       <div class="note-item-content">
         <div class="note-item-preview">${esc((n.body||'').slice(0,50).replace(/\n/g,' '))}</div>
       </div>
@@ -573,6 +575,7 @@ async function openNote(id) {
   const n = notes[id];
   if (!n) return;
   activeNoteId = id;
+  if (typeof persistLastLocation === 'function') persistLastLocation({ view: 'notes', noteId: id, configDoc: null });
 
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
@@ -621,11 +624,94 @@ function togglePinNote() {
 }
 
 function resolveNoteLink(rawTitle) {
-  const q = rawTitle.trim().toLowerCase();
+  const source = String(rawTitle || '').trim();
+  const q = source.split('|')[0].trim().toLowerCase();
+  if (!q) return null;
   let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
   if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
+
+function parseWikiLink(raw) {
+  const source = String(raw || '').trim();
+  const pipeIdx = source.indexOf('|');
+  if (pipeIdx === -1) {
+    return { target: source, label: source };
+  }
+  const target = source.slice(0, pipeIdx).trim();
+  const label = source.slice(pipeIdx + 1).trim() || target;
+  return { target, label };
+}
+
+function buildWikiLinkElement(raw) {
+  const { target, label } = parseWikiLink(raw);
+  const targetId = resolveNoteLink(target);
+  const el = document.createElement('span');
+  el.className = `note-wikilink${targetId ? '' : ' broken'}`;
+  el.textContent = label || target;
+  el.title = targetId
+    ? `Open note: ${target}`
+    : `No matching note for: ${target}`;
+
+  if (targetId) {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'link');
+    el.addEventListener('click', () => {
+      if (typeof openNote === 'function') openNote(targetId);
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (typeof openNote === 'function') openNote(targetId);
+      }
+    });
+  }
+
+  return el;
+}
+
+function enhanceNoteWikiLinks(root) {
+  if (!root || typeof document === 'undefined') return;
+  const textNodes = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node?.nodeValue || !node.nodeValue.includes('[[')) return NodeFilter.FILTER_REJECT;
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      if (parent.closest('a, code, pre, .note-wikilink')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  let current;
+  while ((current = walker.nextNode())) textNodes.push(current);
+
+  textNodes.forEach((node) => {
+    const text = node.nodeValue;
+    const re = /\[\[([^\]]+)\]\]/g;
+    let lastIndex = 0;
+    let match;
+    let found = false;
+    const fragment = document.createDocumentFragment();
+
+    while ((match = re.exec(text)) !== null) {
+      found = true;
+      if (match.index > lastIndex) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+      fragment.appendChild(buildWikiLinkElement(match[1]));
+      lastIndex = re.lastIndex;
+    }
+
+    if (!found) return;
+    if (lastIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+    node.parentNode?.replaceChild(fragment, node);
+  });
+}
+
+window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
 
 function getBacklinks(noteId) {
   return Object.values(notes).filter(n => {
@@ -1178,6 +1264,7 @@ async function deleteCurrentNote() {
   catch { return; }
   delete notes[activeNoteId];
   activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   saveNotes();
   renderNotesList();
   renderSessionSidebar();
@@ -1202,6 +1289,7 @@ async function closeCurrentNote() {
   await persistActiveNote({ reason: 'note-close', immediate: true, noteId: closingNoteId });
   if (activeNoteId !== closingNoteId) return;
   activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
   document.getElementById('noteReassignDropdown')?.classList.remove('open');

@@ -4,10 +4,14 @@
 // COMMAND PALETTE
 // ═══════════════════════════════════════════════
 function openCmd() {
-  document.getElementById('cmdOverlay').classList.add('open');
-  document.getElementById('cmdInput').value = '';
+  const overlay = document.getElementById('cmdOverlay');
+  const input = document.getElementById('cmdInput');
+  overlay.classList.add('open');
+  overlay.classList.remove('cmd-has-query');
+  input.value = '';
+  cmdSelected = -1;
   buildCmdResults('');
-  setTimeout(() => document.getElementById('cmdInput').focus(), 30);
+  setTimeout(() => input.focus(), 30);
 }
 
 function buildNoteSearchSnippet(note, query) {
@@ -61,7 +65,8 @@ function getCommandPaletteNoteResults(query) {
 }
 
 function closeCmd() {
-  document.getElementById('cmdOverlay').classList.remove('open');
+  const overlay = document.getElementById('cmdOverlay');
+  overlay.classList.remove('open', 'cmd-has-query');
   cmdSelected = 0; cmdItems = [];
 }
 
@@ -193,6 +198,8 @@ window.addEventListener('resize', () => {
 function buildCmdResults(q) {
   const ql    = String(q || '').toLowerCase().trim();
   const res   = document.getElementById('cmdResults');
+  const overlay = document.getElementById('cmdOverlay');
+  overlay?.classList.toggle('cmd-has-query', ql.length > 0);
   cmdItems    = [];
   let html    = '';
   const folderDocIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
@@ -323,7 +330,7 @@ function buildCmdResults(q) {
   // Search action
   if (ql) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
-    html += `<div class="cmd-group-hdr">Search</div>
+    html += `<div class="cmd-group-hdr">KB Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">
@@ -340,7 +347,7 @@ function buildCmdResults(q) {
   }
 
   res.innerHTML = html;
-  cmdSelected = 0;
+  cmdSelected = -1;
   updateCmdSelection();
 }
 
@@ -348,9 +355,25 @@ function onCmdInput(val) { buildCmdResults(val); }
 
 function onCmdKey(e) {
   if (e.key === 'Escape') { closeCmd(); return; }
-  if (e.key === 'ArrowDown') { e.preventDefault(); cmdSelected = Math.min(cmdSelected+1, cmdItems.length-1); updateCmdSelection(); }
-  if (e.key === 'ArrowUp')   { e.preventDefault(); cmdSelected = Math.max(cmdSelected-1, 0); updateCmdSelection(); }
-  if (e.key === 'Enter')     { e.preventDefault(); execCmd(cmdSelected); }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    cmdSelected = Math.min(cmdSelected + 1, cmdItems.length - 1);
+    if (cmdSelected < 0) cmdSelected = 0;
+    updateCmdSelection();
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    if (cmdSelected < 0) cmdSelected = 0;
+    else cmdSelected = Math.max(cmdSelected - 1, 0);
+    updateCmdSelection();
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    execCmd(cmdSelected >= 0 ? cmdSelected : 0);
+  }
 }
 
 function updateCmdSelection() {
@@ -358,6 +381,15 @@ function updateCmdSelection() {
     el.classList.toggle('selected', i === cmdSelected);
   });
 }
+
+document.addEventListener('mouseover', (e) => {
+  const item = e.target.closest('#cmdResults .cmd-item[data-idx]');
+  if (!item) return;
+  const idx = Number(item.dataset.idx);
+  if (!Number.isFinite(idx) || idx === cmdSelected) return;
+  cmdSelected = idx;
+  updateCmdSelection();
+});
 
 function shouldOpenCmdItemInSidePanel() {
   const noteArea = document.getElementById('noteEditArea');

@@ -150,6 +150,30 @@ function injectTargetPlaceholders(text, target) {
   return output;
 }
 
+function normalizeHeadingText(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function getLeadingMarkdownHeading(body) {
+  const lines = String(body || '').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+    const match = trimmed.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (!match) return null;
+    return { index: i, level: match[1].length, text: match[2].trim() };
+  }
+  return null;
+}
+
+function shiftMarkdownHeadings(body, shift) {
+  if (!shift) return String(body || '');
+  return String(body || '').replace(/^(#{1,6})(\s+.+)$/gm, (_, hashes, rest) => `${'#'.repeat(Math.min(6, hashes.length + shift))}${rest}`);
+}
+
 function buildTypeBuckets(notes, templateMeta) {
   const grouped = new Map();
   notes.forEach((note) => {
@@ -430,13 +454,27 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
     const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
     lines.push(`#### ${resolvedTitle}`);
+    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
+    const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
+    const headingText = leadingHeading?.text || resolvedTitle;
+    const renderTitleHeading = normalizeHeadingText(headingText) !== normalizeHeadingText(bucket.label);
+    const bodyLines = resolvedBody.split('\n');
+
+    if (leadingHeading) bodyLines.splice(leadingHeading.index, 1);
+
+    const shiftedBody = shiftMarkdownHeadings(
+      bodyLines.join('\n').replace(/^\n+/, '').trimEnd(),
+      renderTitleHeading ? 3 : 2
+    );
+
+    if (renderTitleHeading) lines.push(`#### ${headingText}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
     lines.push(`- Created: ${formatTimestamp(noteTimestamp(note))}`);
     if (includeTarget && target) lines.push(`- Target: ${targetLabel(target)}`);
     lines.push('');
-    if (resolvedBody && resolvedBody.trim()) {
-      lines.push(resolvedBody.trimEnd());
+    if (shiftedBody && shiftedBody.trim()) {
+      lines.push(shiftedBody);
       lines.push('');
     }
   });
