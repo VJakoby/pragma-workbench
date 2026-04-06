@@ -11,7 +11,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
-- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation
+- **Not an exploit framework or broad automation platform** — PRAGMA itself is not a scanner or operator platform, though it can optionally integrate supporting modules such as MATRIX to assist with selected recon and enumeration workflows
 - **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
 
 
@@ -262,12 +262,94 @@ Write your KB docs using any of the supported placeholder styles below.
 
 ---
 
+## Modules
+
+PRAGMA can expose optional local modules when they are explicitly enabled for the current deployment.
+
+### ENGRAM // Indexed Search Surface
+
+ENGRAM is the optional indexed search companion used by PRAGMA for `KB Search`. It provides full-text search and preview access across indexed sources and knowledge-base content.
+
+- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram-indexed-search-surface)
+- Purpose: provide the searchable index and preview surface used by PRAGMA’s knowledge-base search workflow
+- Integration model: ENGRAM runs as its own local service/container, and PRAGMA talks to it through the search proxy routes
+
+To bring ENGRAM up as a separate container/service, follow the setup in the ENGRAM repo, then verify it is reachable:
+
+```bash
+curl http://127.0.0.1:3002/api/health
+```
+
+To point PRAGMA at ENGRAM:
+
+```env
+SEARCH_URL=http://127.0.0.1:3002
+```
+
+For Docker-networked setups, PRAGMA can instead use:
+
+```env
+SEARCH_URL=http://engram:3002
+```
+
+Then restart PRAGMA. `KB Search` remains visible in the sidebar, and its status indicator reflects whether ENGRAM is reachable.
+
+In short:
+
+1. build and start ENGRAM as its own service/container
+2. point PRAGMA at the ENGRAM API with `SEARCH_URL`
+3. restart PRAGMA
+
+### MATRIX // Toolbox
+
+MATRIX is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
+
+- Repo: [MATRIX//Toolbox](https://github.com/VJakoby/matrix-toolbox)
+- Purpose: provide API-backed helper workflows such as passive recon, Nmap enumeration, and Masscan enumeration without turning PRAGMA itself into a scanner platform
+- Integration model: MATRIX runs as its own local service, and PRAGMA talks to it through the MATRIX proxy routes
+
+To bring MATRIX up as a separate container:
+
+```bash
+cd ~/matrix-toolbox
+docker compose build --no-cache
+docker compose up -d
+```
+
+Verify it is reachable:
+
+```bash
+curl http://127.0.0.1:3003/healthz
+```
+
+To enable it in PRAGMA:
+
+```env
+MATRIX_ENABLED=true
+MATRIX_URL=http://127.0.0.1:3003
+```
+
+Or use fallback URLs:
+
+```env
+MATRIX_ENABLED=true
+MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
+```
+
+Then restart PRAGMA. If enabled, `Toolbox` appears in the sidebar. If disabled, the module is hidden entirely.
+
+In short:
+
+1. build and start MATRIX as its own service/container
+2. point PRAGMA at the MATRIX API
+3. enable `MATRIX_ENABLED=true`
+4. restart PRAGMA
+
 ## 🛠️ Requirements
 
 - Node.js 20+
 - **Optional:** 
     - docker & docker-compose
-    - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
