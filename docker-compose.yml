@@ -15,7 +15,8 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
       - SEARCH_URL=http://engram:3002                        # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
-      - MATRIX_URL=http://host.docker.internal:3003         # MATRIX is expected to run outside this compose stack and be reachable from the PRAGMA container
+      - MATRIX_ENABLED=false                                 # Enable the optional MATRIX Toolbox integration only when it is deployed and intended for this PRAGMA instance
+      - MATRIX_URL=http://host.docker.internal:3003         # MATRIX is expected to run outside this compose stack and be reachable from the PRAGMA container when MATRIX_ENABLED=true
     restart: unless-stopped
     networks:
       - pragma-net

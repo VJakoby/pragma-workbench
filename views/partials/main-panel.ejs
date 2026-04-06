@@ -23,7 +23,7 @@
         </div>
         <div class="cards-area" id="methGrid"></div>
       </div>
-
+      <% if (matrixEnabled) { %>
       <div class="panel-view" id="view-matrix">
         <div class="matrix-view">
           <div class="matrix-toolbar">
@@ -70,47 +70,73 @@
               <div class="matrix-card-hdr">MATRIX // Active Enumeration</div>
               <div class="matrix-enum-stack">
                 <div class="matrix-enum-block">
-                  <div class="matrix-label">Module</div>
-                  <div class="matrix-enum-title">Nmap</div>
-                  <div class="matrix-enum-copy" id="matrixEnumCapability">Checking Nmap runtime availability...</div>
-                  <div class="matrix-enum-copy">Run a saved Nmap profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> to parse and add the discovered services.</div>
+                  <label class="matrix-label" for="matrixEnumToolSelect">Tool</label>
+                  <select class="matrix-input matrix-select" id="matrixEnumToolSelect" onchange="setMatrixEnumerationTool(this.value)">
+                    <option value="nmap">Nmap</option>
+                    <option value="masscan">Masscan</option>
+                    <option value="ffuf">ffuf</option>
+                  </select>
                 </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixNmapProfileSelect">Saved Profiles</label>
-                  <div class="matrix-inline-row">
-                    <select class="matrix-input matrix-select" id="matrixNmapProfileSelect" onchange="selectMatrixNmapProfile(this.value)"></select>
-                    <button class="tb-btn" type="button" onclick="loadMatrixNmapProfiles()">Refresh</button>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolNmap">
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">Nmap</div>
+                    <div class="matrix-enum-copy" id="matrixEnumCapability">Checking Nmap runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved Nmap profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> to parse and add the discovered services.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixNmapProfileSelect" onchange="selectMatrixNmapProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixNmapProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNaming">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNaming" type="text" placeholder="optional: Internal edge sweep">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixNmapProfileLabel" type="text" placeholder="TCP Service Scan">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixNmapProfileDescription" type="text" placeholder="Container-safe TCP connect service detection">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself, but the main workflow is still the raw Nmap text output.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargets">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargets" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                    <div class="matrix-enum-copy">For best Quick Log results, run one host at a time when you want clean per-target port insertion.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixNmapProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixNmapProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixNmapProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
                   </div>
                 </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixEnumNaming">Naming</label>
-                  <input class="matrix-input" id="matrixEnumNaming" type="text" placeholder="optional: Internal edge sweep">
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolMasscan" hidden>
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">Masscan</div>
+                    <div class="matrix-enum-copy">Masscan is not wired into MATRIX yet. This page is reserved for saved Masscan command profiles and raw output once the backend route exists.</div>
+                    <div class="matrix-enum-copy">Use Nmap for now if you need immediate enumeration output inside PRAGMA.</div>
+                  </div>
                 </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixNmapProfileLabel">Profile Label</label>
-                  <input class="matrix-input" id="matrixNmapProfileLabel" type="text" placeholder="TCP Service Scan">
-                </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixNmapProfileDescription">Description</label>
-                  <input class="matrix-input" id="matrixNmapProfileDescription" type="text" placeholder="Container-safe TCP connect service detection">
-                </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
-                  <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
-                  <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself, but the main workflow is still the raw Nmap text output.</div>
-                </div>
-                <div class="matrix-enum-block">
-                  <label class="matrix-label" for="matrixEnumTargets">Targets</label>
-                  <textarea class="matrix-textarea" id="matrixEnumTargets" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
-                  <div class="matrix-enum-copy">For best Quick Log results, run one host at a time when you want clean per-target port insertion.</div>
-                </div>
-                <div class="matrix-action-row matrix-enum-actions">
-                  <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
-                  <button class="tb-btn" type="button" onclick="saveMatrixNmapProfile()">Save Profile</button>
-                  <button class="tb-btn" type="button" onclick="newMatrixNmapProfile()">New Profile</button>
-                  <button class="tb-btn" type="button" onclick="deleteMatrixNmapProfile()">Delete</button>
-                  <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
-                  <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolFfuf" hidden>
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">ffuf</div>
+                    <div class="matrix-enum-copy">ffuf is not wired into MATRIX yet. This page is reserved for future web content-discovery profiles and raw output capture.</div>
+                    <div class="matrix-enum-copy">Once implemented, this is where saved ffuf templates, targets, and output handoff will live.</div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -133,6 +159,7 @@
           </div>
         </div>
       </div>
+      <% } %>
 
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">

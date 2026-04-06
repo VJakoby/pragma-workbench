@@ -56,7 +56,7 @@
         <div class="sidebar-section-hdr">Tags</div>
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
-
+      <% if (matrixEnabled) { %>
       <div class="sidebar-divider"></div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Modules</div>
@@ -67,6 +67,7 @@
         </div>
       </div>
       <div class="sidebar-divider"></div>
+      <% } %>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Configuration</div>
         <div class="nav-item" onclick="openTemplatesConfig(this)" id="nav-config-templates" title="Note Templates">

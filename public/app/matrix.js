@@ -6,6 +6,7 @@ let matrixState = {
   capabilities: null,
   nmapProfiles: [],
   selectedNmapProfileId: '',
+  enumerationTool: 'nmap',
 };
 
 function escapeHtml(value) {
@@ -101,7 +102,7 @@ function matrixCurrentModuleLabel() {
 
 function matrixDefaultOutputMessage() {
   return matrixState.toolboxModule === 'enumeration'
-    ? 'Run an enumeration job.'
+    ? matrixEnumerationDefaultOutputMessage()
     : 'Run a recon job.';
 }
 
@@ -114,6 +115,17 @@ function matrixActiveTargetsNode() {
 function matrixSetEnumCapability(text) {
   const node = document.getElementById('matrixEnumCapability');
   if (node) node.textContent = text;
+}
+
+function matrixActiveEnumerationTool() {
+  return matrixState.enumerationTool || 'nmap';
+}
+
+function matrixEnumerationDefaultOutputMessage() {
+  const tool = matrixActiveEnumerationTool();
+  if (tool === 'masscan') return 'Masscan is not wired into MATRIX yet.';
+  if (tool === 'ffuf') return 'ffuf is not wired into MATRIX yet.';
+  return 'Run an enumeration job.';
 }
 
 function matrixJobStatusTone(status) {
@@ -829,6 +841,7 @@ async function initMatrix() {
   document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
   document.getElementById('matrixTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
   document.getElementById('matrixEnumTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
+  setMatrixEnumerationTool(matrixState.enumerationTool);
   await Promise.allSettled([
     refreshMatrixStatus(),
     loadMatrixJobs(),
@@ -839,6 +852,20 @@ async function initMatrix() {
 function onMatrixViewOpen() {
   refreshMatrixStatus();
   loadMatrixJobs();
+}
+
+function setMatrixEnumerationTool(toolName) {
+  const allowed = ['nmap', 'masscan', 'ffuf'];
+  matrixState.enumerationTool = allowed.includes(toolName) ? toolName : 'nmap';
+  const select = document.getElementById('matrixEnumToolSelect');
+  if (select) select.value = matrixState.enumerationTool;
+  document.getElementById('matrixEnumToolNmap')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'nmap');
+  document.getElementById('matrixEnumToolMasscan')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'masscan');
+  document.getElementById('matrixEnumToolFfuf')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'ffuf');
+  if (matrixState.toolboxModule === 'enumeration') {
+    const output = matrixActiveOutputNode();
+    if (output) output.textContent = matrixEnumerationDefaultOutputMessage();
+  }
 }
 
 function setMatrixToolboxModule(moduleName) {
@@ -861,7 +888,8 @@ function setMatrixToolboxModule(moduleName) {
   }
 
   if (matrixState.toolboxModule === 'enumeration') {
-    loadMatrixNmapProfiles();
+    setMatrixEnumerationTool(matrixState.enumerationTool);
+    if (matrixActiveEnumerationTool() === 'nmap') loadMatrixNmapProfiles();
   }
 
   loadMatrixJobs();
@@ -921,6 +949,7 @@ function setMatrixMode(mode) {
 
 function clearMatrixForm() {
   if (matrixState.toolboxModule === 'enumeration') {
+    if (matrixActiveEnumerationTool() !== 'nmap') return;
     const naming = document.getElementById('matrixEnumNaming');
     const targets = document.getElementById('matrixEnumTargets');
     if (naming) naming.value = '';
@@ -1083,6 +1112,10 @@ async function deleteMatrixNmapProfile() {
 }
 
 async function runMatrixEnumeration() {
+  if (matrixActiveEnumerationTool() !== 'nmap') {
+    matrixSetOutput({ error: `${matrixActiveEnumerationTool()} is not wired into MATRIX yet.` });
+    return;
+  }
   if (!matrixState.capabilities?.runtime?.nmap?.available) {
     matrixSetOutput({
       error: 'Nmap runtime unavailable',
@@ -1195,6 +1228,7 @@ window.initMatrix = initMatrix;
 window.onMatrixViewOpen = onMatrixViewOpen;
 window.refreshMatrixStatus = refreshMatrixStatus;
 window.setMatrixToolboxModule = setMatrixToolboxModule;
+window.setMatrixEnumerationTool = setMatrixEnumerationTool;
 window.setMatrixMode = setMatrixMode;
 window.clearMatrixForm = clearMatrixForm;
 window.submitMatrixJob = submitMatrixJob;

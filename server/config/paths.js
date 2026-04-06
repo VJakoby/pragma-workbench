@@ -7,6 +7,7 @@ function createPaths(rootDir) {
   return {
     PORT: process.env.PORT || 3000,
     HOST: process.env.HOST || '127.0.0.1',
+    MATRIX_ENABLED: String(process.env.MATRIX_ENABLED || 'false').toLowerCase() === 'true',
     KB_DIR,
     SERVICES_DIR: path.join(KB_DIR, 'services'),
     TACTICS_DIR: path.join(KB_DIR, 'tactics'),

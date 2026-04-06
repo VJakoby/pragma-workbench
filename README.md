@@ -107,6 +107,7 @@ Ports, paths, loot, and TODO items persist per session alongside notes. Ports an
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
 - Local/remote scope filter, source filter, and query-term snippet highlighting in results
 - Degrades gracefully if ENGRAM is offline, with a one-click reachability check
+- Supports optional module integrations such as MATRIX, enabled explicitly per deployment through environment flags
 - Local KB previews support quick switching between sibling notes in the same category/folder
 
 **Workbench Reliability**

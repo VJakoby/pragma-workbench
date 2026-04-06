@@ -18,9 +18,41 @@
 
 'use strict';
 
-const express = require('express');
 const fs = require('fs');
 const path = require('path');
+
+function loadEnvFile(filePath) {
+  let raw = '';
+  try {
+    raw = fs.readFileSync(filePath, 'utf8');
+  } catch (_) {
+    return { loaded: false, filePath, imported: 0 };
+  }
+
+  let imported = 0;
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!match) continue;
+
+    const key = match[1];
+    if (Object.prototype.hasOwnProperty.call(process.env, key)) continue;
+
+    let value = match[2] || '';
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+    imported += 1;
+  }
+
+  return { loaded: true, filePath, imported };
+}
+
+const envLoad = loadEnvFile(path.resolve(__dirname, '..', '.env'));
+
+const express = require('express');
 const { marked } = require('marked');
 const { createPaths } = require('./config/paths');
 const { sanitizeRenderedHtml } = require('./lib/html-sanitize');
@@ -46,6 +78,7 @@ const {
   TEMPLATES_FILE,
   SEARCH_URL,
   MATRIX_URL,
+  MATRIX_ENABLED,
   HOST,
 } = createPaths(path.resolve(__dirname, '..'));
 
@@ -62,6 +95,7 @@ marked.setOptions({ gfm: true, breaks: false });
 const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(String(markdown || '')));
 
 const app = express();
+app.locals.matrixEnabled = MATRIX_ENABLED;
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'ejs');
 app.use(express.json());
@@ -83,11 +117,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.render('app');
+  res.render('app', { matrixEnabled: MATRIX_ENABLED });
 });
 
 app.get('/app.html', (req, res) => {
-  res.render('app');
+  res.render('app', { matrixEnabled: MATRIX_ENABLED });
 });
 
 registerKbRoutes(app, {
@@ -106,7 +140,7 @@ registerKbRoutes(app, {
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });
-registerMatrixRoutes(app, { matrixUrl: MATRIX_URL });
+if (MATRIX_ENABLED) registerMatrixRoutes(app, { matrixUrl: MATRIX_URL });
 registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
 registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage });
 
@@ -144,6 +178,7 @@ app.listen(PORT, HOST, () => {
   console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
   console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})\n`);
+  console.log(`  Env      → ${envLoad.loaded ? `${envLoad.filePath} (${envLoad.imported} imported)` : `${envLoad.filePath} (not found)`}`);
   if (kbSubdirs.length) {
     console.log('  ============= KB Subdirectories =============');
     kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));
