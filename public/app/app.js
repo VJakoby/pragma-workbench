@@ -4,14 +4,69 @@
 // COMMAND PALETTE
 // ═══════════════════════════════════════════════
 function openCmd() {
-  document.getElementById('cmdOverlay').classList.add('open');
-  document.getElementById('cmdInput').value = '';
+  const overlay = document.getElementById('cmdOverlay');
+  const input = document.getElementById('cmdInput');
+  overlay.classList.add('open');
+  overlay.classList.remove('cmd-has-query');
+  input.value = '';
+  cmdSelected = -1;
   buildCmdResults('');
-  setTimeout(() => document.getElementById('cmdInput').focus(), 30);
+  setTimeout(() => input.focus(), 30);
+}
+
+function buildNoteSearchSnippet(note, query) {
+  const q = String(query || '').trim().toLowerCase();
+  const body = String(note?.body || '').replace(/\s+/g, ' ').trim();
+  if (!q) return body.slice(0, 90);
+  const idx = body.toLowerCase().indexOf(q);
+  if (idx === -1) return body.slice(0, 90);
+  const start = Math.max(0, idx - 26);
+  const end = Math.min(body.length, idx + q.length + 40);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < body.length ? '…' : '';
+  return prefix + body.slice(start, end) + suffix;
+}
+
+function highlightCmdMatch(text, query) {
+  const source = String(text || '');
+  const q = String(query || '').trim();
+  if (!q) return esc(source);
+  const lower = source.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx === -1) return esc(source);
+  const before = esc(source.slice(0, idx));
+  const match = esc(source.slice(idx, idx + q.length));
+  const after = esc(source.slice(idx + q.length));
+  return `${before}<span class="cmd-item-match">${match}</span>${after}`;
+}
+
+function getCommandPaletteNoteResults(query) {
+  const q = String(query || '').trim().toLowerCase();
+  return Object.values(notes)
+    .map(note => {
+      const title = String(note?.title || '');
+      const body = String(note?.body || '');
+      const tags = Array.isArray(note?.tags) ? note.tags : [];
+      const titleLower = title.toLowerCase();
+      const bodyLower = body.toLowerCase();
+      const tagHit = tags.find(tag => String(tag || '').toLowerCase().includes(q));
+      const titleIdx = q ? titleLower.indexOf(q) : -1;
+      const bodyIdx = q ? bodyLower.indexOf(q) : -1;
+      const score =
+        (titleIdx === 0 ? 120 : titleIdx > -1 ? 90 : 0) +
+        (bodyIdx === 0 ? 70 : bodyIdx > -1 ? 55 : 0) +
+        (tagHit ? 40 : 0) +
+        Math.max(0, 20 - Math.min(titleIdx > -1 ? titleIdx : 20, 20));
+      return { note, score, tagHit };
+    })
+    .filter(entry => q && entry.score > 0)
+    .sort((a, b) => (b.score - a.score) || ((b.note.updated || 0) - (a.note.updated || 0)))
+    .slice(0, 8);
 }
 
 function closeCmd() {
-  document.getElementById('cmdOverlay').classList.remove('open');
+  const overlay = document.getElementById('cmdOverlay');
+  overlay.classList.remove('open', 'cmd-has-query');
   cmdSelected = 0; cmdItems = [];
 }
 
@@ -37,11 +92,13 @@ const TOOLTIP_TARGET_SELECTOR = [
   '.svc-clear-btn[title]',
   '.svc-quick-add-btn[title]',
   '.todo-check-btn[title]',
+  '.todo-edit-btn[title]',
+  '.ql-row-edit-btn[title]',
   '.todo-del-btn[title]',
   '.session-item-export-btn[title]',
   '.target-item-del[title]',
   '.svc-del-btn[title]',
-  '.notes-list-reopen-btn[title]',
+  '.notes-list-edge-btn[title]',
   '.cmd-trigger[title]',
   '.theme-toggle-btn[title]',
   '.sidebar-info-btn[title]',
@@ -139,12 +196,15 @@ window.addEventListener('resize', () => {
 });
 
 function buildCmdResults(q) {
-  const ql    = q.toLowerCase().trim();
+  const ql    = String(q || '').toLowerCase().trim();
   const res   = document.getElementById('cmdResults');
+  const overlay = document.getElementById('cmdOverlay');
+  overlay?.classList.toggle('cmd-has-query', ql.length > 0);
   cmdItems    = [];
   let html    = '';
   const folderDocIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
   const noteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  const stripLeadingEmoji = (text) => String(text || '').replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '').trim();
 
   const pushCmdItem = ({ type, id, label, icon, title, sub, tag }) => {
     cmdItems.push({ type, id, label });
@@ -187,7 +247,7 @@ function buildCmdResults(q) {
           id: s.id,
           label: s.name,
           icon: s.icon || ICONS.notes,
-          title: esc(s.name),
+          title: esc(stripLeadingEmoji(s.name)),
           sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || cat.label || '')}`,
           tag: 'service',
         });
@@ -213,7 +273,7 @@ function buildCmdResults(q) {
         id: s.id,
         label: s.name,
         icon: s.icon || ICONS.notes,
-        title: esc(s.name),
+        title: esc(stripLeadingEmoji(s.name)),
         sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || '')}`,
         tag: 'service',
       });
@@ -233,7 +293,7 @@ function buildCmdResults(q) {
         id: m.id,
         label: m.name,
         icon: m.icon || ICONS.guides,
-        title: esc(m.name),
+        title: esc(stripLeadingEmoji(m.name)),
         sub: esc(m.category || ''),
         tag: 'tactic',
       });
@@ -241,21 +301,27 @@ function buildCmdResults(q) {
   }
 
   // Notes
-  const noteList = Object.values(notes).filter(n =>
-    !ql || n.title.toLowerCase().includes(ql) || n.body.toLowerCase().includes(ql) ||
-    (n.tags||[]).some(t => t.toLowerCase().includes(ql))
-  ).slice(0, 3);
+  const noteList = ql
+    ? getCommandPaletteNoteResults(ql).slice(0, 5)
+    : [];
 
   if (noteList.length) {
     html += `<div class="cmd-group-hdr">Session Notes</div>`;
-    noteList.forEach(n => {
+    noteList.forEach(({ note: n, tagHit }) => {
+      const sessionName = n.session_id && sessions[n.session_id]?.codename
+        ? sessions[n.session_id].codename
+        : 'No session';
+      const snippet = buildNoteSearchSnippet(n, ql);
+      const subParts = [esc(sessionName)];
+      if (tagHit) subParts.push(`#${esc(tagHit)}`);
+      if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
       html += pushCmdItem({
         type: 'note',
         id: n.id,
         label: n.title,
         icon: noteIcon,
         title: esc(n.title || 'Untitled'),
-        sub: esc((n.body || '').slice(0, 60)),
+        sub: subParts.join(' · '),
         tag: 'note',
       });
     });
@@ -264,7 +330,7 @@ function buildCmdResults(q) {
   // Search action
   if (ql) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
-    html += `<div class="cmd-group-hdr">Search</div>
+    html += `<div class="cmd-group-hdr">KB Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">
@@ -276,12 +342,12 @@ function buildCmdResults(q) {
 
   if (!html) {
     html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, tactics and notes…
+      Type to search services, tactics, KB sections and notes…
     </div>`;
   }
 
   res.innerHTML = html;
-  cmdSelected = 0;
+  cmdSelected = -1;
   updateCmdSelection();
 }
 
@@ -289,9 +355,25 @@ function onCmdInput(val) { buildCmdResults(val); }
 
 function onCmdKey(e) {
   if (e.key === 'Escape') { closeCmd(); return; }
-  if (e.key === 'ArrowDown') { e.preventDefault(); cmdSelected = Math.min(cmdSelected+1, cmdItems.length-1); updateCmdSelection(); }
-  if (e.key === 'ArrowUp')   { e.preventDefault(); cmdSelected = Math.max(cmdSelected-1, 0); updateCmdSelection(); }
-  if (e.key === 'Enter')     { e.preventDefault(); execCmd(cmdSelected); }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    cmdSelected = Math.min(cmdSelected + 1, cmdItems.length - 1);
+    if (cmdSelected < 0) cmdSelected = 0;
+    updateCmdSelection();
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    if (cmdSelected < 0) cmdSelected = 0;
+    else cmdSelected = Math.max(cmdSelected - 1, 0);
+    updateCmdSelection();
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (!cmdItems.length) return;
+    execCmd(cmdSelected >= 0 ? cmdSelected : 0);
+  }
 }
 
 function updateCmdSelection() {
@@ -299,6 +381,15 @@ function updateCmdSelection() {
     el.classList.toggle('selected', i === cmdSelected);
   });
 }
+
+document.addEventListener('mouseover', (e) => {
+  const item = e.target.closest('#cmdResults .cmd-item[data-idx]');
+  if (!item) return;
+  const idx = Number(item.dataset.idx);
+  if (!Number.isFinite(idx) || idx === cmdSelected) return;
+  cmdSelected = idx;
+  updateCmdSelection();
+});
 
 function shouldOpenCmdItemInSidePanel() {
   const noteArea = document.getElementById('noteEditArea');
@@ -384,6 +475,14 @@ function showPasswordPrompt(opts = {}) {
         <div class="pw-strength-bar" id="pwBar4"></div>
       </div>` : '';
 
+    const requirementsInfo = opts.confirm ? `
+      <div class="pw-info">
+        <div class="pw-info-label">Requirements</div>
+        <div class="pw-info-text">
+          Minimum length: <strong>8 characters</strong>. Stronger at <strong>14+</strong>. Best score uses <strong>mixed case</strong> and <strong>a number + symbol</strong>. Long passphrases of <strong>20+</strong> also score highly.
+        </div>
+      </div>` : '';
+
     const hintField = opts.hint ? `
       <div class="pw-field" style="margin-top:4px">
         <label style="color:var(--muted)">Password Hint <span style="font-weight:400;font-size:10px">(optional — stored in plain text)</span></label>
@@ -405,6 +504,7 @@ function showPasswordPrompt(opts = {}) {
           <button class="pw-toggle-vis" type="button" onclick="_pwToggleVis('pwInput1')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         ${strengthMeter}
+        ${requirementsInfo}
       </div>
       ${confirmField}
       ${hintField}

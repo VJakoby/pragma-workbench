@@ -77,6 +77,15 @@
         <label>New session codename</label>
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
       </div>
+      <div class="session-field">
+        <label>Initial target (optional)</label>
+        <div class="session-inline-field">
+          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+        </div>
+        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
+      </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
         <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
@@ -173,15 +182,26 @@
 <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
   <div class="cmd-box">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">&#8984;</span>
+      <span class="cmd-input-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-3.5-3.5"/>
+        </svg>
+      </span>
       <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
       <span class="cmd-esc">ESC</span>
     </div>
+    <div class="cmd-helper">
+      <div class="cmd-helper-row">
+        <span class="cmd-helper-label">Searches</span>
+        <span class="cmd-helper-text">Services, tactics, KB sections, session notes, and commands saved in notes.</span>
+      </div>
+    </div>
     <div class="cmd-results" id="cmdResults"></div>
     <div class="cmd-footer">
-      <span class="cmd-footer-key"><kbd>&uarr;&darr;</kbd> navigate</span>
-      <span class="cmd-footer-key"><kbd>&crarr;</kbd> open</span>
-      <span class="cmd-footer-key"><kbd>ESC</kbd> close</span>
+      <span class="cmd-footer-key"><kbd>&uarr;&darr;</kbd> Navigate</span>
+      <span class="cmd-footer-key"><kbd>&crarr;</kbd> Open</span>
+      <span class="cmd-footer-key"><kbd>ESC</kbd> Close</span>
     </div>
   </div>
 </div>
@@ -247,6 +267,102 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="pw-overlay" id="evidenceFlagOverlay" onclick="if(event.target===this)cancelEvidenceFlagDialog()">
+  <div class="pw-box" style="width:440px">
+    <div class="pw-header">
+      <span class="pw-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
+      </span>
+      <span class="pw-header-title">Add as Evidence</span>
+      <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-description">Review the selected note block, choose the evidence type, and add any supporting context before saving it to the session tracker.</div>
+      <div class="pw-field">
+        <label>Type</label>
+        <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
+          <option value="enumeration">Enumeration</option>
+          <option value="initial_access">Initial Access</option>
+          <option value="execution">Execution</option>
+          <option value="persistence">Persistence</option>
+          <option value="privilege_escalation">Privilege Escalation</option>
+          <option value="credential_access">Credential Access</option>
+          <option value="discovery">Discovery</option>
+          <option value="lateral_movement">Lateral Movement</option>
+          <option value="pivoting">Pivoting</option>
+          <option value="collection">Collection</option>
+          <option value="exfiltration">Exfiltration</option>
+          <option value="cleanup">Cleanup</option>
+          <option value="proof">Proof</option>
+        </select>
+      </div>
+      <div class="pw-field">
+        <label>Title</label>
+        <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+      </div>
+      <div class="pw-field">
+        <label>Details</label>
+        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </div>
+      <div class="pw-field">
+        <label>Command / Block</label>
+        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </div>
+      <div class="evidence-flag-toggle-row">
+        <label class="evidence-flag-check">
+          <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
+          <span>Also add as Loot</span>
+        </label>
+      </div>
+      <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
+        <div class="evidence-flag-loot-grid">
+          <div class="pw-field">
+            <label>Loot type</label>
+            <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
+              <option value="cleartext">Cleartext</option>
+              <option value="hash">Hash</option>
+              <option value="token">Token</option>
+              <option value="key">Key</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="pw-field">
+            <label>Target / Host</label>
+            <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+          </div>
+        </div>
+        <div class="pw-field">
+          <label>Loot value</label>
+          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        </div>
+        <div class="pw-field">
+          <label>Loot context</label>
+          <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+        </div>
+        <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
+          <label class="evidence-flag-check">
+            <input id="evidenceFlagLootSyncCredentials" type="checkbox">
+            <span>Sync cleartext/hash into the Credentials note</span>
+          </label>
+        </div>
+      </div>
+      <div class="pw-actions">
+        <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
+        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="evidence-selection-prompt" id="evidenceSelectionPrompt">
+  <button class="evidence-selection-prompt-btn" onclick="flagPromptedSelectionAsEvidence()">
+    <span aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
+    </span>
+    <span>Add as Evidence</span>
+  </button>
 </div>
 
 <div class="pw-overlay" id="kbCreateOverlay" onclick="if(event.target===this)closeKbCreateModal()">

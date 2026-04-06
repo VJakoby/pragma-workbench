@@ -6,6 +6,10 @@ let _pathParsed = [];
 let _lootParsed = [];
 let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
+let _editingTodoId = null;
+let _editingQuickLog = null;
+let _evidenceFilterType = '';
+let _evidenceFilterTarget = '';
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 const SVC_TAB_CONFIG = {
@@ -180,6 +184,324 @@ function updateTodoCount() {
   btn.classList.toggle('has-entries', openCount > 0);
 }
 
+function getSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].evidence || [];
+}
+
+function ensureSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  if (!Array.isArray(sessions[activeSessionId].evidence)) sessions[activeSessionId].evidence = [];
+  return sessions[activeSessionId].evidence;
+}
+
+function updateEvidenceCount() {
+  const entries = getSessionEvidence();
+  const btn = document.getElementById('evidenceTopbarCount');
+  if (!btn) return;
+  btn.textContent = entries.length || '';
+  btn.classList.toggle('has-entries', entries.length > 0);
+}
+
+function renderEvidenceClearAction() {
+  const btn = document.getElementById('evidenceClearBtn');
+  if (!btn) return;
+  const count = getSessionEvidence().length;
+  btn.textContent = count ? `Clear All (${count})` : 'Clear All';
+  btn.disabled = !activeSessionId || count === 0;
+}
+
+function renderEvidenceTargetOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceTargetInput');
+  if (!select) return;
+  const targets = getSessionTargets();
+  const current = selectedValue || activeTargetId || '';
+  const options = ['<option value="">Session-wide</option>'];
+  targets.forEach((target) => {
+    const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${label}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function getSessionNotesForEvidence() {
+  if (!activeSessionId) return [];
+  return Object.values(notes)
+    .filter((note) => note.session_id === activeSessionId)
+    .sort((a, b) => (b.updated || 0) - (a.updated || 0));
+}
+
+function renderEvidenceNoteOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceNoteInput');
+  if (!select) return;
+  const noteItems = getSessionNotesForEvidence();
+  const options = ['<option value="">Select session note…</option>'];
+  noteItems.forEach((note) => {
+    options.push(`<option value="${esc(note.id)}"${note.id === selectedValue ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function evidenceTypeLabel(type) {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const configuredHit = configured.find((item) => item.value === type);
+  if (configuredHit) return configuredHit.label;
+  const labels = {
+    finding: 'Finding',
+    proof: 'Proof',
+    cred: 'Credential',
+    artifact: 'Artifact',
+    privesc: 'PrivEsc',
+    cleanup: 'Cleanup',
+    note: 'Note',
+  };
+  return labels[type] || (type ? String(type) : 'Evidence');
+}
+
+function buildEvidenceTypeOptionsHtml(selectedType = '') {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const options = configured.map(({ value, label }) =>
+    `<option value="${esc(value)}"${value === selectedType ? ' selected' : ''}>${esc(label)}</option>`
+  );
+  if (selectedType && !configured.find((item) => item.value === selectedType)) {
+    options.push(`<option value="${esc(selectedType)}" selected>${esc(evidenceTypeLabel(selectedType))}</option>`);
+  }
+  return options.join('');
+}
+
+function evidenceSyncLabel(mode) {
+  if (mode === 'none') return 'No sync';
+  if (mode === 'note') return 'Note';
+  if (mode === 'both') return 'Both';
+  return 'Summary';
+}
+
+function evidenceUsesNoteSync(mode) {
+  return mode === 'note' || mode === 'both';
+}
+
+function formatEvidenceTimestamp(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function evidenceTargetDisplay(entry) {
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+}
+
+function renderEvidenceProofCell(entry) {
+  const lines = [];
+  if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
+  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
+  if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
+  return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
+}
+
+function updateEvidenceSyncUi(selectedNoteId = '') {
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const row = document.getElementById('evidenceNoteRow');
+  if (!syncEl || !row) return;
+  const syncMode = (syncEl.value || 'export_only').trim();
+  const showNote = evidenceUsesNoteSync(syncMode);
+  row.style.display = showNote ? 'flex' : 'none';
+  renderEvidenceNoteOptions(selectedNoteId);
+}
+
+function buildEvidenceMarkerId(entryId) {
+  return `pragma:evidence:${entryId}`;
+}
+
+function getEvidenceSourceNoteId(entry) {
+  return entry?.source_note_id || entry?.note_id || null;
+}
+
+function getEvidenceSourceNote(entry) {
+  const noteId = getEvidenceSourceNoteId(entry);
+  return noteId ? notes[noteId] || null : null;
+}
+
+function getEvidenceSyncNote(entry) {
+  if (!evidenceUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
+  const noteId = entry?.note_id || null;
+  return noteId ? notes[noteId] || null : null;
+}
+
+function evidenceTypeBadgeClass(type) {
+  if (type === 'proof') return 'loot-type-token';
+  return 'loot-type-other';
+}
+
+function getEvidenceSourceSnippet(entry) {
+  const sourceNote = getEvidenceSourceNote(entry);
+  if (!sourceNote) return '';
+  const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
+  const raw = range
+    ? String(sourceNote.body || '').slice(range.from, range.to)
+    : String(entry.source_command || entry.details || '');
+  const compact = String(raw || '')
+    .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
+    .replace(/```[a-z0-9_-]*\n?/gi, '')
+    .replace(/```/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!compact) return '';
+  return compact.length > 140 ? `${compact.slice(0, 140).trim()}…` : compact;
+}
+
+function findEvidenceMarkerRange(body, entryId) {
+  const text = String(body || '');
+  const marker = buildEvidenceMarkerId(entryId);
+  const startToken = `<!-- ${marker}:start -->`;
+  const endToken = `<!-- ${marker}:end -->`;
+  const startIdx = text.indexOf(startToken);
+  if (startIdx === -1) return null;
+  const endIdx = text.indexOf(endToken, startIdx + startToken.length);
+  if (endIdx === -1) return null;
+  let from = startIdx + startToken.length;
+  if (text[from] === '\n') from += 1;
+  let to = endIdx;
+  if (to > from && text[to - 1] === '\n') to -= 1;
+  return { from, to };
+}
+
+async function jumpToEvidenceSource(entryId) {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const entry = getSessionEvidence().find((item) => item.id === entryId);
+  const noteId = getEvidenceSourceNoteId(entry);
+  if (!noteId || !notes[noteId]) {
+    showToast?.('⚠ No source note linked', 'err');
+    return;
+  }
+
+  closeEvidencePopover?.();
+  if (typeof switchView === 'function') {
+    switchView('notes', document.getElementById('nav-notes'));
+  }
+  if (typeof openNote === 'function') {
+    await openNote(noteId);
+  }
+
+  if (typeof noteEditor === 'undefined' || !noteEditor) return;
+  const docText = noteEditor.state.doc.toString();
+  const range = findEvidenceMarkerRange(docText, entryId);
+  if (!range) {
+    noteEditor.focus();
+    showToast?.('⚠ Evidence marker not found in note', 'err');
+    return;
+  }
+
+  noteEditor.dispatch({
+    selection: { anchor: range.from, head: range.to },
+    scrollIntoView: true
+  });
+  noteEditor.focus();
+}
+
+function removeEvidenceBlockFromBody(body, entryId) {
+  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
+  return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function unwrapEvidenceBlockInBody(body, entryId) {
+  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`<!-- ${marker}:start -->\\n?([\\s\\S]*?)\\n?<!-- ${marker}:end -->`, 'g');
+  return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function buildEvidenceMarkdownBlock(entry) {
+  const marker = buildEvidenceMarkerId(entry.id);
+  const targetText = evidenceTargetDisplay(entry);
+  const lines = [
+    `<!-- ${marker}:start -->`,
+    `### ${evidenceTypeLabel(entry.type)}: ${entry.title}`,
+    '',
+    `- Target: ${targetText}`,
+  ];
+  if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
+  if (entry.details) lines.push(`- Details: ${entry.details}`);
+  if (entry.source_command) {
+    lines.push('', '```text', entry.source_command, '```');
+  }
+  lines.push(`<!-- ${marker}:end -->`);
+  return lines.join('\n');
+}
+
+function upsertEvidenceBlockInBody(body, entry) {
+  const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
+  const block = buildEvidenceMarkdownBlock(entry);
+  const sectionMatch = cleanBody.match(/^##\s+Evidence\s*$/im);
+  if (!sectionMatch || sectionMatch.index == null) {
+    const prefix = cleanBody.trimEnd();
+    return `${prefix}${prefix ? '\n\n' : ''}## Evidence\n\n${block}\n`;
+  }
+  const sectionStart = sectionMatch.index;
+  const sectionHeader = sectionMatch[0];
+  const bodyAfterHeader = sectionStart + sectionHeader.length;
+  const rest = cleanBody.slice(bodyAfterHeader);
+  const nextSectionRel = rest.search(/\n##\s+/);
+  const insertAt = nextSectionRel === -1 ? cleanBody.length : bodyAfterHeader + nextSectionRel;
+  const before = cleanBody.slice(0, insertAt).replace(/\s*$/, '');
+  const after = cleanBody.slice(insertAt).replace(/^\s*/, '\n\n');
+  return `${before}\n\n${block}${after}`.replace(/\n{3,}/g, '\n\n');
+}
+
+function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
+  const syncedNotes = [];
+  const prevSourceNoteId = getEvidenceSourceNoteId(prevEntry);
+  const prevSyncNoteId = evidenceUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
+  const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
+  const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
+
+  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId]) {
+    const prevNote = notes[prevSourceNoteId];
+    const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
+    if (cleaned !== (prevNote.body || '')) {
+      prevNote.body = cleaned;
+      prevNote.updated = Date.now();
+      syncedNotes.push(prevNote);
+    }
+  }
+
+  if (prevEntry?.id && prevSyncNoteId && prevSyncNoteId !== prevSourceNoteId && notes[prevSyncNoteId]) {
+    const prevSyncNote = notes[prevSyncNoteId];
+    const cleaned = removeEvidenceBlockFromBody(prevSyncNote.body || '', prevEntry.id);
+    if (cleaned !== (prevSyncNote.body || '')) {
+      prevSyncNote.body = cleaned;
+      prevSyncNote.updated = Date.now();
+      if (!syncedNotes.includes(prevSyncNote)) syncedNotes.push(prevSyncNote);
+    }
+  }
+
+  if (nextEntry?.id && nextSyncNoteId && nextSyncNoteId !== nextSourceNoteId && notes[nextSyncNoteId]) {
+    const nextNote = notes[nextSyncNoteId];
+    const nextBody = upsertEvidenceBlockInBody(nextNote.body || '', nextEntry);
+    if (nextBody !== (nextNote.body || '')) {
+      nextNote.body = nextBody;
+      nextNote.updated = Date.now();
+      if (!syncedNotes.includes(nextNote)) syncedNotes.push(nextNote);
+    }
+  }
+
+  return syncedNotes;
+}
+
+function setEvidenceFilterType(value) {
+  _evidenceFilterType = String(value || '').trim();
+  renderEvidenceList();
+}
+
+function setEvidenceFilterTarget(value) {
+  _evidenceFilterTarget = String(value || '').trim();
+  renderEvidenceList();
+}
+
 function renderTodoClearAction() {
   const btn = document.getElementById('todoClearBtn');
   if (!btn) return;
@@ -210,14 +532,48 @@ function renderTodoList() {
         <span class="todo-check-box">${todo.done ? '&#10003;' : ''}</span>
       </button>
       <div class="todo-item-body">
-        <div class="todo-item-text">${esc(todo.text || '')}</div>
+        ${_editingTodoId === todo.id ? `
+          <div class="todo-item-edit-wrap">
+            <input
+              class="todo-item-input"
+              id="todoEditInput_${todo.id}"
+              type="text"
+              value="${esc(todo.text || '')}"
+              autocomplete="off"
+              spellcheck="false"
+              onkeydown="handleTodoEditKeydown(event, '${todo.id}')"
+            >
+          </div>
+        ` : `
+          <div class="todo-item-text">${esc(todo.text || '')}</div>
+        `}
       </div>
-      <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
-      </button>
+      <div class="todo-item-actions">
+        ${_editingTodoId === todo.id ? `
+          <button class="svc-quick-add-btn todo-save-btn" onclick="event.stopPropagation(); commitTodoEdit('${todo.id}')" title="Save TODO" aria-label="Save TODO">Save</button>
+          <button class="svc-del-btn todo-cancel-btn" onclick="event.stopPropagation(); cancelTodoEdit('${todo.id}')" title="Cancel edit" aria-label="Cancel edit">Cancel</button>
+        ` : `
+          <button class="svc-del-btn todo-edit-btn" onclick="event.stopPropagation(); startTodoEdit('${todo.id}')" title="Edit TODO" aria-label="Edit TODO">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+        `}
+        <button class="svc-del-btn todo-del-btn" onclick="event.stopPropagation(); deleteTodoEntry('${todo.id}')" title="Delete TODO" aria-label="Delete TODO">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a2 2 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
     </div>
   `).join('');
   syncTodoUi();
+
+  if (_editingTodoId) {
+    const input = document.getElementById(`todoEditInput_${_editingTodoId}`);
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }, 0);
+    }
+  }
 }
 
 function addTodoEntry() {
@@ -246,6 +602,52 @@ function addTodoEntry() {
   input.focus();
 }
 
+function startTodoEdit(todoId) {
+  if (!activeSessionId) return;
+  if (!getSessionTodos().some(item => item.id === todoId)) return;
+  _editingTodoId = todoId;
+  renderTodoList();
+}
+
+function cancelTodoEdit(todoId) {
+  if (_editingTodoId !== todoId) return;
+  _editingTodoId = null;
+  renderTodoList();
+}
+
+function commitTodoEdit(todoId) {
+  if (!activeSessionId) return;
+  const todo = getSessionTodos().find(item => item.id === todoId);
+  const input = document.getElementById(`todoEditInput_${todoId}`);
+  if (!todo || !input) return;
+
+  const nextText = input.value.trim();
+  if (!nextText) {
+    showToast('⚠ TODO text cannot be empty', 'err');
+    input.focus();
+    return;
+  }
+
+  _editingTodoId = null;
+  if (nextText !== todo.text) {
+    todo.text = nextText;
+    saveNotes();
+  }
+  renderTodoList();
+}
+
+function handleTodoEditKeydown(event, todoId) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    commitTodoEdit(todoId);
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelTodoEdit(todoId);
+  }
+}
+
 function toggleTodoDone(todoId) {
   if (!activeSessionId) return;
   const todo = getSessionTodos().find(item => item.id === todoId);
@@ -260,6 +662,7 @@ function deleteTodoEntry(todoId) {
   if (!activeSessionId) return;
   const todos = ensureSessionTodos();
   if (!todos) return;
+  if (_editingTodoId === todoId) _editingTodoId = null;
   sessions[activeSessionId].todos = todos.filter(item => item.id !== todoId);
   saveNotes();
   renderTodoList();
@@ -271,9 +674,304 @@ function clearCompletedTodos() {
   if (!todos) return;
   const remaining = todos.filter(item => !item.done);
   if (remaining.length === todos.length) return;
+  if (_editingTodoId && todos.some(item => item.id === _editingTodoId && item.done)) _editingTodoId = null;
   sessions[activeSessionId].todos = remaining;
   saveNotes();
   renderTodoList();
+}
+
+function renderEvidenceList() {
+  const listEl = document.getElementById('evidenceList');
+  if (!listEl) return;
+  renderEvidenceTargetOptions();
+  renderEvidenceNoteOptions();
+  renderEvidenceClearAction();
+  updateEvidenceCount();
+  updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
+
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    return;
+  }
+
+  const allEntries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  const targets = getSessionTargets();
+  const notes = getSessionNotesForEvidence();
+  const entries = allEntries.filter((entry) => {
+    if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
+    if (_evidenceFilterTarget) {
+      const targetId = entry.target_id || '__session__';
+      if (targetId !== _evidenceFilterTarget) return false;
+    }
+    return true;
+  });
+  if (!entries.length) {
+    if (!allEntries.length) {
+      listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
+      return;
+    }
+    listEl.innerHTML = `
+      <div class="evidence-filters">
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+          <option value="">All types</option>
+          ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+        </select>
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+          <option value="">All targets</option>
+          <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+          ${targets.map((target) => {
+            const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+            return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div class="evidence-filters">
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+        <option value="">All types</option>
+        ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+      </select>
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+        <option value="">All targets</option>
+        <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+        ${targets.map((target) => {
+          const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+          return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+        }).join('')}
+      </select>
+      <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
+    </div>
+    <div class="evidence-items">${entries.map((entry) => {
+      const target = entry.target_id ? targets.find((item) => item.id === entry.target_id) : null;
+      const targetLabel = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+      const syncLabel = evidenceSyncLabel(entry.sync_mode || 'export_only');
+      const sourceNote = getEvidenceSourceNote(entry);
+      const sourceNoteLabel = sourceNote?.title || 'Unknown source';
+      const sourceSnippet = getEvidenceSourceSnippet(entry);
+      const syncNote = getEvidenceSyncNote(entry);
+      const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
+      const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
+      if (isQuickLogEditing('evidence', entry.id)) {
+        return `
+          <section class="evidence-item evidence-item-editing">
+            <div class="evidence-item-head">
+              <div class="evidence-item-title-group evidence-item-title-group-editing">
+                <label class="evidence-edit-field evidence-edit-field-type">
+                  <span class="evidence-edit-label">Type</span>
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                    ${buildEvidenceTypeOptionsHtml(entry.type)}
+                  </select>
+                </label>
+                <label class="evidence-edit-field evidence-edit-field-title">
+                  <span class="evidence-edit-label">Title</span>
+                  <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                </label>
+              </div>
+              <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+            </div>
+            <div class="evidence-edit-grid">
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Target</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="">Session-wide</option>
+                  ${targets.map((targetItem) => {
+                    const label = esc(targetItem.ip || targetItem.domain || targetItem.label || 'Unnamed');
+                    return `<option value="${esc(targetItem.id)}"${targetItem.id === entry.target_id ? ' selected' : ''}>${label}</option>`;
+                  }).join('')}
+                </select>
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Sync</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
+                  <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
+                  <option value="note"${(entry.sync_mode || 'export_only') === 'note' ? ' selected' : ''}>Note</option>
+                  <option value="none"${(entry.sync_mode || 'export_only') === 'none' ? ' selected' : ''}>No export</option>
+                </select>
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Synced note</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="">Select note…</option>
+                  ${notes.map((item) => `<option value="${esc(item.id)}"${item.id === entry.note_id ? ' selected' : ''}>${esc(item.title || 'Untitled')}</option>`).join('')}
+                </select>
+              </label>
+            </div>
+            <div class="evidence-item-body evidence-item-body-editing">
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Impact</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Details</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Command</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+            </div>
+          </section>
+        `;
+      }
+      return `
+        <section class="evidence-item">
+            <div class="evidence-item-head">
+              <div class="evidence-item-title-group">
+              <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
+              <div class="evidence-item-title-wrap">
+                <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
+                <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
+                ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
+              </div>
+            </div>
+            <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+          </div>
+          ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
+          <div class="evidence-item-meta">
+            <span class="evidence-meta-pill">
+              <span class="evidence-meta-key">Sync</span>
+              <span class="evidence-meta-value">${esc(syncLabel)}</span>
+            </span>
+            <span class="evidence-meta-pill" title="${esc(targetLabel)}">
+              <span class="evidence-meta-key">Target</span>
+              <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
+            </span>
+            ${evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? `
+            <span class="evidence-meta-pill" title="${esc(syncNoteLabel)}">
+              <span class="evidence-meta-key">Synced</span>
+              <span class="evidence-meta-value">${esc(syncNoteLabel)}</span>
+            </span>
+            ` : ''}
+          </div>
+          <div class="evidence-item-body">
+            ${renderEvidenceProofCell(entry)}
+          </div>
+        </section>
+      `;
+    }).join('')}</div>
+  `;
+
+  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+}
+
+function addEvidenceEntry() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  const type = (document.getElementById('evidenceTypeInput')?.value || 'discovery').trim();
+  const titleEl = document.getElementById('evidenceTitleInput');
+  const detailsEl = document.getElementById('evidenceDetailsInput');
+  const commandEl = document.getElementById('evidenceCommandInput');
+  const targetEl = document.getElementById('evidenceTargetInput');
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const noteEl = document.getElementById('evidenceNoteInput');
+  const title = (titleEl?.value || '').trim();
+  const details = (detailsEl?.value || '').trim();
+  const sourceCommand = (commandEl?.value || '').trim();
+  const targetId = (targetEl?.value || '').trim() || null;
+  const syncMode = (syncEl?.value || 'export_only').trim();
+  const noteId = evidenceUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
+  if (!title) {
+    titleEl?.focus();
+    return;
+  }
+  if (evidenceUsesNoteSync(syncMode) && !noteId) {
+    noteEl?.focus();
+    return;
+  }
+  const entry = {
+    id: `evidence_${Date.now()}`,
+    type,
+    title,
+    details,
+    source_command: sourceCommand,
+    target_id: targetId,
+    note_id: noteId,
+    sync_mode: syncMode,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  entries.push(entry);
+  const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
+  if (titleEl) titleEl.value = '';
+  if (detailsEl) detailsEl.value = '';
+  if (commandEl) commandEl.value = '';
+  if (targetEl) targetEl.value = activeTargetId || '';
+  if (syncEl) syncEl.value = 'export_only';
+  if (noteEl) noteEl.value = '';
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+  updateEvidenceSyncUi();
+  titleEl?.focus();
+}
+
+function deleteEvidenceEntry(entryId) {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  const entry = entries.find((item) => item.id === entryId);
+  if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
+  sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
+  const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+  showToast('✓ Evidence unflagged');
+}
+
+function clearEvidenceEntries() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries?.length) return;
+  const syncedNotes = [];
+  entries.forEach((entry) => {
+    applyEvidenceNoteSyncChanges(entry, null).forEach((note) => {
+      if (!syncedNotes.includes(note)) syncedNotes.push(note);
+    });
+  });
+  if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
+  sessions[activeSessionId].evidence = [];
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+}
+
+function commitEvidenceEdit(entryId) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
+  if (!entry) return;
+  const prevEntry = { ...entry };
+  const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
+  if (!title) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
+  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
+  entry.title = title;
+  entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
+  entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
+  entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
+  entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
+  entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
+  entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
+  entry.note_id = evidenceUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  if (evidenceUsesNoteSync(entry.sync_mode) && !entry.note_id) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
+  entry.updated = Date.now();
+  const syncedNotes = applyEvidenceNoteSyncChanges(prevEntry, entry);
+  clearQuickLogEditing();
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
 }
 
 function getActiveQuickLogEntries() {
@@ -375,8 +1073,10 @@ function toggleToolPaste(kind) {
   if (!panel || !toggle) return;
   const isOpen = panel.style.display === 'flex';
   panel.style.display = isOpen ? 'none' : 'flex';
-  toggle.style.color = isOpen ? '' : 'var(--accent)';
-  toggle.style.borderColor = isOpen ? '' : 'var(--accent)';
+  toggle.style.color = isOpen ? '' : 'var(--text)';
+  toggle.style.borderColor = isOpen ? '' : 'rgba(var(--accent-rgb),0.32)';
+  toggle.style.background = isOpen ? '' : 'rgba(var(--accent-rgb),0.08)';
+  toggle.style.boxShadow = isOpen ? '' : 'inset 0 0 0 1px rgba(var(--accent-rgb),0.12)';
   if (!isOpen) {
     document.getElementById(inputMap[kind])?.focus();
   } else {
@@ -386,6 +1086,18 @@ function toggleToolPaste(kind) {
 }
 
 function resetPastePanel(kind) {
+  const toggleMap = {
+    ports: 'portPasteToggle',
+    paths: 'pathPasteToggle',
+    loot: 'lootPasteToggle',
+  };
+  const toggle = document.getElementById(toggleMap[kind]);
+  if (toggle) {
+    toggle.style.color = '';
+    toggle.style.borderColor = '';
+    toggle.style.background = '';
+    toggle.style.boxShadow = '';
+  }
   if (kind === 'ports') {
     document.getElementById('portPasteInput').value = '';
     document.getElementById('portParsePreview').style.display = 'none';
@@ -488,7 +1200,7 @@ function parseAndPreviewPorts() {
   const dupes = _portParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_portParsed.length}</span> port${_portParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
-  html += '</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
+  html += '</div><table class="svc-table svc-table-ports" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
   html += _portParsed.map(r => {
     const isDupe = existing.has(`${r.port}/${r.proto}`);
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(r.port)}${r.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(r.proto)}</span>` : ''}</td><td>${esc(r.service || '—')}</td><td style="color:var(--text2)">${esc(r.version || '')}</td></tr>`;
@@ -702,6 +1414,7 @@ function addPathLog() {
 function deletePathLog(pathId) {
   if (!activeSessionId) return;
   const path = (sessions[activeSessionId].paths || []).find(p => p.id === pathId);
+  if (isQuickLogEditing('path', pathId)) clearQuickLogEditing();
   sessions[activeSessionId].paths = (sessions[activeSessionId].paths || []).filter(p => p.id !== pathId);
   const syncedNetworkNote = path?.target_id ? syncSessionPathsToNetworkEnumerationNote(path.target_id, false) : false;
   saveNotes();
@@ -717,6 +1430,28 @@ function updatePathNotes(pathId, val) {
   p.notes = val;
   const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
   saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
+}
+
+function commitPathEdit(pathId) {
+  if (!activeSessionId) return;
+  const p = (sessions[activeSessionId].paths || []).find(path => path.id === pathId);
+  if (!p) return;
+  const status = (document.getElementById(`pathEditStatus_${pathId}`)?.value || '').trim();
+  const path = (document.getElementById(`pathEditPath_${pathId}`)?.value || '').trim();
+  const notes = (document.getElementById(`pathEditNotes_${pathId}`)?.value || '').trim();
+  if (!path) {
+    showToast('⚠ Path cannot be empty', 'err');
+    focusQuickLogEditInput(`pathEditPath_${pathId}`);
+    return;
+  }
+  p.status = status;
+  p.path = path;
+  p.notes = notes;
+  clearQuickLogEditing();
+  const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
+  saveNotes();
+  renderPathTable();
   applySyncedNoteUpdate(syncedNetworkNote);
 }
 
@@ -736,15 +1471,22 @@ function renderPathTable() {
   }
   el.innerHTML = `<table class="path-table">
     <thead><tr><th>Status</th><th>Path</th><th>Notes</th><th></th></tr></thead>
-    <tbody>${paths.map(p => `<tr>
+    <tbody>${paths.map(p => isQuickLogEditing('path', p.id) ? `<tr>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditStatus_${p.id}" type="text" value="${esc(p.status || '')}" placeholder="200"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditPath_${p.id}" type="text" value="${esc(p.path || '')}" placeholder="/admin"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td><input class="svc-notes-cell ql-row-input" id="pathEditNotes_${p.id}" type="text" value="${esc(p.notes || '')}" placeholder="notes…"
+        onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'path','${p.id}')"></td>
+      <td>${renderQuickLogRowActions('path', p.id, 'deletePathLog')}</td>
+    </tr>` : `<tr>
       <td><span class="path-status ${statusClass(p.status)}">${esc(p.status || '—')}</span></td>
       <td style="color:var(--text);word-break:break-all">${esc(p.path)}</td>
-      <td><input class="svc-notes-cell" type="text" value="${esc(p.notes || '')}" placeholder="notes…"
-        onclick="event.stopPropagation()"
-        onchange="updatePathNotes('${p.id}',this.value)" onblur="updatePathNotes('${p.id}',this.value)"></td>
-      <td><button class="svc-del-btn" onclick="event.stopPropagation();deletePathLog('${p.id}')" title="Remove">✕</button></td>
+      <td>${esc(p.notes || '')}</td>
+      <td>${renderQuickLogRowActions('path', p.id, 'deletePathLog')}</td>
     </tr>`).join('')}
     </tbody></table>`;
+  if (_editingQuickLog?.kind === 'path') focusQuickLogEditInput(`pathEditPath_${_editingQuickLog.id}`);
 }
 
 function parseSvcInput(raw) {
@@ -996,6 +1738,104 @@ function applySyncedNoteUpdate(note) {
   }
 }
 
+function isQuickLogEditing(kind, id) {
+  return _editingQuickLog?.kind === kind && _editingQuickLog?.id === id;
+}
+
+function clearQuickLogEditing() {
+  _editingQuickLog = null;
+}
+
+function rerenderQuickLogKind(kind) {
+  if (kind === 'service') renderSvcLogTable();
+  else if (kind === 'path') renderPathTable();
+  else if (kind === 'loot') renderLootTable();
+  else if (kind === 'evidence') renderEvidenceList();
+}
+
+function startQuickLogEdit(kind, id) {
+  _editingQuickLog = { kind, id };
+  rerenderQuickLogKind(kind);
+}
+
+function cancelQuickLogEdit(kind, id) {
+  if (!isQuickLogEditing(kind, id)) return;
+  clearQuickLogEditing();
+  rerenderQuickLogKind(kind);
+}
+
+function focusQuickLogEditInput(id) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  setTimeout(() => {
+    input.focus();
+    if (typeof input.setSelectionRange === 'function') {
+      const pos = input.value.length;
+      input.setSelectionRange(pos, pos);
+    }
+  }, 0);
+}
+
+function handleQuickLogEditKeydown(event, kind, id) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    if (kind === 'service') commitServiceEdit(id);
+    else if (kind === 'path') commitPathEdit(id);
+    else if (kind === 'loot') commitLootEdit(id);
+    else if (kind === 'evidence') commitEvidenceEdit(id);
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelQuickLogEdit(kind, id);
+  }
+}
+
+function renderQuickLogRowActions(kind, id, deleteFnName) {
+  const deleteCall = `${deleteFnName}('${id}')`;
+  if (isQuickLogEditing(kind, id)) {
+    const saveCall = kind === 'service'
+      ? `commitServiceEdit('${id}')`
+      : kind === 'path'
+        ? `commitPathEdit('${id}')`
+        : kind === 'loot'
+          ? `commitLootEdit('${id}')`
+          : `commitEvidenceEdit('${id}')`;
+    return `
+      <div class="ql-row-actions">
+        <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
+        <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); cancelQuickLogEdit('${kind}','${id}')" title="Cancel edit" aria-label="Cancel edit">Cancel</button>
+        <button class="svc-del-btn" onclick="event.stopPropagation(); ${deleteCall}" title="Remove">✕</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="ql-row-actions">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('${kind}','${id}')" title="Edit row" aria-label="Edit row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="svc-del-btn" onclick="event.stopPropagation(); ${deleteCall}" title="Remove">✕</button>
+    </div>
+  `;
+}
+
+function renderEvidenceRowActions(id) {
+  if (isQuickLogEditing('evidence', id)) return renderQuickLogRowActions('evidence', id, 'deleteEvidenceEntry');
+  return `
+    <div class="ql-row-actions">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
+      </button>
+    </div>
+  `;
+}
+
 function addServiceLog() {
   const input = document.getElementById('svcQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
@@ -1026,6 +1866,7 @@ function addServiceLog() {
 function deleteServiceLog(svcId) {
   if (!activeSessionId) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
+  if (isQuickLogEditing('service', svcId)) clearQuickLogEditing();
   sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
   const syncedNetworkNote = svc?.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
@@ -1040,6 +1881,32 @@ function updateSvcNotes(svcId, val) {
   svc.notes = val;
   const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
+  applySyncedNoteUpdate(syncedNetworkNote);
+}
+
+function commitServiceEdit(svcId) {
+  if (!activeSessionId) return;
+  const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
+  if (!svc) return;
+  const port = (document.getElementById(`svcEditPort_${svcId}`)?.value || '').trim();
+  const proto = (document.getElementById(`svcEditProto_${svcId}`)?.value || '').trim().toLowerCase() || 'tcp';
+  const service = (document.getElementById(`svcEditService_${svcId}`)?.value || '').trim();
+  const version = (document.getElementById(`svcEditVersion_${svcId}`)?.value || '').trim();
+  const notes = (document.getElementById(`svcEditNotes_${svcId}`)?.value || '').trim();
+  if (!port) {
+    showToast('⚠ Port cannot be empty', 'err');
+    focusQuickLogEditInput(`svcEditPort_${svcId}`);
+    return;
+  }
+  svc.port = port;
+  svc.proto = proto;
+  svc.service = service;
+  svc.version = version;
+  svc.notes = notes;
+  clearQuickLogEditing();
+  const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
+  saveNotes();
+  renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
 }
 
@@ -1058,20 +1925,36 @@ function renderSvcLogTable() {
   }
 
   tableEl.innerHTML = `
-    <table class="svc-table">
+    <table class="svc-table svc-table-ports">
       <thead><tr><th>Port</th><th>Service</th><th>Version</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${sorted.map(s => `
+      <tbody>${sorted.map(s => isQuickLogEditing('service', s.id) ? `
+        <tr>
+          <td>
+            <div class="ql-port-edit-wrap">
+              <input class="svc-notes-cell ql-row-input ql-port-input" id="svcEditPort_${s.id}" type="text" value="${esc(s.port || '')}" placeholder="445"
+                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+              <input class="svc-notes-cell ql-row-input ql-proto-input" id="svcEditProto_${s.id}" type="text" value="${esc(s.proto || 'tcp')}" placeholder="tcp"
+                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+            </div>
+          </td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditService_${s.id}" type="text" value="${esc(s.service || '')}" placeholder="service"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditVersion_${s.id}" type="text" value="${esc(s.version || '')}" placeholder="version"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="svcEditNotes_${s.id}" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+          <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
+        </tr>` : `
         <tr>
           <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(s.proto)}</span>` : ''}</td>
           <td>${esc(s.service || '—')}</td>
           <td style="color:var(--text2)">${esc(s.version || '')}</td>
-          <td><input class="svc-notes-cell" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
-            onclick="event.stopPropagation()"
-            onchange="updateSvcNotes('${s.id}',this.value)" onblur="updateSvcNotes('${s.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteServiceLog('${s.id}')" title="Remove">✕</button></td>
+          <td>${esc(s.notes || '')}</td>
+          <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
+  if (_editingQuickLog?.kind === 'service') focusQuickLogEditInput(`svcEditPort_${_editingQuickLog.id}`);
 }
 
 function setLootType(btn, type) {
@@ -1090,7 +1973,7 @@ function escapeCredentialsCell(value) {
 }
 
 function parseLootForCredentialsRow(entry) {
-  if (!entry || !['cleartext', 'hash'].includes(entry.type)) return null;
+  if (!entry || !['cleartext', 'hash'].includes(entry.type) || entry.sync_credentials === false) return null;
   const credential = String(entry.credential || '').trim();
   const host = String(entry.host || '').trim();
   const note = String(entry.note || '').trim();
@@ -1295,6 +2178,33 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   return note;
 }
 
+function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
+  if (!activeSessionId) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  const cleanCredential = String(credential || '').trim();
+  if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  const cleanType = String(type || 'other').trim() || 'other';
+  const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const cleanNote = String(note || '').trim();
+  const dupeKey = `${cleanType}::${cleanCredential}::${cleanHost}`;
+  const existing = new Set(sessions[activeSessionId].loot.map((l) => `${l.type}::${l.credential}::${l.host || ''}`));
+  if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
+
+  const entry = {
+    id: `loot_${Date.now()}`,
+    type: cleanType,
+    credential: cleanCredential,
+    host: cleanHost,
+    note: cleanNote,
+    sync_credentials: !!syncToCredentials && ['cleartext', 'hash'].includes(cleanType),
+    added: Date.now(),
+  };
+  sessions[activeSessionId].loot.push(entry);
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(!!syncToCredentials && ['cleartext', 'hash'].includes(cleanType));
+  return { entry, syncedCredentialsNote, duplicate: false };
+}
+
 function addLootEntry() {
   const credEl = document.getElementById('lootCredInput');
   const hostEl = document.getElementById('lootHostInput');
@@ -1303,20 +2213,17 @@ function addLootEntry() {
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
   if (!cred || !activeSessionId) { credEl?.focus(); return; }
-  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
-
-  const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
-
-  const entry = {
-    id: `loot_${Date.now()}`,
+  const { entry, syncedCredentialsNote } = addLootEntryFromData({
     type: _activeLootType,
     credential: cred,
-    host: autoHost,
+    host,
     note,
-    added: Date.now(),
-  };
-  sessions[activeSessionId].loot.push(entry);
-  const syncedCredentialsNote = syncSessionLootToCredentialsNote(true);
+    syncToCredentials: true,
+  });
+  if (!entry) {
+    credEl?.focus();
+    return;
+  }
 
   credEl.value = '';
   noteEl.value = '';
@@ -1342,6 +2249,7 @@ function addLootEntry() {
 
 function deleteLootEntry(lootId) {
   if (!activeSessionId) return;
+  if (isQuickLogEditing('loot', lootId)) clearQuickLogEditing();
   sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
   saveNotes();
@@ -1386,6 +2294,31 @@ function updateLootNote(lootId, val) {
   }
 }
 
+function commitLootEdit(lootId) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
+  if (!entry) return;
+  const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();
+  const credential = (document.getElementById(`lootEditCredential_${lootId}`)?.value || '').trim();
+  const host = (document.getElementById(`lootEditHost_${lootId}`)?.value || '').trim();
+  const note = (document.getElementById(`lootEditNote_${lootId}`)?.value || '').trim();
+  if (!credential) {
+    showToast('⚠ Credential cannot be empty', 'err');
+    focusQuickLogEditInput(`lootEditCredential_${lootId}`);
+    return;
+  }
+  entry.type = ['cleartext', 'hash', 'token', 'key', 'other'].includes(type) ? type : 'other';
+  entry.credential = credential;
+  entry.host = host;
+  entry.note = note;
+  clearQuickLogEditing();
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
+  saveNotes();
+  renderLootTable();
+  updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedCredentialsNote);
+}
+
 const LOOT_TYPE_CSS = {
   cleartext: 'loot-type-cleartext',
   hash: 'loot-type-hash',
@@ -1408,19 +2341,30 @@ function renderLootTable() {
       <thead><tr><th>Type</th><th>Credential</th><th>Host</th><th>Context</th><th></th></tr></thead>
       <tbody>${entries.map(l => {
         const typeCss = LOOT_TYPE_CSS[l.type] || 'loot-type-other';
-        return `<tr>
+        return isQuickLogEditing('loot', l.id) ? `<tr>
+          <td>
+            <select class="svc-notes-cell ql-row-input ql-row-select" id="lootEditType_${l.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')">
+              ${['cleartext', 'hash', 'token', 'key', 'other'].map(type => `<option value="${type}" ${l.type === type ? 'selected' : ''}>${type}</option>`).join('')}
+            </select>
+          </td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditCredential_${l.id}" type="text" value="${esc(l.credential || '')}" placeholder="credential"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditHost_${l.id}" type="text" value="${esc(l.host || '')}" placeholder="host"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><input class="svc-notes-cell ql-row-input" id="lootEditNote_${l.id}" type="text" value="${esc(l.note || '')}" placeholder="context…"
+            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
+        </tr>` : `<tr>
           <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
           <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
           <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
-          <td style="min-width:160px;width:35%"><input class="svc-notes-cell" type="text" value="${esc(l.note || '')}" placeholder="context…"
-            onclick="event.stopPropagation()"
-            onchange="updateLootNote('${l.id}',this.value)"
-            onblur="updateLootNote('${l.id}',this.value)"></td>
-          <td><button class="svc-del-btn" onclick="event.stopPropagation();deleteLootEntry('${l.id}')" title="Remove">✕</button></td>
+          <td style="min-width:160px;width:35%">${esc(l.note || '')}</td>
+          <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>`;
+  if (_editingQuickLog?.kind === 'loot') focusQuickLogEditInput(`lootEditCredential_${_editingQuickLog.id}`);
 }
 
 function copyLootCred(lootId) {
@@ -1468,7 +2412,7 @@ function toggleSvcPopover() {
     popoverId: 'svcPopover',
     buttonId: 'svcTopbarBtn',
     labelId: 'svcSessionLabel',
-    closeOthers: [closeTodoPopover],
+    closeOthers: [closeTodoPopover, closeEvidencePopover],
     outsideHandler: _svcOutsideClose,
     onOpen: () => {
       updateSvcPopoverLayout();
@@ -1517,7 +2461,7 @@ function toggleTodoPopover() {
     popoverId: 'todoPopover',
     buttonId: 'todoTopbarBtn',
     labelId: 'todoSessionLabel',
-    closeOthers: [closeSvcPopover],
+    closeOthers: [closeSvcPopover, closeEvidencePopover],
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
@@ -1537,5 +2481,36 @@ function _todoOutsideClose(e) {
     }
   } else {
     closeTodoPopover();
+  }
+}
+
+function toggleEvidencePopover() {
+  if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+    closeEvidencePopover();
+    return;
+  }
+  openUtilityPopover({
+    popoverId: 'evidencePopover',
+    buttonId: 'evidenceTopbarBtn',
+    labelId: 'evidenceSessionLabel',
+    closeOthers: [closeSvcPopover, closeTodoPopover],
+    outsideHandler: _evidenceOutsideClose,
+    onOpen: () => {
+      renderEvidenceList();
+    },
+  });
+}
+
+function closeEvidencePopover() {
+  closeUtilityPopover('evidencePopover', 'evidenceTopbarBtn');
+}
+
+function _evidenceOutsideClose(e) {
+  if (isEventInsideWrap(e, 'evidenceTopbarWrap')) {
+    if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_evidenceOutsideClose);
+    }
+  } else {
+    closeEvidencePopover();
   }
 }

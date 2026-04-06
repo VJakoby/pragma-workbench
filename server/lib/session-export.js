@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const { getPlaceholderMatchers } = require('../../public/app/placeholders.js');
 
 const BUILTIN_TYPE_ORDER = ['recon', 'network-enumeration', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
 const BUILTIN_TYPE_LABELS = {
@@ -43,6 +44,17 @@ function formatDuration(firstTs, lastTs) {
 
 function escapeTableCell(value) {
   return String(value || '').replace(/\|/g, '\\|').replace(/\n/g, ' ').trim();
+}
+
+function escapeFenceContent(value) {
+  return String(value || '').replace(/```/g, '\\`\\`\\`').trim();
+}
+
+function stripEvidenceMarkers(text) {
+  return String(text || '')
+    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
 }
 
 function loadTemplateMeta(templatesFile) {
@@ -112,55 +124,26 @@ function injectTargetPlaceholders(text, target) {
   const label = String(target.label || target.ip || target.domain || '').trim();
   const attackerIp = String(target.attacker_ip || '').trim();
   let output = String(text);
+  const {
+    ipPatterns,
+    domainPatterns,
+    labelPatterns,
+    attackerPatterns,
+  } = getPlaceholderMatchers();
 
   if (ip) {
-    const ipPatterns = [
-      /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
-      /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
-      /<rhost>/g, /<HOST>/g, /<host>/g,
-      /\bTARGET_IP\b/g, /\bRHOST\b/g, /\bTARGET\b/g,
-      /\$IP\b/g, /\$RHOST\b/g, /\$TARGET\b/g, /\$TARGET_IP\b/g,
-      /\$HOST\b/g,
-      /\{IP\}/g, /\{ip\}/g, /\{RHOST\}/g, /\{rhost\}/g, /\{TARGET\}/g,
-      /\{\{ip\}\}/g, /\{\{IP\}\}/g, /\{\{target\}\}/g, /\{\{rhost\}\}/g,
-      /\{HOST\}/g, /\{host\}/g, /\{\{host\}\}/g, /\{\{HOST\}\}/g,
-      /\bTARGET_IP_ADDRESS\b/g, /<MACHINE_IP>/g, /\bMACHINE_IP\b/g,
-      /\b10\.10\.10\.X\b/g, /\b10\.10\.X\.X\b/g,
-    ];
     output = replaceAllPatterns(output, ipPatterns, ip);
-    output = output.replace(/\bIP\b/g, ip).replace(/\bHOST\b/g, ip);
   }
 
   if (domain) {
-    const domainPatterns = [
-      /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
-      /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
-      /\bTARGET_DOMAIN\b/g, /\bDOMAIN\b/g,
-      /\$DOMAIN\b/g, /\$FQDN\b/g, /\$DC\b/g,
-      /\{DOMAIN\}/g, /\{domain\}/g, /\{FQDN\}/g, /\{\{domain\}\}/g,
-      /<WORKGROUP>/g, /\bWORKGROUP\b/g,
-    ];
     output = replaceAllPatterns(output, domainPatterns, domain);
   }
 
   if (label) {
-    const labelPatterns = [
-      /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
-      /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
-    ];
     output = replaceAllPatterns(output, labelPatterns, label);
   }
 
   if (attackerIp) {
-    const attackerPatterns = [
-      /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
-      /<ATTACKER_IP>/g, /<attacker_ip>/g,
-      /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
-      /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
-      /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
-      /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
-      /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
-    ];
     output = replaceAllPatterns(output, attackerPatterns, attackerIp);
   }
 
@@ -242,6 +225,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const services = Array.isArray(session.services) ? [...session.services] : [];
   const paths = Array.isArray(session.paths) ? [...session.paths] : [];
   const loot = Array.isArray(session.loot) ? [...session.loot] : [];
+  const evidence = Array.isArray(session.evidence) ? [...session.evidence] : [];
   const sessionEvents = Array.isArray(session.events) ? [...session.events] : [];
 
   const noteEvents = allNotes.map((note) => ({
@@ -276,6 +260,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
     services,
     paths,
     loot,
+    evidence,
     events,
     notes: {
       all: allNotes,
@@ -302,6 +287,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
 function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), target);
   const label = targetLabel(target);
+  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target));
   return [
     `# ${title}`,
     '',
@@ -312,12 +298,13 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
     '',
     '---',
     '',
-    injectTargetPlaceholders(note.body || '', target),
+    body,
   ].join('\n');
 }
 
 function renderSessionNoteFile({ note, session, typeMeta, storage }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
+  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }));
   return [
     `# ${title}`,
     '',
@@ -327,7 +314,7 @@ function renderSessionNoteFile({ note, session, typeMeta, storage }) {
     '',
     '---',
     '',
-    injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }),
+    body,
   ].join('\n');
 }
 
@@ -372,7 +359,7 @@ function renderTimelineSummary(model) {
           const target = note.target_id ? model.targetById[note.target_id] : null;
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
           const title = injectTargetPlaceholders(noteTitle(note, model.storage), target || model.sessionContext);
-          const preview = (note.body || '')
+          const preview = stripEvidenceMarkers(note.body || '')
             .split('\n')
             .map((line) => line.trim())
             .find((line) => line && !line.startsWith('#') && !line.startsWith('---') && line.length > 3);
@@ -465,7 +452,8 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const target = note.target_id ? model.targetById[note.target_id] : null;
     const placeholderContext = target || model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
-    const resolvedBody = injectTargetPlaceholders(note.body || '', placeholderContext);
+    const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
+    lines.push(`#### ${resolvedTitle}`);
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
     const headingText = leadingHeading?.text || resolvedTitle;
     const renderTitleHeading = normalizeHeadingText(headingText) !== normalizeHeadingText(bucket.label);
@@ -515,6 +503,53 @@ function renderTimelineSection(model) {
   return lines.join('\n');
 }
 
+function renderEvidenceSection(model) {
+  const evidence = model.evidence
+    .filter((entry) => ['export_only', 'both'].includes(String(entry.sync_mode || 'export_only').trim()))
+    .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
+  if (!evidence.length) return '';
+
+  const lines = ['## Evidence', ''];
+  evidence.forEach((entry) => {
+    const target = entry.target_id ? model.targetById[entry.target_id] : null;
+    lines.push(`### ${entry.title || 'Untitled'}`);
+    lines.push('');
+    lines.push(`- Type: ${evidenceType(entry.type)}`);
+    lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
+    if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
+    if (entry.details) lines.push(`- Details: ${entry.details}`);
+    if (entry.source_command) {
+      lines.push('', '```text', escapeFenceContent(entry.source_command), '```');
+    }
+    lines.push('');
+  });
+  return lines.join('\n').trimEnd();
+}
+
+function evidenceType(type) {
+  const labels = {
+    enumeration: 'Enumeration',
+    initial_access: 'Initial Access',
+    execution: 'Execution',
+    persistence: 'Persistence',
+    privilege_escalation: 'Privilege Escalation',
+    credential_access: 'Credential Access',
+    discovery: 'Discovery',
+    lateral_movement: 'Lateral Movement',
+    pivoting: 'Pivoting',
+    collection: 'Collection',
+    exfiltration: 'Exfiltration',
+    finding: 'Finding',
+    proof: 'Proof',
+    cred: 'Credential',
+    artifact: 'Artifact',
+    privesc: 'PrivEsc',
+    cleanup: 'Cleanup',
+    note: 'Note',
+  };
+  return labels[String(type || '').trim()] || (type ? String(type) : 'Evidence');
+}
+
 function renderConsolidatedSession(model) {
   const lines = [
     `# ${model.session.codename}`,
@@ -557,6 +592,11 @@ function renderConsolidatedSession(model) {
         lines.push(`| ${escapeTableCell(entry.type)} | \`${escapeTableCell(entry.credential)}\` | ${escapeTableCell(entry.host || '—')} | ${escapeTableCell(entry.note)} |`);
       });
     lines.push('');
+  }
+
+  const evidenceSection = renderEvidenceSection(model);
+  if (evidenceSection) {
+    lines.push('---', '', evidenceSection, '');
   }
 
   if (model.events.length) {
