@@ -332,6 +332,28 @@ function getEvidenceSyncNote(entry) {
   return noteId ? notes[noteId] || null : null;
 }
 
+function evidenceTypeBadgeClass(type) {
+  if (type === 'proof') return 'loot-type-token';
+  return 'loot-type-other';
+}
+
+function getEvidenceSourceSnippet(entry) {
+  const sourceNote = getEvidenceSourceNote(entry);
+  if (!sourceNote) return '';
+  const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
+  const raw = range
+    ? String(sourceNote.body || '').slice(range.from, range.to)
+    : String(entry.source_command || entry.details || '');
+  const compact = String(raw || '')
+    .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
+    .replace(/```[a-z0-9_-]*\n?/gi, '')
+    .replace(/```/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!compact) return '';
+  return compact.length > 140 ? `${compact.slice(0, 140).trim()}…` : compact;
+}
+
 function findEvidenceMarkerRange(body, entryId) {
   const text = String(body || '');
   const marker = buildEvidenceMarkerId(entryId);
@@ -730,6 +752,7 @@ function renderEvidenceList() {
       const syncLabel = evidenceSyncLabel(entry.sync_mode || 'export_only');
       const sourceNote = getEvidenceSourceNote(entry);
       const sourceNoteLabel = sourceNote?.title || 'Unknown source';
+      const sourceSnippet = getEvidenceSourceSnippet(entry);
       const syncNote = getEvidenceSyncNote(entry);
       const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
       const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
@@ -800,10 +823,11 @@ function renderEvidenceList() {
         <section class="evidence-item">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group">
-                <span class="loot-type-badge loot-type-other">${esc(evidenceTypeLabel(entry.type))}</span>
+              <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
               <div class="evidence-item-title-wrap">
                 <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
                 <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
+                ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
               </div>
             </div>
             <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>

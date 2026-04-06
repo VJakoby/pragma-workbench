@@ -734,14 +734,14 @@ function deriveEvidenceType(text) {
   if (/(cleanup|remove|revert|deleted|remove uploaded|clear history|rm\s+-rf)/.test(lower)) return 'cleanup';
   if (/(password|hash|ntlm|credential|token|apikey|api key|secret|kerberoast|asrep|sam dump|lsass|mimikatz)/.test(lower)) return 'credential_access';
   if (/(seimpersonate|system shell|root shell|local admin|privilege escalation|privesc|sudo -l|printspoofer|juicypotato|godpotato)/.test(lower)) return 'privilege_escalation';
-  if (/(chisel|ligolo|pivot|socks|rportfwd|portfwd|ssh -d|ssh -l|proxychains|meterpreter route)/.test(lower)) return 'pivoting';
+  if (/(chisel|ligolo|pivot|socks|rportfwd|portfwd|ssh -d|ssh -l|ssh -r|proxychains|meterpreter route|autoroute|sshuttle|socat tcp-listen)/.test(lower)) return 'pivoting';
   if (/(psexec|wmiexec|smbexec|winrm|evil-winrm|ssh |xfreerdp|rdesktop|mssqlclient|runas|atexec|dcomexec)/.test(lower)) return 'lateral_movement';
   if (/(persistence|autorun|scheduled task|schtasks|run key|registry run|startup|service create)/.test(lower)) return 'persistence';
   if (/(download|collect|dump|copy .*loot|tar |zip |scp |rsync |secretsdump|sam|ntds|browser data)/.test(lower)) return 'collection';
   if (/(exfil|upload .*attacker|curl .*http|wget .*http|nc .* >|ftp |sftp )/.test(lower)) return 'exfiltration';
   if (/(shell|powershell|cmd\.exe|bash -c|sh -c|python -c|invoke-expression|iex |rundll32|mshta|certutil|regsvr32)/.test(lower)) return 'execution';
-  if (/(login|foothold|reverse shell|webshell|sqlmap|exploit|initial access|auth bypass|rce|cve-|metasploit)/.test(lower)) return 'initial_access';
-  if (/(nmap|rustscan|masscan|gobuster|ffuf|dirsearch|nikto|feroxbuster|enum4linux|ldapsearch|snmpwalk)/.test(lower)) return 'enumeration';
+  if (/(login|foothold|reverse shell|webshell|sqlmap|exploit|initial access|auth bypass|rce|cve-|metasploit|nc -e|bash -i|powershell -enc|xp_cmdshell)/.test(lower)) return 'initial_access';
+  if (/(nmap|rustscan|masscan|gobuster|ffuf|dirsearch|nikto|feroxbuster|enum4linux|ldapsearch|snmpwalk|rpcclient|smbclient|crackmapexec .*--shares|crackmapexec smb|netexec smb|whatweb|showmount|dig |host |nslookup )/.test(lower)) return 'enumeration';
   if (/```|`[^`]+`|^\s*(?:\$|#)\s+\S/m.test(String(text || ''))) return 'proof';
   return 'discovery';
 }
@@ -777,6 +777,51 @@ function deriveLootValue(text, sourceCommand = '') {
   const clean = stripInlineEvidenceMarkers(text).trim();
   if (!clean) return sourceCommand || '';
   return clean.length > 600 ? clean.slice(0, 600).trim() : clean;
+}
+
+function detectEvidenceTargetId(text) {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  const haystack = String(text || '').toLowerCase();
+  if (!haystack) return null;
+  const targets = getSessionTargets();
+  let bestMatch = null;
+  targets.forEach((target) => {
+    const candidates = [
+      String(target.ip || '').trim(),
+      String(target.domain || '').trim(),
+      String(target.label || '').trim(),
+    ].filter(Boolean);
+    candidates.forEach((candidate) => {
+      const needle = candidate.toLowerCase();
+      if (!needle || !haystack.includes(needle)) return;
+      if (!bestMatch || needle.length > bestMatch.length) bestMatch = { id: target.id, length: needle.length };
+    });
+  });
+  return bestMatch?.id || null;
+}
+
+function shouldSuggestLoot(text, derivedType = '') {
+  const lower = String(text || '').toLowerCase();
+  if (derivedType && ['cleartext', 'hash', 'token', 'key'].includes(derivedType)) return true;
+  if (/(local\.txt|proof\.txt|flag\{|user:pass|username|password|ntlm|bearer |jwt|api[_ -]?key|secret|private key|ssh-rsa|ssh-ed25519)/.test(lower)) return true;
+  return false;
+}
+
+function deriveEvidenceTitleHint(text, type = 'discovery') {
+  const clean = stripInlineEvidenceMarkers(String(text || ''));
+  const lower = clean.toLowerCase();
+  if (/evil-winrm|winrm/.test(lower)) return 'WinRM access confirmed';
+  if (/psexec|wmiexec|smbexec|dcomexec|atexec/.test(lower)) return 'Lateral movement path confirmed';
+  if (/seimpersonate|printspoofer|juicypotato|godpotato|sudo -l/.test(lower)) return 'Privilege escalation path identified';
+  if (/kerberoast|asrep|secretsdump|mimikatz|lsass/.test(lower)) return 'Credential access confirmed';
+  if (/chisel|ligolo|proxychains|sshuttle|portfwd|autoroute/.test(lower)) return 'Pivoting path established';
+  if (/nmap|rustscan|masscan/.test(lower)) return 'Port enumeration result';
+  if (/gobuster|ffuf|feroxbuster|dirsearch/.test(lower)) return 'Web enumeration result';
+  if (/local\.txt/.test(lower)) return 'local.txt recovered';
+  if (/proof\.txt/.test(lower)) return 'proof.txt recovered';
+  const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Evidence').trim();
+  const derived = deriveEvidenceTitle(clean, label);
+  return derived || label;
 }
 
 function getEvidenceFlagDefaultLootHost() {
@@ -917,7 +962,10 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', 
     const lootHostEl = document.getElementById('evidenceFlagLootHost');
     const lootNoteEl = document.getElementById('evidenceFlagLootNote');
     const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
-    if (titleEl) titleEl.value = title;
+    if (titleEl) {
+      titleEl.value = title;
+      titleEl.placeholder = `${deriveEvidenceTitleHint(command || details, type)}…`;
+    }
     if (typeEl) typeEl.value = type;
     if (detailsEl) detailsEl.value = details;
     if (commandEl) commandEl.value = command;
@@ -1019,13 +1067,14 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   const marker = typeof buildEvidenceMarkerId === 'function' ? buildEvidenceMarkerId(entryId) : `pragma:evidence:${entryId}`;
   const sourceCommand = deriveEvidenceCommand(block.text);
   const defaultLootType = deriveLootType(block.text);
+  const suggestedType = deriveEvidenceType(block.text);
   const confirmed = await openEvidenceFlagDialog({
     title: '',
-    type: deriveEvidenceType(block.text),
+    type: suggestedType,
     details: deriveEvidenceDetails(block.text, sourceCommand),
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
     loot: {
-      enabled: false,
+      enabled: shouldSuggestLoot(block.text, defaultLootType),
       type: defaultLootType,
       value: deriveLootValue(block.text, sourceCommand),
       host: getEvidenceFlagDefaultLootHost(),
@@ -1040,7 +1089,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     title: confirmed.title,
     details: confirmed.details,
     source_command: confirmed.source_command,
-    target_id: notes[activeNoteId].target_id || activeTargetId || null,
+    target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
     source_note_id: activeNoteId,
     note_id: activeNoteId,
     sync_mode: 'export_only',
