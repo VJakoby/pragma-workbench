@@ -51,11 +51,22 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
   }
 
   const matrixBaseUrls = [...new Set([...(Array.isArray(matrixUrls) ? matrixUrls : []), matrixUrl].filter(Boolean))];
+  let preferredMatrixBaseUrl = matrixBaseUrls[0] || null;
+
+  function getOrderedMatrixBaseUrls() {
+    if (!preferredMatrixBaseUrl) return [...matrixBaseUrls];
+    return [
+      preferredMatrixBaseUrl,
+      ...matrixBaseUrls.filter(baseUrl => baseUrl !== preferredMatrixBaseUrl),
+    ];
+  }
 
   async function proxyJson(res, path, opts = {}, timeoutMs = 8000) {
-    let lastError = null;
+    const orderedBaseUrls = getOrderedMatrixBaseUrls();
+    const previousPreferredBaseUrl = preferredMatrixBaseUrl;
+    const errors = [];
 
-    for (const baseUrl of matrixBaseUrls) {
+    for (const baseUrl of orderedBaseUrls) {
       try {
         const response = await fetchWithTimeout(`${baseUrl}${path}`, opts, timeoutMs);
         const data = await response.json();
@@ -65,19 +76,23 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
             detail: data.detail || null,
           });
         }
-        if (baseUrl !== matrixBaseUrls[0]) {
-          console.log(`[PRAGMA] MATRIX fallback succeeded via ${baseUrl}`);
+        preferredMatrixBaseUrl = baseUrl;
+        if (previousPreferredBaseUrl && previousPreferredBaseUrl !== baseUrl) {
+          console.log(`[PRAGMA] MATRIX endpoint switched to ${baseUrl}`);
         }
         return res.json(data);
       } catch (error) {
-        lastError = error;
-        console.warn(`[PRAGMA] MATRIX proxy error via ${baseUrl}: ${error.message}`);
+        errors.push({ baseUrl, error });
       }
     }
 
+    const detail = errors.length
+      ? errors.map(({ baseUrl, error }) => `${baseUrl}: ${error.message}`).join(' | ')
+      : 'No MATRIX endpoints configured';
+    console.warn(`[PRAGMA] MATRIX proxy error: ${detail}`);
     return res.status(502).json({
       error: 'MATRIX unreachable',
-      detail: lastError ? lastError.message : 'No MATRIX endpoints configured',
+      detail,
     });
   }
 
