@@ -1709,11 +1709,16 @@ svg { vertical-align: middle; flex-shrink: 0; }
   background: var(--bg2);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.search-toolbar-status-row{
+.search-toolbar-brand-row{
   display:flex;
-  justify-content:flex-end;
+  justify-content:space-between;
   align-items:center;
-  min-height: 0;
+  gap:12px;
+  min-height:28px;
+}
+.search-toolbar-logo{
+  flex:0 1 auto;
+  min-width:0;
 }
 .search-input-row{
   display:flex;align-items:center;gap:8px;
