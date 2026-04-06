@@ -4,13 +4,42 @@
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
 
-function updateNotePreview() {
+function continueOrderedListFallback(view) {
+  const { state } = view;
+  const main = state.selection.main;
+  if (!main || !main.empty) return false;
+  const pos = main.from;
+  const line = state.doc.lineAt(pos);
+  if (pos !== line.to) return false;
+
+  const match = line.text.match(/^(\s*)(\d+)\.\s+(.*)$/);
+  if (!match) return false;
+
+  const [, indent, numberText, content] = match;
+  if (!content.trim()) return false;
+
+  const nextNumber = Number(numberText) + 1;
+  const insert = `${state.lineBreak}${indent}${nextNumber}. `;
+  view.dispatch({
+    changes: { from: pos, to: pos, insert },
+    selection: { anchor: pos + insert.length },
+    scrollIntoView: true,
+    userEvent: 'input'
+  });
+  return true;
+}
+
+async function updateNotePreview() {
   if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
   if (!pane || pane.style.display === 'none') return;
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
+  if (window.markdownPreview?.renderInto) {
+    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    return;
+  }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
   el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
@@ -116,6 +145,14 @@ function cmInitNote(initialDoc) {
   const extensions = [
     CM.basicSetup,
     ...buildCmTheme(),
+    CM.EditorView.domEventHandlers({
+      keydown(event, view) {
+        if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return false;
+        if (!continueOrderedListFallback(view)) return false;
+        event.preventDefault();
+        return true;
+      }
+    }),
     CM.EditorView.updateListener.of(update => {
       if (!update.docChanged) return;
       if (activeConfigDoc) {

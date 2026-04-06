@@ -27,6 +27,7 @@
             <div class="shortcuts-group-hdr">Tools</div>
             <div class="shortcuts-table">
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>L</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Toggle TODO</span>        <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>M</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>M</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>.</kbd></span></div>
             </div>
@@ -75,6 +76,15 @@
       <div class="session-field">
         <label>New session codename</label>
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
+      </div>
+      <div class="session-field">
+        <label>Initial target (optional)</label>
+        <div class="session-inline-field">
+          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+        </div>
+        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
       </div>
       <div class="session-actions">
         <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
@@ -172,15 +182,26 @@
 <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
   <div class="cmd-box">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">&#8984;</span>
+      <span class="cmd-input-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-3.5-3.5"/>
+        </svg>
+      </span>
       <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
       <span class="cmd-esc">ESC</span>
     </div>
+    <div class="cmd-helper">
+      <div class="cmd-helper-row">
+        <span class="cmd-helper-label">Searches</span>
+        <span class="cmd-helper-text">Services, tactics, KB sections, session notes, and commands saved in notes.</span>
+      </div>
+    </div>
     <div class="cmd-results" id="cmdResults"></div>
     <div class="cmd-footer">
-      <span class="cmd-footer-key"><kbd>&uarr;&darr;</kbd> navigate</span>
-      <span class="cmd-footer-key"><kbd>&crarr;</kbd> open</span>
-      <span class="cmd-footer-key"><kbd>ESC</kbd> close</span>
+      <span class="cmd-footer-key"><kbd>&uarr;&darr;</kbd> Navigate</span>
+      <span class="cmd-footer-key"><kbd>&crarr;</kbd> Open</span>
+      <span class="cmd-footer-key"><kbd>ESC</kbd> Close</span>
     </div>
   </div>
 </div>

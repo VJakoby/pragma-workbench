@@ -4,6 +4,7 @@ const ACCENT_COLORS = [
 ];
 
 const THEME_ORDER = ['dark', 'light'];
+const LAST_LOCATION_KEY = 'ops-last-location';
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 
@@ -21,7 +22,6 @@ function refreshThemeToggle(theme) {
 }
 
 function applyTheme(theme) {
-  if (theme === 'dim') theme = 'dark';
   if (theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
@@ -41,9 +41,7 @@ function applyTheme(theme) {
 }
 
 function toggleTheme() {
-  const currentTheme = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dim'
-    ? 'dark'
-    : (document.documentElement.getAttribute('data-theme') || 'dark');
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const currentIndex = THEME_ORDER.indexOf(currentTheme);
   const nextTheme = THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length] || 'dark';
   setTheme(nextTheme);
@@ -67,10 +65,37 @@ function setTheme(theme) {
   }, 50);
 }
 
-applyTheme((localStorage.getItem('ops-theme') || 'dark') === 'dim' ? 'dark' : (localStorage.getItem('ops-theme') || 'dark'));
+applyTheme(localStorage.getItem('ops-theme') || 'dark');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
+
+function readLastLocation() {
+  try {
+    return JSON.parse(localStorage.getItem(LAST_LOCATION_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function persistLastLocation(patch = {}) {
+  const prev = readLastLocation();
+  const next = { ...prev, ...patch };
+  Object.keys(next).forEach((key) => {
+    if (next[key] == null || next[key] === '') delete next[key];
+  });
+  try {
+    localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify(next));
+  } catch {}
+}
+
+function clearLastLocationFields(...keys) {
+  const next = readLastLocation();
+  keys.forEach((key) => delete next[key]);
+  try {
+    localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify(next));
+  } catch {}
+}
 
 function applySidebarState(state) {
   const sidebar = document.querySelector('.sidebar');
@@ -169,10 +194,34 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
+  await restoreLastLocation();
+}
+
+async function restoreLastLocation() {
+  const saved = readLastLocation();
+  const view = String(saved.view || '').trim();
+  const noteId = String(saved.noteId || '').trim();
+  const configDoc = String(saved.configDoc || '').trim();
+
+  if (view === 'notes' && configDoc === 'templates' && typeof openTemplatesConfig === 'function') {
+    await openTemplatesConfig(document.getElementById('nav-config-templates'));
+    return;
+  }
+
+  if (view === 'notes' && noteId && notes[noteId] && typeof openNote === 'function') {
+    switchView('notes', document.getElementById('nav-notes'));
+    await openNote(noteId);
+    return;
+  }
+
+  if (['notes', 'services', 'tactics', 'search'].includes(view)) {
+    switchView(view, document.getElementById(`nav-${view}`));
+  }
 }
 
 function switchView(view, navEl) {
   activeView = view;
+  persistLastLocation({ view });
   document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
@@ -309,6 +358,7 @@ document.addEventListener('keydown', async e => {
   }
 
   if (ctrl && key === 'l') { e.preventDefault(); toggleSvcPopover(); return; }
+  if (ctrl && key === 'm') { e.preventDefault(); toggleTodoPopover(); return; }
 
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     const popover = document.getElementById('svcPopover');
@@ -365,12 +415,15 @@ document.addEventListener('keydown', async e => {
       exitEditMode();
       return;
     }
+    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) {
+      closeContent();
+      return;
+    }
     const noteArea = document.getElementById('noteEditArea');
     if (activeView === 'notes' && (activeNoteId || activeConfigDoc) && noteArea && noteArea.style.display !== 'none') {
       await closeCurrentNote();
       return;
     }
-    if (!document.getElementById('contentPanel')?.classList.contains('hidden-panel')) { closeContent(); }
   }
 });
 

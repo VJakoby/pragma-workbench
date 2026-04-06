@@ -16,11 +16,21 @@
       <div class="content-panel-edit" id="cpEditBody" style="display:none">
         <div class="cp-edit-toolbar">
           <span class="cp-edit-status" id="cpEditStatus"></span>
+          <button class="tb-btn" id="kbPreviewBtn" onclick="toggleKbPreview()" title="Toggle markdown preview">
+            <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span>
+          </button>
         </div>
         <div class="note-md-hint">
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
           <span>\`code\`</span><span>\`\`\`block\`\`\`</span><span>- list</span><span>&gt; quote</span>
         </div>
-        <div class="cm-wrap kb-editor" id="cpEditWrap"></div>
+        <div class="kb-editor-split" id="kbEditorSplit">
+          <div class="cm-wrap kb-editor" id="cpEditWrap"></div>
+          <div class="note-preview-handle kb-preview-handle" id="kbPreviewHandle" style="display:none"></div>
+          <div class="note-preview-pane kb-preview-pane" id="kbPreviewPane" style="display:none">
+            <div class="note-preview-label">Preview</div>
+            <div class="md-content note-preview-content kb-preview-content" id="kbPreviewContent"></div>
+          </div>
+        </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ const SANITIZE_OPTIONS = {
     a: ['href', 'target', 'rel'],
     img: ['src', 'alt', 'title', 'style'],
     input: ['type', 'checked', 'disabled', 'class'],
+    ol: ['start'],
     span: ['class'],
     code: ['class'],
     th: ['style'],

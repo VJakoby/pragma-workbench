@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const { getPlaceholderMatchers } = require('../../public/app/placeholders.js');
 
 const BUILTIN_TYPE_ORDER = ['recon', 'network-enumeration', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
 const BUILTIN_TYPE_LABELS = {
@@ -112,55 +113,26 @@ function injectTargetPlaceholders(text, target) {
   const label = String(target.label || target.ip || target.domain || '').trim();
   const attackerIp = String(target.attacker_ip || '').trim();
   let output = String(text);
+  const {
+    ipPatterns,
+    domainPatterns,
+    labelPatterns,
+    attackerPatterns,
+  } = getPlaceholderMatchers();
 
   if (ip) {
-    const ipPatterns = [
-      /<IP>/g, /<ip>/g, /<TARGET_IP>/g,
-      /<target_ip>/g, /<TARGET>/g, /<RHOST>/g,
-      /<rhost>/g, /<HOST>/g, /<host>/g,
-      /\bTARGET_IP\b/g, /\bRHOST\b/g, /\bTARGET\b/g,
-      /\$IP\b/g, /\$RHOST\b/g, /\$TARGET\b/g, /\$TARGET_IP\b/g,
-      /\$HOST\b/g,
-      /\{IP\}/g, /\{ip\}/g, /\{RHOST\}/g, /\{rhost\}/g, /\{TARGET\}/g,
-      /\{\{ip\}\}/g, /\{\{IP\}\}/g, /\{\{target\}\}/g, /\{\{rhost\}\}/g,
-      /\{HOST\}/g, /\{host\}/g, /\{\{host\}\}/g, /\{\{HOST\}\}/g,
-      /\bTARGET_IP_ADDRESS\b/g, /<MACHINE_IP>/g, /\bMACHINE_IP\b/g,
-      /\b10\.10\.10\.X\b/g, /\b10\.10\.X\.X\b/g,
-    ];
     output = replaceAllPatterns(output, ipPatterns, ip);
-    output = output.replace(/\bIP\b/g, ip).replace(/\bHOST\b/g, ip);
   }
 
   if (domain) {
-    const domainPatterns = [
-      /<DOMAIN>/g, /<domain>/g, /<TARGET_DOMAIN>/g,
-      /<FQDN>/g, /<fqdn>/g, /<DC>/g, /<dc>/g,
-      /\bTARGET_DOMAIN\b/g, /\bDOMAIN\b/g,
-      /\$DOMAIN\b/g, /\$FQDN\b/g, /\$DC\b/g,
-      /\{DOMAIN\}/g, /\{domain\}/g, /\{FQDN\}/g, /\{\{domain\}\}/g,
-      /<WORKGROUP>/g, /\bWORKGROUP\b/g,
-    ];
     output = replaceAllPatterns(output, domainPatterns, domain);
   }
 
   if (label) {
-    const labelPatterns = [
-      /<LABEL>/g, /<label>/g, /<TARGET_LABEL>/g,
-      /\{LABEL\}/g, /\{label\}/g, /\{\{label\}\}/g, /\{\{LABEL\}\}/g,
-    ];
     output = replaceAllPatterns(output, labelPatterns, label);
   }
 
   if (attackerIp) {
-    const attackerPatterns = [
-      /<ATTACKER>/g, /<attacker>/g, /<ATTACKER-IP>/g, /<attacker-ip>/g,
-      /<ATTACKER_IP>/g, /<attacker_ip>/g,
-      /\bATTACKER_IP\b/g, /\bATTACKER\b/g,
-      /\$ATTACKER\b/g, /\$ATTACKER_IP\b/g,
-      /\{ATTACKER\}/g, /\{attacker\}/g, /\{ATTACKER_IP\}/g, /\{attacker_ip\}/g,
-      /\{\{\s*ATTACKER\s*\}\}/g, /\{\{\s*attacker\s*\}\}/g,
-      /\{\{\s*ATTACKER_IP\s*\}\}/g, /\{\{\s*attacker_ip\s*\}\}/g,
-    ];
     output = replaceAllPatterns(output, attackerPatterns, attackerIp);
   }
 

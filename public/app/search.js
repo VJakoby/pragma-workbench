@@ -5,17 +5,14 @@ function updateSearchNavBadge(status = 'checking') {
   const badge = document.getElementById('search-index-badge');
   const dot = document.getElementById('search-status-dot');
   if (!badge) return;
-  const count = Array.isArray(knownSources) ? knownSources.length : 0;
+  const count = Array.isArray(knownSources)
+    ? knownSources.reduce((sum, src) => sum + Math.max(0, Number(src.page_count) || 0), 0)
+    : 0;
   badge.textContent = count > 0 ? String(count) : '0';
   badge.className = `nav-item-count search-nav-badge ${status}`;
   badge.title = count > 0
-    ? `${count} indexed source${count === 1 ? '' : 's'} · ENGRAM ${status}`
-    : `No indexed sources loaded · ENGRAM ${status}`;
-  if (dot) {
-    dot.className = `nav-item-service-dot ${status}`;
-    dot.title = badge.title;
-    dot.setAttribute('aria-label', badge.title);
-  }
+    ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+    : `No indexed pages loaded · ENGRAM ${status}`;
 }
 
 if (document.readyState === 'loading') {
@@ -95,7 +92,11 @@ async function loadSearchSources() {
   try {
     const r = await fetch('/api/search-sources');
     const d = await r.json();
-    knownSources = (d.sources || []).map(s => ({ id: s.id, name: s.name }));
+    knownSources = (d.sources || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      page_count: Number(s.page_count) || 0,
+    }));
     updateSearchNavBadge(document.getElementById('engramPill')?.classList.contains('online') ? 'online'
       : document.getElementById('engramPill')?.classList.contains('offline') ? 'offline'
       : 'checking');
@@ -248,14 +249,19 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
          data-query="${esc(query)}"
          data-sourcename="${esc(r.source_name||'')}"
          onclick="handleResultClick(this)">
-      <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      <div class="result-card-head">
+        <div class="result-title">${esc(r.title||r.page_name||'Untitled')}</div>
+      </div>
       <div class="search-meta-row">
         ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
         ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
       </div>
       <div class="result-meta">
-        <span class="result-source">${esc(r.source_name||'')}</span>
-        <span class="result-kind ${isLocal ? 'local' : 'online'}">${isLocal ? 'local' : 'online'}</span>
+        <span class="result-source">
+          <span class="result-source-label">source</span>
+          <span class="result-source-name">${esc(r.source_name||'')}</span>
+        </span>
+        <span class="result-kind ${isLocal ? 'local' : 'online'}"><span class="result-kind-dot"></span>${isLocal ? 'local' : 'online'}</span>
       </div>
       ${trimmed ? `<div class="result-snippet">${highlightSnippet(trimmed, query)}</div>` : ''}
     </div>`;

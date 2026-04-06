@@ -21,6 +21,14 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
 
+## 👤 Who This Is For
+
+PRAGMA exists because this is the workflow I wanted for myself.
+
+It is not trying to solve everybody else's note-taking, reporting, or engagement-management problem. It is opinionated, local-first, and built around how I prefer to work during an assessment. If that fits your way of operating, use it. If it does not, do not.
+
+That is intentional. The goal is not to be universal. The goal is a better structured workflow.
+
 ## 🗂️ Workspace Model
 
 PRAGMA is structured in three levels:
@@ -82,6 +90,7 @@ In practice, this means the app is opinionated about staying operational:
 
 **Notes**
 - Typed notes with structured markdown templates — see [Note Templates](#-note-templates) below
+- Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Session reassignment, target assignment, and Timeline view for chronological activity
@@ -96,9 +105,12 @@ A persistent in-session capture tool accessible from the topbar:
 - **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
-- **TODO** — a session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen
 
-Ports, paths, loot, and TODO items persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
+Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
+
+**TODO**
+
+A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
 
 **Knowledge Base & Tactics**
 - Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
@@ -125,6 +137,12 @@ Ports, paths, loot, and TODO items persist per session alongside notes. Ports an
 ## 📝 Note Templates
 
 PRAGMA ships with built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+
+Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
+
+- an OSCP template with separate `Exam Target`, `Practice`, and `AD Workflow` variants
+- a Credentials template with different layouts for general credentials vs AD credentials
+- a Recon template with different structures for web, network, or cloud-focused recon
 
 | Template | Icon | Default Tags | Purpose |
 |---|---|---|---|
@@ -158,6 +176,20 @@ You can extend or fully replace the built-in templates by editing `note-template
         "",
         "## Routes",
         ""
+      ],
+      "variants": [
+        {
+          "id": "ligolo",
+          "label": "Ligolo",
+          "title_prefix": "Tunnel",
+          "default_tags": ["tunneling", "pivot", "ligolo"],
+          "body_lines": [
+            "## Listener",
+            "",
+            "## Agent",
+            ""
+          ]
+        }
       ]
     }
   ]
@@ -173,8 +205,11 @@ You can extend or fully replace the built-in templates by editing `note-template
 | `default_tags` | — | Array of tags automatically applied to the note |
 | `body` | — | Initial markdown content for the note body as a single JSON string |
 | `body_lines` | — | Multi-line template body as an array of strings; joined with `\n` on load |
+| `variants` | — | Array of selectable template variants. Each variant can define its own `id`, `label`, `icon`, `title_prefix`, `default_tags`, `body`, or `body_lines` |
 
 Use either `body` or `body_lines`. `body_lines` is easier to read and maintain for longer markdown templates.
+
+If `variants` are present, PRAGMA shows a second selection step in the note-creation flow. The chosen variant becomes the note's starting layout and can override the parent template's defaults.
 
 Custom templates appear in the picker with a purple border and a **Custom** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
 
