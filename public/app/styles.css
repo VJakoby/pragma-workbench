@@ -1657,8 +1657,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .note-title-input::placeholder{color:var(--muted)}
 .note-save-status{
-  font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);font-weight:500;
+  font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
   flex-shrink:0;
+  min-width:48px;
+  text-align:right;
 }
 .note-save-status.saved{color:var(--green)}
 .note-save-status.error{color:var(--red)}
@@ -2621,17 +2623,26 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Note timestamps bar ── */
 .note-timestamps {
   display: flex; gap: 10px; align-items: center;
-  padding: 3px 14px;
+  padding: 3px 72px 3px 14px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: relative;
 }
 .note-ts {
   font-family: 'JetBrains Mono', monospace; font-size: 11px;
   color: var(--muted); white-space: nowrap;
 }
 .note-ts strong { color: var(--text2); font-weight: 600; }
-.note-save-status { font-size: 11px; }
+.note-save-status {
+  font-size: 10px;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 48px;
+  text-align: right;
+}
 
 /* ── Note wiki links [[...]] ── */
 .note-wikilink {

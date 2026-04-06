@@ -8,6 +8,16 @@ const LAST_LOCATION_KEY = 'ops-last-location';
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 
+function getStoredLastView() {
+  const saved = localStorage.getItem(LAST_VIEW_KEY) || '';
+  return RESTORABLE_VIEWS.has(saved) ? saved : 'notes';
+}
+
+function storeLastView(view) {
+  if (!RESTORABLE_VIEWS.has(view)) return;
+  localStorage.setItem(LAST_VIEW_KEY, view);
+}
+
 function refreshThemeToggle(theme) {
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length] || 'dark';
   const lightBtn = document.getElementById('themeLightBtn');
@@ -219,6 +229,7 @@ async function restoreLastLocation() {
 }
 
 function switchView(view, navEl) {
+  if (!RESTORABLE_VIEWS.has(view)) view = 'notes';
   activeView = view;
   persistLastLocation({ view });
   document.querySelectorAll('.panel-view').forEach(v => v.classList.remove('active'));
