@@ -15,8 +15,7 @@ async function updateKbPreview() {
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
-  el.innerHTML = injected;
+  el.innerHTML = rendered;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);

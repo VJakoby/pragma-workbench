@@ -237,8 +237,7 @@
       const current = stateByElement.get(el);
       if (!current || current.requestId !== requestId) return false;
 
-      const injected = shouldInjectTargets && typeof injectTargets === 'function' ? injectTargets(html) : html;
-      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+      el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
       if (typeof enhanceNoteWikiLinks === 'function') enhanceNoteWikiLinks(el);
       normalizeTaskLists(el);
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);

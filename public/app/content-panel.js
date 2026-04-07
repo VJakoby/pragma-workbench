@@ -388,7 +388,7 @@ function renderContent(html, icon, title, meta, query = '') {
   const isLocalKbDoc = !query && !!activeDoc?.isLocal && !activeDoc?.isBrowser;
   setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc });
   const el = document.getElementById('cpContent');
-  const renderedHtml = injectTargets(html);
+  const renderedHtml = html;
 
   if (query) {
     el.innerHTML = `

@@ -41,8 +41,7 @@ async function updateNotePreview() {
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
-  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(rendered) : rendered;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
@@ -102,6 +101,10 @@ function applyNotePreviewState() {
     applyPreviewLayout();
     updateNotePreview();
     initPreviewDragHandle();
+  } else {
+    split.classList.remove('split-side');
+    split.style.removeProperty('--note-editor-w');
+    handle.classList.remove('dragging');
   }
 }
 
