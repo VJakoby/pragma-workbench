@@ -282,11 +282,23 @@ Write your KB docs using any of the supported placeholder styles below.
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
+---
+
 ## 🚀 Quick Start
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
+The Docker setup also supports an optional local `.env` file for host-specific path and permission overrides, including:
+
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_KB_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+
 ```bash
+# Optional: create a local env file for Docker path/user overrides
+cp .example.env .env
+
 # Build and start
 docker compose up -d --build
 
@@ -327,4 +339,12 @@ The frontend is now split into smaller browser modules under [public/app](./publ
 This means most new frontend work should target one of those focused modules instead of growing `app.js` back into a monolith.
 
 ---
+
+## 🛣️ Roadmap
+
+The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
+
+See [ROADMAP.md](./ROADMAP.md).
+---
+
 Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
