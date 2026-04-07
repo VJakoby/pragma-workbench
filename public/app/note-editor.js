@@ -102,6 +102,10 @@ function applyNotePreviewState() {
     applyPreviewLayout();
     updateNotePreview();
     initPreviewDragHandle();
+  } else {
+    split.classList.remove('split-side');
+    split.style.removeProperty('--note-editor-w');
+    handle.classList.remove('dragging');
   }
 }
 
