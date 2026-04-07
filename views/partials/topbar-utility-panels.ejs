@@ -154,12 +154,12 @@
           <div class="todo-popover-hdr">
             <span class="todo-popover-title">TODO</span>
             <span class="svc-popover-session-label" id="todoSessionLabel"></span>
-            <button class="todo-clear-btn" id="todoClearBtn" onclick="clearCompletedTodos()" disabled>Clear Done</button>
+            <button class="todo-clear-btn todo-mutate-control" id="todoClearBtn" onclick="clearCompletedTodos()" disabled>Clear Done</button>
             <button class="icon-btn" onclick="closeTodoPopover()" title="Close TODO panel" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>
           <div class="todo-popover-body">
             <div class="svc-hint">Keep short next-step tasks per session. Completed items stay saved until you clear them.</div>
-            <div class="svc-quick-input-row" style="margin-bottom:10px">
+            <div class="svc-quick-input-row todo-mutate-control" style="margin-bottom:10px">
               <input class="svc-quick-input" id="todoQuickInput" type="text"
                 placeholder="Enumerate SMB shares, retry WinRM creds, check web admin panel…"
                 autocomplete="off" spellcheck="false"

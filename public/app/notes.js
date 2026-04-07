@@ -171,13 +171,13 @@ async function openTemplatesConfig(navEl) {
   if (activeNoteId && notes[activeNoteId]) {
     const noteId = activeNoteId;
     clearTimeout(noteSaveTimer);
-    await persistActiveNote({ reason: 'note-switch', immediate: true, noteId });
+    persistActiveNoteInBackground(noteId, 'note-switch');
   }
   activeNoteId = null;
   activeConfigDoc = 'templates';
   if (typeof persistLastLocation === 'function') persistLastLocation({ view: 'notes', noteId: null, configDoc: 'templates' });
   switchView('notes', navEl || document.getElementById('nav-config-templates'));
-  renderNotesList();
+  syncVisibleNoteSelection(null);
 
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
@@ -325,6 +325,16 @@ function renderNotesList() {
 
   document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
   renderTargetFilterBar();
+}
+
+function syncVisibleNoteSelection(noteId = activeNoteId) {
+  const nextId = noteId || null;
+  document.querySelectorAll('#notesList .note-item').forEach((el) => {
+    el.classList.toggle('active', el.dataset.id === nextId);
+  });
+  document.querySelectorAll('#timelineList .timeline-entry').forEach((el) => {
+    el.classList.toggle('tl-active', el.dataset.id === nextId);
+  });
 }
 
 function onNoteSearch(val) {
@@ -541,7 +551,7 @@ function duplicateCurrentNote() {
 async function openNote(id) {
   if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
     clearTimeout(noteSaveTimer);
-    await persistActiveNote({ reason: 'note-switch', immediate: true, noteId: activeNoteId });
+    persistActiveNoteInBackground(activeNoteId, 'note-switch');
   }
   const wasConfig = !!activeConfigDoc;
   if (wasConfig) {
@@ -576,12 +586,11 @@ async function openNote(id) {
   else cmSetValue(noteEditor, n.body || '');
   renderNoteTags(n);
   updateReassignBtn(n);
-  renderBacklinks(id);
+  scheduleRenderBacklinks(id);
   if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
   setNoteSaveIndicator('saved', 'saved');
 
-  renderNotesList();
-  if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
+  syncVisibleNoteSelection(id);
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   applyNotePreviewState();
 }
@@ -599,12 +608,23 @@ function togglePinNote() {
   renderNotesList();
 }
 
-function resolveNoteLink(rawTitle) {
+function buildNoteResolutionLookup() {
+  const values = Object.values(notes);
+  const exact = new Map();
+  values.forEach((note) => {
+    const title = (note.title || '').trim().toLowerCase();
+    if (title && !exact.has(title)) exact.set(title, note);
+  });
+  return { values, exact };
+}
+
+function resolveNoteLink(rawTitle, lookup = null) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
-  if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
+  const values = lookup?.values || Object.values(notes);
+  let hit = lookup?.exact?.get(q) || values.find(n => (n.title || '').toLowerCase() === q);
+  if (!hit) hit = values.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
@@ -690,13 +710,14 @@ function enhanceNoteWikiLinks(root) {
 window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
 
 function getBacklinks(noteId) {
-  return Object.values(notes).filter(n => {
+  const lookup = buildNoteResolutionLookup();
+  return lookup.values.filter(n => {
     if (n.id === noteId) return false;
     const body = n.body || '';
     const re = /\[\[([^\]]+)\]\]/g;
     let m;
     while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1]) === noteId) return true;
+      if (resolveNoteLink(m[1], lookup) === noteId) return true;
     }
     return false;
   });
@@ -713,6 +734,13 @@ function renderBacklinks(noteId) {
     const safeTitle = (n.title || 'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     return '<span class="note-backlink-chip" onclick="openNote(\'' + n.id + '\')" title="' + safeTitle + '">' + safeTitle + '</span>';
   }).join('');
+}
+
+function scheduleRenderBacklinks(noteId, delay = 0) {
+  setTimeout(() => {
+    if (activeNoteId !== noteId) return;
+    renderBacklinks(noteId);
+  }, Math.max(0, delay));
 }
 
 function syncActiveNoteDraft(noteId = activeNoteId) {
@@ -748,12 +776,22 @@ async function persistActiveNote(opts = {}) {
   renderNotesList();
   renderSessionSidebar();
   if (!note || notes[noteId] !== note) return ok;
-  if (activeNoteId === noteId) renderBacklinks(noteId);
+  if (activeNoteId === noteId) scheduleRenderBacklinks(noteId, 80);
   const moEl = document.getElementById('noteModifiedAt');
   if (moEl && activeNoteId === noteId) moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  if (activeNoteId === noteId) updateNotePreview();
+  if (activeNoteId === noteId) {
+    if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(80);
+    else updateNotePreview();
+  }
   return ok;
+}
+
+function persistActiveNoteInBackground(noteId = activeNoteId, reason = 'note-switch') {
+  if (!noteId || !notes[noteId]) return;
+  persistActiveNote({ reason, immediate: true, noteId }).catch((err) => {
+    console.warn('[PRAGMA] background note save failed:', err);
+  });
 }
 
 function autoSaveNote() {

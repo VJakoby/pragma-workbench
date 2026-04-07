@@ -360,6 +360,20 @@ body{
   color:var(--accent);
   box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),0.1);
 }
+.nav-item-reading-mode .reading-mode-icon{
+  display:none;
+}
+.nav-item-reading-mode[data-enabled="true"]{
+  background:rgba(var(--accent-rgb),0.12);
+  color:var(--accent);
+}
+.nav-item-reading-mode[data-enabled="true"] .reading-mode-icon-on,
+.nav-item-reading-mode[data-enabled="false"] .reading-mode-icon-off{
+  display:block;
+}
+.nav-item-reading-mode[data-enabled="true"] .nav-item-icon{
+  color:var(--accent);
+}
 .nav-item-icon{font-size:17px;flex-shrink:0;width:22px;text-align:center}
 .nav-item-kb-folder .nav-item-icon{
   color:var(--muted);
@@ -422,12 +436,6 @@ body.reading-mode .topbar > .theme-toggle:not(#themeToggle){
 body.reading-mode .utility-topbar-group{
   display:flex !important;
 }
-body.reading-mode .utility-topbar-group .todo-topbar-wrap{
-  display:none !important;
-}
-body.reading-mode .utility-topbar-group .utility-topbar-segment-left{
-  border-right:none;
-}
 body.reading-mode #svcPopover .svc-mutate-control,
 body.reading-mode #svcPopover .ql-row-actions,
 body.reading-mode #svcPopover .svc-table th:last-child,
@@ -435,6 +443,17 @@ body.reading-mode #svcPopover .svc-table td:last-child,
 body.reading-mode #svcPopover .path-table th:last-child,
 body.reading-mode #svcPopover .path-table td:last-child{
   display:none !important;
+}
+body.reading-mode #todoPopover .todo-mutate-control{
+  display:none !important;
+}
+body.reading-mode #todoPopover .todo-check-btn{
+  cursor:default;
+  pointer-events:none;
+}
+body.reading-mode #todoPopover .todo-check-btn:hover{
+  border-color:var(--border2);
+  background:var(--bg3);
 }
 body.reading-mode .topbar{
   gap:8px;
@@ -465,9 +484,7 @@ body.reading-mode #notesListCreateBtn{
   display:none !important;
 }
 body.reading-mode #servicesNewBtn,
-body.reading-mode #tacticsNewBtn,
-body.reading-mode #kbNavSubhdr,
-body.reading-mode #kbNavList{
+body.reading-mode #tacticsNewBtn{
   display:none !important;
 }
 body.reading-mode .note-editor-split{
@@ -475,6 +492,13 @@ body.reading-mode .note-editor-split{
 }
 body.reading-mode .note-editor-split .cm-wrap,
 body.reading-mode .note-preview-handle{
+  display:none !important;
+}
+body.reading-mode #notesEditor.config-mode .note-editor-split .cm-wrap{
+  display:flex !important;
+}
+body.reading-mode #notesEditor.config-mode .note-preview-handle,
+body.reading-mode #notesEditor.config-mode .note-preview-pane{
   display:none !important;
 }
 body.reading-mode .note-preview-pane{

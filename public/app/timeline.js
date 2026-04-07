@@ -121,7 +121,7 @@ function renderTimeline() {
         const tgtBadge = tgt
           ? `<span class="note-item-target"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> ${esc(tgt.ip || tgt.domain || tgt.label || 'target')}</span>`
           : '';
-        html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" onclick="openNote('${n.id}')">
+        html += `<div class="timeline-entry${n.id === activeNoteId ? ' tl-active' : ''}" data-id="${n.id}" onclick="openNote('${n.id}')">
           <span class="tl-time">${esc(time)}</span>
           <div class="tl-body">
             <div class="tl-badge-row">

@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+let notePreviewRenderTimer = null;
+let notePreviewRenderSeq = 0;
 
 function continueOrderedListFallback(view) {
   const { state } = view;
@@ -30,6 +32,7 @@ function continueOrderedListFallback(view) {
 }
 
 async function updateNotePreview() {
+  const seq = ++notePreviewRenderSeq;
   if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
   if (!pane || pane.style.display === 'none') return;
@@ -42,11 +45,21 @@ async function updateNotePreview() {
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
   const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
+  if (seq !== notePreviewRenderSeq) return;
   el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(injected) : injected;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+function scheduleUpdateNotePreview(delay = 0) {
+  notePreviewRenderSeq += 1;
+  if (notePreviewRenderTimer) clearTimeout(notePreviewRenderTimer);
+  notePreviewRenderTimer = setTimeout(() => {
+    notePreviewRenderTimer = null;
+    updateNotePreview();
+  }, Math.max(0, delay));
 }
 
 function toggleNotePreview() {
@@ -100,7 +113,7 @@ function applyNotePreviewState() {
     const saved = localStorage.getItem('pragma-preview-split');
     if (saved) split.style.setProperty('--note-editor-h', saved);
     applyPreviewLayout();
-    updateNotePreview();
+    scheduleUpdateNotePreview();
     initPreviewDragHandle();
   }
 }
@@ -161,7 +174,7 @@ function cmInitNote(initialDoc) {
       }
       if (activeNoteId) {
         autoSaveNote();
-        updateNotePreview();
+        scheduleUpdateNotePreview(120);
       }
     }),
     CM.EditorView.lineWrapping,

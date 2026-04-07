@@ -76,22 +76,24 @@ function applyReadingModeState() {
   localStorage.setItem('ops-reading-mode', readingModeEnabled ? '1' : '0');
   localStorage.removeItem('ops-observer-mode');
   const nav = document.getElementById('nav-reading-mode');
-  if (nav) nav.classList.toggle('active', readingModeEnabled);
+  if (nav) {
+    nav.dataset.enabled = readingModeEnabled ? 'true' : 'false';
+    nav.setAttribute('aria-pressed', readingModeEnabled ? 'true' : 'false');
+  }
   if (readingModeEnabled) {
     if (typeof clearQuickLogEditing === 'function') clearQuickLogEditing();
+    if (typeof clearTodoEditing === 'function') clearTodoEditing();
     if (typeof closeTodoPopover === 'function') closeTodoPopover();
     if (typeof closeSvcPopover === 'function') closeSvcPopover();
   }
-  if (readingModeEnabled && typeof updateNotePreview === 'function' && activeNoteId && notes[activeNoteId]) {
-    updateNotePreview();
+  if (readingModeEnabled && activeNoteId && notes[activeNoteId]) {
+    if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview();
+    else if (typeof updateNotePreview === 'function') updateNotePreview();
   }
 }
 
 function toggleReadingMode() {
   readingModeEnabled = !readingModeEnabled;
-  if (readingModeEnabled && activeView !== 'notes') {
-    switchView('notes', document.getElementById('nav-notes'));
-  }
   applyReadingModeState();
 }
 
@@ -281,9 +283,6 @@ function switchView(view, navEl) {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
     checkEngramStatus();
     if (!knownSources.length) loadSearchSources();
-  }
-  if (readingModeEnabled) {
-    document.getElementById('nav-reading-mode')?.classList.add('active');
   }
 }
 

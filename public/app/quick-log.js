@@ -228,7 +228,7 @@ function renderTodoList() {
           <div class="todo-item-text">${esc(todo.text || '')}</div>
         `}
       </div>
-      <div class="todo-item-actions">
+      <div class="todo-item-actions todo-mutate-control">
         ${_editingTodoId === todo.id ? `
           <button class="svc-quick-add-btn todo-save-btn" onclick="event.stopPropagation(); commitTodoEdit('${todo.id}')" title="Save TODO" aria-label="Save TODO">Save</button>
           <button class="svc-del-btn todo-cancel-btn" onclick="event.stopPropagation(); cancelTodoEdit('${todo.id}')" title="Cancel edit" aria-label="Cancel edit">Cancel</button>
@@ -257,6 +257,7 @@ function renderTodoList() {
 }
 
 function addTodoEntry() {
+  if (document.body.classList.contains('reading-mode')) return;
   const input = document.getElementById('todoQuickInput');
   const text = input?.value?.trim() || '';
   if (!activeSessionId) {
@@ -283,6 +284,7 @@ function addTodoEntry() {
 }
 
 function startTodoEdit(todoId) {
+  if (document.body.classList.contains('reading-mode')) return;
   if (!activeSessionId) return;
   if (!getSessionTodos().some(item => item.id === todoId)) return;
   _editingTodoId = todoId;
@@ -295,7 +297,14 @@ function cancelTodoEdit(todoId) {
   renderTodoList();
 }
 
+function clearTodoEditing() {
+  if (!_editingTodoId) return;
+  _editingTodoId = null;
+  renderTodoList();
+}
+
 function commitTodoEdit(todoId) {
+  if (document.body.classList.contains('reading-mode')) return;
   if (!activeSessionId) return;
   const todo = getSessionTodos().find(item => item.id === todoId);
   const input = document.getElementById(`todoEditInput_${todoId}`);
@@ -329,6 +338,7 @@ function handleTodoEditKeydown(event, todoId) {
 }
 
 function toggleTodoDone(todoId) {
+  if (document.body.classList.contains('reading-mode')) return;
   if (!activeSessionId) return;
   const todo = getSessionTodos().find(item => item.id === todoId);
   if (!todo) return;
@@ -339,6 +349,7 @@ function toggleTodoDone(todoId) {
 }
 
 function deleteTodoEntry(todoId) {
+  if (document.body.classList.contains('reading-mode')) return;
   if (!activeSessionId) return;
   const todos = ensureSessionTodos();
   if (!todos) return;
@@ -349,6 +360,7 @@ function deleteTodoEntry(todoId) {
 }
 
 function clearCompletedTodos() {
+  if (document.body.classList.contains('reading-mode')) return;
   if (!activeSessionId) return;
   const todos = ensureSessionTodos();
   if (!todos) return;
@@ -430,7 +442,8 @@ async function clearActiveQuickLog() {
           day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
         });
       }
-      if (typeof updateNotePreview === 'function') updateNotePreview();
+      if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+      else if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
   syncedNetworkNotes.forEach(applySyncedNoteUpdate);
@@ -1120,7 +1133,8 @@ function applySyncedNoteUpdate(note) {
         day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
       });
     }
-    if (typeof updateNotePreview === 'function') updateNotePreview();
+    if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+    else if (typeof updateNotePreview === 'function') updateNotePreview();
   }
 }
 
@@ -1466,7 +1480,8 @@ function commitLootParse() {
           day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
         });
       }
-      if (typeof updateNotePreview === 'function') updateNotePreview();
+      if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+      else if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
   toggleToolPaste('loot');
@@ -1583,7 +1598,8 @@ function addLootEntry() {
           day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
         });
       }
-      if (typeof updateNotePreview === 'function') updateNotePreview();
+      if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+      else if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
 }
@@ -1607,7 +1623,8 @@ function deleteLootEntry(lootId) {
           day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
         });
       }
-      if (typeof updateNotePreview === 'function') updateNotePreview();
+      if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+      else if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
 }
@@ -1630,7 +1647,8 @@ function updateLootNote(lootId, val) {
           day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
         });
       }
-      if (typeof updateNotePreview === 'function') updateNotePreview();
+      if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview(60);
+      else if (typeof updateNotePreview === 'function') updateNotePreview();
     }
   }
 }
@@ -1806,7 +1824,9 @@ function toggleTodoPopover() {
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
-      setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
+      if (!document.body.classList.contains('reading-mode')) {
+        setTimeout(() => document.getElementById('todoQuickInput')?.focus(), 40);
+      }
     },
   });
 }
