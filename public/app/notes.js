@@ -623,12 +623,17 @@ function togglePinNote() {
   renderNotesList();
 }
 
-function resolveNoteLink(rawTitle) {
+function getNotesInSession(sessionId) {
+  return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
+}
+
+function resolveNoteLink(rawTitle, sessionId = null) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
-  if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
+  const scopedNotes = getNotesInSession(sessionId);
+  let hit = scopedNotes.find(n => (n.title || '').toLowerCase() === q);
+  if (!hit) hit = scopedNotes.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
@@ -645,7 +650,8 @@ function parseWikiLink(raw) {
 
 function buildWikiLinkElement(raw) {
   const { target, label } = parseWikiLink(raw);
-  const targetId = resolveNoteLink(target);
+  const currentSessionId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].session_id || null) : null;
+  const targetId = resolveNoteLink(target, currentSessionId);
   const el = document.createElement('span');
   el.className = `note-wikilink${targetId ? '' : ' broken'}`;
   el.textContent = label || target;
@@ -714,13 +720,16 @@ function enhanceNoteWikiLinks(root) {
 window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
 
 function getBacklinks(noteId) {
+  const targetNote = notes[noteId];
+  const targetSessionId = targetNote ? (targetNote.session_id || null) : null;
   return Object.values(notes).filter(n => {
     if (n.id === noteId) return false;
+    if ((n.session_id || null) !== targetSessionId) return false;
     const body = n.body || '';
     const re = /\[\[([^\]]+)\]\]/g;
     let m;
     while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1]) === noteId) return true;
+      if (resolveNoteLink(m[1], n.session_id || null) === noteId) return true;
     }
     return false;
   });
