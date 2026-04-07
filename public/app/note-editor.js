@@ -3,6 +3,144 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
+const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
+const NOTE_IMAGE_EXT_BY_TYPE = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
+function setNoteImageDropTarget(active) {
+  noteEditor?.dom?.classList.toggle('cm-image-drop-target', !!active);
+}
+
+function getDroppedImageFile(dataTransfer) {
+  if (!dataTransfer?.files?.length) return null;
+  return [...dataTransfer.files].find((file) => NOTE_IMAGE_TYPES.has(String(file.type || '').toLowerCase())) || null;
+}
+
+function getClipboardImageFile(clipboardData) {
+  if (!clipboardData?.items?.length) return null;
+  for (const item of clipboardData.items) {
+    if (item.kind !== 'file') continue;
+    const type = String(item.type || '').toLowerCase();
+    if (!NOTE_IMAGE_TYPES.has(type)) continue;
+    const file = item.getAsFile?.();
+    if (file) return file;
+  }
+  return null;
+}
+
+function getDroppedImageUrl(dataTransfer) {
+  const raw = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain') || '';
+  if (!raw) return '';
+  const first = String(raw)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith('#'));
+  if (!first) return '';
+  return NOTE_IMAGE_URL_RE.test(first) ? first : '';
+}
+
+function hasImageDropPayload(dataTransfer) {
+  return !!(getDroppedImageFile(dataTransfer) || getDroppedImageUrl(dataTransfer));
+}
+
+function buildNoteImageMarkdown(url, sourceName = 'image') {
+  const alt = String(sourceName || 'image')
+    .split(/[/?#]/)
+    .pop()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .trim() || 'image';
+  return `![${alt}](${url})`;
+}
+
+function insertImageMarkdownAt(view, markdown, pos) {
+  const doc = view.state.doc;
+  const at = typeof pos === 'number' ? pos : view.state.selection.main.from;
+  let insert = markdown;
+  const before = at > 0 ? doc.sliceString(at - 1, at) : '';
+  const after = at < doc.length ? doc.sliceString(at, at + 1) : '';
+  if (before && before !== '\n') insert = `\n${insert}`;
+  if (after && after !== '\n') insert = `${insert}\n`;
+  view.dispatch({
+    changes: { from: at, to: at, insert },
+    selection: { anchor: at + insert.length },
+    scrollIntoView: true,
+    userEvent: 'input',
+  });
+  view.focus();
+}
+
+async function uploadNoteImage(file) {
+  if (!activeNoteId || !notes[activeNoteId]) throw new Error('Open a note first');
+  const fallbackExt = NOTE_IMAGE_EXT_BY_TYPE[String(file?.type || '').toLowerCase()] || 'png';
+  const fallbackName = `clipboard-image.${fallbackExt}`;
+  const filename = String(file?.name || '').trim() || fallbackName;
+  const res = await fetch('/api/notes/attachments', {
+    method: 'POST',
+    headers: {
+      'Content-Type': file.type,
+      'X-Pragma-Note-Id': activeNoteId,
+      'X-Pragma-Filename': encodeURIComponent(filename),
+    },
+    body: file,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) throw new Error(data.error || 'Image upload failed');
+  return data.url;
+}
+
+async function handleNoteImageDrop(event, view) {
+  if (activeConfigDoc) return false;
+  const imageFile = getDroppedImageFile(event.dataTransfer);
+  const imageUrl = imageFile ? '' : getDroppedImageUrl(event.dataTransfer);
+  if (!imageFile && !imageUrl) return false;
+
+  event.preventDefault();
+  event.stopPropagation();
+  setNoteImageDropTarget(false);
+
+  const pos = view.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view.state.selection.main.from;
+  try {
+    if (imageFile) {
+      const uploadedUrl = await uploadNoteImage(imageFile);
+      insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name), pos);
+      showToast?.('✓ Image attached');
+    } else if (imageUrl) {
+      insertImageMarkdownAt(view, buildNoteImageMarkdown(imageUrl, imageUrl), pos);
+      showToast?.('✓ Image link inserted');
+    }
+    return true;
+  } catch (err) {
+    showToast?.(`⚠ ${err.message || 'Image drop failed'}`, 'err');
+    return true;
+  }
+}
+
+async function handleNoteImagePaste(event, view) {
+  if (activeConfigDoc) return false;
+  const imageFile = getClipboardImageFile(event.clipboardData);
+  if (!imageFile) return false;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const pos = view.state.selection.main.from;
+  try {
+    const uploadedUrl = await uploadNoteImage(imageFile);
+    insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name || 'clipboard-image'), pos);
+    showToast?.('✓ Screenshot attached');
+    return true;
+  } catch (err) {
+    showToast?.(`⚠ ${err.message || 'Image paste failed'}`, 'err');
+    return true;
+  }
+}
 
 function continueOrderedListFallback(view) {
   const { state } = view;
@@ -153,6 +291,27 @@ function cmInitNote(initialDoc) {
         if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return false;
         if (!continueOrderedListFallback(view)) return false;
         event.preventDefault();
+        return true;
+      },
+      dragover(event) {
+        if (!hasImageDropPayload(event.dataTransfer)) return false;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        setNoteImageDropTarget(true);
+        return true;
+      },
+      dragleave() {
+        setNoteImageDropTarget(false);
+        return false;
+      },
+      drop(event, view) {
+        if (!hasImageDropPayload(event.dataTransfer)) return false;
+        void handleNoteImageDrop(event, view);
+        return true;
+      },
+      paste(event, view) {
+        if (!getClipboardImageFile(event.clipboardData)) return false;
+        void handleNoteImagePaste(event, view);
         return true;
       }
     }),

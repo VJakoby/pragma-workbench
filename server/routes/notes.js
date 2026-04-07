@@ -1,5 +1,6 @@
 'use strict';
 
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const {
@@ -14,6 +15,35 @@ const {
 } = require('../lib/session-export');
 
 function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderMarkdown }) {
+  const IMAGE_TYPE_TO_EXT = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+  };
+
+  function sanitizePathSegment(value, fallback = 'item') {
+    const cleaned = String(value || '')
+      .trim()
+      .replace(/[^a-zA-Z0-9_.-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 120);
+    return cleaned || fallback;
+  }
+
+  function buildAttachmentDir(noteId) {
+    return path.join(sessionsDir, 'attachments', sanitizePathSegment(noteId, 'note'));
+  }
+
+  function buildAttachmentFilename(originalName, mimeType) {
+    const parsed = path.parse(String(originalName || 'image'));
+    const safeBase = sanitizePathSegment(parsed.name, 'image').slice(0, 60);
+    const extFromName = String(parsed.ext || '').toLowerCase();
+    const ext = IMAGE_TYPE_TO_EXT[mimeType] || (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(extFromName) ? extFromName : '.png');
+    return `${safeBase}_${Date.now()}${ext === '.jpeg' ? '.jpg' : ext}`;
+  }
+
   function expandTemplateBody(template) {
     return {
       ...template,
@@ -25,6 +55,57 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     try {
       const markdown = String(req.body?.markdown || '');
       res.json({ ok: true, html: renderMarkdown(markdown) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/notes/attachments', express.raw({
+    type: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
+    limit: '15mb',
+  }), async (req, res) => {
+    try {
+      const noteId = sanitizePathSegment(req.get('x-pragma-note-id'), '');
+      const originalName = decodeURIComponent(String(req.get('x-pragma-filename') || 'image'));
+      const mimeType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      const body = req.body;
+
+      if (!noteId) return res.status(400).json({ error: 'note id required' });
+      if (!IMAGE_TYPE_TO_EXT[mimeType]) return res.status(415).json({ error: 'unsupported image type' });
+      if (!Buffer.isBuffer(body) || !body.length) return res.status(400).json({ error: 'image body required' });
+
+      const dir = buildAttachmentDir(noteId);
+      const filename = buildAttachmentFilename(originalName, mimeType);
+      fs.mkdirSync(dir, { recursive: true });
+
+      const fullPath = path.join(dir, filename);
+      await fs.promises.writeFile(fullPath, body);
+
+      res.json({
+        ok: true,
+        note_id: noteId,
+        filename,
+        url: `/api/notes/attachments/${encodeURIComponent(noteId)}/${encodeURIComponent(filename)}`,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/notes/attachments/:noteId/:filename', (req, res) => {
+    try {
+      const noteId = sanitizePathSegment(req.params.noteId, '');
+      const filename = sanitizePathSegment(req.params.filename, '');
+      if (!noteId || !filename) return res.status(400).end();
+
+      const filePath = path.join(buildAttachmentDir(noteId), filename);
+      const resolved = path.resolve(filePath);
+      const allowedRoot = path.resolve(buildAttachmentDir(noteId));
+      if (!resolved.startsWith(allowedRoot + path.sep) && resolved !== path.join(allowedRoot, filename)) {
+        return res.status(400).end();
+      }
+      if (!fs.existsSync(resolved)) return res.status(404).end();
+      res.sendFile(resolved);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

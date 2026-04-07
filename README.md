@@ -93,6 +93,7 @@ In practice, this means the app is opinionated about staying operational:
 - Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
+- Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -223,6 +224,20 @@ Use either `body` or `body_lines`. `body_lines` is easier to read and maintain f
 If `variants` are present, PRAGMA shows a second selection step in the note-creation flow. The chosen variant becomes the note's starting layout and can override the parent template's defaults.
 
 Custom templates appear in the picker with a purple border and a **Custom** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
+
+### Images in Notes
+
+Notes also support pasted and dropped screenshots/images.
+
+- Paste a copied screenshot directly into the editor with `Ctrl+V`
+- Drag a local image file into the editor
+- PRAGMA stores the image as a note attachment and inserts standard markdown image syntax automatically:
+
+```md
+![image](/api/notes/attachments/<note-id>/<filename>)
+```
+
+This keeps image handling compatible with normal markdown preview/rendering while still using PRAGMA's note-scoped attachment storage.
 
 ---
 
