@@ -355,7 +355,7 @@ function onNoteSearch(val) {
   renderNotesList();
 }
 
-function exportCurrentNote() {
+async function exportCurrentNote() {
   if (activeConfigDoc === 'templates') {
     downloadText(cmGetValue(noteEditor), 'note-templates.json');
     showToast('✓ Exported note-templates.json');
@@ -363,11 +363,20 @@ function exportCurrentNote() {
   }
   if (!activeNoteId || !notes[activeNoteId]) return;
   const n = notes[activeNoteId];
+  let body = stripEvidenceMarkersForExport(n.body || '');
+  if (typeof inlineNoteAttachmentUrlsForExport === 'function') {
+    try {
+      body = await inlineNoteAttachmentUrlsForExport(body);
+    } catch (err) {
+      showToast(`⚠ ${err.message || 'Image export failed'}`, 'err');
+      return;
+    }
+  }
   const lines = ['---', `title: ${n.title || 'Untitled'}`, `type: ${n.type || 'scratch'}`];
   if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
   if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
   if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
-  lines.push('---', '', stripEvidenceMarkersForExport(n.body || ''));
+  lines.push('---', '', body);
   const filename = slugify(n.title || 'untitled') + '.md';
   downloadText(lines.join('\n'), filename);
   showToast('✓ Exported ' + filename);
@@ -1570,14 +1579,21 @@ async function exportNotesMarkdown(sessionId) {
   if (!sess) return;
 
   try {
+    const sessionNotes = Object.values(notes).filter(n =>
+      n.session_id === sessionId ||
+      (!n.session_id || !sessions[n.session_id])
+    );
+    const attachmentPayloads = typeof collectAttachmentPayloadsForNotes === 'function'
+      ? await collectAttachmentPayloadsForNotes(sessionNotes)
+      : {};
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+      body: JSON.stringify({ session_id: sessionId, sessions, notes, attachment_payloads: attachmentPayloads }),
     });
     const d = await r.json();
     if (d.ok) {
-      if (d.download?.filename && typeof d.download.content === 'string') {
+      if (!d.has_attachments && d.download?.filename && typeof d.download.content === 'string') {
         const blob = new Blob([d.download.content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1589,7 +1605,8 @@ async function exportNotesMarkdown(sessionId) {
         URL.revokeObjectURL(url);
       }
       const count = d.files?.length || 0;
-      showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`);
+      const bundleSuffix = d.has_attachments ? ' (bundle includes attachments)' : '';
+      showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/${bundleSuffix}`);
     } else {
       showToast('Markdown export failed: ' + (d.error || 'unknown error'), 'err');
     }

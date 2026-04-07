@@ -243,6 +243,7 @@
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
       if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
       if (typeof makeCollapsible === 'function') makeCollapsible(el);
+      if (typeof resolveRenderedAttachmentImages === 'function') await resolveRenderedAttachmentImages(el);
       el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
       return true;
     }

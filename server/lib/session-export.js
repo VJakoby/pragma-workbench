@@ -57,6 +57,16 @@ function stripEvidenceMarkers(text) {
     .trimEnd();
 }
 
+function rewriteAttachmentUrls(text, attachmentUrlMap = null) {
+  if (!attachmentUrlMap || typeof attachmentUrlMap !== 'object') return String(text || '');
+  let output = String(text || '');
+  Object.entries(attachmentUrlMap).forEach(([from, to]) => {
+    if (!from || !to) return;
+    output = output.split(from).join(to);
+  });
+  return output;
+}
+
 function loadTemplateMeta(templatesFile) {
   const byType = {};
   BUILTIN_TYPE_ORDER.forEach((type) => {
@@ -284,10 +294,13 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   };
 }
 
-function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
+function renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap = null }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), target);
   const label = targetLabel(target);
-  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target));
+  const body = rewriteAttachmentUrls(
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target)),
+    attachmentUrlMap
+  );
   return [
     `# ${title}`,
     '',
@@ -302,9 +315,12 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
   ].join('\n');
 }
 
-function renderSessionNoteFile({ note, session, typeMeta, storage }) {
+function renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap = null }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
-  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }));
+  const body = rewriteAttachmentUrls(
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' })),
+    attachmentUrlMap
+  );
   return [
     `# ${title}`,
     '',
@@ -452,7 +468,10 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const target = note.target_id ? model.targetById[note.target_id] : null;
     const placeholderContext = target || model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
-    const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
+    const resolvedBody = rewriteAttachmentUrls(
+      stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
+      model.attachmentUrlMapByNoteId?.[note.id] || null
+    );
     lines.push(`#### ${resolvedTitle}`);
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
     const headingText = leadingHeading?.text || resolvedTitle;

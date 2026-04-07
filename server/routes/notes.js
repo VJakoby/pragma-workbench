@@ -4,6 +4,19 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const {
+  IMAGE_TYPE_TO_EXT,
+  sanitizePathSegment,
+  buildAttachmentDir,
+  buildAttachmentFilename,
+  normalizeAttachmentFilename,
+  buildAttachmentUrl,
+  resolveAttachmentPaths,
+  resolveStoredAttachmentPath,
+  extractAttachmentRefsFromMarkdown,
+  buildAttachmentManifestFromNotes,
+  cleanupAttachmentStore,
+} = require('../lib/note-attachments');
+const {
   loadTemplateMeta,
   resolveNoteType,
   buildSessionExportModel,
@@ -15,40 +28,20 @@ const {
 } = require('../lib/session-export');
 
 function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderMarkdown }) {
-  const IMAGE_TYPE_TO_EXT = {
-    'image/png': '.png',
-    'image/jpeg': '.jpg',
-    'image/jpg': '.jpg',
-    'image/webp': '.webp',
-    'image/gif': '.gif',
-  };
-
-  function sanitizePathSegment(value, fallback = 'item') {
-    const cleaned = String(value || '')
-      .trim()
-      .replace(/[^a-zA-Z0-9_.-]+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 120);
-    return cleaned || fallback;
-  }
-
-  function buildAttachmentDir(noteId) {
-    return path.join(sessionsDir, 'attachments', sanitizePathSegment(noteId, 'note'));
-  }
-
-  function buildAttachmentFilename(originalName, mimeType) {
-    const parsed = path.parse(String(originalName || 'image'));
-    const safeBase = sanitizePathSegment(parsed.name, 'image').slice(0, 60);
-    const extFromName = String(parsed.ext || '').toLowerCase();
-    const ext = IMAGE_TYPE_TO_EXT[mimeType] || (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(extFromName) ? extFromName : '.png');
-    return `${safeBase}_${Date.now()}${ext === '.jpeg' ? '.jpg' : ext}`;
-  }
-
   function expandTemplateBody(template) {
     return {
       ...template,
       body: Array.isArray(template?.body_lines) ? template.body_lines.join('\n') : (template?.body || ''),
     };
+  }
+
+  function decodeAttachmentPayload(data) {
+    if (!data) return null;
+    try {
+      return Buffer.from(String(data), 'base64');
+    } catch (_) {
+      return null;
+    }
   }
 
   app.post('/api/markdown/render', (req, res) => {
@@ -65,27 +58,43 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     limit: '15mb',
   }), async (req, res) => {
     try {
-      const noteId = sanitizePathSegment(req.get('x-pragma-note-id'), '');
-      const originalName = decodeURIComponent(String(req.get('x-pragma-filename') || 'image'));
-      const mimeType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
-      const body = req.body;
+      const jsonBody = (!Buffer.isBuffer(req.body) && req.body && typeof req.body === 'object') ? req.body : null;
+      const noteId = sanitizePathSegment(req.get('x-pragma-note-id') || jsonBody?.note_id, '');
+      const originalName = decodeURIComponent(String(req.get('x-pragma-filename') || jsonBody?.filename || 'image'));
+      const mimeType = String(jsonBody?.mime_type || req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      const preserveFilename = String(req.get('x-pragma-preserve-filename') || (jsonBody?.preserve_filename ? '1' : '')).trim() === '1';
 
       if (!noteId) return res.status(400).json({ error: 'note id required' });
       if (!IMAGE_TYPE_TO_EXT[mimeType]) return res.status(415).json({ error: 'unsupported image type' });
-      if (!Buffer.isBuffer(body) || !body.length) return res.status(400).json({ error: 'image body required' });
 
-      const dir = buildAttachmentDir(noteId);
-      const filename = buildAttachmentFilename(originalName, mimeType);
-      fs.mkdirSync(dir, { recursive: true });
+      const filename = preserveFilename ? normalizeAttachmentFilename(originalName) : buildAttachmentFilename(originalName, mimeType);
+      const paths = resolveAttachmentPaths(sessionsDir, noteId, filename);
+      fs.mkdirSync(paths.dir, { recursive: true });
 
-      const fullPath = path.join(dir, filename);
-      await fs.promises.writeFile(fullPath, body);
+      if (jsonBody?.encrypted_blob?.encrypted === true) {
+        const encryptedBlob = {
+          ...jsonBody.encrypted_blob,
+          mime_type: mimeType,
+          filename,
+        };
+        await fs.promises.writeFile(paths.encryptedPath, JSON.stringify(encryptedBlob, null, 2), 'utf8');
+        if (fs.existsSync(paths.rawPath)) {
+          try { fs.unlinkSync(paths.rawPath); } catch (_) {}
+        }
+      } else {
+        const body = req.body;
+        if (!Buffer.isBuffer(body) || !body.length) return res.status(400).json({ error: 'image body required' });
+        await fs.promises.writeFile(paths.rawPath, body);
+        if (fs.existsSync(paths.encryptedPath)) {
+          try { fs.unlinkSync(paths.encryptedPath); } catch (_) {}
+        }
+      }
 
       res.json({
         ok: true,
         note_id: noteId,
         filename,
-        url: `/api/notes/attachments/${encodeURIComponent(noteId)}/${encodeURIComponent(filename)}`,
+        url: buildAttachmentUrl(noteId, filename),
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -95,17 +104,18 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
   app.get('/api/notes/attachments/:noteId/:filename', (req, res) => {
     try {
       const noteId = sanitizePathSegment(req.params.noteId, '');
-      const filename = sanitizePathSegment(req.params.filename, '');
+      const filename = normalizeAttachmentFilename(decodeURIComponent(String(req.params.filename || '')));
       if (!noteId || !filename) return res.status(400).end();
 
-      const filePath = path.join(buildAttachmentDir(noteId), filename);
-      const resolved = path.resolve(filePath);
-      const allowedRoot = path.resolve(buildAttachmentDir(noteId));
-      if (!resolved.startsWith(allowedRoot + path.sep) && resolved !== path.join(allowedRoot, filename)) {
-        return res.status(400).end();
+      const resolved = resolveStoredAttachmentPath(sessionsDir, noteId, filename);
+      if (resolved.mode === 'raw' && fs.existsSync(resolved.filePath)) {
+        return res.sendFile(path.resolve(resolved.filePath));
       }
-      if (!fs.existsSync(resolved)) return res.status(404).end();
-      res.sendFile(resolved);
+      if (resolved.mode === 'encrypted' && fs.existsSync(resolved.filePath)) {
+        const payload = JSON.parse(fs.readFileSync(resolved.filePath, 'utf8'));
+        return res.json(payload);
+      }
+      return res.status(404).end();
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -177,9 +187,13 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         return res.status(423).json({ error: 'Encrypted storage active. Use /api/notes/save-encrypted.' });
       }
       const { sessions = {}, notes = {} } = req.body;
+      const attachmentManifest = req.body?.attachment_manifest && typeof req.body.attachment_manifest === 'object'
+        ? req.body.attachment_manifest
+        : buildAttachmentManifestFromNotes(notes);
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest);
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -259,13 +273,14 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
   app.post('/api/notes/save-encrypted', (req, res) => {
     try {
-      const { blob } = req.body || {};
+      const { blob, attachment_manifest: attachmentManifest = {} } = req.body || {};
       if (!blob || blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data) {
         return res.status(400).json({ error: 'Invalid encrypted payload' });
       }
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchEncFile());
       storage.atomicWrite(storage.workbenchEncFile(), JSON.stringify(blob, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {});
       if (fs.existsSync(storage.workbenchFile())) {
         try { fs.unlinkSync(storage.workbenchFile()); } catch (_) {}
       }
@@ -277,7 +292,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
   app.post('/api/notes/storage/disable-encrypted', (req, res) => {
     try {
-      const { sessions, notes } = req.body || {};
+      const { sessions, notes, attachment_manifest: attachmentManifest = {} } = req.body || {};
       if (sessions === undefined || notes === undefined) {
         return res.status(403).json({ error: 'Decrypted payload required to disable encryption.' });
       }
@@ -287,6 +302,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes));
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -299,6 +315,9 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
   app.post('/api/notes/export', (req, res) => {
     try {
       const { session_id, include_unassigned = true } = req.body;
+      const attachmentPayloads = req.body?.attachment_payloads && typeof req.body.attachment_payloads === 'object'
+        ? req.body.attachment_payloads
+        : {};
       const source = fs.existsSync(storage.workbenchEncFile())
         ? (req.body?.sessions && req.body?.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
         : storage.loadNotesFile();
@@ -331,8 +350,47 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
       const model = buildSessionExportModel({ session, notes: sessionNotes, storage, templateMeta });
       const written = [];
+      const writtenSet = new Set();
       const byTarget = {};
       const unassigned = [...model.notes.unassigned];
+      const attachmentUrlMapByNoteId = {};
+
+      function writeTracked(relPath, content) {
+        fs.writeFileSync(path.join(outDir, relPath), content, 'utf8');
+        if (!writtenSet.has(relPath)) {
+          writtenSet.add(relPath);
+          written.push(relPath);
+        }
+      }
+
+      function copyNoteAttachments(note, baseDir, relBase) {
+        const refs = extractAttachmentRefsFromMarkdown(note.body || '');
+        const urlMap = {};
+        refs.forEach((ref) => {
+          const relDir = path.posix.join(relBase || '.', '_attachments', sanitizePathSegment(ref.noteId, 'note'));
+          const relPath = path.posix.join(relDir, ref.filename);
+          const destDir = path.join(baseDir, '_attachments', sanitizePathSegment(ref.noteId, 'note'));
+          const destPath = path.join(destDir, ref.filename);
+          if (!fs.existsSync(destPath)) {
+            let buffer = null;
+            const payload = attachmentPayloads?.[ref.noteId]?.[ref.filename];
+            if (payload?.data) buffer = decodeAttachmentPayload(payload.data);
+            if (!buffer) {
+              const stored = resolveStoredAttachmentPath(sessionsDir, ref.noteId, ref.filename);
+              if (stored.mode === 'raw' && stored.filePath) buffer = fs.readFileSync(stored.filePath);
+            }
+            if (!buffer) return;
+            fs.mkdirSync(destDir, { recursive: true });
+            fs.writeFileSync(destPath, buffer);
+          }
+          urlMap[ref.url] = `./${path.posix.join('_attachments', sanitizePathSegment(ref.noteId, 'note'), ref.filename)}`;
+          if (!writtenSet.has(relPath)) {
+            writtenSet.add(relPath);
+            written.push(relPath);
+          }
+        });
+        return urlMap;
+      }
 
       sessionNotes.forEach(note => {
         if (note.target_id && targets.find(target => target.id === note.target_id)) {
@@ -393,15 +451,15 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
             return `- [${note.title || storage.noteFilename(note).replace('.md', '')}](./${storage.noteFilename(note)}) — \`${typeMeta.label}\``;
           }));
 
-        fs.writeFileSync(path.join(targetDir, 'README.md'), targetReadme.join('\n'), 'utf8');
-        written.push(`${dirName}/README.md`);
+        writeTracked(`${dirName}/README.md`, targetReadme.join('\n'));
 
         targetNotes.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const body = renderTargetNoteFile({ note, session, target, typeMeta, storage });
-          fs.writeFileSync(path.join(targetDir, fname), body, 'utf8');
-          written.push(`${dirName}/${fname}`);
+          const attachmentUrlMap = copyNoteAttachments(note, targetDir, dirName);
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, outDir, '.');
+          const body = renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap });
+          writeTracked(`${dirName}/${fname}`, body);
         });
       });
 
@@ -411,22 +469,22 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         unassigned.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const body = renderSessionNoteFile({ note, session, typeMeta, storage });
-          fs.writeFileSync(path.join(sessionDir, fname), body, 'utf8');
-          written.push(`session/${fname}`);
+          const attachmentUrlMap = copyNoteAttachments(note, sessionDir, 'session');
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, outDir, '.');
+          const body = renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap });
+          writeTracked(`session/${fname}`, body);
         });
       }
 
-      fs.writeFileSync(path.join(outDir, 'README.md'), renderExportIndex(model), 'utf8');
-      written.unshift('README.md');
+      model.attachmentUrlMapByNoteId = attachmentUrlMapByNoteId;
 
-      fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), renderTimelineSummary(model), 'utf8');
-      written.push('SUMMARY.md');
+      writeTracked('README.md', renderExportIndex(model));
+
+      writeTracked('SUMMARY.md', renderTimelineSummary(model));
 
       const consolidatedName = `${sessSlug}.md`;
       const consolidatedContent = renderConsolidatedSession(model);
-      fs.writeFileSync(path.join(outDir, consolidatedName), consolidatedContent, 'utf8');
-      written.push(consolidatedName);
+      writeTracked(consolidatedName, consolidatedContent);
 
       console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
       res.json({
@@ -434,6 +492,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         path: outDir,
         files: written,
         session: session.codename,
+        has_attachments: written.some((file) => file.includes('/_attachments/') || file.startsWith('_attachments/')),
         download: {
           filename: consolidatedName,
           content: consolidatedContent,
