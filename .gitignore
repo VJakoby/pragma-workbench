@@ -5,7 +5,7 @@ sessions/
 *.bak
 
 # Enviromental variables that should only be local
-*.env
+.env
 
 # Personal Knowledge-base dir or symlinks
 knowledge_base/*
