@@ -115,6 +115,8 @@ function applyNotePreviewState() {
     applyPreviewLayout();
     scheduleUpdateNotePreview();
     initPreviewDragHandle();
+  } else {
+    split.classList.remove('split-side');
   }
 }
 

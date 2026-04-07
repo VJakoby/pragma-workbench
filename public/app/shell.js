@@ -86,6 +86,7 @@ function applyReadingModeState() {
     if (typeof closeTodoPopover === 'function') closeTodoPopover();
     if (typeof closeSvcPopover === 'function') closeSvcPopover();
   }
+  if (typeof applyNotePreviewState === 'function') applyNotePreviewState();
   if (readingModeEnabled && activeNoteId && notes[activeNoteId]) {
     if (typeof scheduleUpdateNotePreview === 'function') scheduleUpdateNotePreview();
     else if (typeof updateNotePreview === 'function') updateNotePreview();
