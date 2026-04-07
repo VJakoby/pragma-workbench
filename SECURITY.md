@@ -240,27 +240,6 @@ Checked with `node --check`:
 - `public/app/search.js`
 - `public/app/kb.js`
 
-## Manual Tests Still Required
-
-These should be repeated after meaningful rendering, import, or route changes.
-
-### 1. KB/content preview regression checks
-
-Open KB docs and search-result previews containing:
-
-- code blocks
-- inline code
-- tables
-- checklists
-- normal links
-- normal images
-
-Expected:
-
-- formatting still renders correctly
-- copy behavior still works
-- no broken preview layout
-
 ## Recommended Ongoing Review Areas
 
 Future security reviews should continue to focus on:
