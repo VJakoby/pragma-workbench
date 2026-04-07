@@ -14,6 +14,8 @@
   --accent:   #a78bfa;
   --accent2:  #8b5cf6;
   --accent-rgb: 167, 139, 250;
+  --selection-bg: rgba(124,58,237,0.48);
+  --selection-text: #ffffff;
   --green:    #34d399;
   --green-rgb: 52, 211, 153;
   --domain-blue: #60a5fa;
@@ -47,6 +49,8 @@
   --accent:   #5b21b6;
   --accent2:  #6d28d9;
   --accent-rgb: 91, 33, 182;
+  --selection-bg: rgba(37, 99, 235, 0.72);
+  --selection-text: #ffffff;
   --green:    #059669;
   --green-rgb: 5, 150, 105;
   --domain-blue: #2563eb;
@@ -1598,6 +1602,16 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .note-preview-content {
   flex: 1; overflow-y: auto; padding: 16px 20px;
+}
+.md-content::selection,
+.md-content *::selection{
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+.md-content::-moz-selection,
+.md-content *::-moz-selection{
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 .note-preview-content{font-size:14px;line-height:1.74}
 .note-preview-content h1{font-size:1.26em;margin-bottom:14px;padding-bottom:7px}
