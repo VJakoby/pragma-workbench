@@ -7,7 +7,26 @@ let activeTagFilter  = null;
 let activeTargetFilter = null;
 let activeNoteSearch = '';
 let activeNewNoteType = null;
+let _evidenceFlagResolver = null;
+let _evidenceSelectionPromptTimer = null;
+let _evidenceSelectionPromptState = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
+const EVIDENCE_TYPE_OPTIONS = [
+  { value: 'enumeration', label: 'Enumeration' },
+  { value: 'initial_access', label: 'Initial Access' },
+  { value: 'execution', label: 'Execution' },
+  { value: 'persistence', label: 'Persistence' },
+  { value: 'privilege_escalation', label: 'Privilege Escalation' },
+  { value: 'credential_access', label: 'Credential Access' },
+  { value: 'discovery', label: 'Discovery' },
+  { value: 'lateral_movement', label: 'Lateral Movement' },
+  { value: 'pivoting', label: 'Pivoting' },
+  { value: 'collection', label: 'Collection' },
+  { value: 'exfiltration', label: 'Exfiltration' },
+  { value: 'cleanup', label: 'Cleanup' },
+  { value: 'proof', label: 'Proof' },
+];
+window.EVIDENCE_TYPE_OPTIONS = EVIDENCE_TYPE_OPTIONS;
 
 function getLeadingNoteH1(body) {
   const match = String(body || '').match(/^\s*#\s+(.+?)\s*(?:\n|$)/);
@@ -64,6 +83,7 @@ function setNoteEditorMode(mode) {
   const reassign = document.getElementById('noteReassignWrap');
   const target = document.getElementById('noteTargetAssignWrap');
   const previewBtn = document.getElementById('notePreviewBtn');
+  const evidenceBtn = document.getElementById('noteFlagEvidenceBtn');
   const hint = document.querySelector('.note-md-hint');
   const timestamps = document.getElementById('noteTimestamps');
   const createdWrap = document.getElementById('noteCreatedWrap');
@@ -81,7 +101,7 @@ function setNoteEditorMode(mode) {
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
     if (isConfig) {
-      badge.textContent = '⚙ Templates';
+      badge.textContent = '⚙ Note Templates';
       badge.className = 'note-item-type note-type-config';
     }
   }
@@ -93,6 +113,7 @@ function setNoteEditorMode(mode) {
   if (reassign) reassign.style.display = isConfig ? 'none' : '';
   if (target) target.style.display = isConfig ? 'none' : '';
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
+  if (evidenceBtn) evidenceBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
   if (createdWrap) createdWrap.style.display = isConfig ? 'none' : '';
@@ -114,6 +135,7 @@ function setNoteEditorMode(mode) {
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
+  if (isConfig) hideEvidenceSelectionPrompt();
 }
 
 function ensureNoteTypeBadge() {
@@ -184,7 +206,7 @@ async function openTemplatesConfig(navEl) {
   area.style.display = 'flex';
 
   const badge = ensureNoteTypeBadge();
-  badge.textContent = '⚙ Templates';
+  badge.textContent = '⚙ Note Templates';
   badge.className = 'note-item-type note-type-config';
 
   const title = document.getElementById('noteTitleInput');
@@ -206,6 +228,7 @@ async function openTemplatesConfig(navEl) {
 
 function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
+  hideEvidenceSelectionPrompt();
   activeConfigDoc = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('configDoc');
   setNoteEditorMode('note');
@@ -354,7 +377,7 @@ function exportCurrentNote() {
   if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
   if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
   if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
-  lines.push('---', '', n.body || '');
+  lines.push('---', '', stripEvidenceMarkersForExport(n.body || ''));
   const filename = slugify(n.title || 'untitled') + '.md';
   downloadText(lines.join('\n'), filename);
   showToast('✓ Exported ' + filename);
@@ -549,6 +572,7 @@ function duplicateCurrentNote() {
 }
 
 async function openNote(id) {
+  hideEvidenceSelectionPrompt();
   if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
     clearTimeout(noteSaveTimer);
     persistActiveNoteInBackground(activeNoteId, 'note-switch');
@@ -759,6 +783,477 @@ function syncActiveNoteDraft(noteId = activeNoteId) {
   return { ok: true, changed };
 }
 
+function stripInlineEvidenceMarkers(text) {
+  return String(text || '')
+    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->/g, '')
+    .trim();
+}
+
+function stripEvidenceMarkersForExport(text) {
+  return String(text || '')
+    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd();
+}
+
+function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
+  if (!noteEditor) return null;
+  const main = noteEditor.state.selection?.main;
+  if (!main) return null;
+  if (requireSelection && main.empty) return null;
+  const doc = noteEditor.state.doc;
+  let blockFrom = main.from;
+  let blockTo = main.to;
+
+  if (main.empty) {
+    const line = doc.lineAt(main.from);
+    blockFrom = line.from;
+    blockTo = line.to;
+  } else if (blockTo > blockFrom && doc.sliceString(blockTo - 1, blockTo) === '\n') {
+    blockTo -= 1;
+  }
+
+  return {
+    from: blockFrom,
+    to: blockTo,
+    text: doc.sliceString(blockFrom, blockTo),
+  };
+}
+
+function getEvidenceLeadLine(text) {
+  const lines = stripInlineEvidenceMarkers(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^```/.test(line));
+  return lines[0] || '';
+}
+
+function deriveEvidenceTitle(text, fallback = 'Evidence') {
+  const lead = getEvidenceLeadLine(text)
+    .replace(/^#+\s+/, '')
+    .replace(/^>\s+/, '')
+    .replace(/^[-*+]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/`/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .trim();
+  const title = lead || fallback || 'Evidence';
+  return title.length > 72 ? `${title.slice(0, 72).trim()}…` : title;
+}
+
+function deriveEvidenceType(text) {
+  const lower = String(text || '').toLowerCase();
+  if (/(cleanup|remove|revert|deleted|remove uploaded|clear history|rm\s+-rf)/.test(lower)) return 'cleanup';
+  if (/(password|hash|ntlm|credential|token|apikey|api key|secret|kerberoast|asrep|sam dump|lsass|mimikatz)/.test(lower)) return 'credential_access';
+  if (/(seimpersonate|system shell|root shell|local admin|privilege escalation|privesc|sudo -l|printspoofer|juicypotato|godpotato)/.test(lower)) return 'privilege_escalation';
+  if (/(chisel|ligolo|pivot|socks|rportfwd|portfwd|ssh -d|ssh -l|ssh -r|proxychains|meterpreter route|autoroute|sshuttle|socat tcp-listen)/.test(lower)) return 'pivoting';
+  if (/(psexec|wmiexec|smbexec|winrm|evil-winrm|ssh |xfreerdp|rdesktop|mssqlclient|runas|atexec|dcomexec)/.test(lower)) return 'lateral_movement';
+  if (/(persistence|autorun|scheduled task|schtasks|run key|registry run|startup|service create)/.test(lower)) return 'persistence';
+  if (/(download|collect|dump|copy .*loot|tar |zip |scp |rsync |secretsdump|sam|ntds|browser data)/.test(lower)) return 'collection';
+  if (/(exfil|upload .*attacker|curl .*http|wget .*http|nc .* >|ftp |sftp )/.test(lower)) return 'exfiltration';
+  if (/(shell|powershell|cmd\.exe|bash -c|sh -c|python -c|invoke-expression|iex |rundll32|mshta|certutil|regsvr32)/.test(lower)) return 'execution';
+  if (/(login|foothold|reverse shell|webshell|sqlmap|exploit|initial access|auth bypass|rce|cve-|metasploit|nc -e|bash -i|powershell -enc|xp_cmdshell)/.test(lower)) return 'initial_access';
+  if (/(nmap|rustscan|masscan|gobuster|ffuf|dirsearch|nikto|feroxbuster|enum4linux|ldapsearch|snmpwalk|rpcclient|smbclient|crackmapexec .*--shares|crackmapexec smb|netexec smb|whatweb|showmount|dig |host |nslookup )/.test(lower)) return 'enumeration';
+  if (/```|`[^`]+`|^\s*(?:\$|#)\s+\S/m.test(String(text || ''))) return 'proof';
+  return 'discovery';
+}
+
+function deriveEvidenceCommand(text) {
+  const block = String(text || '');
+  const fenced = block.match(/```[a-z0-9_-]*\n([\s\S]*?)```/i);
+  if (fenced && fenced[1].trim()) return fenced[1].trim().slice(0, 500);
+  const lead = getEvidenceLeadLine(block);
+  if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+(?:\s+.+)?$/.test(lead) && lead.split(/\s+/).length > 1) {
+    return lead.slice(0, 500);
+  }
+  return '';
+}
+
+function deriveEvidenceDetails(text, sourceCommand) {
+  const clean = stripInlineEvidenceMarkers(text).replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  if (sourceCommand && clean === sourceCommand) return '';
+  return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
+}
+
+function deriveLootType(text) {
+  const lower = String(text || '').toLowerCase();
+  if (/(bearer\s+[a-z0-9._-]+|token|jwt|apikey|api key|sessionid|cookie)/.test(lower)) return 'token';
+  if (/(-----begin .*private key-----|ssh-rsa|ssh-ed25519|\.ppk\b|private key)/.test(lower)) return 'key';
+  if (/(ntlm|hash|aad3b435b51404eeaad3b435b51404ee|[a-f0-9]{32}:[a-f0-9]{32}|[a-f0-9]{32})/.test(lower)) return 'hash';
+  if (/[^\s:]+:[^\s]+/.test(String(text || ''))) return 'cleartext';
+  return 'other';
+}
+
+function deriveLootValue(text, sourceCommand = '') {
+  const clean = stripInlineEvidenceMarkers(text).trim();
+  if (!clean) return sourceCommand || '';
+  return clean.length > 600 ? clean.slice(0, 600).trim() : clean;
+}
+
+function detectEvidenceTargetId(text) {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  const haystack = String(text || '').toLowerCase();
+  if (!haystack) return null;
+  const targets = getSessionTargets();
+  let bestMatch = null;
+  targets.forEach((target) => {
+    const candidates = [
+      String(target.ip || '').trim(),
+      String(target.domain || '').trim(),
+      String(target.label || '').trim(),
+    ].filter(Boolean);
+    candidates.forEach((candidate) => {
+      const needle = candidate.toLowerCase();
+      if (!needle || !haystack.includes(needle)) return;
+      if (!bestMatch || needle.length > bestMatch.length) bestMatch = { id: target.id, length: needle.length };
+    });
+  });
+  return bestMatch?.id || null;
+}
+
+function shouldSuggestLoot(text, derivedType = '') {
+  const lower = String(text || '').toLowerCase();
+  if (derivedType && ['cleartext', 'hash', 'token', 'key'].includes(derivedType)) return true;
+  if (/(local\.txt|proof\.txt|flag\{|user:pass|username|password|ntlm|bearer |jwt|api[_ -]?key|secret|private key|ssh-rsa|ssh-ed25519)/.test(lower)) return true;
+  return false;
+}
+
+function deriveEvidenceTitleHint(text, type = 'discovery') {
+  const clean = stripInlineEvidenceMarkers(String(text || ''));
+  const lower = clean.toLowerCase();
+  if (/evil-winrm|winrm/.test(lower)) return 'WinRM access confirmed';
+  if (/psexec|wmiexec|smbexec|dcomexec|atexec/.test(lower)) return 'Lateral movement path confirmed';
+  if (/seimpersonate|printspoofer|juicypotato|godpotato|sudo -l/.test(lower)) return 'Privilege escalation path identified';
+  if (/kerberoast|asrep|secretsdump|mimikatz|lsass/.test(lower)) return 'Credential access confirmed';
+  if (/chisel|ligolo|proxychains|sshuttle|portfwd|autoroute/.test(lower)) return 'Pivoting path established';
+  if (/nmap|rustscan|masscan/.test(lower)) return 'Port enumeration result';
+  if (/gobuster|ffuf|feroxbuster|dirsearch/.test(lower)) return 'Web enumeration result';
+  if (/local\.txt/.test(lower)) return 'local.txt recovered';
+  if (/proof\.txt/.test(lower)) return 'proof.txt recovered';
+  const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Evidence').trim();
+  const derived = deriveEvidenceTitle(clean, label);
+  return derived || label;
+}
+
+function getEvidenceFlagDefaultLootHost() {
+  const ip = typeof getIP === 'function' ? getIP() : '';
+  if (ip && ip !== '<IP>') return ip;
+  const domain = typeof getDomain === 'function' ? getDomain() : '';
+  if (domain && domain !== '<DOMAIN>') return domain;
+  return '';
+}
+
+function getCurrentEvidenceSelectionSignature() {
+  const main = noteEditor?.state?.selection?.main;
+  if (!main || main.empty) return '';
+  return `${main.from}:${main.to}`;
+}
+
+function clearEvidenceSelectionPromptTimer() {
+  if (_evidenceSelectionPromptTimer) {
+    clearTimeout(_evidenceSelectionPromptTimer);
+    _evidenceSelectionPromptTimer = null;
+  }
+}
+
+function hideEvidenceSelectionPrompt() {
+  clearEvidenceSelectionPromptTimer();
+  _evidenceSelectionPromptState = null;
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  prompt?.classList.remove('open');
+}
+
+function isEvidenceBlockAlreadyFlagged(block) {
+  if (!block || !noteEditor) return false;
+  const doc = noteEditor.state.doc;
+  const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
+  const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
+  return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
+}
+
+function positionEvidenceSelectionPrompt(prompt) {
+  if (!prompt || !noteEditor || !_evidenceSelectionPromptState?.block) return;
+  const coords = noteEditor.coordsAtPos(_evidenceSelectionPromptState.block.to) || noteEditor.dom.getBoundingClientRect();
+  const margin = 12;
+  const promptRect = prompt.getBoundingClientRect();
+  let left = coords.left;
+  let top = coords.bottom + 8;
+  left = Math.max(margin, Math.min(window.innerWidth - promptRect.width - margin, left));
+  if (top + promptRect.height > window.innerHeight - margin) {
+    top = Math.max(margin, coords.top - promptRect.height - 8);
+  }
+  prompt.style.left = `${Math.round(left)}px`;
+  prompt.style.top = `${Math.round(top)}px`;
+}
+
+function showEvidenceSelectionPrompt(block) {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (!prompt || !noteEditor || !block || !block.text.trim()) return;
+  _evidenceSelectionPromptState = {
+    block,
+    signature: getCurrentEvidenceSelectionSignature(),
+  };
+  prompt.classList.add('open');
+  requestAnimationFrame(() => positionEvidenceSelectionPrompt(prompt));
+}
+
+function syncEvidenceSelectionPrompt(update) {
+  if (activeConfigDoc || !activeNoteId || !notes[activeNoteId] || !activeSessionId || !sessions[activeSessionId]) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+  if (update.docChanged) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+  if (!update.selectionSet) return;
+
+  const main = update.state.selection?.main;
+  if (!main || main.empty || !noteEditor?.hasFocus) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+
+  const block = getNoteEvidenceBlockSelection({ requireSelection: true });
+  if (!block || !block.text.trim() || isEvidenceBlockAlreadyFlagged(block)) {
+    hideEvidenceSelectionPrompt();
+    return;
+  }
+
+  clearEvidenceSelectionPromptTimer();
+  const signature = getCurrentEvidenceSelectionSignature();
+  _evidenceSelectionPromptState = { block, signature };
+  _evidenceSelectionPromptTimer = setTimeout(() => {
+    if (!_evidenceSelectionPromptState || _evidenceSelectionPromptState.signature !== getCurrentEvidenceSelectionSignature()) return;
+    showEvidenceSelectionPrompt(block);
+  }, 750);
+}
+
+window.addEventListener('resize', () => {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+});
+
+window.addEventListener('scroll', () => {
+  const prompt = document.getElementById('evidenceSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+}, true);
+
+function flagPromptedSelectionAsEvidence() {
+  if (!_evidenceSelectionPromptState?.block) return;
+  flagSelectionAsEvidence({ blockOverride: _evidenceSelectionPromptState.block });
+}
+
+function syncEvidenceFlagLootUi() {
+  const enabledEl = document.getElementById('evidenceFlagAlsoLoot');
+  const fieldsEl = document.getElementById('evidenceFlagLootFields');
+  const typeEl = document.getElementById('evidenceFlagLootType');
+  const syncWrapEl = document.getElementById('evidenceFlagLootSyncWrap');
+  const syncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+  const enabled = !!enabledEl?.checked;
+  if (fieldsEl) fieldsEl.style.display = enabled ? 'block' : 'none';
+  if (!syncWrapEl || !syncEl) return;
+  const syncRelevant = enabled && ['cleartext', 'hash'].includes((typeEl?.value || '').trim());
+  syncWrapEl.style.display = syncRelevant ? 'block' : 'none';
+  syncEl.disabled = !syncRelevant;
+  if (!syncRelevant) syncEl.checked = false;
+}
+
+function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '', loot = null } = {}) {
+  return new Promise((resolve) => {
+    _evidenceFlagResolver = resolve;
+    const overlay = document.getElementById('evidenceFlagOverlay');
+    const titleEl = document.getElementById('evidenceFlagTitle');
+    const typeEl = document.getElementById('evidenceFlagType');
+    const detailsEl = document.getElementById('evidenceFlagDetails');
+    const commandEl = document.getElementById('evidenceFlagCommand');
+    const alsoLootEl = document.getElementById('evidenceFlagAlsoLoot');
+    const lootTypeEl = document.getElementById('evidenceFlagLootType');
+    const lootValueEl = document.getElementById('evidenceFlagLootValue');
+    const lootHostEl = document.getElementById('evidenceFlagLootHost');
+    const lootNoteEl = document.getElementById('evidenceFlagLootNote');
+    const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+    if (titleEl) {
+      titleEl.value = title;
+      titleEl.placeholder = `${deriveEvidenceTitleHint(command || details, type)}…`;
+    }
+    if (typeEl) typeEl.value = type;
+    if (detailsEl) detailsEl.value = details;
+    if (commandEl) commandEl.value = command;
+    if (alsoLootEl) alsoLootEl.checked = !!loot?.enabled;
+    if (lootTypeEl) lootTypeEl.value = loot?.type || 'other';
+    if (lootValueEl) lootValueEl.value = loot?.value || '';
+    if (lootHostEl) lootHostEl.value = loot?.host || '';
+    if (lootNoteEl) lootNoteEl.value = loot?.note || '';
+    if (lootSyncEl) lootSyncEl.checked = !!loot?.sync_to_credentials;
+    syncEvidenceFlagLootUi();
+    overlay?.classList.add('open');
+    setTimeout(() => {
+      titleEl?.focus();
+      titleEl?.select();
+    }, 40);
+  });
+}
+
+function finishEvidenceFlagDialog(result) {
+  const overlay = document.getElementById('evidenceFlagOverlay');
+  overlay?.classList.remove('open');
+  const resolver = _evidenceFlagResolver;
+  _evidenceFlagResolver = null;
+  if (typeof resolver === 'function') resolver(result);
+}
+
+function cancelEvidenceFlagDialog() {
+  finishEvidenceFlagDialog(null);
+}
+
+function confirmEvidenceFlagDialog() {
+  const title = (document.getElementById('evidenceFlagTitle')?.value || '').trim();
+  const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
+  const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
+  const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
+  if (!title) {
+    document.getElementById('evidenceFlagTitle')?.focus();
+    return;
+  }
+  let loot = null;
+  if (document.getElementById('evidenceFlagAlsoLoot')?.checked) {
+    const lootType = (document.getElementById('evidenceFlagLootType')?.value || 'other').trim();
+    const lootValue = (document.getElementById('evidenceFlagLootValue')?.value || '').trim();
+    const lootHost = (document.getElementById('evidenceFlagLootHost')?.value || '').trim();
+    const lootNote = (document.getElementById('evidenceFlagLootNote')?.value || '').trim();
+    const syncToCredentials = !!document.getElementById('evidenceFlagLootSyncCredentials')?.checked;
+    if (!lootValue) {
+      document.getElementById('evidenceFlagLootValue')?.focus();
+      return;
+    }
+    loot = {
+      enabled: true,
+      type: lootType,
+      value: lootValue,
+      host: lootHost,
+      note: lootNote,
+      sync_to_credentials: syncToCredentials,
+    };
+  }
+  finishEvidenceFlagDialog({ title, type, details, source_command, loot });
+}
+
+function handleEvidenceFlagKey(event) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelEvidenceFlagDialog();
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    event.preventDefault();
+    confirmEvidenceFlagDialog();
+  }
+}
+
+async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
+  if (activeConfigDoc) return;
+  if (!activeNoteId || !notes[activeNoteId] || !noteEditor) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    showToast('⚠ Open a session first', 'err');
+    return;
+  }
+  if (typeof ensureSessionEvidence !== 'function') return;
+  hideEvidenceSelectionPrompt();
+
+  const block = blockOverride || getNoteEvidenceBlockSelection();
+  if (!block || !block.text.trim()) {
+    showToast('⚠ Select a line or block to flag as evidence', 'err');
+    return;
+  }
+  if (isEvidenceBlockAlreadyFlagged(block)) {
+    showToast('⚠ This block is already flagged as evidence', 'err');
+    return;
+  }
+
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+
+  const entryId = `evidence_${Date.now()}`;
+  const marker = typeof buildEvidenceMarkerId === 'function' ? buildEvidenceMarkerId(entryId) : `pragma:evidence:${entryId}`;
+  const sourceCommand = deriveEvidenceCommand(block.text);
+  const defaultLootType = deriveLootType(block.text);
+  const suggestedType = deriveEvidenceType(block.text);
+  const confirmed = await openEvidenceFlagDialog({
+    title: '',
+    type: suggestedType,
+    details: deriveEvidenceDetails(block.text, sourceCommand),
+    command: sourceCommand || stripInlineEvidenceMarkers(block.text),
+    loot: {
+      enabled: shouldSuggestLoot(block.text, defaultLootType),
+      type: defaultLootType,
+      value: deriveLootValue(block.text, sourceCommand),
+      host: getEvidenceFlagDefaultLootHost(),
+      note: '',
+      sync_to_credentials: ['cleartext', 'hash'].includes(defaultLootType),
+    },
+  });
+  if (!confirmed) return;
+  const entry = {
+    id: entryId,
+    type: confirmed.type,
+    title: confirmed.title,
+    details: confirmed.details,
+    source_command: confirmed.source_command,
+    target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
+    source_note_id: activeNoteId,
+    note_id: activeNoteId,
+    sync_mode: 'export_only',
+    created: Date.now(),
+    updated: Date.now(),
+  };
+
+  const wrapped = `<!-- ${marker}:start -->\n${block.text}\n<!-- ${marker}:end -->`;
+  noteEditor.dispatch({
+    changes: { from: block.from, to: block.to, insert: wrapped },
+    selection: { anchor: block.from + `<!-- ${marker}:start -->\n`.length, head: block.from + `<!-- ${marker}:start -->\n`.length + block.text.length },
+    scrollIntoView: true,
+    userEvent: 'input'
+  });
+
+  entries.push(entry);
+  let syncedLootCredentialsNote = null;
+  let lootDuplicate = false;
+  if (confirmed.loot?.enabled && typeof addLootEntryFromData === 'function') {
+    const lootResult = addLootEntryFromData({
+      type: confirmed.loot.type,
+      credential: confirmed.loot.value,
+      host: confirmed.loot.host,
+      note: confirmed.loot.note,
+      syncToCredentials: !!confirmed.loot.sync_to_credentials,
+    });
+    syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
+    lootDuplicate = !!lootResult?.duplicate;
+  }
+  clearTimeout(noteSaveTimer);
+  syncActiveNoteDraft(activeNoteId);
+  await saveNotes({ reason: 'note-evidence-flag', immediate: true });
+  renderNotesList();
+  renderSessionSidebar();
+  if (typeof renderLootTable === 'function') renderLootTable();
+  if (typeof updateSvcTabCounts === 'function') updateSvcTabCounts();
+  if (syncedLootCredentialsNote && typeof applySyncedNoteUpdate === 'function') applySyncedNoteUpdate(syncedLootCredentialsNote);
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  const modifiedEl = document.getElementById('noteModifiedAt');
+  if (modifiedEl) {
+    modifiedEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+  setNoteSaveIndicator('saved', 'saved');
+  if (lootDuplicate) showToast('ℹ Loot already logged');
+  showToast(`✓ Flagged as ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Evidence'}`);
+}
+
 async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
   const syncResult = syncActiveNoteDraft(noteId);
@@ -818,6 +1313,7 @@ async function deleteCurrentNote() {
 }
 
 async function closeCurrentNote() {
+  hideEvidenceSelectionPrompt();
   if (activeConfigDoc) {
     clearTimeout(noteSaveTimer);
     const ok = await persistTemplatesConfig({ reason: 'config-close' });

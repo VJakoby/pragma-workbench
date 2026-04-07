@@ -169,6 +169,7 @@ function cmInitNote(initialDoc) {
       }
     }),
     CM.EditorView.updateListener.of(update => {
+      if (typeof syncEvidenceSelectionPrompt === 'function') syncEvidenceSelectionPrompt(update);
       if (!update.docChanged) return;
       if (activeConfigDoc) {
         autoSaveActiveConfig();

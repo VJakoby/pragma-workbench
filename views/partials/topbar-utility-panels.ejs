@@ -1,6 +1,34 @@
     <div class="utility-topbar-group">
+      <div class="todo-topbar-wrap" id="todoTopbarWrap">
+        <button class="svc-topbar-btn todo-topbar-btn utility-topbar-segment utility-topbar-segment-left" id="todoTopbarBtn" onclick="toggleTodoPopover()" title="Session TODOs">
+          <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M9 7H7"/><path d="M9 12H7"/><path d="M9 17H7"/></svg> TODO</span>
+          <span class="todo-topbar-btn-count" id="todoTopbarCount"></span>
+        </button>
+        <div class="todo-popover" id="todoPopover">
+          <div class="todo-popover-hdr">
+            <span class="todo-popover-title">TODO</span>
+            <span class="svc-popover-session-label" id="todoSessionLabel"></span>
+            <button class="todo-clear-btn todo-mutate-control" id="todoClearBtn" onclick="clearCompletedTodos()" disabled>Clear Done</button>
+            <button class="icon-btn" onclick="closeTodoPopover()" title="Close TODO panel" style="font-size:14px;padding:2px 6px">&times;</button>
+          </div>
+          <div class="todo-popover-body">
+            <div class="svc-hint">Keep short next-step tasks per session. Completed items stay saved until you clear them.</div>
+            <div class="svc-quick-input-row todo-mutate-control" style="margin-bottom:10px">
+              <input class="svc-quick-input" id="todoQuickInput" type="text"
+                placeholder="Enumerate SMB shares, retry WinRM creds, check web admin panel…"
+                autocomplete="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter')addTodoEntry()">
+              <button class="svc-quick-add-btn" onclick="addTodoEntry()">+ Add</button>
+            </div>
+            <div class="todo-list-wrap">
+              <div id="todoList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="svc-topbar-wrap" id="svcTopbarWrap">
-        <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-left" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
+        <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-middle" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
           <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Log</span>
           <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
         </button>
@@ -145,29 +173,28 @@
         </div>
       </div>
 
-      <div class="todo-topbar-wrap" id="todoTopbarWrap">
-        <button class="svc-topbar-btn todo-topbar-btn utility-topbar-segment utility-topbar-segment-right" id="todoTopbarBtn" onclick="toggleTodoPopover()" title="Session TODOs">
-          <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><path d="M9 7H7"/><path d="M9 12H7"/><path d="M9 17H7"/></svg> TODO</span>
-          <span class="todo-topbar-btn-count" id="todoTopbarCount"></span>
+      <div class="evidence-topbar-wrap" id="evidenceTopbarWrap">
+        <button class="svc-topbar-btn evidence-topbar-btn utility-topbar-segment utility-topbar-segment-right" id="evidenceTopbarBtn" onclick="toggleEvidencePopover()" title="Session evidence tracker">
+          <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M12 9v6"/><circle cx="12" cy="12" r="10"/></svg> Evidence</span>
+          <span class="evidence-topbar-btn-count" id="evidenceTopbarCount"></span>
         </button>
-        <div class="todo-popover" id="todoPopover">
-          <div class="todo-popover-hdr">
-            <span class="todo-popover-title">TODO</span>
-            <span class="svc-popover-session-label" id="todoSessionLabel"></span>
-            <button class="todo-clear-btn todo-mutate-control" id="todoClearBtn" onclick="clearCompletedTodos()" disabled>Clear Done</button>
-            <button class="icon-btn" onclick="closeTodoPopover()" title="Close TODO panel" style="font-size:14px;padding:2px 6px">&times;</button>
+        <div class="evidence-popover" id="evidencePopover">
+          <div class="evidence-popover-hdr">
+            <span class="evidence-popover-title">Evidence</span>
+            <span class="svc-popover-session-label" id="evidenceSessionLabel"></span>
+            <button class="evidence-clear-btn" id="evidenceClearBtn" onclick="clearEvidenceEntries()" disabled>Clear All</button>
+            <button class="icon-btn" onclick="closeEvidencePopover()" title="Close Evidence panel" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>
-          <div class="todo-popover-body">
-            <div class="svc-hint">Keep short next-step tasks per session. Completed items stay saved until you clear them.</div>
-            <div class="svc-quick-input-row todo-mutate-control" style="margin-bottom:10px">
-              <input class="svc-quick-input" id="todoQuickInput" type="text"
-                placeholder="Enumerate SMB shares, retry WinRM creds, check web admin panel…"
-                autocomplete="off" spellcheck="false"
-                onkeydown="if(event.key==='Enter')addTodoEntry()">
-              <button class="svc-quick-add-btn" onclick="addTodoEntry()">+ Add</button>
+          <div class="evidence-popover-body">
+            <div class="svc-hint">Create evidence by selecting a command or proof block in the note editor, then using <strong style="color:var(--text2)">Flag as Evidence</strong>.</div>
+            <div class="svc-info-box">
+              <span class="svc-info-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              </span>
+              <div class="svc-info-text">Evidence is stored separately from markdown notes, but is sourced from flagged note content so it stays tied to the original proof. Summary export still includes eligible evidence entries automatically.</div>
             </div>
-            <div class="todo-list-wrap">
-              <div id="todoList"></div>
+            <div class="evidence-list-wrap">
+              <div id="evidenceList"></div>
             </div>
           </div>
         </div>

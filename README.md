@@ -1,6 +1,6 @@
-# #️ PRAGMA // Workbench
+# PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
+> A local workbench for pentest notes, encrypted workbench storage, and a target-aware knowledge base — no cloud, no clutter.
 
 ---
 ## 🚩 My Problem
@@ -19,7 +19,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
+- **A knowledge-integrated interface** — local KB search is built in, and ENGRAM integration is optional for searching indexed external sources from inside the app
 
 ## 👤 Who This Is For
 
@@ -81,7 +81,7 @@ In practice, this means the app is opinionated about staying operational:
 - Session-level attacker IP field for callback/reverse-shell style placeholders
 - Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
-- Export/import sessions as JSON for portability; notes export as structured markdown
+- Export/import sessions as JSON for portability; session exports also support structured markdown bundles and a consolidated markdown export
 
 **Encryption**
 - Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
@@ -105,15 +105,27 @@ A persistent in-session capture tool accessible from the topbar:
 - **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
-
 Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
 
 **TODO**
 
 A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
 
+**Evidence**
+
+PRAGMA also includes a dedicated Evidence workflow for preserving proof directly from session notes, rather than retyping it into a second table.
+
+- **Selection-driven capture** — select a command, line, or markdown block in the note editor and use **Add as Evidence**
+- **Typed evidence entries** — supported categories include Enumeration, Initial Access, Execution, Persistence, Privilege Escalation, Credential Access, Discovery, Lateral Movement, Pivoting, Collection, Exfiltration, Cleanup, and Proof
+- **Source-linked tracking** — each Evidence entry stays linked to the original note and supports jumping back to the exact flagged source block
+- **Optional Loot creation** — when adding Evidence, you can also create a Loot entry from the same selection and optionally sync cleartext/hash material into the `Credentials` note
+- **Evidence management** — the Evidence panel supports filtering by type and target, inline editing, and unflagging while keeping the original note content
+- **Clean markdown export** — Evidence markers are used internally in notes, but are stripped from exported markdown/session exports so generated files stay readable
+
+This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
+
 **Knowledge Base & Tactics**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
+- Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -264,23 +276,37 @@ Write your KB docs using any of the supported placeholder styles below.
 ## 🛠️ Requirements
 
 - Node.js 20+
-- **Optional:** 
-    - docker & docker-compose
-    - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
+- **Optional:**
+  - Docker and `docker compose`
+  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
+
+---
 
 ## 🚀 Quick Start
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
+The Docker setup also supports an optional local `.env` file for host-specific path and permission overrides, including:
+
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_KB_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+
 ```bash
+# Optional: create a local env file for Docker path/user overrides
+cp .example.env .env
+
 # Build and start
 docker compose up -d --build
 
 # Access at
 http://localhost:3000
 ```
+
+If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
 ### Running manually with Node.js
 ```bash
@@ -315,4 +341,12 @@ The frontend is now split into smaller browser modules under [public/app](./publ
 This means most new frontend work should target one of those focused modules instead of growing `app.js` back into a monolith.
 
 ---
-Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+
+## 🛣️ Roadmap
+
+The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
+
+See [ROADMAP.md](./ROADMAP.md).
+---
+
+Created by VJakoby + 🤖 | Licensed under GPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)

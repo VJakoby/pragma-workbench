@@ -3,12 +3,13 @@ services:
   app:
     build: .
     container_name: pragma-workbench
+    user: "${PRAGMA_UID:-1000}:${PRAGMA_GID:-1000}"
     ports:
       - "127.0.0.1:3000:3000"                               # App only accessible from local machine
     volumes:
       # Format: [Host Path]:[Container Path]
-      - ./knowledge_base:/usr/src/app/knowledge_base         # Link local KB folder to the container's app path
-      - ./sessions:/usr/src/app/sessions                     # Keeps session data alive even if the container is deleted  
+      - ${PRAGMA_KB_PATH:-./knowledge_base}:/usr/src/app/knowledge_base   # Link local KB folder to the container's app path
+      - ${PRAGMA_SESSIONS_PATH:-./sessions}:/usr/src/app/sessions         # Keeps session data alive even if the container is deleted
     environment:
       # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
       - HOST=0.0.0.0                                         # Container must bind all interfaces so published port 127.0.0.1:3000 works from the host

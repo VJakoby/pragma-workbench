@@ -198,7 +198,7 @@ function renderNoteTypeGrid() {
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
       const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
-        ? `<span class="new-note-type-meta">${tmpl.variants.length} version${tmpl.variants.length !== 1 ? 's' : ''}</span>`
+        ? `<span class="new-note-type-meta">${tmpl.variants.length} variant${tmpl.variants.length !== 1 ? 's' : ''}</span>`
         : '';
       buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
     });
@@ -487,6 +487,7 @@ async function initNotes() {
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function executeAppSave() {
@@ -633,7 +634,7 @@ function createSession() {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [] };
+  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -759,6 +760,8 @@ function switchSession(id) {
   refreshCodeBlocks();
   updateSvcTabCounts();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function deleteSession(id) {
@@ -786,6 +789,8 @@ async function deleteSession(id) {
   renderSessionList();
   renderNotesList();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 let _sessionRenameId = null;
@@ -920,6 +925,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          evidence: cloneList(session.evidence, [['id'], ['target_id'], ['note_id'], ['type'], ['title'], ['details'], ['impact'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({
