@@ -4,6 +4,9 @@ sessions/
 # Backup files that should only be local
 *.bak
 
+# Enviromental variables that should only be local
+*.env
+
 # Personal Knowledge-base dir or symlinks
 knowledge_base/*
 /knowledge_base

@@ -59,25 +59,35 @@ pragma-workbench/
 
 ## Environment Variables
 
-Set these in your `docker-compose.yml` to customise paths:
+The checked-in `docker-compose.yml` now supports path and user overrides through environment variables. Put them in a local `.env` file or export them before running `docker compose`.
 
 | Variable | Default | Description |
 |---|---|---|
-| `KB_DIR` | App default: `./knowledge_base` | Path to your knowledge base directory inside the app runtime |
-| `SEARCH_URL` | App default: `http://localhost:3002` | URL to the ENGRAM indexer |
-| `SESSIONS_DIR` | App default: `./sessions` | Path where PRAGMA stores the workbench and backups |
+| `PRAGMA_UID` | `1000` | Host user ID used to run the container process |
+| `PRAGMA_GID` | `1000` | Host group ID used to run the container process |
+| `PRAGMA_KB_PATH` | `./knowledge_base` | Host path mounted into `/usr/src/app/knowledge_base` |
+| `PRAGMA_SESSIONS_PATH` | `./sessions` | Host path mounted into `/usr/src/app/sessions` |
+| `SEARCH_URL` | `http://engram:3002` in the checked-in compose | URL to the ENGRAM indexer |
+
+Inside the container, PRAGMA still uses:
+
+| Variable | Container Path | Description |
+|---|---|---|
+| `KB_DIR` | `/usr/src/app/knowledge_base` | Knowledge base root inside the runtime |
+| `SESSIONS_DIR` | `/usr/src/app/sessions` | Session/workbench storage path inside the runtime |
 
 Example `docker-compose.yml` volume + env setup:
 
 ```yaml
 services:
-  pragma:
+  app:
     build: .
+    user: "${PRAGMA_UID:-1000}:${PRAGMA_GID:-1000}"
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
-      - ./sessions:/usr/src/app/sessions
-      - ./knowledge_base:/usr/src/app/knowledge_base:ro
+      - ${PRAGMA_SESSIONS_PATH:-./sessions}:/usr/src/app/sessions
+      - ${PRAGMA_KB_PATH:-./knowledge_base}:/usr/src/app/knowledge_base
       - ./note-templates.json:/usr/src/app/note-templates.json:ro # optional, only if you use custom templates
     environment:
       - KB_DIR=/usr/src/app/knowledge_base
@@ -85,9 +95,20 @@ services:
       - SEARCH_URL=http://engram:3002
 ```
 
+Example `.env`:
+
+```env
+PRAGMA_UID=1000
+PRAGMA_GID=1000
+PRAGMA_KB_PATH=./knowledge_base
+PRAGMA_SESSIONS_PATH=./sessions
+```
+
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
 
 > **Templates note:** The checked-in `docker-compose.yml` does not currently mount `note-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
+
+> **Permissions note:** Mapping the container user to `PRAGMA_UID` / `PRAGMA_GID` reduces first-run permission problems, but the host path pointed to by `PRAGMA_SESSIONS_PATH` still needs to be writable by that user.
 
 ---
 

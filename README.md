@@ -288,7 +288,17 @@ See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mo
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
+The Docker setup also supports an optional local `.env` file for host-specific path and permission overrides, including:
+
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_KB_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+
 ```bash
+# Optional: create a local env file for Docker path/user overrides
+cp .example.env .env
+
 # Build and start
 docker compose up -d --build
 
