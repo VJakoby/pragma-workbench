@@ -142,6 +142,24 @@ Relevant files:
 - `public/app/workbench.js`
 - `server/routes/notes.js`
 
+### 7. Missing baseline browser hardening headers
+
+Risk:
+
+- even for a localhost-first app, missing baseline response headers makes it easier for browser behavior to drift in unsafe directions
+- clickjacking, MIME sniffing, and referrer leakage should be constrained by default
+
+Mitigation:
+
+- the app now sets `X-Content-Type-Options: nosniff`
+- the app now sets `Referrer-Policy: no-referrer`
+- the app now sets `X-Frame-Options: DENY`
+- app-shell responses are also served with no-store cache headers
+
+Relevant files:
+
+- `server/index.js`
+
 ## Directly Verified
 
 The following checks were run directly during review:
@@ -175,6 +193,14 @@ Verified in the browser:
 Verified:
 
 - default host resolves to `127.0.0.1`
+
+### Response headers
+
+Verified:
+
+- app responses include `X-Content-Type-Options: nosniff`
+- app responses include `Referrer-Policy: no-referrer`
+- app responses include `X-Frame-Options: DENY`
 
 ### KB preview route access control
 
@@ -231,14 +257,20 @@ Checked with `node --check`:
 
 - `server/index.js`
 - `server/routes/kb.js`
+- `server/routes/notes.js`
+- `server/routes/search-proxy.js`
+- `server/routes/workbenches.js`
 - `public/app/note-editor.js`
 - `public/app/content-panel.js`
 - `public/app/kb-editor.js`
 - `public/app/workbench.js`
+- `public/app/quick-log.js`
 - `public/app/sanitize.js`
 - `public/app/notes.js`
 - `public/app/search.js`
 - `public/app/kb.js`
+- `public/app/targets.js`
+- `public/app/timeline.js`
 
 ## Recommended Ongoing Review Areas
 
@@ -260,6 +292,7 @@ The app is now hardened against the most relevant risks for its intended localho
 - unsafe default network exposure
 - loose `.session` import acceptance
 - inline handler injection from user-controlled strings
+- missing baseline browser hardening headers
 - encrypted workbench confidentiality for copied `.workbench.enc` files, assuming a strong password
 
 This does not mean the app is universally hardened for hostile internet deployment. It means the most relevant risks for the intended usage model have been identified and addressed to a reasonable level.

@@ -31,7 +31,7 @@ pragma-workbench/
 │   └── partials/
 ├── server.js
 ├── package.json
-├── note-templates.json           // optional — custom note templates (see README)
+├── note-templates.json           // checked-in template file; bind-mount if you want host edits without rebuilding
 ├── Dockerfile
 ├── docker-compose.yml
 ├── sessions/                     // runtime data — created automatically
@@ -43,7 +43,7 @@ pragma-workbench/
     │   ├── ssh.md
     │   ├── http.md
     │   └── smb.md
-    ├── attacks/                  // subdirectory name becomes the category
+    ├── attacks/                  // top-level KB section, separate from Services and Tactics
     │   ├── lfi.md
     │   └── sqli.md
     └── tactics/                  // reserved for the Tactics tab
@@ -53,7 +53,7 @@ pragma-workbench/
 
 > **Live UI note:** The application is served through `views/app.ejs`. `public/app.html` is kept as a static mirror/reference page, but it is not the main runtime entrypoint when the Node server is used.
 
-> **Knowledge Base:** Every subdirectory under `knowledge_base/` automatically becomes a category in the Services tab. Only `tactics/` is reserved for the Tactics tab.
+> **Knowledge Base:** `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` is reserved for the Tactics view, and any other top-level folders under `knowledge_base/` become separate KB sections.
 
 ---
 
@@ -106,7 +106,7 @@ PRAGMA_SESSIONS_PATH=./sessions
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
 
-> **Templates note:** The checked-in `docker-compose.yml` does not currently mount `note-templates.json`. Add that volume only if you want file-based custom templates inside Docker.
+> **Templates note:** The image already contains the checked-in `note-templates.json` from the repo. Add a bind mount only if you want host-side template edits to appear in the container without rebuilding the image.
 
 > **Permissions note:** Mapping the container user to `PRAGMA_UID` / `PRAGMA_GID` reduces first-run permission problems, but the host path pointed to by `PRAGMA_SESSIONS_PATH` still needs to be writable by that user.
 

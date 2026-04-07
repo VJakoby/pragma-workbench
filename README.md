@@ -1,6 +1,6 @@
-# #️ PRAGMA // Workbench
+# PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
+> A local workbench for pentest notes, encrypted workbench storage, and a target-aware knowledge base — no cloud, no clutter.
 
 ---
 ## 🚩 My Problem
@@ -19,7 +19,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
+- **A knowledge-integrated interface** — local KB search is built in, and ENGRAM integration is optional for searching indexed external sources from inside the app
 
 ## 👤 Who This Is For
 
@@ -81,7 +81,7 @@ In practice, this means the app is opinionated about staying operational:
 - Session-level attacker IP field for callback/reverse-shell style placeholders
 - Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
-- Export/import sessions as JSON for portability; notes export as structured markdown
+- Export/import sessions as JSON for portability; session exports also support structured markdown bundles and a consolidated markdown export
 
 **Encryption**
 - Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
@@ -125,7 +125,7 @@ PRAGMA also includes a dedicated Evidence workflow for preserving proof directly
 This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
 
 **Knowledge Base & Tactics**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
+- Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -276,9 +276,9 @@ Write your KB docs using any of the supported placeholder styles below.
 ## 🛠️ Requirements
 
 - Node.js 20+
-- **Optional:** 
-    - docker & docker-compose
-    - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
+- **Optional:**
+  - Docker and `docker compose`
+  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
@@ -305,6 +305,8 @@ docker compose up -d --build
 # Access at
 http://localhost:3000
 ```
+
+If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
 ### Running manually with Node.js
 ```bash
@@ -347,4 +349,4 @@ The direction of the project, explicit non-goals, and feature-boundary decisions
 See [ROADMAP.md](./ROADMAP.md).
 ---
 
-Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+Created by VJakoby + 🤖 | Licensed under GPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
