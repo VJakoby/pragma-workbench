@@ -26,6 +26,8 @@ const SANITIZE_OPTIONS = {
   allowedStyles: {
     img: {
       'max-width': [/^100%$/],
+      width: [/^\d{1,3}%$/],
+      height: [/^\d{1,3}%$/],
     },
     th: {
       'text-align': [/^left$/, /^right$/, /^center$/],

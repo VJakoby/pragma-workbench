@@ -8,11 +8,21 @@
       const buildImageTag = (alt, url, attrs = '') => {
         const cleanAlt = esc(alt || '');
         const cleanUrl = String(url || '').trim();
-        const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4})\b/i);
-        const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4})\b/i);
-        const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : '';
-        const heightAttr = heightMatch ? ` height="${heightMatch[1]}"` : '';
-        return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="max-width:100%">`;
+        const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+        const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+        const widthValue = widthMatch ? widthMatch[1] : '';
+        const heightValue = heightMatch ? heightMatch[1] : '';
+        const widthAttr = widthValue && !widthValue.endsWith('%') ? ` width="${widthValue}"` : '';
+        const heightAttr = heightValue && !heightValue.endsWith('%') ? ` height="${heightValue}"` : '';
+        const styleParts = ['max-width:100%'];
+        if (widthValue.endsWith('%')) {
+          styleParts.push(`width:${widthValue}`);
+          styleParts.push('height:auto');
+        } else if (heightValue.endsWith('%')) {
+          styleParts.push(`height:${heightValue}`);
+          styleParts.push('width:auto');
+        }
+        return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="${styleParts.join(';')}">`;
       };
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 

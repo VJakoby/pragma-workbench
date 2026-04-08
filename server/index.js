@@ -59,17 +59,27 @@ const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkb
 marked.setOptions({ gfm: true, breaks: false });
 function preprocessImageResizeMarkdown(markdown) {
   return String(markdown || '').replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]+)\})?/g, (_, alt, url, attrs) => {
-    const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4})\b/i);
-    const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4})\b/i);
+    const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+    const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
     const cleanAlt = String(alt || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
     const cleanUrl = String(url || '').trim().replace(/"/g, '&quot;');
-    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : '';
-    const heightAttr = heightMatch ? ` height="${heightMatch[1]}"` : '';
-    return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="max-width:100%">`;
+    const widthValue = widthMatch ? widthMatch[1] : '';
+    const heightValue = heightMatch ? heightMatch[1] : '';
+    const widthAttr = widthValue && !widthValue.endsWith('%') ? ` width="${widthValue}"` : '';
+    const heightAttr = heightValue && !heightValue.endsWith('%') ? ` height="${heightValue}"` : '';
+    const styleParts = ['max-width:100%'];
+    if (widthValue.endsWith('%')) {
+      styleParts.push(`width:${widthValue}`);
+      styleParts.push('height:auto');
+    } else if (heightValue.endsWith('%')) {
+      styleParts.push(`height:${heightValue}`);
+      styleParts.push('width:auto');
+    }
+    return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="${styleParts.join(';')}">`;
   });
 }
 const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(preprocessImageResizeMarkdown(markdown)));
