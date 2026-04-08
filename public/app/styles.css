@@ -2374,7 +2374,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Topbar responsive ── */
 @media(max-width:1320px){
   .topbar-brand{ gap:0; }
-  .topbar-logo{ display:none; }
+  .topbar-brand .topbar-logo{ display:none; }
 }
 /* Below 900px: shrink cmd-trigger, hide placeholder text */
 @media(max-width:900px){
