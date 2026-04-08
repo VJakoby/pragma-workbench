@@ -28,6 +28,11 @@
 
       // Stash fenced code blocks
       const stash = [];
+      const normalizeAlternateLinkSyntax = (value) => String(value || '')
+        .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
+      src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      src = normalizeAlternateLinkSyntax(src);
+
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
         const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/, ''))}</code></pre>`;
         stash.push(html); return `\x00STASH${stash.length-1}\x00`;

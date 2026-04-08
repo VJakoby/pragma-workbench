@@ -148,7 +148,7 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 
 ## 📝 Note Templates
 
-PRAGMA ships with built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
@@ -303,23 +303,29 @@ See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mo
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
-The Docker setup also supports an optional local `.env` file for host-specific path and permission overrides, including:
-
-- `PRAGMA_SESSIONS_PATH`
-- `PRAGMA_KB_PATH`
-- `PRAGMA_UID`
-- `PRAGMA_GID`
+Recommended Docker workflow:
 
 ```bash
-# Optional: create a local env file for Docker path/user overrides
+# 1. Create a local env file
 cp .example.env .env
 
-# Build and start
+# 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
+#    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
+
+# 3. Build and start
 docker compose up -d --build
 
-# Access at
+# 4. Access at
 http://localhost:3000
 ```
+
+Common `.env` values include:
+
+- `PRAGMA_KB_PATH`
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+- `SEARCH_URL`
 
 If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 

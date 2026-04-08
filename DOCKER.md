@@ -61,6 +61,13 @@ pragma-workbench/
 
 The checked-in `docker-compose.yml` now supports path and user overrides through environment variables. Put them in a local `.env` file or export them before running `docker compose`.
 
+Recommended startup flow:
+
+1. Copy `.example.env` to `.env`
+2. Point `PRAGMA_KB_PATH` at your local knowledge base
+3. Adjust `PRAGMA_SESSIONS_PATH` if you want runtime data outside the repo
+4. Run `docker compose up -d --build`
+
 | Variable | Default | Description |
 |---|---|---|
 | `PRAGMA_UID` | `1000` | Host user ID used to run the container process |

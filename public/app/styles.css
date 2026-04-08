@@ -860,20 +860,20 @@ body{
 .content-panel-tabs{
   display:flex;
   gap:0;
-  padding:3px 10px 4px;
+  padding:2px 8px 3px;
   border-bottom:1px solid var(--border);
   background:color-mix(in srgb, var(--bg2) 84%, var(--bg3));
   overflow-x:auto;
   flex-shrink:0;
   align-items:center;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border2) transparent;
 }
-.content-panel-tabs::-webkit-scrollbar{height:8px}
+.content-panel-tabs::-webkit-scrollbar{height:4px}
 .content-panel-tabs::-webkit-scrollbar-track{background:transparent}
 .content-panel-tabs::-webkit-scrollbar-thumb{
   background:var(--border2);
   border-radius:999px;
-  border:2px solid transparent;
-  background-clip:padding-box;
 }
 .content-panel-tabs-inner{
   display:inline-flex;
@@ -894,12 +894,12 @@ body{
   color:var(--text2);
   cursor:pointer;
   font-family:'Inter',sans-serif;
-  font-size:11px;
+  font-size:10px;
   font-weight:700;
   line-height:1;
-  padding:0 11px;
-  min-height:26px;
-  height:26px;
+  padding:0 9px;
+  min-height:24px;
+  height:24px;
   white-space:nowrap;
   transition:all 0.12s;
   display:inline-flex;
@@ -2378,7 +2378,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Topbar responsive ── */
 @media(max-width:1320px){
   .topbar-brand{ gap:0; }
-  .topbar-logo{ display:none; }
+  .topbar-brand .topbar-logo{ display:none; }
 }
 /* Below 900px: shrink cmd-trigger, hide placeholder text */
 @media(max-width:900px){

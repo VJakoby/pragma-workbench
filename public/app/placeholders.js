@@ -10,6 +10,13 @@
     attacker: ['ATTACKER', 'ATTACKER_IP', 'ATTACKER-IP'],
   };
 
+  const GROUP_BARE_ALIASES = {
+    ip: ['IP', 'TARGET', 'TARGET_IP', 'RHOST', 'HOST', 'TARGET_IP_ADDRESS', 'MACHINE_IP'],
+    domain: ['DOMAIN', 'TARGET_DOMAIN', 'WORKGROUP'],
+    label: ['LABEL', 'TARGET_LABEL'],
+    attacker: ['ATTACKER', 'ATTACKER_IP', 'ATTACKER-IP'],
+  };
+
   const GROUP_EXTRAS = {
     ip: ['10.10.10.X', '10.10.X.X'],
     domain: [],
@@ -49,13 +56,14 @@
 
   function buildGroupPatterns(group, options = {}) {
     const aliases = GROUP_ALIASES[group] || [];
+    const bareAliases = GROUP_BARE_ALIASES[group] || aliases;
     const extras = GROUP_EXTRAS[group] || [];
     const patterns = [];
 
     aliases.forEach((alias) => {
       patterns.push(...buildDelimitedPatterns(alias, options));
-      patterns.push(buildBarePattern(alias));
     });
+    bareAliases.forEach((alias) => patterns.push(buildBarePattern(alias)));
     extras.forEach((token) => patterns.push(buildBarePattern(token)));
 
     return uniquePatterns(patterns);

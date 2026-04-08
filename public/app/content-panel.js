@@ -247,6 +247,14 @@ function renderContentPanelTabs(doc = activeDoc) {
 async function openItem(view, id) {
   view = decodeURIComponent(view);
   id = decodeURIComponent(id);
+  const wasEditing = typeof isKbEditModeOpen === 'function' && isKbEditModeOpen();
+  if (wasEditing && cpEditDirty && typeof saveEdit === 'function') {
+    await saveEdit({ auto: true });
+    if (cpEditDirty) {
+      showToast('Could not switch document while the current edit has unsaved changes');
+      return;
+    }
+  }
   const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
   const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
   const backState = hadBrowserState
@@ -292,7 +300,11 @@ async function openItem(view, id) {
     setContentPanelBackState(backState);
     setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
     renderContentPanelTabs(activeDoc);
-    renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
+    if (wasEditing && typeof syncKbEditorToActiveDoc === 'function') {
+      syncKbEditorToActiveDoc();
+    } else {
+      renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
+    }
     document.getElementById('cpEditBtn').style.display = '';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
