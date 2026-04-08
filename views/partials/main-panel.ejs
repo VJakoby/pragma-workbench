@@ -45,6 +45,10 @@
               <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX Toolbox jobs">Jobs</button>
             </div>
           </div>
+          <div class="matrix-offline-state" id="matrixOfflineState" hidden>
+            <div class="matrix-offline-title">MATRIX unavailable</div>
+            <div class="matrix-offline-copy">The Toolbox cards stay hidden until the MATRIX service is reachable again.</div>
+          </div>
           <div class="matrix-grid">
             <section class="matrix-card matrix-module-panel" id="matrixPanelPassive">
               <div class="matrix-card-hdr" id="matrixModulePanelHdr">MATRIX // Passive Recon</div>
@@ -74,7 +78,7 @@
                   <select class="matrix-input matrix-select" id="matrixEnumToolSelect" onchange="setMatrixEnumerationTool(this.value)">
                     <option value="nmap">Nmap</option>
                     <option value="masscan">Masscan</option>
-                    <option value="ffuf">ffuf</option>
+                    <option value="httpx">httpx</option>
                   </select>
                 </div>
                 <div class="matrix-enum-tool-panel" id="matrixEnumToolNmap">
@@ -167,12 +171,49 @@
                     <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
                   </div>
                 </div>
-                <div class="matrix-enum-tool-panel" id="matrixEnumToolFfuf" hidden>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolHttpx" hidden>
                   <div class="matrix-enum-block">
                     <div class="matrix-label">Module</div>
-                    <div class="matrix-enum-title">ffuf</div>
-                    <div class="matrix-enum-copy">ffuf is not wired into MATRIX yet. This page is reserved for future web content-discovery profiles and raw output capture.</div>
-                    <div class="matrix-enum-copy">Once implemented, this is where saved ffuf templates, targets, and output handoff will live.</div>
+                    <div class="matrix-enum-title">httpx</div>
+                    <div class="matrix-enum-copy" id="matrixHttpxCapability">Checking httpx runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved httpx profile to verify web services, collect titles and status codes, and enrich HTTP targets discovered by other recon workflows.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixHttpxProfileSelect" onchange="selectMatrixHttpxProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixHttpxProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNamingHttpx">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNamingHttpx" type="text" placeholder="optional: Web surface baseline">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixHttpxProfileLabel" type="text" placeholder="Web Baseline">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixHttpxProfileDescription" type="text" placeholder="HTTP status, title, server, and detected technologies">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxCommandTemplate">httpx Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixHttpxCommandTemplate" placeholder="httpx -sc -title -server -td {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Prefer hostnames or URLs when you want cleaner web probe output.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargetsHttpx">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargetsHttpx" placeholder="app.example.com&#10;https://portal.example.com/login"></textarea>
+                    <div class="matrix-enum-copy">Use hostnames or URLs. httpx is best for quick validation and metadata enrichment after discovery.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixHttpxProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixHttpxProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixHttpxProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
                   </div>
                 </div>
               </div>

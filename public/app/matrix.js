@@ -4,12 +4,32 @@ let matrixState = {
   currentJobId: null,
   pollTimer: null,
   capabilities: null,
+  online: false,
   nmapProfiles: [],
   selectedNmapProfileId: '',
   masscanProfiles: [],
   selectedMasscanProfileId: '',
+  httpxProfiles: [],
+  selectedHttpxProfileId: '',
   enumerationTool: 'nmap',
 };
+
+function applyMatrixAvailabilityUi() {
+  const view = document.getElementById('view-matrix');
+  const matrixView = view?.querySelector('.matrix-view');
+  const offlineState = document.getElementById('matrixOfflineState');
+  const isOnline = !!matrixState.online;
+  view?.classList.toggle('matrix-offline', !isOnline);
+  matrixView?.classList.toggle('matrix-offline', !isOnline);
+  if (offlineState) offlineState.hidden = isOnline;
+  const passiveBtn = document.getElementById('matrixModulePassive');
+  const enumBtn = document.getElementById('matrixModuleEnumeration');
+  if (passiveBtn) passiveBtn.disabled = !isOnline;
+  if (enumBtn) enumBtn.disabled = !isOnline;
+  if (!isOnline && matrixState.toolboxModule === 'enumeration') {
+    matrixState.toolboxModule = 'passive';
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -93,6 +113,7 @@ function matrixFormatJobType(type) {
     'subdomain-passive-recon': 'Passive Subdomain Recon',
     'nmap-enumeration': 'Active Enumeration',
     'masscan-enumeration': 'Active Enumeration',
+    'httpx-enumeration': 'Active Enumeration',
   };
   return mapping[type] || type || 'matrix-job';
 }
@@ -110,9 +131,12 @@ function matrixDefaultOutputMessage() {
 }
 
 function matrixActiveTargetsNode() {
-  return document.getElementById(matrixState.toolboxModule === 'enumeration'
-    ? 'matrixEnumTargets'
-    : 'matrixTargets');
+  if (matrixState.toolboxModule !== 'enumeration') {
+    return document.getElementById('matrixTargets');
+  }
+  if (matrixActiveEnumerationTool() === 'masscan') return document.getElementById('matrixEnumTargetsMasscan');
+  if (matrixActiveEnumerationTool() === 'httpx') return document.getElementById('matrixEnumTargetsHttpx');
+  return document.getElementById('matrixEnumTargets');
 }
 
 function matrixSetEnumCapability(text) {
@@ -127,8 +151,18 @@ function matrixActiveEnumerationTool() {
 function matrixEnumerationDefaultOutputMessage() {
   const tool = matrixActiveEnumerationTool();
   if (tool === 'masscan') return 'Run a Masscan enumeration job.';
-  if (tool === 'ffuf') return 'ffuf is not wired into MATRIX yet.';
+  if (tool === 'httpx') return 'Run an httpx enumeration job.';
   return 'Run an enumeration job.';
+}
+
+function matrixActiveEnumerationNamingValue() {
+  if (matrixActiveEnumerationTool() === 'masscan') {
+    return document.getElementById('matrixEnumNamingMasscan')?.value.trim() || '';
+  }
+  if (matrixActiveEnumerationTool() === 'httpx') {
+    return document.getElementById('matrixEnumNamingHttpx')?.value.trim() || '';
+  }
+  return document.getElementById('matrixEnumNaming')?.value.trim() || '';
 }
 
 function matrixJobStatusTone(status) {
@@ -553,14 +587,14 @@ function matrixRenderSubdomainResult(result) {
 function matrixRenderJobOverview(job) {
   const counts = job?.result?.counts || {};
   const jobName = job?.input?.name || job?.name || '';
-  const fallbackTitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
+  const fallbackTitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration' || job?.type === 'httpx-enumeration'
     ? 'MATRIX // Active Enumeration'
     : 'MATRIX // Passive Recon';
   const targetCount = Array.isArray(job?.input?.targets) && job.input.targets.length
     ? job.input.targets.length
     : (Object.prototype.hasOwnProperty.call(counts, 'Targets') ? counts.Targets : 0);
-  const overviewSubtitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
-    ? (job?.input?.profileLabel || (job?.type === 'masscan-enumeration' ? 'Masscan Scan' : 'Nmap Scan'))
+  const overviewSubtitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration' || job?.type === 'httpx-enumeration'
+    ? (job?.input?.profileLabel || (job?.type === 'masscan-enumeration' ? 'Masscan Scan' : job?.type === 'httpx-enumeration' ? 'httpx Scan' : 'Nmap Scan'))
     : `${matrixFormatJobType(job.type)} • Job ${job.id || ''}`;
   return `
     <section class="matrix-result-card matrix-result-card--job">
@@ -581,7 +615,7 @@ function matrixRenderJobOverview(job) {
           ${matrixRenderKv('Completed', matrixFormatDate(job.completedAt))}
         `)}
         ${matrixRenderSection('Counts', 'counts', `
-          ${job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
+          ${job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration' || job?.type === 'httpx-enumeration'
             ? matrixRenderKv('Targets', String(targetCount))
             : (Object.keys(counts).length
               ? Object.entries(counts).map(([key, value]) => matrixRenderKv(key, String(value))).join('')
@@ -598,12 +632,18 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
   const command = result.command || {};
   const execution = result.execution || {};
   const output = result.output || {};
+  const parsed = result.parsed || {};
+  const httpxResults = Array.isArray(parsed.results) ? parsed.results : [];
   const isRunning = job?.status === 'queued' || job?.status === 'running';
   const statusTone = job?.status === 'completed' ? 'ok' : (job?.status === 'failed' ? 'bad' : 'warn');
   const targetsLabel = Array.isArray(result.targets) && result.targets.length
     ? result.targets.join(', ')
     : (Array.isArray(job?.input?.targets) && job.input.targets.length ? job.input.targets.join(', ') : 'N/A');
-  const toolLabel = job?.type === 'masscan-enumeration' ? 'Masscan' : 'Nmap';
+  const toolLabel = job?.type === 'masscan-enumeration'
+    ? 'Masscan'
+    : job?.type === 'httpx-enumeration'
+      ? 'httpx'
+      : 'Nmap';
 
   return `
     <section class="matrix-result-card matrix-result-card--generic">
@@ -632,6 +672,57 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
           `)}
         </div>
         ${output.stdout ? `
+          ${toolLabel === 'httpx' && httpxResults.length ? `
+            <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+              <div class="matrix-section-top">PARSED RESULTS</div>
+              <div class="matrix-section-body">
+                <div class="matrix-kv-list">
+                  ${matrixRenderKv('Returned', String(parsed?.stats?.totalResults ?? httpxResults.length))}
+                  ${matrixRenderKv('Live Hosts', String(parsed?.stats?.liveHosts ?? httpxResults.filter(item => item?.url).length))}
+                </div>
+                <div class="matrix-httpx-table-wrap">
+                  <table class="matrix-httpx-table">
+                    <thead>
+                      <tr>
+                        <th>Status</th>
+                        <th>URL</th>
+                        <th>Title</th>
+                        <th>Server</th>
+                        <th>Tech</th>
+                        <th>IP</th>
+                        <th>RT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${httpxResults.map(item => {
+                        const statusCode = Number.isFinite(item?.statusCode) ? item.statusCode : null;
+                        const statusTone = statusCode >= 200 && statusCode < 300
+                          ? 'ok'
+                          : statusCode >= 300 && statusCode < 400
+                            ? 'info'
+                            : statusCode >= 400 && statusCode < 500
+                              ? 'warn'
+                              : statusCode >= 500
+                                ? 'bad'
+                                : 'neutral';
+                        return `
+                          <tr>
+                            <td><span class="matrix-httpx-status ${statusTone}">${escapeHtml(statusCode ?? '—')}</span></td>
+                            <td title="${escapeHtml(item?.url || item?.input || '')}">${escapeHtml(item?.url || item?.input || '—')}</td>
+                            <td title="${escapeHtml(item?.title || '')}">${escapeHtml(item?.title || '—')}</td>
+                            <td>${escapeHtml(item?.webserver || '—')}</td>
+                            <td title="${escapeHtml(Array.isArray(item?.technologies) ? item.technologies.join(', ') : '')}">${escapeHtml(Array.isArray(item?.technologies) && item.technologies.length ? item.technologies.join(', ') : '—')}</td>
+                            <td>${escapeHtml(item?.ip || '—')}</td>
+                            <td>${escapeHtml(item?.responseTime || '—')}</td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          ` : ''}
           <section class="matrix-section matrix-section--neutral matrix-section-status--neutral">
             <div class="matrix-section-top">${escapeHtml(toolLabel.toUpperCase())} OUTPUT</div>
             <div class="matrix-section-body">
@@ -688,9 +779,7 @@ function matrixRenderPayload(value) {
           <div>
             <div class="matrix-result-title">Submitting ${escapeHtml(
               matrixState.toolboxModule === 'enumeration'
-                ? ((matrixActiveEnumerationTool() === 'masscan'
-                  ? document.getElementById('matrixEnumNamingMasscan')?.value.trim()
-                  : document.getElementById('matrixEnumNaming')?.value.trim()) || 'MATRIX // Active Enumeration')
+                ? (matrixActiveEnumerationNamingValue() || 'MATRIX // Active Enumeration')
                 : (document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Passive Recon')
             )}</div>
             <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
@@ -708,7 +797,7 @@ function matrixRenderPayload(value) {
   }
 
   let html = matrixRenderJobOverview({ ...base, result: resultEnvelope });
-  if ((base?.type || summary?.type) === 'nmap-enumeration' || (base?.type || summary?.type) === 'masscan-enumeration' || resultEnvelope?.command?.rendered) {
+  if ((base?.type || summary?.type) === 'nmap-enumeration' || (base?.type || summary?.type) === 'masscan-enumeration' || (base?.type || summary?.type) === 'httpx-enumeration' || resultEnvelope?.command?.rendered) {
     html += matrixRenderEnumerationResult(base, resultEnvelope);
   }
   if (results.length) {
@@ -823,9 +912,11 @@ async function onMatrixFileSelected(event) {
       filename: file.name,
       detectedTargets: targets.length,
       name: matrixState.toolboxModule === 'enumeration'
-        ? (document.getElementById('matrixEnumNaming')?.value.trim() || null)
+        ? (matrixActiveEnumerationNamingValue() || null)
         : (document.getElementById('matrixNaming')?.value.trim() || null),
-      mode: matrixState.toolboxModule === 'enumeration' ? 'nmap-enumeration' : matrixState.mode,
+      mode: matrixState.toolboxModule === 'enumeration'
+        ? `${matrixActiveEnumerationTool()}-enumeration`
+        : matrixState.mode,
     });
   } catch (error) {
     matrixSetOutput({ error: 'Could not read import file', detail: error.message });
@@ -841,34 +932,38 @@ function onMatrixTargetsKeydown(event) {
 }
 
 async function initMatrix() {
+  applyMatrixAvailabilityUi();
   setMatrixToolboxModule(matrixState.toolboxModule);
   setMatrixMode(matrixState.mode);
   document.getElementById('matrixImportFile')?.addEventListener('change', onMatrixFileSelected);
   document.getElementById('matrixTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
   document.getElementById('matrixEnumTargets')?.addEventListener('keydown', onMatrixTargetsKeydown);
   document.getElementById('matrixEnumTargetsMasscan')?.addEventListener('keydown', onMatrixTargetsKeydown);
+  document.getElementById('matrixEnumTargetsHttpx')?.addEventListener('keydown', onMatrixTargetsKeydown);
   setMatrixEnumerationTool(matrixState.enumerationTool);
   await Promise.allSettled([
     refreshMatrixStatus(),
     loadMatrixJobs(),
     loadMatrixNmapProfiles(),
     loadMatrixMasscanProfiles(),
+    loadMatrixHttpxProfiles(),
   ]);
 }
 
 function onMatrixViewOpen() {
+  applyMatrixAvailabilityUi();
   refreshMatrixStatus();
   loadMatrixJobs();
 }
 
 function setMatrixEnumerationTool(toolName) {
-  const allowed = ['nmap', 'masscan', 'ffuf'];
+  const allowed = ['nmap', 'masscan', 'httpx'];
   matrixState.enumerationTool = allowed.includes(toolName) ? toolName : 'nmap';
   const select = document.getElementById('matrixEnumToolSelect');
   if (select) select.value = matrixState.enumerationTool;
   document.getElementById('matrixEnumToolNmap')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'nmap');
   document.getElementById('matrixEnumToolMasscan')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'masscan');
-  document.getElementById('matrixEnumToolFfuf')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'ffuf');
+  document.getElementById('matrixEnumToolHttpx')?.toggleAttribute('hidden', matrixState.enumerationTool !== 'httpx');
   if (matrixState.toolboxModule === 'enumeration') {
     const output = matrixActiveOutputNode();
     if (output) output.textContent = matrixEnumerationDefaultOutputMessage();
@@ -877,10 +972,15 @@ function setMatrixEnumerationTool(toolName) {
     loadMatrixNmapProfiles().catch(() => {});
   } else if (matrixState.enumerationTool === 'masscan') {
     loadMatrixMasscanProfiles().catch(() => {});
+  } else if (matrixState.enumerationTool === 'httpx') {
+    loadMatrixHttpxProfiles().catch(() => {});
   }
 }
 
 function setMatrixToolboxModule(moduleName) {
+  if (!matrixState.online && moduleName === 'enumeration') {
+    moduleName = 'passive';
+  }
   matrixState.toolboxModule = moduleName === 'enumeration' ? 'enumeration' : 'passive';
   document.getElementById('matrixModulePassive')?.classList.toggle('active', matrixState.toolboxModule === 'passive');
   document.getElementById('matrixModuleEnumeration')?.classList.toggle('active', matrixState.toolboxModule === 'enumeration');
@@ -903,6 +1003,7 @@ function setMatrixToolboxModule(moduleName) {
     setMatrixEnumerationTool(matrixState.enumerationTool);
     if (matrixActiveEnumerationTool() === 'nmap') loadMatrixNmapProfiles();
     if (matrixActiveEnumerationTool() === 'masscan') loadMatrixMasscanProfiles();
+    if (matrixActiveEnumerationTool() === 'httpx') loadMatrixHttpxProfiles();
   }
 
   loadMatrixJobs();
@@ -921,6 +1022,7 @@ async function refreshMatrixStatus() {
     ]);
     if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('MATRIX service unavailable');
     matrixState.capabilities = capabilities;
+    matrixState.online = true;
     matrixSetEnumCapability(capabilities?.runtime?.nmap?.available
       ? `Nmap available${capabilities.runtime.nmap.version ? ` • ${capabilities.runtime.nmap.version}` : ''}`
       : `Nmap unavailable${capabilities?.runtime?.nmap?.detail ? ` • ${capabilities.runtime.nmap.detail}` : ''}`);
@@ -930,13 +1032,25 @@ async function refreshMatrixStatus() {
         ? `Masscan available${capabilities.runtime.masscan.version ? ` • ${capabilities.runtime.masscan.version}` : ''}`
         : `Masscan unavailable${capabilities?.runtime?.masscan?.detail ? ` • ${capabilities.runtime.masscan.detail}` : ''}`;
     }
+    const httpxNode = document.getElementById('matrixHttpxCapability');
+    if (httpxNode) {
+      httpxNode.textContent = capabilities?.runtime?.httpx?.available
+        ? `httpx available${capabilities.runtime.httpx.version ? ` • ${capabilities.runtime.httpx.version}` : ''}`
+        : `httpx unavailable${capabilities?.runtime?.httpx?.detail ? ` • ${capabilities.runtime.httpx.detail}` : ''}`;
+    }
     matrixSetStatus('online', 'online');
+    applyMatrixAvailabilityUi();
   } catch (error) {
     matrixState.capabilities = null;
+    matrixState.online = false;
     matrixSetEnumCapability('MATRIX unavailable');
     const masscanNode = document.getElementById('matrixMasscanCapability');
     if (masscanNode) masscanNode.textContent = 'MATRIX unavailable';
+    const httpxNode = document.getElementById('matrixHttpxCapability');
+    if (httpxNode) httpxNode.textContent = 'MATRIX unavailable';
     matrixSetStatus('offline', 'offline');
+    applyMatrixAvailabilityUi();
+    setMatrixToolboxModule('passive');
   }
 }
 
@@ -972,9 +1086,10 @@ function clearMatrixForm() {
   if (matrixState.toolboxModule === 'enumeration') {
     const isNmap = matrixActiveEnumerationTool() === 'nmap';
     const isMasscan = matrixActiveEnumerationTool() === 'masscan';
-    if (!isNmap && !isMasscan) return;
-    const naming = document.getElementById(isNmap ? 'matrixEnumNaming' : 'matrixEnumNamingMasscan');
-    const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : 'matrixEnumTargetsMasscan');
+    const isHttpx = matrixActiveEnumerationTool() === 'httpx';
+    if (!isNmap && !isMasscan && !isHttpx) return;
+    const naming = document.getElementById(isNmap ? 'matrixEnumNaming' : isMasscan ? 'matrixEnumNamingMasscan' : 'matrixEnumNamingHttpx');
+    const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : isMasscan ? 'matrixEnumTargetsMasscan' : 'matrixEnumTargetsHttpx');
     if (naming) naming.value = '';
     if (targets) targets.value = '';
     return;
@@ -1051,6 +1166,23 @@ function matrixCurrentMasscanProfileDraft() {
   };
 }
 
+function matrixSyncHttpxProfileEditor(profile) {
+  const label = document.getElementById('matrixHttpxProfileLabel');
+  const description = document.getElementById('matrixHttpxProfileDescription');
+  const commandTemplate = document.getElementById('matrixHttpxCommandTemplate');
+  if (label) label.value = profile?.label || '';
+  if (description) description.value = profile?.description || '';
+  if (commandTemplate) commandTemplate.value = profile?.commandTemplate || '';
+}
+
+function matrixCurrentHttpxProfileDraft() {
+  return {
+    label: document.getElementById('matrixHttpxProfileLabel')?.value.trim() || '',
+    description: document.getElementById('matrixHttpxProfileDescription')?.value.trim() || '',
+    commandTemplate: document.getElementById('matrixHttpxCommandTemplate')?.value.trim() || '',
+  };
+}
+
 function matrixHasUnsavedNmapProfileChanges() {
   if (!matrixState.selectedNmapProfileId) return false;
   const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId);
@@ -1071,6 +1203,16 @@ function matrixHasUnsavedMasscanProfileChanges() {
     || draft.commandTemplate !== (profile.commandTemplate || '');
 }
 
+function matrixHasUnsavedHttpxProfileChanges() {
+  if (!matrixState.selectedHttpxProfileId) return false;
+  const profile = matrixState.httpxProfiles.find(item => item.id === matrixState.selectedHttpxProfileId);
+  if (!profile) return false;
+  const draft = matrixCurrentHttpxProfileDraft();
+  return draft.label !== (profile.label || '')
+    || draft.description !== (profile.description || '')
+    || draft.commandTemplate !== (profile.commandTemplate || '');
+}
+
 function selectMatrixNmapProfile(profileId) {
   matrixState.selectedNmapProfileId = profileId || '';
   const profile = matrixState.nmapProfiles.find(item => item.id === matrixState.selectedNmapProfileId) || null;
@@ -1081,6 +1223,12 @@ function selectMatrixMasscanProfile(profileId) {
   matrixState.selectedMasscanProfileId = profileId || '';
   const profile = matrixState.masscanProfiles.find(item => item.id === matrixState.selectedMasscanProfileId) || null;
   matrixSyncMasscanProfileEditor(profile);
+}
+
+function selectMatrixHttpxProfile(profileId) {
+  matrixState.selectedHttpxProfileId = profileId || '';
+  const profile = matrixState.httpxProfiles.find(item => item.id === matrixState.selectedHttpxProfileId) || null;
+  matrixSyncHttpxProfileEditor(profile);
 }
 
 async function loadMatrixNmapProfiles() {
@@ -1147,6 +1295,38 @@ async function loadMatrixMasscanProfiles() {
   }
 }
 
+async function loadMatrixHttpxProfiles() {
+  const select = document.getElementById('matrixHttpxProfileSelect');
+  if (!select) return;
+
+  try {
+    const response = await fetch('/api/matrix/enumeration/httpx/profiles');
+    const data = await response.json();
+    if (!response.ok) {
+      select.innerHTML = '<option value="">Profiles unavailable</option>';
+      matrixState.httpxProfiles = [];
+      return;
+    }
+
+    const profiles = Array.isArray(data.profiles) ? data.profiles : [];
+    matrixState.httpxProfiles = profiles;
+    const selected = profiles.find(item => item.id === matrixState.selectedHttpxProfileId)
+      ? matrixState.selectedHttpxProfileId
+      : (profiles[0]?.id || '');
+    matrixState.selectedHttpxProfileId = selected;
+
+    select.innerHTML = [
+      '<option value="">New profile</option>',
+      ...profiles.map(profile => `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.label)}</option>`),
+    ].join('');
+    select.value = selected;
+    matrixSyncHttpxProfileEditor(profiles.find(item => item.id === selected) || null);
+  } catch (_) {
+    select.innerHTML = '<option value="">Profiles unavailable</option>';
+    matrixState.httpxProfiles = [];
+  }
+}
+
 function newMatrixNmapProfile() {
   matrixState.selectedNmapProfileId = '';
   const select = document.getElementById('matrixNmapProfileSelect');
@@ -1159,6 +1339,13 @@ function newMatrixMasscanProfile() {
   const select = document.getElementById('matrixMasscanProfileSelect');
   if (select) select.value = '';
   matrixSyncMasscanProfileEditor(null);
+}
+
+function newMatrixHttpxProfile() {
+  matrixState.selectedHttpxProfileId = '';
+  const select = document.getElementById('matrixHttpxProfileSelect');
+  if (select) select.value = '';
+  matrixSyncHttpxProfileEditor(null);
 }
 
 async function saveMatrixNmapProfile() {
@@ -1209,6 +1396,30 @@ async function saveMatrixMasscanProfile() {
   matrixSetOutput({ profile: data, saved: true });
 }
 
+async function saveMatrixHttpxProfile() {
+  const { label, description, commandTemplate } = matrixCurrentHttpxProfileDraft();
+  const body = { label, description, commandTemplate, enabled: true };
+  const isUpdate = Boolean(matrixState.selectedHttpxProfileId);
+  const path = isUpdate
+    ? `/api/matrix/enumeration/httpx/profiles/${encodeURIComponent(matrixState.selectedHttpxProfileId)}`
+    : '/api/matrix/enumeration/httpx/profiles';
+
+  const response = await fetch(path, {
+    method: isUpdate ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    matrixSetOutput(data);
+    return;
+  }
+
+  matrixState.selectedHttpxProfileId = data.id;
+  await loadMatrixHttpxProfiles();
+  matrixSetOutput({ profile: data, saved: true });
+}
+
 async function deleteMatrixNmapProfile() {
   if (!matrixState.selectedNmapProfileId) {
     matrixSetOutput({ error: 'Select a profile to delete' });
@@ -1251,42 +1462,71 @@ async function deleteMatrixMasscanProfile() {
   matrixSetOutput('Profile deleted.');
 }
 
-async function runMatrixEnumeration() {
-  const tool = matrixActiveEnumerationTool();
-  if (tool !== 'nmap' && tool !== 'masscan') {
-    matrixSetOutput({ error: `${matrixActiveEnumerationTool()} is not wired into MATRIX yet.` });
+async function deleteMatrixHttpxProfile() {
+  if (!matrixState.selectedHttpxProfileId) {
+    matrixSetOutput({ error: 'Select a profile to delete' });
     return;
   }
 
+  const response = await fetch(`/api/matrix/enumeration/httpx/profiles/${encodeURIComponent(matrixState.selectedHttpxProfileId)}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    matrixSetOutput(data);
+    return;
+  }
+
+  matrixState.selectedHttpxProfileId = '';
+  await loadMatrixHttpxProfiles();
+  matrixSetOutput('Profile deleted.');
+}
+
+async function runMatrixEnumeration() {
+  const tool = matrixActiveEnumerationTool();
   const runtime = tool === 'masscan'
     ? matrixState.capabilities?.runtime?.masscan
-    : matrixState.capabilities?.runtime?.nmap;
+    : tool === 'httpx'
+      ? matrixState.capabilities?.runtime?.httpx
+      : matrixState.capabilities?.runtime?.nmap;
   if (!runtime?.available) {
     matrixSetOutput({
-      error: `${tool === 'masscan' ? 'Masscan' : 'Nmap'} runtime unavailable`,
+      error: `${tool === 'masscan' ? 'Masscan' : tool === 'httpx' ? 'httpx' : 'Nmap'} runtime unavailable`,
       detail: runtime?.detail || `Install ${tool} in MATRIX before running enumeration jobs.`,
     });
     return;
   }
 
   const isNmap = tool === 'nmap';
-  const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : 'matrixEnumTargetsMasscan')?.value || '';
-  const name = document.getElementById(isNmap ? 'matrixEnumNaming' : 'matrixEnumNamingMasscan')?.value.trim() || '';
+  const isMasscan = tool === 'masscan';
+  const targets = document.getElementById(isNmap ? 'matrixEnumTargets' : isMasscan ? 'matrixEnumTargetsMasscan' : 'matrixEnumTargetsHttpx')?.value || '';
+  const name = document.getElementById(isNmap ? 'matrixEnumNaming' : isMasscan ? 'matrixEnumNamingMasscan' : 'matrixEnumNamingHttpx')?.value.trim() || '';
   const profileId = isNmap
     ? (matrixState.selectedNmapProfileId || document.getElementById('matrixNmapProfileSelect')?.value || '')
-    : (matrixState.selectedMasscanProfileId || document.getElementById('matrixMasscanProfileSelect')?.value || '');
+    : isMasscan
+      ? (matrixState.selectedMasscanProfileId || document.getElementById('matrixMasscanProfileSelect')?.value || '')
+      : (matrixState.selectedHttpxProfileId || document.getElementById('matrixHttpxProfileSelect')?.value || '');
   if (!profileId) {
-    matrixSetOutput({ error: `Select a saved ${isNmap ? 'Nmap' : 'Masscan'} profile before running enumeration.` });
+    matrixSetOutput({ error: `Select a saved ${isNmap ? 'Nmap' : isMasscan ? 'Masscan' : 'httpx'} profile before running enumeration.` });
     return;
   }
-  if ((isNmap && matrixHasUnsavedNmapProfileChanges()) || (!isNmap && matrixHasUnsavedMasscanProfileChanges())) {
+  if (
+    (isNmap && matrixHasUnsavedNmapProfileChanges()) ||
+    (isMasscan && matrixHasUnsavedMasscanProfileChanges()) ||
+    (!isNmap && !isMasscan && matrixHasUnsavedHttpxProfileChanges())
+  ) {
     matrixSetOutput({ error: 'Profile has unsaved changes. Save first or discard.' });
     return;
   }
   const body = { text: targets, profileId };
   if (name) body.name = name;
 
-  const path = isNmap ? '/api/matrix/enumeration/nmap/run' : '/api/matrix/enumeration/masscan/run';
+  const path = isNmap
+    ? '/api/matrix/enumeration/nmap/run'
+    : isMasscan
+      ? '/api/matrix/enumeration/masscan/run'
+      : '/api/matrix/enumeration/httpx/run';
   matrixSetOutput({ submitting: true, path, body });
 
   const response = await fetch(path, {
@@ -1332,7 +1572,7 @@ async function loadMatrixJobs() {
   }
   const jobs = (Array.isArray(data.jobs) ? data.jobs : []).filter(job => (
     matrixState.toolboxModule === 'enumeration'
-      ? job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration'
+      ? job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration' || job?.type === 'httpx-enumeration'
       : job?.type === 'domain-recon' || job?.type === 'ip-recon' || job?.type === 'subdomain-passive-recon'
   )).slice(0, 8);
   if (!jobs.length) {
@@ -1388,6 +1628,11 @@ window.selectMatrixMasscanProfile = selectMatrixMasscanProfile;
 window.newMatrixMasscanProfile = newMatrixMasscanProfile;
 window.saveMatrixMasscanProfile = saveMatrixMasscanProfile;
 window.deleteMatrixMasscanProfile = deleteMatrixMasscanProfile;
+window.loadMatrixHttpxProfiles = loadMatrixHttpxProfiles;
+window.selectMatrixHttpxProfile = selectMatrixHttpxProfile;
+window.newMatrixHttpxProfile = newMatrixHttpxProfile;
+window.saveMatrixHttpxProfile = saveMatrixHttpxProfile;
+window.deleteMatrixHttpxProfile = deleteMatrixHttpxProfile;
 window.runMatrixEnumeration = runMatrixEnumeration;
 window.loadMatrixJobs = loadMatrixJobs;
 window.openMatrixJob = openMatrixJob;

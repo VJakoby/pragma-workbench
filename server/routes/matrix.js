@@ -221,6 +221,40 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
       body: JSON.stringify(req.body || {}),
     }, 15000);
   });
+
+  app.get('/api/matrix/enumeration/httpx/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/httpx/profiles', {}, 5000);
+  });
+
+  app.post('/api/matrix/enumeration/httpx/profiles', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/httpx/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.put('/api/matrix/enumeration/httpx/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/httpx/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
+  app.delete('/api/matrix/enumeration/httpx/profiles/:id', async (req, res) => {
+    return proxyJson(res, `/api/enumeration/httpx/profiles/${encodeURIComponent(req.params.id)}`, {
+      method: 'DELETE',
+    }, 8000);
+  });
+
+  app.post('/api/matrix/enumeration/httpx/run', async (req, res) => {
+    return proxyJson(res, '/api/enumeration/httpx/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 15000);
+  });
 }
 
 module.exports = { registerMatrixRoutes };
