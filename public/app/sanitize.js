@@ -9,7 +9,7 @@ function sanitizeRenderedHtml(html) {
   ]);
   const allowedAttrs = {
     A: new Set(['href', 'target', 'rel']),
-    IMG: new Set(['src', 'alt', 'title', 'style']),
+    IMG: new Set(['src', 'alt', 'title', 'style', 'width', 'height']),
     INPUT: new Set(['type', 'checked', 'disabled', 'class']),
     OL: new Set(['start']),
     SPAN: new Set(['class']),

@@ -57,7 +57,22 @@ const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
 
 marked.setOptions({ gfm: true, breaks: false });
-const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(String(markdown || '')));
+function preprocessImageResizeMarkdown(markdown) {
+  return String(markdown || '').replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]+)\})?/g, (_, alt, url, attrs) => {
+    const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4})\b/i);
+    const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4})\b/i);
+    const cleanAlt = String(alt || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const cleanUrl = String(url || '').trim().replace(/"/g, '&quot;');
+    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : '';
+    const heightAttr = heightMatch ? ` height="${heightMatch[1]}"` : '';
+    return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="max-width:100%">`;
+  });
+}
+const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(preprocessImageResizeMarkdown(markdown)));
 
 const app = express();
 app.set('views', path.join(__dirname, '..', 'views'));

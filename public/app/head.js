@@ -5,6 +5,15 @@
 
     parse(src) {
       const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const buildImageTag = (alt, url, attrs = '') => {
+        const cleanAlt = esc(alt || '');
+        const cleanUrl = String(url || '').trim();
+        const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4})\b/i);
+        const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4})\b/i);
+        const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : '';
+        const heightAttr = heightMatch ? ` height="${heightMatch[1]}"` : '';
+        return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="max-width:100%">`;
+      };
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
       // Stash fenced code blocks
@@ -39,7 +48,7 @@
       src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
 
       // Links & images
-      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]+)\})?/g, (_, alt, url, attrs) => buildImageTag(alt, url, attrs));
       src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
       // HR & blockquote
