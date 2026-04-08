@@ -87,6 +87,50 @@ function registerKbRoutes(app, deps) {
     });
   });
 
+  app.get('/api/kb-palette-index', (req, res) => {
+    const serviceIndex = kbIndex.getServiceIndex();
+    const tacticsIndex = kbIndex.getTacticsIndex();
+    const rootKbSections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
+    const items = [
+      ...serviceIndex.map(entry => ({
+        id: entry.id,
+        view: 'services',
+        type: 'service',
+        name: entry.name,
+        category: entry.category || '',
+        folder: entry.folder || '',
+        icon: entry.icon || '',
+        description: entry.description || '',
+        content: entry.content || '',
+      })),
+      ...tacticsIndex.map(entry => ({
+        id: entry.id,
+        view: 'tactics',
+        type: 'tactic',
+        name: entry.name,
+        category: entry.category || '',
+        folder: entry.folder || '',
+        icon: entry.icon || '',
+        description: entry.description || '',
+        content: entry.content || '',
+      })),
+      ...rootKbSections.flatMap(section =>
+        (section.items || []).map(entry => ({
+          id: entry.id,
+          view: `kb:${section.folder}`,
+          type: 'knowledge',
+          name: entry.name,
+          category: entry.category || '',
+          folder: section.folder || '',
+          icon: entry.icon || '',
+          description: entry.description || '',
+          content: entry.content || '',
+        }))
+      ),
+    ];
+    res.json({ total: items.length, items });
+  });
+
   app.get('/api/kb-section/:folder', (req, res) => {
     const section = getRootKbSection(req.params.folder);
     if (!section) return res.status(404).json({ error: 'KB section not found' });
