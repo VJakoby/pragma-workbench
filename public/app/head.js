@@ -5,7 +5,10 @@
 
     parse(src) {
       const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const normalizeAlternateLinkSyntax = (value) => String(value || '')
+        .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      src = normalizeAlternateLinkSyntax(src);
 
       // Stash fenced code blocks
       const stash = [];

@@ -57,7 +57,11 @@ const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
 
 marked.setOptions({ gfm: true, breaks: false });
-const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(String(markdown || '')));
+function normalizeAlternateLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
+}
+const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(normalizeAlternateLinkSyntax(markdown)));
 
 const app = express();
 app.set('views', path.join(__dirname, '..', 'views'));
