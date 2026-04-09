@@ -57,6 +57,16 @@ function stripEvidenceMarkers(text) {
     .trimEnd();
 }
 
+function rewriteAttachmentUrls(text, attachmentUrlMap = null) {
+  if (!attachmentUrlMap || typeof attachmentUrlMap !== 'object') return String(text || '');
+  let output = String(text || '');
+  Object.entries(attachmentUrlMap).forEach(([from, to]) => {
+    if (!from || !to) return;
+    output = output.split(from).join(to);
+  });
+  return output;
+}
+
 function loadTemplateMeta(templatesFile) {
   const byType = {};
   BUILTIN_TYPE_ORDER.forEach((type) => {
@@ -204,7 +214,7 @@ function buildTypeBuckets(notes, templateMeta) {
   return [...builtin, ...custom, ...unknown];
 }
 
-function buildSessionExportModel({ session, notes, storage, templateMeta }) {
+function buildSessionExportModel({ session, notes, storage, templateMeta, author = '' }) {
   const exportedAt = Date.now();
   const sessionContext = { attacker_ip: session.attacker_ip || '' };
   const targets = Array.isArray(session.targets)
@@ -249,6 +259,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   const hasNetworkEnumerationNote = allNotes.some((note) => String(note.type || '').trim() === 'network-enumeration');
 
   return {
+    author: String(author || '').trim(),
     session,
     sessionContext,
     storage,
@@ -284,10 +295,13 @@ function buildSessionExportModel({ session, notes, storage, templateMeta }) {
   };
 }
 
-function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
+function renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap = null }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), target);
   const label = targetLabel(target);
-  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target));
+  const body = rewriteAttachmentUrls(
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target)),
+    attachmentUrlMap
+  );
   return [
     `# ${title}`,
     '',
@@ -302,9 +316,12 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage }) {
   ].join('\n');
 }
 
-function renderSessionNoteFile({ note, session, typeMeta, storage }) {
+function renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap = null }) {
   const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
-  const body = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' }));
+  const body = rewriteAttachmentUrls(
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' })),
+    attachmentUrlMap
+  );
   return [
     `# ${title}`,
     '',
@@ -452,21 +469,26 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const target = note.target_id ? model.targetById[note.target_id] : null;
     const placeholderContext = target || model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
-    const resolvedBody = stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext));
-    lines.push(`#### ${resolvedTitle}`);
+    const resolvedBody = rewriteAttachmentUrls(
+      stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
+      model.attachmentUrlMapByNoteId?.[note.id] || null
+    );
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
     const headingText = leadingHeading?.text || resolvedTitle;
-    const renderTitleHeading = normalizeHeadingText(headingText) !== normalizeHeadingText(bucket.label);
     const bodyLines = resolvedBody.split('\n');
 
     if (leadingHeading) bodyLines.splice(leadingHeading.index, 1);
 
+    const candidates = [headingText, resolvedTitle].filter(Boolean);
+    const normalizedBucket = normalizeHeadingText(bucket.label);
+    const headerText = candidates.find((text) => normalizeHeadingText(text) !== normalizedBucket) || '';
+    const renderTitleHeading = !!headerText;
     const shiftedBody = shiftMarkdownHeadings(
       bodyLines.join('\n').replace(/^\n+/, '').trimEnd(),
       renderTitleHeading ? 3 : 2
     );
 
-    if (renderTitleHeading) lines.push(`#### ${headingText}`);
+    if (headerText) lines.push(`#### ${headerText}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
     lines.push(`- Created: ${formatTimestamp(noteTimestamp(note))}`);
@@ -555,6 +577,7 @@ function renderConsolidatedSession(model) {
     `# ${model.session.codename}`,
     '',
     `**Exported:** ${formatTimestamp(model.exportedAt)} - `,
+    `**Author:** ${model.author || '—'} - `,
     `**Duration:** ${model.stats.durationLabel} - `,
     `**Targets:** ${model.stats.targetCount}`,
   ];

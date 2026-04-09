@@ -99,6 +99,17 @@
         </div>
         <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
       </div>
+      <div class="session-field">
+        <label>Summary author (optional)</label>
+        <div class="session-inline-field">
+          <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
+          <label class="summary-export-check" style="margin-top:0">
+            <input type="checkbox" id="summaryPdfDefault">
+            Generate PDF by default
+          </label>
+        </div>
+        <div class="session-field-hint">Used for summary exports.</div>
+      </div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>

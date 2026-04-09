@@ -5,13 +5,34 @@
 
     parse(src) {
       const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const buildImageTag = (alt, url, attrs = '') => {
+        const cleanAlt = esc(alt || '');
+        const cleanUrl = String(url || '').trim();
+        const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+        const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+        const widthValue = widthMatch ? widthMatch[1] : '';
+        const heightValue = heightMatch ? heightMatch[1] : '';
+        const widthAttr = widthValue && !widthValue.endsWith('%') ? ` width="${widthValue}"` : '';
+        const heightAttr = heightValue && !heightValue.endsWith('%') ? ` height="${heightValue}"` : '';
+        const styleParts = ['max-width:100%'];
+        if (widthValue.endsWith('%')) {
+          styleParts.push(`width:${widthValue}`);
+          styleParts.push('height:auto');
+        } else if (heightValue.endsWith('%')) {
+          styleParts.push(`height:${heightValue}`);
+          styleParts.push('width:auto');
+        }
+        return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="${styleParts.join(';')}">`;
+      };
+      src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+      // Stash fenced code blocks
+      const stash = [];
       const normalizeAlternateLinkSyntax = (value) => String(value || '')
         .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
       src = normalizeAlternateLinkSyntax(src);
 
-      // Stash fenced code blocks
-      const stash = [];
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
         const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/, ''))}</code></pre>`;
         stash.push(html); return `\x00STASH${stash.length-1}\x00`;
@@ -42,7 +63,7 @@
       src = src.replace(/~~(.+?)~~/g, '<del>$1</del>');
 
       // Links & images
-      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%">');
+      src = src.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]+)\})?/g, (_, alt, url, attrs) => buildImageTag(alt, url, attrs));
       src = src.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
       // HR & blockquote
@@ -246,6 +267,7 @@
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
       if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
       if (typeof makeCollapsible === 'function') makeCollapsible(el);
+      if (typeof resolveRenderedAttachmentImages === 'function') await resolveRenderedAttachmentImages(el);
       el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
       return true;
     }
