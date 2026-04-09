@@ -1,7 +1,22 @@
 'use strict';
 
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
+const {
+  IMAGE_TYPE_TO_EXT,
+  sanitizePathSegment,
+  buildAttachmentDir,
+  buildAttachmentFilename,
+  normalizeAttachmentFilename,
+  buildAttachmentUrl,
+  resolveAttachmentPaths,
+  resolveStoredAttachmentPath,
+  extractAttachmentRefsFromMarkdown,
+  buildAttachmentManifestFromNotes,
+  cleanupAttachmentStore,
+} = require('../lib/note-attachments');
 const {
   loadTemplateMeta,
   resolveNoteType,
@@ -21,10 +36,150 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     };
   }
 
+  function decodeAttachmentPayload(data) {
+    if (!data) return null;
+    try {
+      return Buffer.from(String(data), 'base64');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function cleanupExportAttachmentShadows(outDir) {
+    if (!outDir || !fs.existsSync(outDir)) return;
+    fs.readdirSync(outDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== '_attachments')
+      .forEach((entry) => {
+        const shadowDir = path.join(outDir, entry.name, '_attachments');
+        if (!fs.existsSync(shadowDir)) return;
+        try { fs.rmSync(shadowDir, { recursive: true, force: true }); } catch (_) {}
+      });
+  }
+
+  async function renderSummaryPdf({ markdown, outDir, filename }) {
+    let puppeteer;
+    try {
+      puppeteer = require('puppeteer');
+    } catch (_) {
+      throw new Error('PDF generation requires puppeteer');
+    }
+    const htmlBody = renderMarkdown(markdown);
+    const baseHref = pathToFileURL(`${outDir}${path.sep}`).toString();
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base href="${baseHref}">
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 12px; color: #111; line-height: 1.6; padding: 24px; }
+    h1,h2,h3,h4 { color: #111; margin: 18px 0 8px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; }
+    h4 { font-size: 13px; }
+    code, pre { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    pre { background: #f4f4f5; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+    code { background: #f4f4f5; padding: 2px 4px; border-radius: 4px; }
+    blockquote { border-left: 3px solid #e5e7eb; margin: 10px 0; padding: 4px 10px; color: #444; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+    th, td { border: 1px solid #e5e7eb; padding: 4px 6px; vertical-align: top; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+  </style>
+</head>
+<body>
+${htmlBody}
+</body>
+</html>`;
+
+    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.emulateMediaType('screen');
+      await page.pdf({
+        path: path.join(outDir, filename),
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '24px', bottom: '24px', left: '24px', right: '24px' },
+      });
+    } finally {
+      await browser.close();
+    }
+  }
+
   app.post('/api/markdown/render', (req, res) => {
     try {
       const markdown = String(req.body?.markdown || '');
       res.json({ ok: true, html: renderMarkdown(markdown) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/notes/attachments', express.raw({
+    type: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'],
+    limit: '15mb',
+  }), async (req, res) => {
+    try {
+      const jsonBody = (!Buffer.isBuffer(req.body) && req.body && typeof req.body === 'object') ? req.body : null;
+      const noteId = sanitizePathSegment(req.get('x-pragma-note-id') || jsonBody?.note_id, '');
+      const originalName = decodeURIComponent(String(req.get('x-pragma-filename') || jsonBody?.filename || 'image'));
+      const mimeType = String(jsonBody?.mime_type || req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      const preserveFilename = String(req.get('x-pragma-preserve-filename') || (jsonBody?.preserve_filename ? '1' : '')).trim() === '1';
+
+      if (!noteId) return res.status(400).json({ error: 'note id required' });
+      if (!IMAGE_TYPE_TO_EXT[mimeType]) return res.status(415).json({ error: 'unsupported image type' });
+
+      const filename = preserveFilename ? normalizeAttachmentFilename(originalName) : buildAttachmentFilename(originalName, mimeType);
+      const paths = resolveAttachmentPaths(sessionsDir, noteId, filename);
+      fs.mkdirSync(paths.dir, { recursive: true });
+
+      if (jsonBody?.encrypted_blob?.encrypted === true) {
+        const encryptedBlob = {
+          ...jsonBody.encrypted_blob,
+          mime_type: mimeType,
+          filename,
+        };
+        await fs.promises.writeFile(paths.encryptedPath, JSON.stringify(encryptedBlob, null, 2), 'utf8');
+        if (fs.existsSync(paths.rawPath)) {
+          try { fs.unlinkSync(paths.rawPath); } catch (_) {}
+        }
+      } else {
+        const body = req.body;
+        if (!Buffer.isBuffer(body) || !body.length) return res.status(400).json({ error: 'image body required' });
+        await fs.promises.writeFile(paths.rawPath, body);
+        if (fs.existsSync(paths.encryptedPath)) {
+          try { fs.unlinkSync(paths.encryptedPath); } catch (_) {}
+        }
+      }
+
+      res.json({
+        ok: true,
+        note_id: noteId,
+        filename,
+        url: buildAttachmentUrl(noteId, filename),
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/notes/attachments/:noteId/:filename', (req, res) => {
+    try {
+      const noteId = sanitizePathSegment(req.params.noteId, '');
+      const filename = normalizeAttachmentFilename(decodeURIComponent(String(req.params.filename || '')));
+      if (!noteId || !filename) return res.status(400).end();
+
+      const resolved = resolveStoredAttachmentPath(sessionsDir, noteId, filename);
+      if (resolved.mode === 'raw' && fs.existsSync(resolved.filePath)) {
+        return res.sendFile(path.resolve(resolved.filePath));
+      }
+      if (resolved.mode === 'encrypted' && fs.existsSync(resolved.filePath)) {
+        const payload = JSON.parse(fs.readFileSync(resolved.filePath, 'utf8'));
+        return res.json(payload);
+      }
+      return res.status(404).end();
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -96,9 +251,13 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         return res.status(423).json({ error: 'Encrypted storage active. Use /api/notes/save-encrypted.' });
       }
       const { sessions = {}, notes = {} } = req.body;
+      const attachmentManifest = req.body?.attachment_manifest && typeof req.body.attachment_manifest === 'object'
+        ? req.body.attachment_manifest
+        : buildAttachmentManifestFromNotes(notes);
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest);
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -178,13 +337,14 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
   app.post('/api/notes/save-encrypted', (req, res) => {
     try {
-      const { blob } = req.body || {};
+      const { blob, attachment_manifest: attachmentManifest = {} } = req.body || {};
       if (!blob || blob.encrypted !== true || !blob.salt || !blob.iv || !blob.data) {
         return res.status(400).json({ error: 'Invalid encrypted payload' });
       }
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchEncFile());
       storage.atomicWrite(storage.workbenchEncFile(), JSON.stringify(blob, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {});
       if (fs.existsSync(storage.workbenchFile())) {
         try { fs.unlinkSync(storage.workbenchFile()); } catch (_) {}
       }
@@ -196,7 +356,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
   app.post('/api/notes/storage/disable-encrypted', (req, res) => {
     try {
-      const { sessions, notes } = req.body || {};
+      const { sessions, notes, attachment_manifest: attachmentManifest = {} } = req.body || {};
       if (sessions === undefined || notes === undefined) {
         return res.status(403).json({ error: 'Decrypted payload required to disable encryption.' });
       }
@@ -206,6 +366,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes));
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -215,9 +376,12 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     }
   });
 
-  app.post('/api/notes/export', (req, res) => {
+  app.post('/api/notes/export', async (req, res) => {
     try {
-      const { session_id, include_unassigned = true } = req.body;
+      const { session_id, include_unassigned = true, author = '', generate_pdf = false } = req.body;
+      const attachmentPayloads = req.body?.attachment_payloads && typeof req.body.attachment_payloads === 'object'
+        ? req.body.attachment_payloads
+        : {};
       const source = fs.existsSync(storage.workbenchEncFile())
         ? (req.body?.sessions && req.body?.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
         : storage.loadNotesFile();
@@ -232,6 +396,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
       const sessSlug = storage.slugify(session.codename);
       const outDir = path.join(sessionsDir, sessSlug);
       fs.mkdirSync(outDir, { recursive: true });
+      cleanupExportAttachmentShadows(outDir);
       const templateMeta = loadTemplateMeta(templatesFile);
 
       const targets = session.targets || [];
@@ -248,10 +413,51 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         return res.json({ ok: true, path: outDir, files: [], message: 'Nothing to export in this session.' });
       }
 
-      const model = buildSessionExportModel({ session, notes: sessionNotes, storage, templateMeta });
+      const model = buildSessionExportModel({ session, notes: sessionNotes, storage, templateMeta, author });
       const written = [];
+      const writtenSet = new Set();
       const byTarget = {};
       const unassigned = [...model.notes.unassigned];
+      const attachmentUrlMapByNoteId = {};
+
+      function writeTracked(relPath, content) {
+        fs.writeFileSync(path.join(outDir, relPath), content, 'utf8');
+        if (!writtenSet.has(relPath)) {
+          writtenSet.add(relPath);
+          written.push(relPath);
+        }
+      }
+
+      function copyNoteAttachments(note, relBase) {
+        const refs = extractAttachmentRefsFromMarkdown(note.body || '');
+        const urlMap = {};
+        const relPrefix = relBase && relBase !== '.' ? path.posix.relative(relBase, '.') : '.';
+        const relRoot = relPrefix || '.';
+        refs.forEach((ref) => {
+          const safeNoteId = sanitizePathSegment(ref.noteId, 'note');
+          const relPath = path.posix.join('_attachments', safeNoteId, ref.filename);
+          const destDir = path.join(outDir, '_attachments', safeNoteId);
+          const destPath = path.join(destDir, ref.filename);
+          if (!fs.existsSync(destPath)) {
+            let buffer = null;
+            const payload = attachmentPayloads?.[ref.noteId]?.[ref.filename];
+            if (payload?.data) buffer = decodeAttachmentPayload(payload.data);
+            if (!buffer) {
+              const stored = resolveStoredAttachmentPath(sessionsDir, ref.noteId, ref.filename);
+              if (stored.mode === 'raw' && stored.filePath) buffer = fs.readFileSync(stored.filePath);
+            }
+            if (!buffer) return;
+            fs.mkdirSync(destDir, { recursive: true });
+            fs.writeFileSync(destPath, buffer);
+          }
+          urlMap[ref.url] = `${relRoot}/${relPath}`.replace(/\/{2,}/g, '/');
+          if (!writtenSet.has(relPath)) {
+            writtenSet.add(relPath);
+            written.push(relPath);
+          }
+        });
+        return urlMap;
+      }
 
       sessionNotes.forEach(note => {
         if (note.target_id && targets.find(target => target.id === note.target_id)) {
@@ -270,57 +476,16 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         const targetDir = path.join(outDir, dirName);
         fs.mkdirSync(targetDir, { recursive: true });
 
-        const label = [target.ip, target.domain, target.label].filter(Boolean).join(' · ');
         targetServices.sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
         targetPaths.sort((a, b) => (a.path < b.path ? -1 : 1));
-
-        const targetReadme = [
-          `# ${label}`,
-          '',
-          `**Session:** ${session.codename}`,
-          `**Notes:** ${targetNotes.length}`,
-          `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
-          '',
-        ];
-
-        if (targetServices.length) {
-          targetReadme.push('## Open Ports', '');
-          targetReadme.push('| Port | Service | Version | Notes |');
-          targetReadme.push('|------|---------|---------|-------|');
-          targetServices.forEach(service => {
-            const port = service.proto && service.proto !== 'tcp' ? `${service.port}/${service.proto}` : service.port;
-            targetReadme.push(`| ${port} | ${service.service || ''} | ${service.version || ''} | ${service.notes || ''} |`);
-          });
-          targetReadme.push('');
-        }
-
-        if (targetPaths.length) {
-          targetReadme.push('## Paths', '');
-          targetReadme.push('| Status | Path | Notes |');
-          targetReadme.push('|--------|------|-------|');
-          targetPaths.forEach(entry => {
-            targetReadme.push(`| ${entry.status || ''} | ${entry.path} | ${entry.notes || ''} |`);
-          });
-          targetReadme.push('');
-        }
-
-        targetReadme.push('## Notes', '');
-        targetReadme.push(...targetNotes
-          .sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0)))
-          .map(note => {
-            const typeMeta = resolveNoteType(note.type, templateMeta);
-            return `- [${note.title || storage.noteFilename(note).replace('.md', '')}](./${storage.noteFilename(note)}) — \`${typeMeta.label}\``;
-          }));
-
-        fs.writeFileSync(path.join(targetDir, 'README.md'), targetReadme.join('\n'), 'utf8');
-        written.push(`${dirName}/README.md`);
 
         targetNotes.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const body = renderTargetNoteFile({ note, session, target, typeMeta, storage });
-          fs.writeFileSync(path.join(targetDir, fname), body, 'utf8');
-          written.push(`${dirName}/${fname}`);
+          const attachmentUrlMap = copyNoteAttachments(note, dirName);
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, '.');
+          const body = renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap });
+          writeTracked(`${dirName}/${fname}`, body);
         });
       });
 
@@ -330,22 +495,38 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         unassigned.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const body = renderSessionNoteFile({ note, session, typeMeta, storage });
-          fs.writeFileSync(path.join(sessionDir, fname), body, 'utf8');
-          written.push(`session/${fname}`);
+          const attachmentUrlMap = copyNoteAttachments(note, 'session');
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, '.');
+          const body = renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap });
+          writeTracked(`session/${fname}`, body);
         });
       }
 
-      fs.writeFileSync(path.join(outDir, 'README.md'), renderExportIndex(model), 'utf8');
-      written.unshift('README.md');
+      model.attachmentUrlMapByNoteId = attachmentUrlMapByNoteId;
 
-      fs.writeFileSync(path.join(outDir, 'SUMMARY.md'), renderTimelineSummary(model), 'utf8');
-      written.push('SUMMARY.md');
+      writeTracked('README.md', renderExportIndex(model));
+
+      writeTracked('TIMELINE.md', renderTimelineSummary(model));
 
       const consolidatedName = `${sessSlug}.md`;
       const consolidatedContent = renderConsolidatedSession(model);
-      fs.writeFileSync(path.join(outDir, consolidatedName), consolidatedContent, 'utf8');
-      written.push(consolidatedName);
+      writeTracked(consolidatedName, consolidatedContent);
+
+      let pdfMeta = null;
+      let pdfError = null;
+      if (generate_pdf) {
+        try {
+          const pdfName = `${sessSlug}.pdf`;
+          await renderSummaryPdf({ markdown: consolidatedContent, outDir, filename: pdfName });
+          pdfMeta = { filename: pdfName };
+          if (!writtenSet.has(pdfName)) {
+            writtenSet.add(pdfName);
+            written.push(pdfName);
+          }
+        } catch (err) {
+          pdfError = err?.message || 'PDF generation failed';
+        }
+      }
 
       console.log(`[PRAGMA] Exported ${written.length} files → ${outDir}`);
       res.json({
@@ -353,11 +534,39 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         path: outDir,
         files: written,
         session: session.codename,
+        has_attachments: written.some((file) => file.startsWith('_attachments/')),
+        pdf: pdfMeta,
+        pdf_error: pdfError,
         download: {
           filename: consolidatedName,
           content: consolidatedContent,
         },
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/notes/export-file', (req, res) => {
+    try {
+      const sessionId = String(req.query?.session_id || '').trim();
+      const fileParam = String(req.query?.file || '').trim();
+      if (!sessionId || !fileParam) return res.status(400).json({ error: 'session_id and file required' });
+      const source = storage.loadNotesFile();
+      const session = source?.sessions?.[sessionId];
+      if (!session) return res.status(404).json({ error: 'Session not found' });
+      const safeName = path.basename(fileParam);
+      if (!safeName.toLowerCase().endsWith('.pdf')) {
+        return res.status(400).json({ error: 'Only PDF downloads are supported' });
+      }
+      const sessSlug = storage.slugify(session.codename);
+      const outDir = path.join(sessionsDir, sessSlug);
+      const filePath = path.join(outDir, safeName);
+      if (!filePath.startsWith(outDir)) return res.status(400).json({ error: 'Invalid file path' });
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'PDF not found' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+      return res.sendFile(path.resolve(filePath));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
