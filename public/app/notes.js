@@ -854,6 +854,18 @@ function deriveEvidenceCommand(text) {
   const block = String(text || '');
   const fenced = block.match(/```[a-z0-9_-]*\n([\s\S]*?)```/i);
   if (fenced && fenced[1].trim()) return fenced[1].trim().slice(0, 500);
+  const inline = block.match(/`([^`\n]+)`/);
+  if (inline && inline[1].trim()) return inline[1].trim().slice(0, 500);
+  const cleanLines = stripInlineEvidenceMarkers(block)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !/^```/.test(line));
+  if (cleanLines.length === 1) {
+    const single = cleanLines[0];
+    if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+$/.test(single)) {
+      return single.replace(/^(?:[$#]\s*)/, '').slice(0, 500);
+    }
+  }
   const lead = getEvidenceLeadLine(block);
   if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+(?:\s+.+)?$/.test(lead) && lead.split(/\s+/).length > 1) {
     return lead.slice(0, 500);
@@ -866,6 +878,49 @@ function deriveEvidenceDetails(text, sourceCommand) {
   if (!clean) return '';
   if (sourceCommand && clean === sourceCommand) return '';
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
+}
+
+function extractEvidenceBlocksFromBody(body) {
+  const text = String(body || '');
+  const blocks = new Map();
+  const re = /<!--\s*pragma:evidence:([^:\s]+):start\s*-->\n?([\s\S]*?)\n?<!--\s*pragma:evidence:\1:end\s*-->/g;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    blocks.set(match[1], match[2] || '');
+  }
+  return blocks;
+}
+
+function syncEvidenceEntriesFromNote(noteId) {
+  if (!noteId || !notes[noteId] || !activeSessionId || !sessions[activeSessionId]) return false;
+  const entries = sessions[activeSessionId].evidence || [];
+  if (!entries.length) return false;
+  const blocks = extractEvidenceBlocksFromBody(notes[noteId].body || '');
+  let changed = false;
+
+  entries.forEach((entry) => {
+    const sourceNoteId = entry?.source_note_id || entry?.note_id || null;
+    if (sourceNoteId !== noteId) return;
+    const block = blocks.get(entry.id);
+    if (block == null) return;
+    const nextCommand = deriveEvidenceCommand(block);
+    const nextDetails = deriveEvidenceDetails(block, nextCommand);
+    let entryChanged = false;
+    if (nextCommand && (entry.source_command || '') !== nextCommand) {
+      entry.source_command = nextCommand;
+      entryChanged = true;
+    }
+    if (!entry.details && nextDetails) {
+      entry.details = nextDetails;
+      entryChanged = true;
+    }
+    if (entryChanged) {
+      entry.updated = Date.now();
+      changed = true;
+    }
+  });
+
+  return changed;
 }
 
 function deriveLootType(text) {
@@ -1248,8 +1303,9 @@ async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
   const syncResult = syncActiveNoteDraft(noteId);
   if (!syncResult.ok) return false;
+  const evidenceChanged = syncEvidenceEntriesFromNote(noteId);
   const note = notes[noteId];
-  if (!syncResult.changed) {
+  if (!syncResult.changed && !evidenceChanged) {
     if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
     return true;
   }
@@ -1260,6 +1316,10 @@ async function persistActiveNote(opts = {}) {
   });
   renderNotesList();
   renderSessionSidebar();
+  if (evidenceChanged) {
+    if (typeof renderEvidenceList === 'function') renderEvidenceList();
+    if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  }
   if (!note || notes[noteId] !== note) return ok;
   if (activeNoteId === noteId) renderBacklinks(noteId);
   const moEl = document.getElementById('noteModifiedAt');
