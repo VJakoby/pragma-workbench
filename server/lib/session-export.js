@@ -472,20 +472,22 @@ function renderNoteEntries(bucket, model, includeTarget) {
       stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
       model.attachmentUrlMapByNoteId?.[note.id] || null
     );
-    lines.push(`#### ${resolvedTitle}`);
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
     const headingText = leadingHeading?.text || resolvedTitle;
-    const renderTitleHeading = normalizeHeadingText(headingText) !== normalizeHeadingText(bucket.label);
     const bodyLines = resolvedBody.split('\n');
 
     if (leadingHeading) bodyLines.splice(leadingHeading.index, 1);
 
+    const candidates = [headingText, resolvedTitle].filter(Boolean);
+    const normalizedBucket = normalizeHeadingText(bucket.label);
+    const headerText = candidates.find((text) => normalizeHeadingText(text) !== normalizedBucket) || '';
+    const renderTitleHeading = !!headerText;
     const shiftedBody = shiftMarkdownHeadings(
       bodyLines.join('\n').replace(/^\n+/, '').trimEnd(),
       renderTitleHeading ? 3 : 2
     );
 
-    if (renderTitleHeading) lines.push(`#### ${headingText}`);
+    if (headerText) lines.push(`#### ${headerText}`);
     lines.push('');
     lines.push(`- Type: ${bucket.label}`);
     lines.push(`- Created: ${formatTimestamp(noteTimestamp(note))}`);

@@ -423,49 +423,8 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         const targetDir = path.join(outDir, dirName);
         fs.mkdirSync(targetDir, { recursive: true });
 
-        const label = [target.ip, target.domain, target.label].filter(Boolean).join(' · ');
         targetServices.sort((a, b) => (parseInt(a.port, 10) || 0) - (parseInt(b.port, 10) || 0));
         targetPaths.sort((a, b) => (a.path < b.path ? -1 : 1));
-
-        const targetReadme = [
-          `# ${label}`,
-          '',
-          `**Session:** ${session.codename}`,
-          `**Notes:** ${targetNotes.length}`,
-          `**Exported:** ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
-          '',
-        ];
-
-        if (targetServices.length) {
-          targetReadme.push('## Open Ports', '');
-          targetReadme.push('| Port | Service | Version | Notes |');
-          targetReadme.push('|------|---------|---------|-------|');
-          targetServices.forEach(service => {
-            const port = service.proto && service.proto !== 'tcp' ? `${service.port}/${service.proto}` : service.port;
-            targetReadme.push(`| ${port} | ${service.service || ''} | ${service.version || ''} | ${service.notes || ''} |`);
-          });
-          targetReadme.push('');
-        }
-
-        if (targetPaths.length) {
-          targetReadme.push('## Paths', '');
-          targetReadme.push('| Status | Path | Notes |');
-          targetReadme.push('|--------|------|-------|');
-          targetPaths.forEach(entry => {
-            targetReadme.push(`| ${entry.status || ''} | ${entry.path} | ${entry.notes || ''} |`);
-          });
-          targetReadme.push('');
-        }
-
-        targetReadme.push('## Notes', '');
-        targetReadme.push(...targetNotes
-          .sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0)))
-          .map(note => {
-            const typeMeta = resolveNoteType(note.type, templateMeta);
-            return `- [${note.title || storage.noteFilename(note).replace('.md', '')}](./${storage.noteFilename(note)}) — \`${typeMeta.label}\``;
-          }));
-
-        writeTracked(`${dirName}/README.md`, targetReadme.join('\n'));
 
         targetNotes.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
@@ -494,7 +453,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
 
       writeTracked('README.md', renderExportIndex(model));
 
-      writeTracked('SUMMARY.md', renderTimelineSummary(model));
+      writeTracked('TIMELINE.md', renderTimelineSummary(model));
 
       const consolidatedName = `${sessSlug}.md`;
       const consolidatedContent = renderConsolidatedSession(model);
