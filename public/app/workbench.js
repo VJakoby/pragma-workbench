@@ -260,7 +260,13 @@ async function downloadWorkbench() {
       return;
     }
 
-    const payload = { notes, sessions };
+    const payload = {
+      notes,
+      sessions,
+      attachments: typeof collectAttachmentPayloadsForNotes === 'function'
+        ? await collectAttachmentPayloadsForNotes(Object.values(notes || {}))
+        : {},
+    };
     const blob = await encryptPayload(JSON.stringify(payload), password);
     if (encryptedStorageHint) blob.hint = encryptedStorageHint;
 
@@ -328,6 +334,18 @@ async function toggleEncryptedStorage(e) {
     encryptedStoragePassword = pw1.password;
     encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
+    try {
+      if (typeof migrateNoteAttachmentsStorage === 'function') {
+        await migrateNoteAttachmentsStorage('encrypted');
+      }
+    } catch (err) {
+      encryptedStorageEnabled = false;
+      encryptedStoragePassword = null;
+      encryptedStorageHint = '';
+      updateEncryptedStorageUI();
+      showToast('⚠ Attachment encryption failed: ' + (err.message || 'unknown error'), 'err');
+      return;
+    }
     saveNotes();
   } else {
     let confirmPw;
@@ -353,16 +371,30 @@ async function toggleEncryptedStorage(e) {
         confirmLabel: 'Disable Encryption', danger: true,
       });
     } catch { return; }
-    encryptedStorageEnabled  = false;
-    encryptedStoragePassword = null;
-    updateEncryptedStorageUI();
+    try {
+      if (typeof migrateNoteAttachmentsStorage === 'function') {
+        await migrateNoteAttachmentsStorage('plaintext');
+      }
+    } catch (err) {
+      showToast('⚠ Attachment decryption failed: ' + (err.message || 'unknown error'), 'err');
+      return;
+    }
     try {
       await fetch('/api/notes/storage/disable-encrypted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessions, notes }),
+        body: JSON.stringify({
+          sessions,
+          notes,
+          attachment_manifest: typeof buildAttachmentManifestFromClientNotes === 'function'
+            ? buildAttachmentManifestFromClientNotes(notes)
+            : {},
+        }),
       });
     } catch (_) {}
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    updateEncryptedStorageUI();
     saveNotes();
   }
 }
@@ -492,6 +524,9 @@ async function initNotes() {
 
 async function executeAppSave() {
   const payload = { notes, sessions };
+  const attachmentManifest = typeof buildAttachmentManifestFromClientNotes === 'function'
+    ? buildAttachmentManifestFromClientNotes(notes)
+    : {};
   if (encryptedStorageEnabled) {
     try {
       if (!encryptedStoragePassword) throw new Error('Workbench is locked');
@@ -502,7 +537,7 @@ async function executeAppSave() {
       const res = await fetch('/api/notes/save-encrypted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blob }),
+        body: JSON.stringify({ blob, attachment_manifest: attachmentManifest }),
       });
       if (!res.ok) throw new Error('Encrypted save failed');
       return true;
@@ -517,7 +552,7 @@ async function executeAppSave() {
     const res = await fetch('/api/notes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, attachment_manifest: attachmentManifest }),
     });
     if (!res.ok) throw new Error('Save failed');
     return true;

@@ -55,7 +55,6 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         try { fs.rmSync(shadowDir, { recursive: true, force: true }); } catch (_) {}
       });
   }
-
   async function renderSummaryPdf({ markdown, outDir, filename }) {
     let puppeteer;
     try {
@@ -107,7 +106,6 @@ ${htmlBody}
       await browser.close();
     }
   }
-
   app.post('/api/markdown/render', (req, res) => {
     try {
       const markdown = String(req.body?.markdown || '');

@@ -121,6 +121,7 @@ function wrapCodeBlocks(container) {
       codeEl.textContent = rawText;
       delete codeEl.dataset.hljsDone;
       highlightCodeBlock(codeEl);
+      codeEl.innerHTML = injectTargets(codeEl.innerHTML);
 
       if (!copyBtn) {
         copyBtn = document.createElement('button');

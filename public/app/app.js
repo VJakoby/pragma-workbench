@@ -796,11 +796,37 @@ async function encryptPayload(plaintext, password) {
   };
 }
 
+function bytesToBase64(value) {
+  return btoa(String.fromCharCode(...new Uint8Array(value)));
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(String(value || '')), c => c.charCodeAt(0));
+}
+
+async function encryptBinaryPayload(buffer, password, mimeType = 'application/octet-stream', filename = '') {
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt, 2);
+  const source = buffer instanceof ArrayBuffer ? buffer : new Uint8Array(buffer).buffer;
+  const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, source);
+  return {
+    pragma_version: 1,
+    crypto_version: 2,
+    encrypted: true,
+    kind: 'attachment',
+    mime_type: String(mimeType || 'application/octet-stream'),
+    filename: String(filename || ''),
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(ct),
+  };
+}
+
 async function decryptPayload(obj, password) {
-  const b64d   = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const salt   = b64d(obj.salt);
-  const iv     = b64d(obj.iv);
-  const ct     = b64d(obj.data);
+  const salt   = base64ToBytes(obj.salt);
+  const iv     = base64ToBytes(obj.iv);
+  const ct     = base64ToBytes(obj.data);
   // Support both legacy blobs keyed by pragma_version and newer blobs that
   // separate workbench version from crypto_version.
   const version = obj.crypto_version >= 2
@@ -812,6 +838,26 @@ async function decryptPayload(obj, password) {
     // GCM auth tag mismatch throws here if password wrong or data tampered
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
     return dec.decode(plain);
+  } catch {
+    throw new Error('Wrong password or corrupted data');
+  }
+}
+
+async function decryptBinaryPayload(obj, password) {
+  const salt = base64ToBytes(obj.salt);
+  const iv   = base64ToBytes(obj.iv);
+  const ct   = base64ToBytes(obj.data);
+  const version = obj.crypto_version >= 2
+    ? 2
+    : (obj.pragma_version >= 2 || salt.length >= 32 ? 2 : 1);
+  const key = await deriveKey(password, salt, version);
+  try {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return {
+      buffer: plain,
+      mimeType: String(obj.mime_type || 'application/octet-stream'),
+      filename: String(obj.filename || ''),
+    };
   } catch {
     throw new Error('Wrong password or corrupted data');
   }
