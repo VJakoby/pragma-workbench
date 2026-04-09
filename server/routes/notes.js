@@ -11,6 +11,7 @@ const {
   buildAttachmentFilename,
   normalizeAttachmentFilename,
   buildAttachmentUrl,
+  getAttachmentMimeType,
   resolveAttachmentPaths,
   resolveStoredAttachmentPath,
   extractAttachmentRefsFromMarkdown,
@@ -55,6 +56,25 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         try { fs.rmSync(shadowDir, { recursive: true, force: true }); } catch (_) {}
       });
   }
+
+  function inlineAttachmentImages(html, outDir) {
+    return String(html || '').replace(/<img([^>]*?)src="([^"]+)"([^>]*)>/gi, (match, pre, src, post) => {
+      const cleanSrc = String(src || '').trim();
+      if (!cleanSrc || cleanSrc.startsWith('data:') || cleanSrc.startsWith('http')) return match;
+      const rel = cleanSrc.replace(/^\.?\//, '');
+      if (!rel.startsWith('_attachments/')) return match;
+      const filePath = path.join(outDir, rel);
+      if (!fs.existsSync(filePath)) return match;
+      try {
+        const data = fs.readFileSync(filePath);
+        const mime = getAttachmentMimeType(filePath, 'application/octet-stream');
+        const dataUrl = `data:${mime};base64,${data.toString('base64')}`;
+        return `<img${pre}src="${dataUrl}"${post}>`;
+      } catch (_) {
+        return match;
+      }
+    });
+  }
   async function renderSummaryPdf({ markdown, outDir, filename }) {
     let puppeteer;
     try {
@@ -62,7 +82,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     } catch (_) {
       throw new Error('PDF generation requires puppeteer');
     }
-    const htmlBody = renderMarkdown(markdown);
+    const htmlBody = inlineAttachmentImages(renderMarkdown(markdown), outDir);
     const baseHref = pathToFileURL(`${outDir}${path.sep}`).toString();
     const html = `<!doctype html>
 <html>
@@ -91,10 +111,14 @@ ${htmlBody}
 </body>
 </html>`;
 
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--allow-file-access-from-files'],
+    });
     try {
+      const htmlPath = path.join(outDir, `${path.basename(filename, '.pdf')}.pdf.html`);
+      fs.writeFileSync(htmlPath, html, 'utf8');
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.goto(pathToFileURL(htmlPath).toString(), { waitUntil: 'networkidle0' });
       await page.emulateMediaType('screen');
       await page.pdf({
         path: path.join(outDir, filename),
@@ -102,6 +126,7 @@ ${htmlBody}
         printBackground: true,
         margin: { top: '24px', bottom: '24px', left: '24px', right: '24px' },
       });
+      try { fs.unlinkSync(htmlPath); } catch (_) {}
     } finally {
       await browser.close();
     }
