@@ -464,7 +464,7 @@ async function initNotes() {
 
   renderSessionSidebar();
   renderNotesList();
-  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  if (typeof updateNotesCountBadges === 'function') updateNotesCountBadges();
 
   const sess = activeSessionId && sessions[activeSessionId];
   const targets = (sess && sess.targets) || [];
@@ -536,15 +536,19 @@ function renderSessionSidebar() {
   const name   = document.getElementById('sessionName');
   const target = document.getElementById('sessionTarget');
   const card   = document.getElementById('sessionActive');
+  const editBtn = document.getElementById('sessionTargetEditBtn');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
+    const activeTarget = typeof getActiveTarget === 'function' ? getActiveTarget() : null;
     const status = sess.status || 'active';
     dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent = sess.codename;
     name.title = sess.codename || '';
     if (card) card.title = sess.codename || 'Sessions';
-    target.textContent = '';
-    target.style.display = 'none';
+    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
+    target.textContent = targetLabel;
+    target.style.display = '';
+    if (editBtn) editBtn.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
@@ -559,6 +563,7 @@ function renderSessionSidebar() {
     if (card) card.title = 'Sessions';
     target.textContent = '— click to set';
     target.style.display = '';
+    if (editBtn) editBtn.style.display = 'none';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       badge.style.display = 'none';

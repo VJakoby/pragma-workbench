@@ -399,6 +399,14 @@ body{
   text-align:center;
   line-height:1.2;
 }
+.nav-item-count-session{
+  min-width:16px;
+  padding:1px 6px;
+  font-size:10px;
+  color:var(--green);
+  background:rgba(var(--green-rgb),0.16);
+  border-color:rgba(var(--green-rgb),0.32);
+}
 
 .sidebar-divider,
 .sidebar-subtle-divider{
@@ -2318,6 +2326,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .sidebar.sidebar-icon-only .session-active-info,
 .sidebar.sidebar-icon-only .session-active-arrow,
 .sidebar.sidebar-icon-only .session-notes-badge,
+.sidebar.sidebar-icon-only .session-target-edit-btn,
 .sidebar.sidebar-icon-only .session-encrypt-row,
 .sidebar.sidebar-icon-only .sidebar-divider,
 .sidebar.sidebar-icon-only .cat-scroll,
@@ -2982,6 +2991,28 @@ body.is-resizing *{cursor:col-resize!important}
   border: 1px solid var(--border); border-radius: 999px;
   padding: 1px 6px; min-width: 20px; text-align: center;
   line-height: 1.2; margin-left: 0; flex-shrink: 0;
+}
+.session-target-edit-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.session-target-edit-btn:hover {
+  color: var(--green);
+  background: rgba(var(--green-rgb),0.12);
+  border-color: rgba(var(--green-rgb),0.28);
+}
+.session-target-edit-btn:active {
+  background: rgba(var(--green-rgb),0.18);
+  border-color: rgba(var(--green-rgb),0.38);
 }
 .target-copy-btn { font-weight: 600; }
 .session-active-info { flex: 1 1 auto; min-width: 0; }

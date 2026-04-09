@@ -280,11 +280,27 @@ function updateNoteSearchPlaceholder() {
   input.placeholder = placeholderByScope[activeNoteScope] || 'Search notes…';
 }
 
+function updateNotesCountBadges() {
+  const totalEl = document.getElementById('notes-count');
+  const sessionEl = document.getElementById('notes-count-session');
+  if (totalEl) totalEl.textContent = Object.keys(notes).length || '—';
+  if (!sessionEl) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    sessionEl.style.display = 'none';
+    sessionEl.textContent = '';
+    return;
+  }
+  const sessionCount = Object.values(notes).filter(n => n.session_id === activeSessionId).length;
+  sessionEl.textContent = sessionCount;
+  sessionEl.style.display = sessionCount ? '' : 'none';
+}
+
 function renderNotesList() {
   updateNoteSearchPlaceholder();
+  updateNotesCountBadges();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
-    document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+    updateNotesCountBadges();
     renderTargetFilterBar();
     return;
   }
@@ -346,7 +362,7 @@ function renderNotesList() {
     </div>`;
   }).join('');
 
-  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  updateNotesCountBadges();
   renderTargetFilterBar();
 }
 
