@@ -459,7 +459,8 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
   const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
   const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
 
-  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId]) {
+  const shouldRemoveSourceMarker = !nextEntry || !nextSourceNoteId || nextSourceNoteId !== prevSourceNoteId;
+  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId] && shouldRemoveSourceMarker) {
     const prevNote = notes[prevSourceNoteId];
     const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
     if (cleaned !== (prevNote.body || '')) {
