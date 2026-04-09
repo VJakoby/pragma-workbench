@@ -44,6 +44,17 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     }
   }
 
+  function cleanupExportAttachmentShadows(outDir) {
+    if (!outDir || !fs.existsSync(outDir)) return;
+    fs.readdirSync(outDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== '_attachments')
+      .forEach((entry) => {
+        const shadowDir = path.join(outDir, entry.name, '_attachments');
+        if (!fs.existsSync(shadowDir)) return;
+        try { fs.rmSync(shadowDir, { recursive: true, force: true }); } catch (_) {}
+      });
+  }
+
   app.post('/api/markdown/render', (req, res) => {
     try {
       const markdown = String(req.body?.markdown || '');
@@ -332,6 +343,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
       const sessSlug = storage.slugify(session.codename);
       const outDir = path.join(sessionsDir, sessSlug);
       fs.mkdirSync(outDir, { recursive: true });
+      cleanupExportAttachmentShadows(outDir);
       const templateMeta = loadTemplateMeta(templatesFile);
 
       const targets = session.targets || [];
@@ -363,13 +375,15 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         }
       }
 
-      function copyNoteAttachments(note, baseDir, relBase) {
+      function copyNoteAttachments(note, relBase) {
         const refs = extractAttachmentRefsFromMarkdown(note.body || '');
         const urlMap = {};
+        const relPrefix = relBase && relBase !== '.' ? path.posix.relative(relBase, '.') : '.';
+        const relRoot = relPrefix || '.';
         refs.forEach((ref) => {
-          const relDir = path.posix.join(relBase || '.', '_attachments', sanitizePathSegment(ref.noteId, 'note'));
-          const relPath = path.posix.join(relDir, ref.filename);
-          const destDir = path.join(baseDir, '_attachments', sanitizePathSegment(ref.noteId, 'note'));
+          const safeNoteId = sanitizePathSegment(ref.noteId, 'note');
+          const relPath = path.posix.join('_attachments', safeNoteId, ref.filename);
+          const destDir = path.join(outDir, '_attachments', safeNoteId);
           const destPath = path.join(destDir, ref.filename);
           if (!fs.existsSync(destPath)) {
             let buffer = null;
@@ -383,7 +397,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
             fs.mkdirSync(destDir, { recursive: true });
             fs.writeFileSync(destPath, buffer);
           }
-          urlMap[ref.url] = `./${path.posix.join('_attachments', sanitizePathSegment(ref.noteId, 'note'), ref.filename)}`;
+          urlMap[ref.url] = `${relRoot}/${relPath}`.replace(/\/{2,}/g, '/');
           if (!writtenSet.has(relPath)) {
             writtenSet.add(relPath);
             written.push(relPath);
@@ -456,8 +470,8 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         targetNotes.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const attachmentUrlMap = copyNoteAttachments(note, targetDir, dirName);
-          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, outDir, '.');
+          const attachmentUrlMap = copyNoteAttachments(note, dirName);
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, '.');
           const body = renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap });
           writeTracked(`${dirName}/${fname}`, body);
         });
@@ -469,8 +483,8 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         unassigned.sort((a, b) => ((a.updated || a.created || 0) - (b.updated || b.created || 0))).forEach(note => {
           const fname = storage.noteFilename(note);
           const typeMeta = resolveNoteType(note.type, templateMeta);
-          const attachmentUrlMap = copyNoteAttachments(note, sessionDir, 'session');
-          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, outDir, '.');
+          const attachmentUrlMap = copyNoteAttachments(note, 'session');
+          if (!attachmentUrlMapByNoteId[note.id]) attachmentUrlMapByNoteId[note.id] = copyNoteAttachments(note, '.');
           const body = renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap });
           writeTracked(`session/${fname}`, body);
         });
@@ -492,7 +506,7 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         path: outDir,
         files: written,
         session: session.codename,
-        has_attachments: written.some((file) => file.includes('/_attachments/') || file.startsWith('_attachments/')),
+        has_attachments: written.some((file) => file.startsWith('_attachments/')),
         download: {
           filename: consolidatedName,
           content: consolidatedContent,
