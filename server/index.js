@@ -82,12 +82,17 @@ function preprocessImageResizeMarkdown(markdown) {
     return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="${styleParts.join(';')}">`;
   });
 }
-const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(preprocessImageResizeMarkdown(markdown)));
 function normalizeAlternateLinkSyntax(markdown) {
   return String(markdown || '')
     .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
 }
-const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(normalizeAlternateLinkSyntax(markdown)));
+const renderMarkdown = (markdown) => sanitizeRenderedHtml(
+  marked.parse(
+    preprocessImageResizeMarkdown(
+      normalizeAlternateLinkSyntax(markdown)
+    )
+  )
+);
 
 const app = express();
 app.set('views', path.join(__dirname, '..', 'views'));
