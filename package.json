@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Tactical note-taking workbench",
   "main": "server.js",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "node server.js",
     "start:server": "node server/index.js"

@@ -348,6 +348,12 @@ This means most new frontend work should target one of those focused modules ins
 
 ---
 
+## License & Notices
+
+PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notices are listed in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
+---
+
 ## 🛣️ Roadmap
 
 The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
@@ -355,4 +361,4 @@ The direction of the project, explicit non-goals, and feature-boundary decisions
 See [ROADMAP.md](./ROADMAP.md).
 ---
 
-Created by VJakoby + 🤖 | Licensed under GPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
