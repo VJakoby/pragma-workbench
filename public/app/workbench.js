@@ -536,7 +536,6 @@ function renderSessionSidebar() {
   const name   = document.getElementById('sessionName');
   const target = document.getElementById('sessionTarget');
   const card   = document.getElementById('sessionActive');
-  const editBtn = document.getElementById('sessionTargetEditBtn');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
     const activeTarget = typeof getActiveTarget === 'function' ? getActiveTarget() : null;
@@ -548,7 +547,6 @@ function renderSessionSidebar() {
     const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
     target.textContent = targetLabel;
     target.style.display = '';
-    if (editBtn) editBtn.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
@@ -563,7 +561,6 @@ function renderSessionSidebar() {
     if (card) card.title = 'Sessions';
     target.textContent = '— click to set';
     target.style.display = '';
-    if (editBtn) editBtn.style.display = 'none';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       badge.style.display = 'none';
