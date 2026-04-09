@@ -10,8 +10,6 @@ let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
 let _evidenceSelectionPromptState = null;
-let _summaryExportResolve = null;
-let _summaryExportReject = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
 const EVIDENCE_TYPE_OPTIONS = [
   { value: 'enumeration', label: 'Enumeration' },
@@ -371,44 +369,6 @@ function renderNotesList() {
 function onNoteSearch(val) {
   activeNoteSearch = val.trim();
   renderNotesList();
-}
-
-function openSummaryExportModal(opts = {}) {
-  return new Promise((resolve, reject) => {
-    _summaryExportResolve = resolve;
-    _summaryExportReject = reject;
-    const icon = document.getElementById('summaryExportIcon');
-    if (icon) icon.innerHTML = ICONS.download;
-    const authorInput = document.getElementById('summaryExportAuthor');
-    if (authorInput) authorInput.value = String(opts.author || '');
-    const pdfInput = document.getElementById('summaryExportPdf');
-    if (pdfInput) pdfInput.checked = !!opts.generatePdf;
-    document.getElementById('summaryExportOverlay').classList.add('open');
-    setTimeout(() => authorInput?.focus(), 40);
-  });
-}
-
-function _summaryExportSave() {
-  const authorInput = document.getElementById('summaryExportAuthor');
-  const pdfInput = document.getElementById('summaryExportPdf');
-  const author = authorInput ? authorInput.value.trim() : '';
-  const generatePdf = !!pdfInput?.checked;
-  localStorage.setItem('pragma-summary-author', author);
-  localStorage.setItem('pragma-summary-pdf', generatePdf ? '1' : '0');
-  document.getElementById('summaryExportOverlay').classList.remove('open');
-  if (_summaryExportResolve) _summaryExportResolve({ author, generatePdf });
-  _summaryExportResolve = _summaryExportReject = null;
-}
-
-function _summaryExportCancel() {
-  document.getElementById('summaryExportOverlay').classList.remove('open');
-  if (_summaryExportReject) _summaryExportReject('cancelled');
-  _summaryExportResolve = _summaryExportReject = null;
-}
-
-function _summaryExportKey(e) {
-  if (e.key === 'Enter') _summaryExportSave();
-  if (e.key === 'Escape') _summaryExportCancel();
 }
 
 function exportCurrentNote() {
@@ -1626,15 +1586,8 @@ async function exportNotesMarkdown(sessionId) {
   if (!sess) return;
 
   try {
-    let summaryOpts;
-    try {
-      summaryOpts = await openSummaryExportModal({
-        author: localStorage.getItem('pragma-summary-author') || '',
-        generatePdf: localStorage.getItem('pragma-summary-pdf') === '1',
-      });
-    } catch {
-      return;
-    }
+    const author = (localStorage.getItem('pragma-summary-author') || '').trim();
+    const generatePdf = localStorage.getItem('pragma-summary-pdf') === '1';
     const sessionNotes = Object.values(notes).filter(n =>
       n.session_id === sessionId ||
       (!n.session_id || !sessions[n.session_id])
@@ -1650,13 +1603,13 @@ async function exportNotesMarkdown(sessionId) {
         sessions,
         notes,
         attachment_payloads: attachmentPayloads,
-        author: summaryOpts.author || '',
-        generate_pdf: !!summaryOpts.generatePdf,
+        author,
+        generate_pdf: generatePdf,
       }),
     });
     const d = await r.json();
     if (d.ok) {
-      if (!summaryOpts.generatePdf && d.download?.filename && typeof d.download.content === 'string') {
+      if (!generatePdf && d.download?.filename && typeof d.download.content === 'string') {
         const blob = new Blob([d.download.content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1667,7 +1620,7 @@ async function exportNotesMarkdown(sessionId) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-      if (summaryOpts.generatePdf && d.pdf?.filename) {
+      if (generatePdf && d.pdf?.filename) {
         const a = document.createElement('a');
         a.href = `/api/notes/export-file?session_id=${encodeURIComponent(sessionId)}&file=${encodeURIComponent(d.pdf.filename)}`;
         a.download = d.pdf.filename;

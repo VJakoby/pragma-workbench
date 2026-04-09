@@ -575,6 +575,7 @@ function openSessionModal() {
   document.getElementById('newSessionTargetDomain').value = '';
   document.getElementById('newSessionTargetLabel').value = '';
   updateSessionAttackerIpField();
+  syncSummaryExportPrefsUI();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -665,6 +666,23 @@ function updateSessionAttackerIpField() {
   }
   wrap.style.display = '';
   input.value = sess.attacker_ip || '';
+}
+
+function syncSummaryExportPrefsUI() {
+  const authorInput = document.getElementById('summaryAuthorInput');
+  const pdfInput = document.getElementById('summaryPdfDefault');
+  if (authorInput) {
+    authorInput.value = localStorage.getItem('pragma-summary-author') || '';
+    authorInput.oninput = () => {
+      localStorage.setItem('pragma-summary-author', authorInput.value);
+    };
+  }
+  if (pdfInput) {
+    pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
+    pdfInput.onchange = () => {
+      localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
+    };
+  }
 }
 
 function saveActiveSessionAttackerIp() {

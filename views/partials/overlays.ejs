@@ -99,6 +99,17 @@
         </div>
         <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
       </div>
+      <div class="session-field">
+        <label>Summary author (optional)</label>
+        <div class="session-inline-field">
+          <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
+          <label class="summary-export-check" style="margin-top:0">
+            <input type="checkbox" id="summaryPdfDefault">
+            Generate PDF by default
+          </label>
+        </div>
+        <div class="session-field-hint">Used for summary exports.</div>
+      </div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->
       <div class="session-list" id="sessionList"></div>
@@ -351,30 +362,6 @@
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
         <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="pw-overlay" id="summaryExportOverlay" onclick="if(event.target===this)_summaryExportCancel()">
-  <div class="pw-box" style="width:360px">
-    <div class="pw-header">
-      <span class="pw-header-icon" id="summaryExportIcon"></span>
-      <span class="pw-header-title">Generate Summary</span>
-      <button class="pw-header-close" onclick="_summaryExportCancel()">&times;</button>
-    </div>
-    <div class="pw-body">
-      <div class="pw-field">
-        <label>Author</label>
-        <input class="pw-input" id="summaryExportAuthor" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false" onkeydown="_summaryExportKey(event)">
-      </div>
-      <label class="summary-export-check">
-        <input type="checkbox" id="summaryExportPdf">
-        Generate PDF from summary
-      </label>
-      <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="_summaryExportCancel()">Cancel</button>
-        <button class="pw-btn primary" onclick="_summaryExportSave()">Generate</button>
       </div>
     </div>
   </div>
