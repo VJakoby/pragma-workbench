@@ -280,11 +280,27 @@ function updateNoteSearchPlaceholder() {
   input.placeholder = placeholderByScope[activeNoteScope] || 'Search notes…';
 }
 
+function updateNotesCountBadges() {
+  const totalEl = document.getElementById('notes-count');
+  const sessionEl = document.getElementById('notes-count-session');
+  if (totalEl) totalEl.textContent = Object.keys(notes).length || '—';
+  if (!sessionEl) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    sessionEl.style.display = 'none';
+    sessionEl.textContent = '';
+    return;
+  }
+  const sessionCount = Object.values(notes).filter(n => n.session_id === activeSessionId).length;
+  sessionEl.textContent = sessionCount;
+  sessionEl.style.display = sessionCount ? '' : 'none';
+}
+
 function renderNotesList() {
   updateNoteSearchPlaceholder();
+  updateNotesCountBadges();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
-    document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+    updateNotesCountBadges();
     renderTargetFilterBar();
     return;
   }
@@ -346,7 +362,7 @@ function renderNotesList() {
     </div>`;
   }).join('');
 
-  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  updateNotesCountBadges();
   renderTargetFilterBar();
 }
 
@@ -355,7 +371,7 @@ function onNoteSearch(val) {
   renderNotesList();
 }
 
-function exportCurrentNote() {
+async function exportCurrentNote() {
   if (activeConfigDoc === 'templates') {
     downloadText(cmGetValue(noteEditor), 'note-templates.json');
     showToast('✓ Exported note-templates.json');
@@ -363,11 +379,20 @@ function exportCurrentNote() {
   }
   if (!activeNoteId || !notes[activeNoteId]) return;
   const n = notes[activeNoteId];
+  let body = stripEvidenceMarkersForExport(n.body || '');
+  if (typeof inlineNoteAttachmentUrlsForExport === 'function') {
+    try {
+      body = await inlineNoteAttachmentUrlsForExport(body);
+    } catch (err) {
+      showToast(`⚠ ${err.message || 'Image export failed'}`, 'err');
+      return;
+    }
+  }
   const lines = ['---', `title: ${n.title || 'Untitled'}`, `type: ${n.type || 'scratch'}`];
   if (n.tags && n.tags.length) lines.push(`tags: [${n.tags.join(', ')}]`);
   if (n.created) lines.push(`created: ${new Date(n.created).toISOString()}`);
   if (n.updated) lines.push(`updated: ${new Date(n.updated).toISOString()}`);
-  lines.push('---', '', stripEvidenceMarkersForExport(n.body || ''));
+  lines.push('---', '', body);
   const filename = slugify(n.title || 'untitled') + '.md';
   downloadText(lines.join('\n'), filename);
   showToast('✓ Exported ' + filename);
@@ -623,12 +648,17 @@ function togglePinNote() {
   renderNotesList();
 }
 
-function resolveNoteLink(rawTitle) {
+function getNotesInSession(sessionId) {
+  return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
+}
+
+function resolveNoteLink(rawTitle, sessionId = null) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  let hit = Object.values(notes).find(n => (n.title || '').toLowerCase() === q);
-  if (!hit) hit = Object.values(notes).find(n => (n.title || '').toLowerCase().includes(q));
+  const scopedNotes = getNotesInSession(sessionId);
+  let hit = scopedNotes.find(n => (n.title || '').toLowerCase() === q);
+  if (!hit) hit = scopedNotes.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
@@ -645,7 +675,8 @@ function parseWikiLink(raw) {
 
 function buildWikiLinkElement(raw) {
   const { target, label } = parseWikiLink(raw);
-  const targetId = resolveNoteLink(target);
+  const currentSessionId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].session_id || null) : null;
+  const targetId = resolveNoteLink(target, currentSessionId);
   const el = document.createElement('span');
   el.className = `note-wikilink${targetId ? '' : ' broken'}`;
   el.textContent = label || target;
@@ -714,13 +745,16 @@ function enhanceNoteWikiLinks(root) {
 window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
 
 function getBacklinks(noteId) {
+  const targetNote = notes[noteId];
+  const targetSessionId = targetNote ? (targetNote.session_id || null) : null;
   return Object.values(notes).filter(n => {
     if (n.id === noteId) return false;
+    if ((n.session_id || null) !== targetSessionId) return false;
     const body = n.body || '';
     const re = /\[\[([^\]]+)\]\]/g;
     let m;
     while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1]) === noteId) return true;
+      if (resolveNoteLink(m[1], n.session_id || null) === noteId) return true;
     }
     return false;
   });
@@ -836,6 +870,18 @@ function deriveEvidenceCommand(text) {
   const block = String(text || '');
   const fenced = block.match(/```[a-z0-9_-]*\n([\s\S]*?)```/i);
   if (fenced && fenced[1].trim()) return fenced[1].trim().slice(0, 500);
+  const inline = block.match(/`([^`\n]+)`/);
+  if (inline && inline[1].trim()) return inline[1].trim().slice(0, 500);
+  const cleanLines = stripInlineEvidenceMarkers(block)
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !/^```/.test(line));
+  if (cleanLines.length === 1) {
+    const single = cleanLines[0];
+    if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+$/.test(single)) {
+      return single.replace(/^(?:[$#]\s*)/, '').slice(0, 500);
+    }
+  }
   const lead = getEvidenceLeadLine(block);
   if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+(?:\s+.+)?$/.test(lead) && lead.split(/\s+/).length > 1) {
     return lead.slice(0, 500);
@@ -848,6 +894,49 @@ function deriveEvidenceDetails(text, sourceCommand) {
   if (!clean) return '';
   if (sourceCommand && clean === sourceCommand) return '';
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
+}
+
+function extractEvidenceBlocksFromBody(body) {
+  const text = String(body || '');
+  const blocks = new Map();
+  const re = /<!--\s*pragma:evidence:([^:\s]+):start\s*-->\n?([\s\S]*?)\n?<!--\s*pragma:evidence:\1:end\s*-->/g;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    blocks.set(match[1], match[2] || '');
+  }
+  return blocks;
+}
+
+function syncEvidenceEntriesFromNote(noteId) {
+  if (!noteId || !notes[noteId] || !activeSessionId || !sessions[activeSessionId]) return false;
+  const entries = sessions[activeSessionId].evidence || [];
+  if (!entries.length) return false;
+  const blocks = extractEvidenceBlocksFromBody(notes[noteId].body || '');
+  let changed = false;
+
+  entries.forEach((entry) => {
+    const sourceNoteId = entry?.source_note_id || entry?.note_id || null;
+    if (sourceNoteId !== noteId) return;
+    const block = blocks.get(entry.id);
+    if (block == null) return;
+    const nextCommand = deriveEvidenceCommand(block);
+    const nextDetails = deriveEvidenceDetails(block, nextCommand);
+    let entryChanged = false;
+    if (nextCommand && (entry.source_command || '') !== nextCommand) {
+      entry.source_command = nextCommand;
+      entryChanged = true;
+    }
+    if (!entry.details && nextDetails) {
+      entry.details = nextDetails;
+      entryChanged = true;
+    }
+    if (entryChanged) {
+      entry.updated = Date.now();
+      changed = true;
+    }
+  });
+
+  return changed;
 }
 
 function deriveLootType(text) {
@@ -1230,8 +1319,9 @@ async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
   const syncResult = syncActiveNoteDraft(noteId);
   if (!syncResult.ok) return false;
+  const evidenceChanged = syncEvidenceEntriesFromNote(noteId);
   const note = notes[noteId];
-  if (!syncResult.changed) {
+  if (!syncResult.changed && !evidenceChanged) {
     if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
     return true;
   }
@@ -1242,6 +1332,10 @@ async function persistActiveNote(opts = {}) {
   });
   renderNotesList();
   renderSessionSidebar();
+  if (evidenceChanged) {
+    if (typeof renderEvidenceList === 'function') renderEvidenceList();
+    if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  }
   if (!note || notes[noteId] !== note) return ok;
   if (activeNoteId === noteId) renderBacklinks(noteId);
   const moEl = document.getElementById('noteModifiedAt');
@@ -1561,14 +1655,30 @@ async function exportNotesMarkdown(sessionId) {
   if (!sess) return;
 
   try {
+    const author = (localStorage.getItem('pragma-summary-author') || '').trim();
+    const generatePdf = localStorage.getItem('pragma-summary-pdf') === '1';
+    const sessionNotes = Object.values(notes).filter(n =>
+      n.session_id === sessionId ||
+      (!n.session_id || !sessions[n.session_id])
+    );
+    const attachmentPayloads = typeof collectAttachmentPayloadsForNotes === 'function'
+      ? await collectAttachmentPayloadsForNotes(sessionNotes)
+      : {};
     const r = await fetch('/api/notes/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, sessions, notes }),
+      body: JSON.stringify({
+        session_id: sessionId,
+        sessions,
+        notes,
+        attachment_payloads: attachmentPayloads,
+        author,
+        generate_pdf: generatePdf,
+      }),
     });
     const d = await r.json();
     if (d.ok) {
-      if (d.download?.filename && typeof d.download.content === 'string') {
+      if (!generatePdf && d.download?.filename && typeof d.download.content === 'string') {
         const blob = new Blob([d.download.content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1579,8 +1689,21 @@ async function exportNotesMarkdown(sessionId) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
+      if (generatePdf && d.pdf?.filename) {
+        const a = document.createElement('a');
+        a.href = `/api/notes/export-file?session_id=${encodeURIComponent(sessionId)}&file=${encodeURIComponent(d.pdf.filename)}`;
+        a.download = d.pdf.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
       const count = d.files?.length || 0;
-      showToast(`✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`);
+      const pdfSuffix = d.pdf?.filename ? `PDF: ${d.pdf.filename}` : '';
+      const bundleSuffix = d.has_attachments ? ' (bundle includes attachments)' : '';
+      const baseMsg = `✓ Markdown export complete: ${count} files → sessions/${slugify(sess.codename)}/`;
+      const msg = `${baseMsg}${bundleSuffix}${pdfSuffix ? ` ${pdfSuffix}` : ''}`;
+      showToast(msg.trim());
+      if (d.pdf_error) showToast(`⚠ PDF generation failed: ${d.pdf_error}`, 'err');
     } else {
       showToast('Markdown export failed: ' + (d.error || 'unknown error'), 'err');
     }

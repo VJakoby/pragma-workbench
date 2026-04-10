@@ -10,7 +10,7 @@ const SANITIZE_OPTIONS = {
   ],
   allowedAttributes: {
     a: ['href', 'target', 'rel'],
-    img: ['src', 'alt', 'title', 'style'],
+    img: ['src', 'alt', 'title', 'style', 'width', 'height'],
     input: ['type', 'checked', 'disabled', 'class'],
     ol: ['start'],
     span: ['class'],
@@ -26,6 +26,8 @@ const SANITIZE_OPTIONS = {
   allowedStyles: {
     img: {
       'max-width': [/^100%$/],
+      width: [/^\d{1,3}%$/],
+      height: [/^\d{1,3}%$/],
     },
     th: {
       'text-align': [/^left$/, /^right$/, /^center$/],

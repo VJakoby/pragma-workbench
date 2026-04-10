@@ -4,6 +4,7 @@
 let cpEditSaveTimer = null;
 let cpEditSaving = false;
 let kbPreviewOpen = localStorage.getItem('pragma-kb-preview-open') === '1';
+let kbEditorSyncing = false;
 
 async function updateKbPreview() {
   const pane = document.getElementById('kbPreviewPane');
@@ -15,8 +16,7 @@ async function updateKbPreview() {
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
-  const injected = typeof injectTargets === 'function' ? injectTargets(rendered) : rendered;
-  el.innerHTML = injected;
+  el.innerHTML = rendered;
   if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
@@ -121,9 +121,7 @@ function enterEditMode() {
   document.getElementById('cpEditBtn').classList.add('editing');
   document.getElementById('cpEditBtn').title = 'Exit edit mode';
   cmInitKb();
-  cmSetValue(kbEditor, activeDoc.raw);
-  cpEditDirty = false;
-  setCpEditStatus('', activeDoc.meta || '');
+  syncKbEditorToActiveDoc();
   applyKbPreviewState();
   setTimeout(() => kbEditor && kbEditor.focus(), 30);
 }
@@ -134,6 +132,23 @@ function exitEditMode() {
   document.getElementById('cpEditBtn').classList.remove('editing');
   document.getElementById('cpEditBtn').title = 'Edit file';
   cpEditDirty = false;
+}
+
+function isKbEditModeOpen() {
+  return document.getElementById('cpEditBody')?.style.display !== 'none';
+}
+
+function syncKbEditorToActiveDoc() {
+  if (!kbEditor || !activeDoc) return;
+  kbEditorSyncing = true;
+  try {
+    cmSetValue(kbEditor, activeDoc.raw || '');
+  } finally {
+    kbEditorSyncing = false;
+  }
+  cpEditDirty = false;
+  setCpEditStatus('', activeDoc.meta || '');
+  updateKbPreview();
 }
 
 async function cancelEdit() {
@@ -213,6 +228,7 @@ function cmInitKb(initialDoc) {
       CM.markdown(),
       ...buildCmTheme(),
       CM.EditorView.updateListener.of(update => {
+        if (kbEditorSyncing) return;
         if (update.docChanged) {
           if (!cpEditDirty) {
             cpEditDirty = true;

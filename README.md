@@ -1,6 +1,6 @@
-# #️ PRAGMA // Workbench
+# # PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
+PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
 
 ---
 ## 🚩 My Problem
@@ -19,7 +19,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
+- **A knowledge-integrated interface** — local KB search is built in, and ENGRAM integration is optional for searching indexed external sources from inside the app
 
 ## 👤 Who This Is For
 
@@ -81,7 +81,7 @@ In practice, this means the app is opinionated about staying operational:
 - Session-level attacker IP field for callback/reverse-shell style placeholders
 - Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
-- Export/import sessions as JSON for portability; notes export as structured markdown
+- Export/import sessions as JSON for portability; session exports also support structured markdown bundles and a consolidated markdown export
 
 **Encryption**
 - Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
@@ -93,6 +93,8 @@ In practice, this means the app is opinionated about staying operational:
 - Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
+- Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
+- Session summary export supports a consolidated markdown file and an optional PDF summary output
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -125,7 +127,7 @@ PRAGMA also includes a dedicated Evidence workflow for preserving proof directly
 This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
 
 **Knowledge Base & Tactics**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
+- Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -147,7 +149,7 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 
 ## 📝 Note Templates
 
-PRAGMA ships with built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
@@ -224,6 +226,20 @@ If `variants` are present, PRAGMA shows a second selection step in the note-crea
 
 Custom templates appear in the picker with a purple border and a **Custom** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
 
+### Images in Notes
+
+Notes also support pasted and dropped screenshots/images.
+
+- Paste a copied screenshot directly into the editor with `Ctrl+V`
+- Drag a local image file into the editor
+- PRAGMA stores the image as a note attachment and inserts standard markdown image syntax automatically:
+
+```md
+![image](/api/notes/attachments/<note-id>/<filename>)
+```
+
+This keeps image handling compatible with normal markdown preview/rendering while still using PRAGMA's note-scoped attachment storage.
+
 ---
 
 ## 🔐 Security
@@ -276,9 +292,9 @@ Write your KB docs using any of the supported placeholder styles below.
 ## 🛠️ Requirements
 
 - Node.js 20+
-- **Optional:** 
-    - docker & docker-compose
-    - [ENGRAM](https://github.com/VJakoby/engram) — Required for search of indexed online sources.
+- **Optional:**
+  - Docker and `docker compose`
+  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
@@ -288,23 +304,31 @@ See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mo
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
-The Docker setup also supports an optional local `.env` file for host-specific path and permission overrides, including:
-
-- `PRAGMA_SESSIONS_PATH`
-- `PRAGMA_KB_PATH`
-- `PRAGMA_UID`
-- `PRAGMA_GID`
+Recommended Docker workflow:
 
 ```bash
-# Optional: create a local env file for Docker path/user overrides
+# 1. Create a local env file
 cp .example.env .env
 
-# Build and start
+# 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
+#    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
+
+# 3. Build and start
 docker compose up -d --build
 
-# Access at
+# 4. Access at
 http://localhost:3000
 ```
+
+Common `.env` values include:
+
+- `PRAGMA_KB_PATH`
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+- `SEARCH_URL`
+
+If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
 ### Running manually with Node.js
 ```bash
@@ -340,6 +364,12 @@ This means most new frontend work should target one of those focused modules ins
 
 ---
 
+## License & Notices
+
+PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notices are listed in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
+---
+
 ## 🛣️ Roadmap
 
 The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
@@ -347,4 +377,4 @@ The direction of the project, explicit non-goals, and feature-boundary decisions
 See [ROADMAP.md](./ROADMAP.md).
 ---
 
-Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
+Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)

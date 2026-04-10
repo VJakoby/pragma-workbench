@@ -415,6 +415,26 @@ function unwrapEvidenceBlockInBody(body, entryId) {
   return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
+function updateEvidenceBlockInBody(body, entry, prevEntry) {
+  if (!entry?.id || !entry?.source_command) return body;
+  const prevCommand = String(prevEntry?.source_command || '');
+  const nextCommand = String(entry.source_command || '');
+  if (prevCommand === nextCommand) return body;
+  const range = findEvidenceMarkerRange(body || '', entry.id);
+  if (!range) return body;
+  const block = String(body || '').slice(range.from, range.to);
+  let updatedBlock = block;
+  const fenceMatch = block.match(/```([a-z0-9_-]*)\n([\s\S]*?)```/i);
+  if (fenceMatch) {
+    const lang = fenceMatch[1] || '';
+    updatedBlock = block.replace(fenceMatch[0], `\`\`\`${lang}\n${nextCommand}\n\`\`\``);
+  } else {
+    updatedBlock = nextCommand;
+  }
+  if (updatedBlock === block) return body;
+  return `${String(body || '').slice(0, range.from)}${updatedBlock}${String(body || '').slice(range.to)}`;
+}
+
 function buildEvidenceMarkdownBlock(entry) {
   const marker = buildEvidenceMarkerId(entry.id);
   const targetText = evidenceTargetDisplay(entry);
@@ -459,7 +479,8 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
   const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
   const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
 
-  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId]) {
+  const shouldRemoveSourceMarker = !nextEntry || !nextSourceNoteId || nextSourceNoteId !== prevSourceNoteId;
+  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId] && shouldRemoveSourceMarker) {
     const prevNote = notes[prevSourceNoteId];
     const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
     if (cleaned !== (prevNote.body || '')) {
@@ -476,6 +497,16 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
       prevSyncNote.body = cleaned;
       prevSyncNote.updated = Date.now();
       if (!syncedNotes.includes(prevSyncNote)) syncedNotes.push(prevSyncNote);
+    }
+  }
+
+  if (nextEntry?.id && nextSourceNoteId && notes[nextSourceNoteId]) {
+    const sourceNote = notes[nextSourceNoteId];
+    const updated = updateEvidenceBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
+    if (updated !== (sourceNote.body || '')) {
+      sourceNote.body = updated;
+      sourceNote.updated = Date.now();
+      if (!syncedNotes.includes(sourceNote)) syncedNotes.push(sourceNote);
     }
   }
 
@@ -838,7 +869,7 @@ function renderEvidenceList() {
               <span class="evidence-meta-key">Sync</span>
               <span class="evidence-meta-value">${esc(syncLabel)}</span>
             </span>
-            <span class="evidence-meta-pill" title="${esc(targetLabel)}">
+            <span class="evidence-meta-pill evidence-target-pill" title="${esc(targetLabel)}">
               <span class="evidence-meta-key">Target</span>
               <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
             </span>
@@ -1829,7 +1860,7 @@ function renderEvidenceRowActions(id) {
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
+      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>

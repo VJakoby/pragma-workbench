@@ -76,6 +76,17 @@ function copyActiveTargetDomain() {
   copyActiveTarget('domain');
 }
 
+function editActiveTargetQuick() {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const t = getActiveTarget();
+  if (t) {
+    renameTarget(t.id);
+    return;
+  }
+  openTargetsPanel();
+  setTimeout(() => document.getElementById('newTargetIP')?.focus(), 60);
+}
+
 function openTargetsPanel() {
   const sess = activeSessionId && sessions[activeSessionId];
   document.getElementById('targetsPanelTitle').textContent =
