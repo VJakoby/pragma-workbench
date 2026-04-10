@@ -243,6 +243,7 @@
     {
       "id": "credentials",
       "label": "Credentials",
+      "required": true,
       "icon": "🔑",
       "title_prefix": "Credentials",
       "default_tags": [
@@ -254,6 +255,8 @@
           "label": "Default",
           "title_prefix": "Credentials",
           "body_lines": [
+            "> Required for Loot sync. Keep the credentials table header below.",
+            "",
             "## Credentials",
             "",
             "| Username | Password | Hash | Service | Notes |",
@@ -276,6 +279,8 @@
             "web"
           ],
           "body_lines": [
+            "> Required for Loot sync. Keep the credentials table header below.",
+            "",
             "## Credentials",
             "",
             "| Username | Password | URL / Path | Role | Notes |",
@@ -294,6 +299,8 @@
         }
       ],
       "body_lines": [
+        "> Required for Loot sync. Keep the credentials table header below.",
+        "",
         "## Credentials",
         "",
         "| Username | Password | Hash | Service | Notes |",
@@ -357,6 +364,7 @@
     {
       "id": "network-enumeration",
       "label": "Network Enumeration",
+      "required": true,
       "icon": "🌐",
       "title_prefix": "Network Enumeration",
       "default_tags": [
@@ -369,6 +377,8 @@
           "label": "Default",
           "title_prefix": "Network Enumeration",
           "body_lines": [
+            "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
+            "",
             "## Target Overview",
             "",
             "| Field | Value |",
@@ -404,6 +414,8 @@
             "minimal"
           ],
           "body_lines": [
+            "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
+            "",
             "## Open Ports & Services",
             "",
             "| Port | Service | Notes |",
@@ -417,6 +429,8 @@
         }
       ],
       "body_lines": [
+        "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
+        "",
         "## Target Overview",
         "",
         "| Field | Value |",

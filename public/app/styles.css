@@ -2607,6 +2607,16 @@ svg { vertical-align: middle; flex-shrink: 0; }
       color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: left;
       position: relative; display:flex; align-items:center; gap:7px;
     }
+    .new-note-type-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .new-note-type-btn.template-required {
+      padding-top: 26px;
+    }
     .new-note-type-btn:hover { border-color: var(--accent); color: var(--text); background: var(--bg4); }
     .new-note-type-btn.active {
       border-color: rgba(var(--accent-rgb),0.42);
@@ -2630,6 +2640,25 @@ svg { vertical-align: middle; flex-shrink: 0; }
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:var(--muted);
+    }
+    .new-note-type-required {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-family:'Inter',sans-serif;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(var(--accent-rgb),0.45);
+      background: rgba(var(--accent-rgb),0.1);
+      padding: 2px 6px;
+      border-radius: 999px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      pointer-events: none;
     }
     .note-type-custom { color: var(--accent); }
 

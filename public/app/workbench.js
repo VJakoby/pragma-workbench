@@ -64,6 +64,7 @@ function normalizeTemplateDefinition(tmpl, fromFile = false) {
     body: String(tmpl?.body || ''),
     icon: tmpl?.icon,
     label: tmpl?.label,
+    required: !!tmpl?.required,
     default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
     variants: Array.isArray(tmpl?.variants) ? tmpl.variants.map(normalizeTemplateVariant).filter(Boolean) : [],
     fromFile,
@@ -197,10 +198,14 @@ function renderNoteTypeGrid() {
     .filter(([id]) => id !== 'scratch')
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
+      const isRequired = !!tmpl.required || id === 'network-enumeration' || id === 'credentials';
+      const requiredLabel = isRequired
+        ? `<span class="new-note-type-required" title="Required for Quick Log / Loot sync">Required</span>`
+        : '';
       const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
         ? `<span class="new-note-type-meta">${tmpl.variants.length} variant${tmpl.variants.length !== 1 ? 's' : ''}</span>`
         : '';
-      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
+      buttons.push(`<button class="new-note-type-btn${isRequired ? ' template-required' : ''}${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span class="new-note-type-label">${meta.label}</span>${variantsLabel}${requiredLabel}</button>`);
     });
   grid.innerHTML = buttons.join('');
 }

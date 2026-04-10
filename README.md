@@ -152,6 +152,8 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 
 PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
+Some automation relies on specific templates being present. For example, Quick Log ports/paths sync creates and updates a `network-enumeration` note, and Loot → Credentials sync requires a `credentials` note. If you remove those templates from `note-templates.json`, the auto-created documents will no longer appear. The templates can be minimal; they just need the matching table headers so sync can find them.
+
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
 - an OSCP template with separate `Exam Target`, `Practice`, and `AD Workflow` variants
