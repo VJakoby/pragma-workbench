@@ -14,6 +14,18 @@ let matrixState = {
   enumerationTool: 'nmap',
 };
 
+const MATRIX_POLL_INTERVALS = {
+  queued: 2000,
+  running: 2500,
+  idle: 5000,
+};
+
+function matrixEnumerationJobTypeForTool(tool) {
+  if (tool === 'masscan') return 'masscan-enumeration';
+  if (tool === 'httpx') return 'httpx-enumeration';
+  return 'nmap-enumeration';
+}
+
 function applyMatrixAvailabilityUi() {
   const view = document.getElementById('view-matrix');
   const matrixView = view?.querySelector('.matrix-view');
@@ -111,9 +123,9 @@ function matrixFormatJobType(type) {
     'domain-recon': 'Passive Domain Recon',
     'ip-recon': 'Passive IP Recon',
     'subdomain-passive-recon': 'Passive Subdomain Recon',
-    'nmap-enumeration': 'Active Enumeration',
-    'masscan-enumeration': 'Active Enumeration',
-    'httpx-enumeration': 'Active Enumeration',
+    'nmap-enumeration': 'Nmap',
+    'masscan-enumeration': 'Masscan',
+    'httpx-enumeration': 'httpx',
   };
   return mapping[type] || type || 'matrix-job';
 }
@@ -627,6 +639,161 @@ function matrixRenderJobOverview(job) {
   `;
 }
 
+function matrixHttpxStatusTone(statusCode) {
+  if (!Number.isFinite(statusCode)) return 'neutral';
+  if (statusCode >= 200 && statusCode < 300) return 'ok';
+  if (statusCode >= 300 && statusCode < 400) return 'info';
+  if (statusCode >= 400 && statusCode < 500) return 'warn';
+  if (statusCode >= 500) return 'bad';
+  return 'neutral';
+}
+
+function matrixHttpxTopCounts(items, extractor, limit = 6) {
+  const counts = new Map();
+  items.forEach((item) => {
+    const values = extractor(item)
+      .map(value => String(value || '').trim())
+      .filter(Boolean);
+    values.forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+  });
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit);
+}
+
+function matrixHttpxLiveUrls(results) {
+  return results
+    .map(item => item?.url || item?.input || '')
+    .filter(Boolean);
+}
+
+function matrixRenderHttpxParsedResult(parsed) {
+  const httpxResults = Array.isArray(parsed?.results) ? parsed.results : [];
+  if (!httpxResults.length) return '';
+
+  const totalResults = parsed?.stats?.totalResults ?? httpxResults.length;
+  const liveHosts = parsed?.stats?.liveHosts ?? httpxResults.filter(item => item?.url || item?.input).length;
+  const httpsCount = httpxResults.filter(item => /^https:\/\//i.test(item?.url || item?.input || '')).length;
+  const redirects = httpxResults.filter(item => item?.location || item?.redirectLocation).length;
+  const titles = httpxResults.filter(item => item?.title).length;
+  const ips = new Set(httpxResults.map(item => item?.ip).filter(Boolean));
+  const status2xx = httpxResults.filter(item => Number.isFinite(item?.statusCode) && item.statusCode >= 200 && item.statusCode < 300).length;
+  const status3xx = httpxResults.filter(item => Number.isFinite(item?.statusCode) && item.statusCode >= 300 && item.statusCode < 400).length;
+  const status4xx = httpxResults.filter(item => Number.isFinite(item?.statusCode) && item.statusCode >= 400 && item.statusCode < 500).length;
+  const status5xx = httpxResults.filter(item => Number.isFinite(item?.statusCode) && item.statusCode >= 500).length;
+  const tlsDetected = httpxResults.filter(item => item?.tls || item?.scheme === 'https' || /^https:\/\//i.test(item?.url || item?.input || '')).length;
+  const serverCounts = matrixHttpxTopCounts(httpxResults, item => [item?.webserver]);
+  const techCounts = matrixHttpxTopCounts(httpxResults, item => Array.isArray(item?.technologies) ? item.technologies : []);
+  const liveUrls = matrixHttpxLiveUrls(httpxResults);
+
+  return `
+    <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+      <div class="matrix-section-top">WEB SUMMARY</div>
+      <div class="matrix-section-body">
+        <div class="matrix-section-grid matrix-section-grid--compact">
+          ${matrixRenderSection('Coverage', 'counts', `
+            ${matrixRenderKv('Returned', String(totalResults))}
+            ${matrixRenderKv('Live Hosts', String(liveHosts))}
+            ${matrixRenderKv('HTTPS', String(httpsCount))}
+            ${matrixRenderKv('Unique IPs', String(ips.size))}
+          `)}
+          ${matrixRenderSection('Signals', 'source', `
+            ${matrixRenderKv('Titles', String(titles))}
+            ${matrixRenderKv('Redirects', String(redirects))}
+            ${matrixRenderKv('TLS Seen', String(tlsDetected))}
+            ${matrixRenderKv('Webservers', String(serverCounts.length))}
+          `)}
+          ${matrixRenderSection('Status Mix', 'timing', `
+            ${matrixRenderKv('2xx', String(status2xx))}
+            ${matrixRenderKv('3xx', String(status3xx))}
+            ${matrixRenderKv('4xx', String(status4xx))}
+            ${matrixRenderKv('5xx', String(status5xx))}
+          `)}
+        </div>
+        <div class="matrix-httpx-summaries">
+          <div class="matrix-httpx-summary-block">
+            <div class="matrix-copy-toolbar">
+              <div class="matrix-copy-meta">Top Webservers</div>
+            </div>
+            <div class="matrix-pill-row">
+              ${serverCounts.length
+                ? serverCounts.map(([name, count]) => `<span class="matrix-pill">${escapeHtml(`${name} (${count})`)}</span>`).join('')
+                : '<span class="matrix-muted">No server headers captured</span>'}
+            </div>
+          </div>
+          <div class="matrix-httpx-summary-block">
+            <div class="matrix-copy-toolbar">
+              <div class="matrix-copy-meta">Top Technologies</div>
+            </div>
+            <div class="matrix-pill-row">
+              ${techCounts.length
+                ? techCounts.map(([name, count]) => `<span class="matrix-pill">${escapeHtml(`${name} (${count})`)}</span>`).join('')
+                : '<span class="matrix-muted">No technology fingerprints captured</span>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+      <div class="matrix-section-top">LIVE URLS</div>
+      <div class="matrix-section-body">
+        <div class="matrix-copy-toolbar">
+          <div class="matrix-copy-meta">${escapeHtml(`${liveUrls.length} URLs`)}</div>
+          <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(liveUrls.join('\n'))}">Copy URLs</button>
+        </div>
+        <textarea class="matrix-copy-block matrix-copy-block--compact" readonly spellcheck="false">${escapeHtml(liveUrls.join('\n'))}</textarea>
+      </div>
+    </section>
+    <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+      <div class="matrix-section-top">PARSED RESULTS</div>
+      <div class="matrix-section-body">
+        <div class="matrix-httpx-table-wrap">
+          <table class="matrix-httpx-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>URL</th>
+                <th>Title</th>
+                <th>Server</th>
+                <th>Tech</th>
+                <th>IP</th>
+                <th>RT</th>
+                <th>Redirect</th>
+                <th>TLS</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${httpxResults.map(item => {
+                const statusCode = Number.isFinite(item?.statusCode) ? item.statusCode : null;
+                const statusTone = matrixHttpxStatusTone(statusCode);
+                const redirect = item?.location || item?.redirectLocation || '';
+                const tlsSummary = item?.tls?.subjectCN
+                  || item?.tls?.subject_cn
+                  || item?.tls?.subject
+                  || item?.scheme
+                  || '';
+                return `
+                  <tr>
+                    <td><span class="matrix-httpx-status ${statusTone}">${escapeHtml(statusCode ?? '—')}</span></td>
+                    <td title="${escapeHtml(item?.url || item?.input || '')}">${escapeHtml(item?.url || item?.input || '—')}</td>
+                    <td title="${escapeHtml(item?.title || '')}">${escapeHtml(item?.title || '—')}</td>
+                    <td>${escapeHtml(item?.webserver || '—')}</td>
+                    <td title="${escapeHtml(Array.isArray(item?.technologies) ? item.technologies.join(', ') : '')}">${escapeHtml(Array.isArray(item?.technologies) && item.technologies.length ? item.technologies.join(', ') : '—')}</td>
+                    <td>${escapeHtml(item?.ip || '—')}</td>
+                    <td>${escapeHtml(item?.responseTime || item?.response_time || '—')}</td>
+                    <td title="${escapeHtml(redirect || '')}">${escapeHtml(redirect || '—')}</td>
+                    <td title="${escapeHtml(tlsSummary || '')}">${escapeHtml(tlsSummary || '—')}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function matrixRenderEnumerationResult(job, resultEnvelope) {
   const result = resultEnvelope || {};
   const command = result.command || {};
@@ -672,57 +839,7 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
           `)}
         </div>
         ${output.stdout ? `
-          ${toolLabel === 'httpx' && httpxResults.length ? `
-            <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
-              <div class="matrix-section-top">PARSED RESULTS</div>
-              <div class="matrix-section-body">
-                <div class="matrix-kv-list">
-                  ${matrixRenderKv('Returned', String(parsed?.stats?.totalResults ?? httpxResults.length))}
-                  ${matrixRenderKv('Live Hosts', String(parsed?.stats?.liveHosts ?? httpxResults.filter(item => item?.url).length))}
-                </div>
-                <div class="matrix-httpx-table-wrap">
-                  <table class="matrix-httpx-table">
-                    <thead>
-                      <tr>
-                        <th>Status</th>
-                        <th>URL</th>
-                        <th>Title</th>
-                        <th>Server</th>
-                        <th>Tech</th>
-                        <th>IP</th>
-                        <th>RT</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${httpxResults.map(item => {
-                        const statusCode = Number.isFinite(item?.statusCode) ? item.statusCode : null;
-                        const statusTone = statusCode >= 200 && statusCode < 300
-                          ? 'ok'
-                          : statusCode >= 300 && statusCode < 400
-                            ? 'info'
-                            : statusCode >= 400 && statusCode < 500
-                              ? 'warn'
-                              : statusCode >= 500
-                                ? 'bad'
-                                : 'neutral';
-                        return `
-                          <tr>
-                            <td><span class="matrix-httpx-status ${statusTone}">${escapeHtml(statusCode ?? '—')}</span></td>
-                            <td title="${escapeHtml(item?.url || item?.input || '')}">${escapeHtml(item?.url || item?.input || '—')}</td>
-                            <td title="${escapeHtml(item?.title || '')}">${escapeHtml(item?.title || '—')}</td>
-                            <td>${escapeHtml(item?.webserver || '—')}</td>
-                            <td title="${escapeHtml(Array.isArray(item?.technologies) ? item.technologies.join(', ') : '')}">${escapeHtml(Array.isArray(item?.technologies) && item.technologies.length ? item.technologies.join(', ') : '—')}</td>
-                            <td>${escapeHtml(item?.ip || '—')}</td>
-                            <td>${escapeHtml(item?.responseTime || '—')}</td>
-                          </tr>
-                        `;
-                      }).join('')}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-          ` : ''}
+          ${toolLabel === 'httpx' && httpxResults.length ? matrixRenderHttpxParsedResult(parsed) : ''}
           <section class="matrix-section matrix-section--neutral matrix-section-status--neutral">
             <div class="matrix-section-top">${escapeHtml(toolLabel.toUpperCase())} OUTPUT</div>
             <div class="matrix-section-body">
@@ -967,6 +1084,7 @@ function setMatrixEnumerationTool(toolName) {
   if (matrixState.toolboxModule === 'enumeration') {
     const output = matrixActiveOutputNode();
     if (output) output.textContent = matrixEnumerationDefaultOutputMessage();
+    loadMatrixJobs();
   }
   if (matrixState.enumerationTool === 'nmap') {
     loadMatrixNmapProfiles().catch(() => {});
@@ -1546,25 +1664,27 @@ async function runMatrixEnumeration() {
   pollMatrixJob(data.id);
 }
 
-function pollMatrixJob(jobId) {
+function pollMatrixJob(jobId, delay = MATRIX_POLL_INTERVALS.queued) {
   clearTimeout(matrixState.pollTimer);
   matrixState.pollTimer = setTimeout(async () => {
     const response = await fetch(`/api/matrix/jobs/${encodeURIComponent(jobId)}`);
     const job = await response.json();
     matrixSetOutput(job);
     if (job.status === 'queued' || job.status === 'running') {
-      pollMatrixJob(jobId);
+      const nextDelay = job.status === 'running'
+        ? MATRIX_POLL_INTERVALS.running
+        : MATRIX_POLL_INTERVALS.queued;
+      pollMatrixJob(jobId, nextDelay);
     } else {
       loadMatrixJobs();
     }
-  }, 1200);
+  }, delay);
 }
 
 async function loadMatrixJobs() {
   const list = matrixActiveJobsListNode();
   if (!list) return;
-  const suffix = matrixState.toolboxModule === 'enumeration' ? '?limit=32' : '?limit=32';
-  const response = await fetch(`/api/matrix/jobs${suffix}`);
+  const response = await fetch('/api/matrix/jobs?limit=32');
   const data = await response.json();
   if (!response.ok) {
     list.textContent = data.error || 'Could not load MATRIX Toolbox jobs.';
