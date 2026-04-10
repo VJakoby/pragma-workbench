@@ -4225,7 +4225,7 @@ body.enc-active-body .content-panel {
   visibility: hidden; opacity: 0; pointer-events: none;
   position: fixed; top: calc(var(--topbar-h) + 8px);
   left: 50%; transform: translateX(-55%);
-  width: min(680px, calc(100vw - 16px));
+  width: min(760px, calc(100vw - 16px));
   max-height: calc(100vh - var(--topbar-h) - 20px);
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.55);
@@ -4237,7 +4237,7 @@ body.enc-active-body .content-panel {
 .todo-popover {
   visibility: hidden; opacity: 0; pointer-events: none;
   position: fixed; top: calc(var(--topbar-h) + 8px);
-  left: 50%; transform: translateX(-10%);
+  left: 50%; transform: translateX(-26%);
   width: min(560px, calc(100vw - 16px));
   max-height: calc(100vh - var(--topbar-h) - 20px);
   background: var(--bg2); border: 1px solid var(--border2);
@@ -4745,6 +4745,10 @@ body.enc-active-body .content-panel {
 .path-table tr:last-child td { border-bottom: none; }
 .path-table tr:hover td { background: rgba(124,58,237,0.06); }
 .path-table td:first-child { white-space: nowrap; }
+.path-table th:nth-child(1),
+.path-table td:nth-child(1) { width: 72px; }
+.path-table th:nth-child(3),
+.path-table td:nth-child(3) { width: 84px; }
 .path-status { font-size: 11px; font-weight: 700; font-family: 'Inter', sans-serif;
   padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
 .path-status-2 { background: rgba(var(--green-rgb),0.15); color: var(--green); }
@@ -5061,11 +5065,11 @@ body.enc-active-body .content-panel {
 }
 .svc-table-ports th:nth-child(2),
 .svc-table-ports td:nth-child(2) {
-  width: 92px;
+  width: 112px;
 }
 .svc-table-ports th:nth-child(5),
 .svc-table-ports td:nth-child(5) {
-  width: 84px;
+  width: 120px;
 }
 #portParsePreview,
 #pathParsePreview {
