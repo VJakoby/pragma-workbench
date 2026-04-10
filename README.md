@@ -95,6 +95,7 @@ In practice, this means the app is opinionated about staying operational:
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
 - Session summary export supports a consolidated markdown file and an optional PDF summary output
+  The Docker image uses system Chromium for PDF export through Puppeteer rather than downloading a bundled browser during install.
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
