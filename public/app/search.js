@@ -187,6 +187,29 @@ function highlightSnippet(text, query) {
   return escaped.replace(re, '<mark>$1</mark>');
 }
 
+function formatMatchTypeLabel(matchType) {
+  const key = String(matchType || '').trim().toLowerCase();
+  if (!key) return '';
+  const labels = {
+    exact_title: 'Exact title',
+    title_exact: 'Exact title',
+    title_contains: 'Title match',
+    partial_title: 'Title match',
+    exact_phrase: 'Exact phrase',
+    phrase_match: 'Phrase match',
+    content: 'Content match',
+    content_contains: 'Content match',
+    body_contains: 'Content match',
+    exact_content: 'Exact content',
+    fuzzy: 'Fuzzy match',
+    fuzzy_title: 'Fuzzy title',
+    fuzzy_content: 'Fuzzy content',
+    partial: 'Partial match',
+  };
+  if (labels[key]) return labels[key];
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function localPathFromResult(result) {
   if (result.file_path) return result.file_path;
   if (typeof result.url === 'string' && result.url.startsWith('file://')) {
@@ -263,7 +286,7 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
       </div>
       <div class="search-meta-row">
         ${score !== '' ? `<span class="result-score"><span class="result-score-label">score</span>${score}</span>` : ''}
-        ${r.match_type ? `<span class="result-badge match">${esc(r.match_type)}</span>` : ''}
+        ${r.match_type ? `<span class="result-badge match">${esc(formatMatchTypeLabel(r.match_type))}</span>` : ''}
       </div>
       <div class="result-meta">
         <span class="result-source">

@@ -5,57 +5,54 @@ This repository is a human-directed, AI-assisted work.
 ## Authorship Boundaries
 
 ### Human Ownership
-The product direction for PRAGMA was defined by **VJakoby**.
 
-That includes:
+The product direction for PRAGMA was defined by VJakoby.
+
+This includes:
 
 - the purpose of the application as an operational pentest workbench
-- the decision that PRAGMA is not a reporting platform or team platform
-- the workflow focus around engagement notes, personal knowledge, and indexed external knowledge
-- the UX direction, interaction preferences, and overall design intent
-- the architectural direction at the application level
+- the explicit decision that PRAGMA is not a reporting or team platform
+- the workflow focus on engagement notes, personal knowledge, and indexed external knowledge
+- the UX direction, interaction model, and overall design intent
+- the application-level architectural direction
+- the naming, identity, and positioning of the platform
 
-In other words: the problem framing, product intent, and design choices were made by the author.
+In short, the problem framing, product intent, and system design originate from the author.
 
 ### AI Assistance
-AI tools were used as implementation support during development.
 
-That assistance included:
+AI tools were used as implementation support during development, including:
 
 - code generation and editing
-- refactoring support
-- debugging and iteration
-- UI and copy refinements
+- refactoring and restructuring
+- debugging and iterative development
+- UI text and copy refinement
 - documentation drafting and cleanup
 
-AI was used as a tool in an interactive development loop, not as an autonomous author of the project direction.
+AI was used interactively as a development tool, not as an autonomous source of product direction.
 
 ## Models / Tools Used
 
-PRAGMA has been developed with assistance from more than one AI system over time, including prior sessions and different coding assistants.
+Development involved multiple AI systems over time, including:
 
-Known examples include:
+- Claude Sonnet (Anthropic)
+- OpenAI Codex and GPT-based coding assistants
 
-- Claude Sonnet
-- OpenAI Codex / GPT-based coding assistance
+This list reflects known tools used during development and is not a complete audit of every session.
 
-This list reflects known tooling used during development, but it should not be interpreted as a complete forensic record of every single session.
+## Prompt / Query Tracking
 
-## On Prompt / Query Counts
+Exact prompt or query counts are not tracked in this repository.
 
-Exact prompt or query counts are **not tracked as a formal project metric** in this repository.
+- No precise interaction count is claimed
+- Any numeric estimate would be approximate
+- The iterative nature of AI-assisted development is more relevant than exact totals
 
-For that reason:
-
-- no exact interaction count is claimed here
-- any numeric estimate would be approximate only
-- the existence of many iterative AI-assisted sessions is more important than the exact number
-
-If a precise provenance trail is ever needed, it should come from saved session logs or version-control history, not from a retroactive estimate in this file.
+Where strict provenance is required, it should be derived from session logs or version control history, not reconstructed estimates.
 
 ## Review and Responsibility
 
-All AI-assisted output was subject to human review, selection, rejection, modification, or integration before being kept in the project.
+All AI-assisted output was subject to human review, selection, modification, or rejection before inclusion.
 
 Final responsibility for:
 
@@ -64,17 +61,18 @@ Final responsibility for:
 - architectural intent
 - repository contents
 
-rests with **VJakoby**.
+rests solely with VJakoby.
 
 ## Legal / Attribution Position
 
-The repository is presented as a human-authored project developed with AI assistance.
+Authorship is asserted at the level of system design, product intent, and integrated implementation.
 
-The author claims authorship and copyright over the repository as a whole, including:
+The author claims copyright over the repository as a whole, including:
 
-- the project concept
+- the project concept and product direction
+- the naming, identity, and positioning of the PRAGMA platform
 - the original arrangement and selection of components
 - human-authored code, documentation, and edits
 - the integrated final form of the work
 
-AI systems are treated here as development tools used during the creation process.
+AI systems are treated as development tools used during the creation process.

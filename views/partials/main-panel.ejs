@@ -241,7 +241,8 @@
 
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">
-          <div class="search-toolbar-status-row">
+          <div class="search-toolbar-brand-row">
+            <div class="topbar-logo search-toolbar-logo">ENGRAM<span>// Indexed Search Surface</span></div>
             <div class="engram-pill checking" id="engramPill" title="ENGRAM status">
               <span class="engram-pill-dot"></span>
               <span id="engramPillLabel">ENGRAM&hellip;</span>
@@ -380,6 +381,7 @@
                       <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
                     </div>
                   </div>
+                  <button class="tb-btn" id="noteFlagEvidenceBtn" onclick="flagSelectionAsEvidence()" title="Flag selected block as evidence"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg> Flag</span></button>
                   <div class="notes-editor-hdr-spacer"></div>
                   <div id="noteHeaderActions" class="note-header-actions">
                     <button class="icon-btn" id="noteExportBtn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
@@ -391,7 +393,7 @@
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
                 <span><code>`code`</code></span><span><code>```block```</code></span><span>- list</span><span>1. list</span><span>- [ ] task</span><span>&gt; quote</span>
-                <span title="Wiki link to another note">[[internal-link]]</span>
+                <span title="Wiki link to another note">[[internal-link]]</span><span title="Paste or drag an image into the editor">![image](...)</span><span title="Paste screenshot with Ctrl+V or drag image into editor">paste/drag image</span>
               </div>
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts" id="noteCreatedWrap">Created: <strong id="noteCreatedAt">&mdash;</strong></span>

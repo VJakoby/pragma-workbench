@@ -9,7 +9,7 @@ function sanitizeRenderedHtml(html) {
   ]);
   const allowedAttrs = {
     A: new Set(['href', 'target', 'rel']),
-    IMG: new Set(['src', 'alt', 'title', 'style']),
+    IMG: new Set(['src', 'alt', 'title', 'style', 'width', 'height']),
     INPUT: new Set(['type', 'checked', 'disabled', 'class']),
     OL: new Set(['start']),
     SPAN: new Set(['class']),
@@ -56,7 +56,11 @@ function sanitizeRenderedHtml(html) {
           else child.removeAttribute(attr.name);
           return;
         }
-        if (name === 'style' && !/^max-width:\s*100%;?$/i.test(attr.value.trim()) && !/^text-align:\s*(left|right|center);?$/i.test(attr.value.trim())) {
+        if (
+          name === 'style' &&
+          !/^max-width:\s*100%(?:;\s*width:\s*\d{1,3}%)*(?:;\s*height:\s*\d{1,3}%)*;?$/i.test(attr.value.trim()) &&
+          !/^text-align:\s*(left|right|center);?$/i.test(attr.value.trim())
+        ) {
           child.removeAttribute(attr.name);
         }
       });

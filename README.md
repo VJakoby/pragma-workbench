@@ -1,6 +1,6 @@
-# #️ PRAGMA // Workbench
+# # PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted sessions, and a target-aware knowledge base — no cloud, no clutter.
+PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
 
 ---
 ## 🚩 My Problem
@@ -11,7 +11,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
 - **Not a team platform** — single-operator, local-first by design
-- **Not an exploit framework or broad automation platform** — PRAGMA itself is not a scanner or operator platform, though it can optionally integrate supporting modules such as MATRIX to assist with selected recon and enumeration workflows
+- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation
 - **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
 
 
@@ -19,7 +19,7 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
-- **A knowledge-integrated interface** — integrated search functionality with ENGRAM (local knowledge base indexer on `http://localhost:3002` or `http://engram:3002` in a Docker network) to enable full-text knowledge base lookups from defined online sources directly inside the app
+- **A knowledge-integrated interface** — local KB search is built in, and ENGRAM integration is optional for searching indexed external sources from inside the app
 
 ## 👤 Who This Is For
 
@@ -81,7 +81,7 @@ In practice, this means the app is opinionated about staying operational:
 - Session-level attacker IP field for callback/reverse-shell style placeholders
 - Active target auto-injects into all code blocks at copy time across the KB and tactics
 - Session status tracking (Active / Paused / Complete) with timeline view
-- Export/import sessions as JSON for portability; notes export as structured markdown
+- Export/import sessions as JSON for portability; session exports also support structured markdown bundles and a consolidated markdown export
 
 **Encryption**
 - Full workbench encryption (AES-256-GCM, PBKDF2-SHA-512, 600k iterations) — client-side only
@@ -93,6 +93,8 @@ In practice, this means the app is opinionated about staying operational:
 - Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
+- Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
+- Session summary export supports a consolidated markdown file and an optional PDF summary output
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -105,21 +107,32 @@ A persistent in-session capture tool accessible from the topbar:
 - **Ports** — log open ports and services manually or by pasting raw output from `nmap`, `rustscan`, or `masscan`. Parsed automatically into structured rows (port, proto, service, version, notes)
 - **Paths** — log web paths from directory and vhost enumeration. Accepts raw output from `gobuster`, `ffuf`, and `dirbuster`, or manual entry with optional HTTP status code
 - **Loot** — log credentials, hashes, tokens and keys found during the engagement. Each entry has a type tag (Cleartext / Hash / Token / Key / Other), a host field (auto-filled from the active target), and a context note. Credentials are click-to-copy
-
 Ports, paths, and loot persist per session alongside notes. Ports and credentials can also sync into structured notes such as `Network Enumeration` and `Credentials`, reducing duplicate capture.
 
 **TODO**
 
 A session-wide checkbox list for next steps, kept alongside the session so unfinished tasks persist across reloads and later reopen.
 
+**Evidence**
+
+PRAGMA also includes a dedicated Evidence workflow for preserving proof directly from session notes, rather than retyping it into a second table.
+
+- **Selection-driven capture** — select a command, line, or markdown block in the note editor and use **Add as Evidence**
+- **Typed evidence entries** — supported categories include Enumeration, Initial Access, Execution, Persistence, Privilege Escalation, Credential Access, Discovery, Lateral Movement, Pivoting, Collection, Exfiltration, Cleanup, and Proof
+- **Source-linked tracking** — each Evidence entry stays linked to the original note and supports jumping back to the exact flagged source block
+- **Optional Loot creation** — when adding Evidence, you can also create a Loot entry from the same selection and optionally sync cleartext/hash material into the `Credentials` note
+- **Evidence management** — the Evidence panel supports filtering by type and target, inline editing, and unflagging while keeping the original note content
+- **Clean markdown export** — Evidence markers are used internally in notes, but are stripped from exported markdown/session exports so generated files stay readable
+
+This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
+
 **Knowledge Base & Tactics**
-- Indexes all `.md` files under `knowledge_base/` recursively — each subdirectory becomes a category automatically, while `knowledge_base/tactics/` is reserved for the Tactics view
+- Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
 - Local/remote scope filter, source filter, and query-term snippet highlighting in results
 - Degrades gracefully if ENGRAM is offline, with a one-click reachability check
-- Supports optional module integrations such as MATRIX, enabled explicitly per deployment through environment flags
 - Local KB previews support quick switching between sibling notes in the same category/folder
 
 **Workbench Reliability**
@@ -136,7 +149,7 @@ A session-wide checkbox list for next steps, kept alongside the session so unfin
 
 ## 📝 Note Templates
 
-PRAGMA ships with built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
 
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
@@ -213,6 +226,20 @@ If `variants` are present, PRAGMA shows a second selection step in the note-crea
 
 Custom templates appear in the picker with a purple border and a **Custom** heading to distinguish them from built-ins. If the file is missing, malformed, or empty, PRAGMA falls back to the built-in templates silently.
 
+### Images in Notes
+
+Notes also support pasted and dropped screenshots/images.
+
+- Paste a copied screenshot directly into the editor with `Ctrl+V`
+- Drag a local image file into the editor
+- PRAGMA stores the image as a note attachment and inserts standard markdown image syntax automatically:
+
+```md
+![image](/api/notes/attachments/<note-id>/<filename>)
+```
+
+This keeps image handling compatible with normal markdown preview/rendering while still using PRAGMA's note-scoped attachment storage.
+
 ---
 
 ## 🔐 Security
@@ -262,43 +289,7 @@ Write your KB docs using any of the supported placeholder styles below.
 
 ---
 
-## Modules
-
-PRAGMA can expose optional local modules when they are explicitly enabled for the current deployment.
-
-### ENGRAM // Indexed Search Surface
-
-ENGRAM is the optional indexed search companion used by PRAGMA for `KB Search`. It provides full-text search and preview access across indexed sources and knowledge-base content.
-
-- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram-indexed-search-surface)
-- Purpose: provide the searchable index and preview surface used by PRAGMA’s knowledge-base search workflow
-- Integration model: ENGRAM runs as its own local service/container, and PRAGMA talks to it through the search proxy routes
-
-To bring ENGRAM up as a separate container/service, follow the setup in the ENGRAM repo, then verify it is reachable:
-
-```bash
-curl http://127.0.0.1:3002/api/health
-```
-
-To point PRAGMA at ENGRAM:
-
-```env
-SEARCH_URL=http://127.0.0.1:3002
-```
-
-For Docker-networked setups, PRAGMA can instead use:
-
-```env
-SEARCH_URL=http://engram:3002
-```
-
-Then restart PRAGMA. `KB Search` remains visible in the sidebar, and its status indicator reflects whether ENGRAM is reachable.
-
-In short:
-
-1. build and start ENGRAM as its own service/container
-2. point PRAGMA at the ENGRAM API with `SEARCH_URL`
-3. restart PRAGMA
+### Optional Modules
 
 ### MATRIX // Toolbox
 
@@ -348,22 +339,43 @@ In short:
 ## 🛠️ Requirements
 
 - Node.js 20+
-- **Optional:** 
-    - docker & docker-compose
+- **Optional:**
+  - Docker and `docker compose`
+  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
 
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
+
+---
 
 ## 🚀 Quick Start
 
 See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
+Recommended Docker workflow:
+
 ```bash
-# Build and start
+# 1. Create a local env file
+cp .example.env .env
+
+# 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
+#    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
+
+# 3. Build and start
 docker compose up -d --build
 
-# Access at
+# 4. Access at
 http://localhost:3000
 ```
+
+Common `.env` values include:
+
+- `PRAGMA_KB_PATH`
+- `PRAGMA_SESSIONS_PATH`
+- `PRAGMA_UID`
+- `PRAGMA_GID`
+- `SEARCH_URL`
+
+If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
 ### Running manually with Node.js
 ```bash
@@ -398,16 +410,18 @@ The frontend is now split into smaller browser modules under [public/app](./publ
 This means most new frontend work should target one of those focused modules instead of growing `app.js` back into a monolith.
 
 ---
-Created by VJakoby + 🤖 | Licensed under MIT | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
 
+## License & Notices
 
-## Optional MATRIX Fallback URLs
+PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notices are listed in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
-If PRAGMA may need to reach MATRIX in different run modes, use `MATRIX_URLS` to provide comma-separated fallbacks, for example:
+---
 
-```env
-MATRIX_ENABLED=true
-MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
-```
+## 🛣️ Roadmap
 
-PRAGMA will try each URL in order until one responds.
+The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
+
+See [ROADMAP.md](./ROADMAP.md).
+---
+
+Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)

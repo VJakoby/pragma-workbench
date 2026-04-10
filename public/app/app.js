@@ -3,6 +3,10 @@
 // ═══════════════════════════════════════════════
 // COMMAND PALETTE
 // ═══════════════════════════════════════════════
+let cmdKbIndex = null;
+let cmdKbIndexPromise = null;
+let cmdBuildSeq = 0;
+
 function openCmd() {
   const overlay = document.getElementById('cmdOverlay');
   const input = document.getElementById('cmdInput');
@@ -62,6 +66,63 @@ function getCommandPaletteNoteResults(query) {
     .filter(entry => q && entry.score > 0)
     .sort((a, b) => (b.score - a.score) || ((b.note.updated || 0) - (a.note.updated || 0)))
     .slice(0, 8);
+}
+
+async function ensureCommandPaletteKbIndex() {
+  if (Array.isArray(cmdKbIndex)) return cmdKbIndex;
+  if (!cmdKbIndexPromise) {
+    cmdKbIndexPromise = fetch('/api/kb-palette-index')
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || 'Could not load KB search index');
+        }
+        cmdKbIndex = Array.isArray(data?.items) ? data.items : [];
+        return cmdKbIndex;
+      })
+      .catch(err => {
+        cmdKbIndexPromise = null;
+        throw err;
+      });
+  }
+  return cmdKbIndexPromise;
+}
+
+function buildCommandPaletteKbSnippet(entry, query) {
+  const q = String(query || '').trim().toLowerCase();
+  const body = String(entry?.content || '').replace(/\s+/g, ' ').trim();
+  if (!body) return '';
+  if (!q) return body.slice(0, 110);
+  const idx = body.toLowerCase().indexOf(q);
+  if (idx === -1) return '';
+  const start = Math.max(0, idx - 34);
+  const end = Math.min(body.length, idx + q.length + 56);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < body.length ? '…' : '';
+  return prefix + body.slice(start, end) + suffix;
+}
+
+function getCommandPaletteKbResults(query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q || !Array.isArray(cmdKbIndex) || q.length < 2) return [];
+  return cmdKbIndex
+    .map(entry => {
+      const content = String(entry?.content || '');
+      const normalized = content.replace(/\s+/g, ' ').trim();
+      const bodyIdx = normalized.toLowerCase().indexOf(q);
+      if (bodyIdx === -1) return null;
+      const title = String(entry?.name || '');
+      const titleIdx = title.toLowerCase().indexOf(q);
+      const snippet = buildCommandPaletteKbSnippet(entry, q);
+      const score =
+        (bodyIdx === 0 ? 90 : 45) +
+        (titleIdx === 0 ? 30 : titleIdx > -1 ? 15 : 0) +
+        Math.max(0, 30 - Math.min(bodyIdx, 30));
+      return { entry, score, snippet };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
 }
 
 function closeCmd() {
@@ -195,7 +256,8 @@ window.addEventListener('resize', () => {
   if (tooltipTarget) positionTooltip(tooltipTarget);
 });
 
-function buildCmdResults(q) {
+async function buildCmdResults(q) {
+  const seq = ++cmdBuildSeq;
   const ql    = String(q || '').toLowerCase().trim();
   const res   = document.getElementById('cmdResults');
   const overlay = document.getElementById('cmdOverlay');
@@ -206,8 +268,8 @@ function buildCmdResults(q) {
   const noteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
   const stripLeadingEmoji = (text) => String(text || '').replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '').trim();
 
-  const pushCmdItem = ({ type, id, label, icon, title, sub, tag }) => {
-    cmdItems.push({ type, id, label });
+  const pushCmdItem = ({ type, id, label, icon, title, sub, tag, ...rest }) => {
+    cmdItems.push({ type, id, label, ...rest });
     return `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon">${icon}</span>
       <div class="cmd-item-main">
@@ -226,6 +288,15 @@ function buildCmdResults(q) {
         <div class="cmd-item-sub">${sub}</div>
       </div>
     </div>`;
+
+  if (ql.length >= 2) {
+    try {
+      await ensureCommandPaletteKbIndex();
+    } catch (err) {
+      console.warn('[PRAGMA] command palette KB index unavailable:', err?.message || err);
+    }
+    if (seq !== cmdBuildSeq) return;
+  }
 
   const matchesService = (s) =>
     !ql || s.name.toLowerCase().includes(ql) || (s.port || '').includes(ql) ||
@@ -296,6 +367,32 @@ function buildCmdResults(q) {
         title: esc(stripLeadingEmoji(m.name)),
         sub: esc(m.category || ''),
         tag: 'tactic',
+      });
+    });
+  }
+
+  const kbDocHits = getCommandPaletteKbResults(ql);
+  if (kbDocHits.length) {
+    html += `<div class="cmd-group-hdr">KB Documents</div>`;
+    kbDocHits.forEach(({ entry, snippet }) => {
+      const scopeLabel = entry.type === 'service'
+        ? 'Service'
+        : entry.type === 'tactic'
+          ? 'Tactic'
+          : 'Knowledge';
+      const metaParts = [scopeLabel];
+      if (entry.category) metaParts.push(esc(entry.category));
+      if (entry.folder && entry.type === 'knowledge') metaParts.push(esc(entry.folder));
+      if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
+      html += pushCmdItem({
+        type: 'kbdoc',
+        id: entry.id,
+        view: entry.view,
+        label: entry.name,
+        icon: entry.icon || folderDocIcon,
+        title: esc(stripLeadingEmoji(entry.name)),
+        sub: metaParts.join(' · '),
+        tag: entry.type === 'knowledge' ? 'kb' : entry.type,
       });
     });
   }
@@ -403,6 +500,9 @@ function execCmd(idx) {
   if (item.type === 'service') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('services');
     openItem('services', item.id);
+  } else if (item.type === 'kbdoc') {
+    if (!shouldOpenCmdItemInSidePanel()) switchView('services', document.getElementById('nav-services'));
+    openItem(item.view || 'services', item.id);
   } else if (item.type === 'tactic') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('tactics', document.getElementById('nav-tactics'));
     openItem('tactics', item.id);
@@ -696,11 +796,37 @@ async function encryptPayload(plaintext, password) {
   };
 }
 
+function bytesToBase64(value) {
+  return btoa(String.fromCharCode(...new Uint8Array(value)));
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(String(value || '')), c => c.charCodeAt(0));
+}
+
+async function encryptBinaryPayload(buffer, password, mimeType = 'application/octet-stream', filename = '') {
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await deriveKey(password, salt, 2);
+  const source = buffer instanceof ArrayBuffer ? buffer : new Uint8Array(buffer).buffer;
+  const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, source);
+  return {
+    pragma_version: 1,
+    crypto_version: 2,
+    encrypted: true,
+    kind: 'attachment',
+    mime_type: String(mimeType || 'application/octet-stream'),
+    filename: String(filename || ''),
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(ct),
+  };
+}
+
 async function decryptPayload(obj, password) {
-  const b64d   = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-  const salt   = b64d(obj.salt);
-  const iv     = b64d(obj.iv);
-  const ct     = b64d(obj.data);
+  const salt   = base64ToBytes(obj.salt);
+  const iv     = base64ToBytes(obj.iv);
+  const ct     = base64ToBytes(obj.data);
   // Support both legacy blobs keyed by pragma_version and newer blobs that
   // separate workbench version from crypto_version.
   const version = obj.crypto_version >= 2
@@ -712,6 +838,26 @@ async function decryptPayload(obj, password) {
     // GCM auth tag mismatch throws here if password wrong or data tampered
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
     return dec.decode(plain);
+  } catch {
+    throw new Error('Wrong password or corrupted data');
+  }
+}
+
+async function decryptBinaryPayload(obj, password) {
+  const salt = base64ToBytes(obj.salt);
+  const iv   = base64ToBytes(obj.iv);
+  const ct   = base64ToBytes(obj.data);
+  const version = obj.crypto_version >= 2
+    ? 2
+    : (obj.pragma_version >= 2 || salt.length >= 32 ? 2 : 1);
+  const key = await deriveKey(password, salt, version);
+  try {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return {
+      buffer: plain,
+      mimeType: String(obj.mime_type || 'application/octet-stream'),
+      filename: String(obj.filename || ''),
+    };
   } catch {
     throw new Error('Wrong password or corrupted data');
   }

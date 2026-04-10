@@ -8,6 +8,8 @@ let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 let _editingTodoId = null;
 let _editingQuickLog = null;
+let _evidenceFilterType = '';
+let _evidenceFilterTarget = '';
 
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 const SVC_TAB_CONFIG = {
@@ -180,6 +182,355 @@ function updateTodoCount() {
   if (!btn) return;
   btn.textContent = openCount || '';
   btn.classList.toggle('has-entries', openCount > 0);
+}
+
+function getSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].evidence || [];
+}
+
+function ensureSessionEvidence() {
+  if (!activeSessionId || !sessions[activeSessionId]) return null;
+  if (!Array.isArray(sessions[activeSessionId].evidence)) sessions[activeSessionId].evidence = [];
+  return sessions[activeSessionId].evidence;
+}
+
+function updateEvidenceCount() {
+  const entries = getSessionEvidence();
+  const btn = document.getElementById('evidenceTopbarCount');
+  if (!btn) return;
+  btn.textContent = entries.length || '';
+  btn.classList.toggle('has-entries', entries.length > 0);
+}
+
+function renderEvidenceClearAction() {
+  const btn = document.getElementById('evidenceClearBtn');
+  if (!btn) return;
+  const count = getSessionEvidence().length;
+  btn.textContent = count ? `Clear All (${count})` : 'Clear All';
+  btn.disabled = !activeSessionId || count === 0;
+}
+
+function renderEvidenceTargetOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceTargetInput');
+  if (!select) return;
+  const targets = getSessionTargets();
+  const current = selectedValue || activeTargetId || '';
+  const options = ['<option value="">Session-wide</option>'];
+  targets.forEach((target) => {
+    const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${label}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function getSessionNotesForEvidence() {
+  if (!activeSessionId) return [];
+  return Object.values(notes)
+    .filter((note) => note.session_id === activeSessionId)
+    .sort((a, b) => (b.updated || 0) - (a.updated || 0));
+}
+
+function renderEvidenceNoteOptions(selectedValue = '') {
+  const select = document.getElementById('evidenceNoteInput');
+  if (!select) return;
+  const noteItems = getSessionNotesForEvidence();
+  const options = ['<option value="">Select session note…</option>'];
+  noteItems.forEach((note) => {
+    options.push(`<option value="${esc(note.id)}"${note.id === selectedValue ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function evidenceTypeLabel(type) {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const configuredHit = configured.find((item) => item.value === type);
+  if (configuredHit) return configuredHit.label;
+  const labels = {
+    finding: 'Finding',
+    proof: 'Proof',
+    cred: 'Credential',
+    artifact: 'Artifact',
+    privesc: 'PrivEsc',
+    cleanup: 'Cleanup',
+    note: 'Note',
+  };
+  return labels[type] || (type ? String(type) : 'Evidence');
+}
+
+function buildEvidenceTypeOptionsHtml(selectedType = '') {
+  const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
+  const options = configured.map(({ value, label }) =>
+    `<option value="${esc(value)}"${value === selectedType ? ' selected' : ''}>${esc(label)}</option>`
+  );
+  if (selectedType && !configured.find((item) => item.value === selectedType)) {
+    options.push(`<option value="${esc(selectedType)}" selected>${esc(evidenceTypeLabel(selectedType))}</option>`);
+  }
+  return options.join('');
+}
+
+function evidenceSyncLabel(mode) {
+  if (mode === 'none') return 'No sync';
+  if (mode === 'note') return 'Note';
+  if (mode === 'both') return 'Both';
+  return 'Summary';
+}
+
+function evidenceUsesNoteSync(mode) {
+  return mode === 'note' || mode === 'both';
+}
+
+function formatEvidenceTimestamp(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function evidenceTargetDisplay(entry) {
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+}
+
+function renderEvidenceProofCell(entry) {
+  const lines = [];
+  if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
+  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
+  if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
+  return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
+}
+
+function updateEvidenceSyncUi(selectedNoteId = '') {
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const row = document.getElementById('evidenceNoteRow');
+  if (!syncEl || !row) return;
+  const syncMode = (syncEl.value || 'export_only').trim();
+  const showNote = evidenceUsesNoteSync(syncMode);
+  row.style.display = showNote ? 'flex' : 'none';
+  renderEvidenceNoteOptions(selectedNoteId);
+}
+
+function buildEvidenceMarkerId(entryId) {
+  return `pragma:evidence:${entryId}`;
+}
+
+function getEvidenceSourceNoteId(entry) {
+  return entry?.source_note_id || entry?.note_id || null;
+}
+
+function getEvidenceSourceNote(entry) {
+  const noteId = getEvidenceSourceNoteId(entry);
+  return noteId ? notes[noteId] || null : null;
+}
+
+function getEvidenceSyncNote(entry) {
+  if (!evidenceUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
+  const noteId = entry?.note_id || null;
+  return noteId ? notes[noteId] || null : null;
+}
+
+function evidenceTypeBadgeClass(type) {
+  if (type === 'proof') return 'loot-type-token';
+  return 'loot-type-other';
+}
+
+function getEvidenceSourceSnippet(entry) {
+  const sourceNote = getEvidenceSourceNote(entry);
+  if (!sourceNote) return '';
+  const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
+  const raw = range
+    ? String(sourceNote.body || '').slice(range.from, range.to)
+    : String(entry.source_command || entry.details || '');
+  const compact = String(raw || '')
+    .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
+    .replace(/```[a-z0-9_-]*\n?/gi, '')
+    .replace(/```/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!compact) return '';
+  return compact.length > 140 ? `${compact.slice(0, 140).trim()}…` : compact;
+}
+
+function findEvidenceMarkerRange(body, entryId) {
+  const text = String(body || '');
+  const marker = buildEvidenceMarkerId(entryId);
+  const startToken = `<!-- ${marker}:start -->`;
+  const endToken = `<!-- ${marker}:end -->`;
+  const startIdx = text.indexOf(startToken);
+  if (startIdx === -1) return null;
+  const endIdx = text.indexOf(endToken, startIdx + startToken.length);
+  if (endIdx === -1) return null;
+  let from = startIdx + startToken.length;
+  if (text[from] === '\n') from += 1;
+  let to = endIdx;
+  if (to > from && text[to - 1] === '\n') to -= 1;
+  return { from, to };
+}
+
+async function jumpToEvidenceSource(entryId) {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const entry = getSessionEvidence().find((item) => item.id === entryId);
+  const noteId = getEvidenceSourceNoteId(entry);
+  if (!noteId || !notes[noteId]) {
+    showToast?.('⚠ No source note linked', 'err');
+    return;
+  }
+
+  closeEvidencePopover?.();
+  if (typeof switchView === 'function') {
+    switchView('notes', document.getElementById('nav-notes'));
+  }
+  if (typeof openNote === 'function') {
+    await openNote(noteId);
+  }
+
+  if (typeof noteEditor === 'undefined' || !noteEditor) return;
+  const docText = noteEditor.state.doc.toString();
+  const range = findEvidenceMarkerRange(docText, entryId);
+  if (!range) {
+    noteEditor.focus();
+    showToast?.('⚠ Evidence marker not found in note', 'err');
+    return;
+  }
+
+  noteEditor.dispatch({
+    selection: { anchor: range.from, head: range.to },
+    scrollIntoView: true
+  });
+  noteEditor.focus();
+}
+
+function removeEvidenceBlockFromBody(body, entryId) {
+  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
+  return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function unwrapEvidenceBlockInBody(body, entryId) {
+  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`<!-- ${marker}:start -->\\n?([\\s\\S]*?)\\n?<!-- ${marker}:end -->`, 'g');
+  return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
+}
+
+function updateEvidenceBlockInBody(body, entry, prevEntry) {
+  if (!entry?.id || !entry?.source_command) return body;
+  const prevCommand = String(prevEntry?.source_command || '');
+  const nextCommand = String(entry.source_command || '');
+  if (prevCommand === nextCommand) return body;
+  const range = findEvidenceMarkerRange(body || '', entry.id);
+  if (!range) return body;
+  const block = String(body || '').slice(range.from, range.to);
+  let updatedBlock = block;
+  const fenceMatch = block.match(/```([a-z0-9_-]*)\n([\s\S]*?)```/i);
+  if (fenceMatch) {
+    const lang = fenceMatch[1] || '';
+    updatedBlock = block.replace(fenceMatch[0], `\`\`\`${lang}\n${nextCommand}\n\`\`\``);
+  } else {
+    updatedBlock = nextCommand;
+  }
+  if (updatedBlock === block) return body;
+  return `${String(body || '').slice(0, range.from)}${updatedBlock}${String(body || '').slice(range.to)}`;
+}
+
+function buildEvidenceMarkdownBlock(entry) {
+  const marker = buildEvidenceMarkerId(entry.id);
+  const targetText = evidenceTargetDisplay(entry);
+  const lines = [
+    `<!-- ${marker}:start -->`,
+    `### ${evidenceTypeLabel(entry.type)}: ${entry.title}`,
+    '',
+    `- Target: ${targetText}`,
+  ];
+  if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
+  if (entry.details) lines.push(`- Details: ${entry.details}`);
+  if (entry.source_command) {
+    lines.push('', '```text', entry.source_command, '```');
+  }
+  lines.push(`<!-- ${marker}:end -->`);
+  return lines.join('\n');
+}
+
+function upsertEvidenceBlockInBody(body, entry) {
+  const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
+  const block = buildEvidenceMarkdownBlock(entry);
+  const sectionMatch = cleanBody.match(/^##\s+Evidence\s*$/im);
+  if (!sectionMatch || sectionMatch.index == null) {
+    const prefix = cleanBody.trimEnd();
+    return `${prefix}${prefix ? '\n\n' : ''}## Evidence\n\n${block}\n`;
+  }
+  const sectionStart = sectionMatch.index;
+  const sectionHeader = sectionMatch[0];
+  const bodyAfterHeader = sectionStart + sectionHeader.length;
+  const rest = cleanBody.slice(bodyAfterHeader);
+  const nextSectionRel = rest.search(/\n##\s+/);
+  const insertAt = nextSectionRel === -1 ? cleanBody.length : bodyAfterHeader + nextSectionRel;
+  const before = cleanBody.slice(0, insertAt).replace(/\s*$/, '');
+  const after = cleanBody.slice(insertAt).replace(/^\s*/, '\n\n');
+  return `${before}\n\n${block}${after}`.replace(/\n{3,}/g, '\n\n');
+}
+
+function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
+  const syncedNotes = [];
+  const prevSourceNoteId = getEvidenceSourceNoteId(prevEntry);
+  const prevSyncNoteId = evidenceUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
+  const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
+  const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
+
+  const shouldRemoveSourceMarker = !nextEntry || !nextSourceNoteId || nextSourceNoteId !== prevSourceNoteId;
+  if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId] && shouldRemoveSourceMarker) {
+    const prevNote = notes[prevSourceNoteId];
+    const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
+    if (cleaned !== (prevNote.body || '')) {
+      prevNote.body = cleaned;
+      prevNote.updated = Date.now();
+      syncedNotes.push(prevNote);
+    }
+  }
+
+  if (prevEntry?.id && prevSyncNoteId && prevSyncNoteId !== prevSourceNoteId && notes[prevSyncNoteId]) {
+    const prevSyncNote = notes[prevSyncNoteId];
+    const cleaned = removeEvidenceBlockFromBody(prevSyncNote.body || '', prevEntry.id);
+    if (cleaned !== (prevSyncNote.body || '')) {
+      prevSyncNote.body = cleaned;
+      prevSyncNote.updated = Date.now();
+      if (!syncedNotes.includes(prevSyncNote)) syncedNotes.push(prevSyncNote);
+    }
+  }
+
+  if (nextEntry?.id && nextSourceNoteId && notes[nextSourceNoteId]) {
+    const sourceNote = notes[nextSourceNoteId];
+    const updated = updateEvidenceBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
+    if (updated !== (sourceNote.body || '')) {
+      sourceNote.body = updated;
+      sourceNote.updated = Date.now();
+      if (!syncedNotes.includes(sourceNote)) syncedNotes.push(sourceNote);
+    }
+  }
+
+  if (nextEntry?.id && nextSyncNoteId && nextSyncNoteId !== nextSourceNoteId && notes[nextSyncNoteId]) {
+    const nextNote = notes[nextSyncNoteId];
+    const nextBody = upsertEvidenceBlockInBody(nextNote.body || '', nextEntry);
+    if (nextBody !== (nextNote.body || '')) {
+      nextNote.body = nextBody;
+      nextNote.updated = Date.now();
+      if (!syncedNotes.includes(nextNote)) syncedNotes.push(nextNote);
+    }
+  }
+
+  return syncedNotes;
+}
+
+function setEvidenceFilterType(value) {
+  _evidenceFilterType = String(value || '').trim();
+  renderEvidenceList();
+}
+
+function setEvidenceFilterTarget(value) {
+  _evidenceFilterTarget = String(value || '').trim();
+  renderEvidenceList();
 }
 
 function renderTodoClearAction() {
@@ -358,6 +709,300 @@ function clearCompletedTodos() {
   sessions[activeSessionId].todos = remaining;
   saveNotes();
   renderTodoList();
+}
+
+function renderEvidenceList() {
+  const listEl = document.getElementById('evidenceList');
+  if (!listEl) return;
+  renderEvidenceTargetOptions();
+  renderEvidenceNoteOptions();
+  renderEvidenceClearAction();
+  updateEvidenceCount();
+  updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
+
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    return;
+  }
+
+  const allEntries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  const targets = getSessionTargets();
+  const notes = getSessionNotesForEvidence();
+  const entries = allEntries.filter((entry) => {
+    if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
+    if (_evidenceFilterTarget) {
+      const targetId = entry.target_id || '__session__';
+      if (targetId !== _evidenceFilterTarget) return false;
+    }
+    return true;
+  });
+  if (!entries.length) {
+    if (!allEntries.length) {
+      listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
+      return;
+    }
+    listEl.innerHTML = `
+      <div class="evidence-filters">
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+          <option value="">All types</option>
+          ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+        </select>
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+          <option value="">All targets</option>
+          <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+          ${targets.map((target) => {
+            const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+            return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div class="evidence-filters">
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+        <option value="">All types</option>
+        ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+      </select>
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+        <option value="">All targets</option>
+        <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+        ${targets.map((target) => {
+          const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+          return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+        }).join('')}
+      </select>
+      <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
+    </div>
+    <div class="evidence-items">${entries.map((entry) => {
+      const target = entry.target_id ? targets.find((item) => item.id === entry.target_id) : null;
+      const targetLabel = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
+      const syncLabel = evidenceSyncLabel(entry.sync_mode || 'export_only');
+      const sourceNote = getEvidenceSourceNote(entry);
+      const sourceNoteLabel = sourceNote?.title || 'Unknown source';
+      const sourceSnippet = getEvidenceSourceSnippet(entry);
+      const syncNote = getEvidenceSyncNote(entry);
+      const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
+      const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
+      if (isQuickLogEditing('evidence', entry.id)) {
+        return `
+          <section class="evidence-item evidence-item-editing">
+            <div class="evidence-item-head">
+              <div class="evidence-item-title-group evidence-item-title-group-editing">
+                <label class="evidence-edit-field evidence-edit-field-type">
+                  <span class="evidence-edit-label">Type</span>
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                    ${buildEvidenceTypeOptionsHtml(entry.type)}
+                  </select>
+                </label>
+                <label class="evidence-edit-field evidence-edit-field-title">
+                  <span class="evidence-edit-label">Title</span>
+                  <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                </label>
+              </div>
+              <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+            </div>
+            <div class="evidence-edit-grid">
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Target</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="">Session-wide</option>
+                  ${targets.map((targetItem) => {
+                    const label = esc(targetItem.ip || targetItem.domain || targetItem.label || 'Unnamed');
+                    return `<option value="${esc(targetItem.id)}"${targetItem.id === entry.target_id ? ' selected' : ''}>${label}</option>`;
+                  }).join('')}
+                </select>
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Sync</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
+                  <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
+                  <option value="note"${(entry.sync_mode || 'export_only') === 'note' ? ' selected' : ''}>Note</option>
+                  <option value="none"${(entry.sync_mode || 'export_only') === 'none' ? ' selected' : ''}>No export</option>
+                </select>
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Synced note</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <option value="">Select note…</option>
+                  ${notes.map((item) => `<option value="${esc(item.id)}"${item.id === entry.note_id ? ' selected' : ''}>${esc(item.title || 'Untitled')}</option>`).join('')}
+                </select>
+              </label>
+            </div>
+            <div class="evidence-item-body evidence-item-body-editing">
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Impact</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Details</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Command</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+            </div>
+          </section>
+        `;
+      }
+      return `
+        <section class="evidence-item">
+            <div class="evidence-item-head">
+              <div class="evidence-item-title-group">
+              <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
+              <div class="evidence-item-title-wrap">
+                <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
+                <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
+                ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
+              </div>
+            </div>
+            <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+          </div>
+          ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
+          <div class="evidence-item-meta">
+            <span class="evidence-meta-pill">
+              <span class="evidence-meta-key">Sync</span>
+              <span class="evidence-meta-value">${esc(syncLabel)}</span>
+            </span>
+            <span class="evidence-meta-pill evidence-target-pill" title="${esc(targetLabel)}">
+              <span class="evidence-meta-key">Target</span>
+              <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
+            </span>
+            ${evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? `
+            <span class="evidence-meta-pill" title="${esc(syncNoteLabel)}">
+              <span class="evidence-meta-key">Synced</span>
+              <span class="evidence-meta-value">${esc(syncNoteLabel)}</span>
+            </span>
+            ` : ''}
+          </div>
+          <div class="evidence-item-body">
+            ${renderEvidenceProofCell(entry)}
+          </div>
+        </section>
+      `;
+    }).join('')}</div>
+  `;
+
+  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+}
+
+function addEvidenceEntry() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  const type = (document.getElementById('evidenceTypeInput')?.value || 'discovery').trim();
+  const titleEl = document.getElementById('evidenceTitleInput');
+  const detailsEl = document.getElementById('evidenceDetailsInput');
+  const commandEl = document.getElementById('evidenceCommandInput');
+  const targetEl = document.getElementById('evidenceTargetInput');
+  const syncEl = document.getElementById('evidenceSyncInput');
+  const noteEl = document.getElementById('evidenceNoteInput');
+  const title = (titleEl?.value || '').trim();
+  const details = (detailsEl?.value || '').trim();
+  const sourceCommand = (commandEl?.value || '').trim();
+  const targetId = (targetEl?.value || '').trim() || null;
+  const syncMode = (syncEl?.value || 'export_only').trim();
+  const noteId = evidenceUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
+  if (!title) {
+    titleEl?.focus();
+    return;
+  }
+  if (evidenceUsesNoteSync(syncMode) && !noteId) {
+    noteEl?.focus();
+    return;
+  }
+  const entry = {
+    id: `evidence_${Date.now()}`,
+    type,
+    title,
+    details,
+    source_command: sourceCommand,
+    target_id: targetId,
+    note_id: noteId,
+    sync_mode: syncMode,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  entries.push(entry);
+  const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
+  if (titleEl) titleEl.value = '';
+  if (detailsEl) detailsEl.value = '';
+  if (commandEl) commandEl.value = '';
+  if (targetEl) targetEl.value = activeTargetId || '';
+  if (syncEl) syncEl.value = 'export_only';
+  if (noteEl) noteEl.value = '';
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+  updateEvidenceSyncUi();
+  titleEl?.focus();
+}
+
+function deleteEvidenceEntry(entryId) {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries) return;
+  const entry = entries.find((item) => item.id === entryId);
+  if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
+  sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
+  const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+  showToast('✓ Evidence unflagged');
+}
+
+function clearEvidenceEntries() {
+  if (!activeSessionId) return;
+  const entries = ensureSessionEvidence();
+  if (!entries?.length) return;
+  const syncedNotes = [];
+  entries.forEach((entry) => {
+    applyEvidenceNoteSyncChanges(entry, null).forEach((note) => {
+      if (!syncedNotes.includes(note)) syncedNotes.push(note);
+    });
+  });
+  if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
+  sessions[activeSessionId].evidence = [];
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
+}
+
+function commitEvidenceEdit(entryId) {
+  if (!activeSessionId) return;
+  const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
+  if (!entry) return;
+  const prevEntry = { ...entry };
+  const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
+  if (!title) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
+  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
+  entry.title = title;
+  entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
+  entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
+  entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
+  entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
+  entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
+  entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
+  entry.note_id = evidenceUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  if (evidenceUsesNoteSync(entry.sync_mode) && !entry.note_id) {
+    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    return;
+  }
+  entry.updated = Date.now();
+  const syncedNotes = applyEvidenceNoteSyncChanges(prevEntry, entry);
+  clearQuickLogEditing();
+  saveNotes();
+  syncedNotes.forEach(applySyncedNoteUpdate);
+  renderEvidenceList();
 }
 
 function getActiveQuickLogEntries() {
@@ -1136,6 +1781,7 @@ function rerenderQuickLogKind(kind) {
   if (kind === 'service') renderSvcLogTable();
   else if (kind === 'path') renderPathTable();
   else if (kind === 'loot') renderLootTable();
+  else if (kind === 'evidence') renderEvidenceList();
 }
 
 function startQuickLogEdit(kind, id) {
@@ -1167,6 +1813,7 @@ function handleQuickLogEditKeydown(event, kind, id) {
     if (kind === 'service') commitServiceEdit(id);
     else if (kind === 'path') commitPathEdit(id);
     else if (kind === 'loot') commitLootEdit(id);
+    else if (kind === 'evidence') commitEvidenceEdit(id);
     return;
   }
   if (event.key === 'Escape') {
@@ -1182,7 +1829,9 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
       ? `commitServiceEdit('${id}')`
       : kind === 'path'
         ? `commitPathEdit('${id}')`
-        : `commitLootEdit('${id}')`;
+        : kind === 'loot'
+          ? `commitLootEdit('${id}')`
+          : `commitEvidenceEdit('${id}')`;
     return `
       <div class="ql-row-actions">
         <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
@@ -1197,6 +1846,23 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
       <button class="svc-del-btn" onclick="event.stopPropagation(); ${deleteCall}" title="Remove">✕</button>
+    </div>
+  `;
+}
+
+function renderEvidenceRowActions(id) {
+  if (isQuickLogEditing('evidence', id)) return renderQuickLogRowActions('evidence', id, 'deleteEvidenceEntry');
+  return `
+    <div class="ql-row-actions">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
+      </button>
     </div>
   `;
 }
@@ -1338,7 +2004,7 @@ function escapeCredentialsCell(value) {
 }
 
 function parseLootForCredentialsRow(entry) {
-  if (!entry || !['cleartext', 'hash'].includes(entry.type)) return null;
+  if (!entry || !['cleartext', 'hash'].includes(entry.type) || entry.sync_credentials === false) return null;
   const credential = String(entry.credential || '').trim();
   const host = String(entry.host || '').trim();
   const note = String(entry.note || '').trim();
@@ -1543,6 +2209,33 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   return note;
 }
 
+function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
+  if (!activeSessionId) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  const cleanCredential = String(credential || '').trim();
+  if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
+
+  const cleanType = String(type || 'other').trim() || 'other';
+  const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const cleanNote = String(note || '').trim();
+  const dupeKey = `${cleanType}::${cleanCredential}::${cleanHost}`;
+  const existing = new Set(sessions[activeSessionId].loot.map((l) => `${l.type}::${l.credential}::${l.host || ''}`));
+  if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
+
+  const entry = {
+    id: `loot_${Date.now()}`,
+    type: cleanType,
+    credential: cleanCredential,
+    host: cleanHost,
+    note: cleanNote,
+    sync_credentials: !!syncToCredentials && ['cleartext', 'hash'].includes(cleanType),
+    added: Date.now(),
+  };
+  sessions[activeSessionId].loot.push(entry);
+  const syncedCredentialsNote = syncSessionLootToCredentialsNote(!!syncToCredentials && ['cleartext', 'hash'].includes(cleanType));
+  return { entry, syncedCredentialsNote, duplicate: false };
+}
+
 function addLootEntry() {
   const credEl = document.getElementById('lootCredInput');
   const hostEl = document.getElementById('lootHostInput');
@@ -1551,20 +2244,17 @@ function addLootEntry() {
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
   if (!cred || !activeSessionId) { credEl?.focus(); return; }
-  if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
-
-  const autoHost = host || (getIP() !== '<IP>' ? getIP() : '');
-
-  const entry = {
-    id: `loot_${Date.now()}`,
+  const { entry, syncedCredentialsNote } = addLootEntryFromData({
     type: _activeLootType,
     credential: cred,
-    host: autoHost,
+    host,
     note,
-    added: Date.now(),
-  };
-  sessions[activeSessionId].loot.push(entry);
-  const syncedCredentialsNote = syncSessionLootToCredentialsNote(true);
+    syncToCredentials: true,
+  });
+  if (!entry) {
+    credEl?.focus();
+    return;
+  }
 
   credEl.value = '';
   noteEl.value = '';
@@ -1753,7 +2443,7 @@ function toggleSvcPopover() {
     popoverId: 'svcPopover',
     buttonId: 'svcTopbarBtn',
     labelId: 'svcSessionLabel',
-    closeOthers: [closeTodoPopover],
+    closeOthers: [closeTodoPopover, closeEvidencePopover],
     outsideHandler: _svcOutsideClose,
     onOpen: () => {
       updateSvcPopoverLayout();
@@ -1802,7 +2492,7 @@ function toggleTodoPopover() {
     popoverId: 'todoPopover',
     buttonId: 'todoTopbarBtn',
     labelId: 'todoSessionLabel',
-    closeOthers: [closeSvcPopover],
+    closeOthers: [closeSvcPopover, closeEvidencePopover],
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
@@ -1822,5 +2512,36 @@ function _todoOutsideClose(e) {
     }
   } else {
     closeTodoPopover();
+  }
+}
+
+function toggleEvidencePopover() {
+  if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+    closeEvidencePopover();
+    return;
+  }
+  openUtilityPopover({
+    popoverId: 'evidencePopover',
+    buttonId: 'evidenceTopbarBtn',
+    labelId: 'evidenceSessionLabel',
+    closeOthers: [closeSvcPopover, closeTodoPopover],
+    outsideHandler: _evidenceOutsideClose,
+    onOpen: () => {
+      renderEvidenceList();
+    },
+  });
+}
+
+function closeEvidencePopover() {
+  closeUtilityPopover('evidencePopover', 'evidenceTopbarBtn');
+}
+
+function _evidenceOutsideClose(e) {
+  if (isEventInsideWrap(e, 'evidenceTopbarWrap')) {
+    if (document.getElementById('evidencePopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_evidenceOutsideClose);
+    }
+  } else {
+    closeEvidencePopover();
   }
 }

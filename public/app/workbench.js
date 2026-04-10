@@ -198,7 +198,7 @@ function renderNoteTypeGrid() {
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
       const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
-        ? `<span class="new-note-type-meta">${tmpl.variants.length} version${tmpl.variants.length !== 1 ? 's' : ''}</span>`
+        ? `<span class="new-note-type-meta">${tmpl.variants.length} variant${tmpl.variants.length !== 1 ? 's' : ''}</span>`
         : '';
       buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
     });
@@ -260,7 +260,13 @@ async function downloadWorkbench() {
       return;
     }
 
-    const payload = { notes, sessions };
+    const payload = {
+      notes,
+      sessions,
+      attachments: typeof collectAttachmentPayloadsForNotes === 'function'
+        ? await collectAttachmentPayloadsForNotes(Object.values(notes || {}))
+        : {},
+    };
     const blob = await encryptPayload(JSON.stringify(payload), password);
     if (encryptedStorageHint) blob.hint = encryptedStorageHint;
 
@@ -328,6 +334,18 @@ async function toggleEncryptedStorage(e) {
     encryptedStoragePassword = pw1.password;
     encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
+    try {
+      if (typeof migrateNoteAttachmentsStorage === 'function') {
+        await migrateNoteAttachmentsStorage('encrypted');
+      }
+    } catch (err) {
+      encryptedStorageEnabled = false;
+      encryptedStoragePassword = null;
+      encryptedStorageHint = '';
+      updateEncryptedStorageUI();
+      showToast('⚠ Attachment encryption failed: ' + (err.message || 'unknown error'), 'err');
+      return;
+    }
     saveNotes();
   } else {
     let confirmPw;
@@ -353,16 +371,30 @@ async function toggleEncryptedStorage(e) {
         confirmLabel: 'Disable Encryption', danger: true,
       });
     } catch { return; }
-    encryptedStorageEnabled  = false;
-    encryptedStoragePassword = null;
-    updateEncryptedStorageUI();
+    try {
+      if (typeof migrateNoteAttachmentsStorage === 'function') {
+        await migrateNoteAttachmentsStorage('plaintext');
+      }
+    } catch (err) {
+      showToast('⚠ Attachment decryption failed: ' + (err.message || 'unknown error'), 'err');
+      return;
+    }
     try {
       await fetch('/api/notes/storage/disable-encrypted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessions, notes }),
+        body: JSON.stringify({
+          sessions,
+          notes,
+          attachment_manifest: typeof buildAttachmentManifestFromClientNotes === 'function'
+            ? buildAttachmentManifestFromClientNotes(notes)
+            : {},
+        }),
       });
     } catch (_) {}
+    encryptedStorageEnabled  = false;
+    encryptedStoragePassword = null;
+    updateEncryptedStorageUI();
     saveNotes();
   }
 }
@@ -464,7 +496,7 @@ async function initNotes() {
 
   renderSessionSidebar();
   renderNotesList();
-  document.getElementById('notes-count').textContent = Object.keys(notes).length || '—';
+  if (typeof updateNotesCountBadges === 'function') updateNotesCountBadges();
 
   const sess = activeSessionId && sessions[activeSessionId];
   const targets = (sess && sess.targets) || [];
@@ -487,10 +519,14 @@ async function initNotes() {
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function executeAppSave() {
   const payload = { notes, sessions };
+  const attachmentManifest = typeof buildAttachmentManifestFromClientNotes === 'function'
+    ? buildAttachmentManifestFromClientNotes(notes)
+    : {};
   if (encryptedStorageEnabled) {
     try {
       if (!encryptedStoragePassword) throw new Error('Workbench is locked');
@@ -501,7 +537,7 @@ async function executeAppSave() {
       const res = await fetch('/api/notes/save-encrypted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blob }),
+        body: JSON.stringify({ blob, attachment_manifest: attachmentManifest }),
       });
       if (!res.ok) throw new Error('Encrypted save failed');
       return true;
@@ -516,7 +552,7 @@ async function executeAppSave() {
     const res = await fetch('/api/notes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, attachment_manifest: attachmentManifest }),
     });
     if (!res.ok) throw new Error('Save failed');
     return true;
@@ -537,13 +573,15 @@ function renderSessionSidebar() {
   const card   = document.getElementById('sessionActive');
   const sess   = activeSessionId && sessions[activeSessionId];
   if (sess) {
+    const activeTarget = typeof getActiveTarget === 'function' ? getActiveTarget() : null;
     const status = sess.status || 'active';
     dot.className = 'session-active-dot ' + (status === 'active' ? 'live' : status);
     name.textContent = sess.codename;
     name.title = sess.codename || '';
     if (card) card.title = sess.codename || 'Sessions';
-    target.textContent = '';
-    target.style.display = 'none';
+    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
+    target.textContent = targetLabel;
+    target.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
     if (badge) {
       const n = Object.values(notes).filter(nt => nt.session_id === activeSessionId).length;
@@ -572,6 +610,7 @@ function openSessionModal() {
   document.getElementById('newSessionTargetDomain').value = '';
   document.getElementById('newSessionTargetLabel').value = '';
   updateSessionAttackerIpField();
+  syncSummaryExportPrefsUI();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
   setTimeout(() => document.getElementById('newSessionName').focus(), 60);
@@ -633,7 +672,7 @@ function createSession() {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [] };
+  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -662,6 +701,23 @@ function updateSessionAttackerIpField() {
   }
   wrap.style.display = '';
   input.value = sess.attacker_ip || '';
+}
+
+function syncSummaryExportPrefsUI() {
+  const authorInput = document.getElementById('summaryAuthorInput');
+  const pdfInput = document.getElementById('summaryPdfDefault');
+  if (authorInput) {
+    authorInput.value = localStorage.getItem('pragma-summary-author') || '';
+    authorInput.oninput = () => {
+      localStorage.setItem('pragma-summary-author', authorInput.value);
+    };
+  }
+  if (pdfInput) {
+    pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
+    pdfInput.onchange = () => {
+      localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
+    };
+  }
 }
 
 function saveActiveSessionAttackerIp() {
@@ -759,6 +815,8 @@ function switchSession(id) {
   refreshCodeBlocks();
   updateSvcTabCounts();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 async function deleteSession(id) {
@@ -786,6 +844,8 @@ async function deleteSession(id) {
   renderSessionList();
   renderNotesList();
   renderTodoList();
+  if (typeof renderEvidenceList === 'function') renderEvidenceList();
+  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
 }
 
 let _sessionRenameId = null;
@@ -920,6 +980,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          evidence: cloneList(session.evidence, [['id'], ['target_id'], ['note_id'], ['type'], ['title'], ['details'], ['impact'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({
