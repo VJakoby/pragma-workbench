@@ -1,4 +1,4 @@
-# PRAGMA // Workbench
+# # PRAGMA // Workbench
 
 PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
 
