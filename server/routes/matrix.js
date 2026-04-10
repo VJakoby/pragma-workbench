@@ -130,6 +130,14 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
     return proxyJson(res, `/api/jobs/${encodeURIComponent(req.params.id)}/result`);
   });
 
+  app.post('/api/matrix/jobs/:id/cancel', async (req, res) => {
+    return proxyJson(res, `/api/jobs/${encodeURIComponent(req.params.id)}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body || {}),
+    }, 8000);
+  });
+
   app.post('/api/matrix/recon/domains', async (req, res) => {
     return proxyJson(res, '/api/recon/domains', {
       method: 'POST',

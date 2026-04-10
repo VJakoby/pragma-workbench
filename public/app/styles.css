@@ -4201,9 +4201,15 @@ body.enc-active-body .content-panel {
   border-color: rgba(var(--accent-rgb),0.38);
   color: var(--accent);
 }
-.svc-topbar-btn.open  { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
+.svc-topbar-btn.open  { border-color: var(--border); color: var(--accent); background: rgba(124,58,237,0.1); }
 .utility-topbar-segment-left.svc-topbar-btn.open {
+  border-right-color: var(--border);
+}
+.utility-topbar-segment-middle.svc-topbar-btn.open {
   border-right-color: transparent;
+}
+.utility-topbar-segment-right.svc-topbar-btn.open {
+  border-left-color: transparent;
 }
 .svc-topbar-btn-count {
   background: rgba(var(--green-rgb),0.2); color: var(--green);
@@ -5515,9 +5521,9 @@ body.enc-active-body .content-panel {
   background: var(--accent);
 }
 .matrix-view .matrix-submodule-btn:not(.active):hover {
-  border-color: rgba(var(--accent-rgb),0.38);
-  color: var(--accent);
-  background: rgba(var(--accent-rgb),0.08);
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--bg4);
 }
 .matrix-toolbox-tabs {
   display:grid;
@@ -5578,22 +5584,23 @@ body.enc-active-body .content-panel {
 .matrix-view .tb-btn:hover,
 .matrix-view .btn-group-item:not(.active):not(.fuzzy-active):hover,
 .matrix-view .matrix-job-item:hover {
-  border-color: rgba(var(--accent-rgb),0.38);
-  color: var(--accent);
-  background: rgba(var(--accent-rgb),0.08);
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--bg4);
 }
 .matrix-view .tb-btn:focus-visible,
 .matrix-view .btn-group-item:focus-visible,
 .matrix-view .matrix-job-item:focus-visible {
   outline: none;
-  border-color: rgba(var(--accent-rgb),0.42);
-  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.18);
+  border-color: var(--border2);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03);
 }
 .matrix-view .tb-btn:active,
 .matrix-view .btn-group-item:not(.active):not(.fuzzy-active):active,
 .matrix-view .matrix-job-item:active {
-  border-color: rgba(var(--accent-rgb),0.42);
-  background: rgba(var(--accent-rgb),0.12);
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--bg4);
 }
 .matrix-view .tb-btn[disabled],
 .matrix-view .btn-group-item[disabled],
@@ -5950,6 +5957,12 @@ body.enc-active-body .content-panel {
 .matrix-copy-toolbar {
   display:flex; justify-content:space-between; align-items:center; gap:12px;
 }
+.matrix-copy-toolbar--tight { align-items:flex-start; }
+.matrix-nmap-host-list { display:flex; flex-direction:column; gap:12px; }
+.matrix-nmap-host-card { display:flex; flex-direction:column; gap:10px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--bg3); }
+.matrix-nmap-host-title { color:var(--text); font-family:'Inter',sans-serif; font-size:13px; font-weight:700; }
+.matrix-nmap-host-meta { color:var(--muted); font-family:'Inter',sans-serif; font-size:12px; line-height:1.45; }
+.matrix-nmap-table-wrap { background:var(--bg2); }
 .matrix-copy-meta {
   color:var(--muted); font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
   text-transform:uppercase; letter-spacing:0.05em;

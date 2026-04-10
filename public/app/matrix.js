@@ -12,6 +12,7 @@ let matrixState = {
   httpxProfiles: [],
   selectedHttpxProfileId: '',
   enumerationTool: 'nmap',
+  currentJobStatus: null,
 };
 
 const MATRIX_POLL_INTERVALS = {
@@ -167,6 +168,44 @@ function matrixEnumerationDefaultOutputMessage() {
   return 'Run an enumeration job.';
 }
 
+async function cancelMatrixJob() {
+  if (!matrixState.currentJobId) return;
+  const button = document.getElementById('matrixStopButton');
+  if (button) button.disabled = true;
+  const response = await fetch(`/api/matrix/jobs/${encodeURIComponent(matrixState.currentJobId)}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    matrixSetOutput(data);
+    return;
+  }
+  matrixSetOutput(data.job || data);
+  loadMatrixJobs();
+}
+
+async function insertMatrixQuickLogPorts(button) {
+  const raw = button?.dataset?.preview || '';
+  if (!raw) return;
+  try {
+    const preview = JSON.parse(raw);
+    if (typeof window.insertQuickLogPortsFromMatrixPreview !== 'function') {
+      matrixSetOutput({ error: 'Quick Log port insertion unavailable in this build.' });
+      return;
+    }
+    const inserted = window.insertQuickLogPortsFromMatrixPreview(preview);
+    if (inserted) {
+      const original = button.textContent;
+      button.textContent = 'Inserted';
+      setTimeout(() => { button.textContent = original; }, 1200);
+    }
+  } catch (error) {
+    matrixSetOutput({ error: 'Could not insert parsed ports', detail: error.message });
+  }
+}
+
 function matrixActiveEnumerationNamingValue() {
   if (matrixActiveEnumerationTool() === 'masscan') {
     return document.getElementById('matrixEnumNamingMasscan')?.value.trim() || '';
@@ -180,6 +219,7 @@ function matrixActiveEnumerationNamingValue() {
 function matrixJobStatusTone(status) {
   if (status === 'completed') return 'ok';
   if (status === 'failed') return 'bad';
+  if (status === 'cancelled') return 'warn';
   if (status === 'running' || status === 'queued') return 'warn';
   return 'neutral';
 }
@@ -667,6 +707,88 @@ function matrixHttpxLiveUrls(results) {
     .filter(Boolean);
 }
 
+function matrixResolveNmapQuickLogTarget(parsed, host) {
+  const targets = Array.isArray(parsed?.quickLogPreview?.targets) ? parsed.quickLogPreview.targets : [];
+  return targets.find((item) => (
+    (item?.target && host?.target && item.target === host.target)
+    || (item?.displayTarget && host?.displayTarget && item.displayTarget === host.displayTarget)
+  )) || null;
+}
+
+function matrixRenderNmapParsedResult(parsed) {
+  const hosts = Array.isArray(parsed?.hosts) ? parsed.hosts : [];
+  if (!hosts.length) return '';
+
+  return `
+    <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+      <div class="matrix-section-top">PARSED PORTS</div>
+      <div class="matrix-section-body">
+        <div class="matrix-section-grid matrix-section-grid--compact">
+          ${matrixRenderSection('Coverage', 'counts', `
+            ${matrixRenderKv('Hosts', String(parsed?.summary?.hostCount ?? parsed?.stats?.totalHosts ?? hosts.length))}
+            ${matrixRenderKv('Up', String(parsed?.summary?.upCount ?? parsed?.stats?.upHosts ?? hosts.filter((host) => host?.status === 'up').length))}
+            ${matrixRenderKv('Ports', String(parsed?.summary?.portCount ?? parsed?.stats?.totalPorts ?? hosts.reduce((count, host) => count + ((host?.ports || []).length), 0)))}
+            ${matrixRenderKv('Open', String(parsed?.summary?.openPortCount ?? parsed?.stats?.openPorts ?? hosts.reduce((count, host) => count + ((host?.ports || []).filter((port) => port?.state === 'open').length), 0)))}
+          `)}
+        </div>
+        <div class="matrix-nmap-host-list">
+          ${hosts.map((host) => {
+            const openPorts = (Array.isArray(host?.ports) ? host.ports : []).filter((port) => port?.state === 'open');
+            const previewTarget = matrixResolveNmapQuickLogTarget(parsed, host);
+            const copyPayload = openPorts.map((port) => {
+              const version = [port?.product, port?.version, port?.extrainfo].filter(Boolean).join(' ');
+              return `${port?.port || ''}/${port?.protocol || 'tcp'} ${port?.service || ''}${version ? ` ${version}` : ''}`.trim();
+            }).join('\n');
+            return `
+              <div class="matrix-nmap-host-card">
+                <div class="matrix-copy-toolbar matrix-copy-toolbar--tight">
+                  <div>
+                    <div class="matrix-nmap-host-title">${escapeHtml(host?.displayTarget || host?.target || host?.ip || 'Host')}</div>
+                    <div class="matrix-nmap-host-meta">${escapeHtml(host?.ip || host?.target || 'N/A')} • ${escapeHtml(host?.status || 'unknown')} • ${escapeHtml(String(host?.openPortsCount ?? openPorts.length))} open</div>
+                  </div>
+                  <div class="matrix-inline-row">
+                    <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(copyPayload)}">Copy Ports</button>
+                    ${previewTarget && openPorts.length ? `<button class="tb-btn matrix-copy-btn" type="button" onclick="insertMatrixQuickLogPorts(this)" data-preview="${matrixEscapeAttribute(JSON.stringify(previewTarget))}">Insert Ports</button>` : ''}
+                  </div>
+                </div>
+                ${host?.os?.name ? `<div class="matrix-assessment-note">${escapeHtml(host.os.name)}${host.os.accuracy != null ? ` (${escapeHtml(String(host.os.accuracy))}% )` : ''}</div>`.replace('% )','%)') : ''}
+                <div class="matrix-httpx-table-wrap matrix-nmap-table-wrap">
+                  <table class="matrix-httpx-table matrix-nmap-table">
+                    <thead>
+                      <tr>
+                        <th>Port</th>
+                        <th>State</th>
+                        <th>Service</th>
+                        <th>Version</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${openPorts.length ? openPorts.map((port) => `
+                        <tr>
+                          <td>${escapeHtml(`${port?.port || '—'}/${port?.protocol || 'tcp'}`)}</td>
+                          <td>${escapeHtml(port?.state || '—')}</td>
+                          <td>${escapeHtml(port?.service || '—')}</td>
+                          <td>${escapeHtml([port?.product, port?.version, port?.extrainfo].filter(Boolean).join(' ') || '—')}</td>
+                          <td>${escapeHtml(port?.note || '—')}</td>
+                        </tr>
+                      `).join('') : `
+                        <tr>
+                          <td colspan="5">No open ports parsed.</td>
+                        </tr>
+                      `}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function matrixRenderHttpxParsedResult(parsed) {
   const httpxResults = Array.isArray(parsed?.results) ? parsed.results : [];
   if (!httpxResults.length) return '';
@@ -825,6 +947,7 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
         </div>
       </div>
       <div class="matrix-result-body">
+        ${toolLabel === 'Nmap' && Array.isArray(parsed?.hosts) && parsed.hosts.length ? matrixRenderNmapParsedResult(parsed) : ''}
         <div class="matrix-section-grid">
           ${matrixRenderSection('Command', 'resolution', `
             ${matrixRenderKv('Profile', result.profile?.label || job?.input?.profileLabel || toolLabel)}
@@ -954,6 +1077,13 @@ function matrixSetOutput(value) {
     : 'matrixOutputPassive');
   if (!node) return;
   const rawDetailsWasOpen = node.querySelector('.matrix-raw-details[open]') !== null;
+  const summary = value?.summary || null;
+  const base = value?.result && value?.status ? value : (summary || value);
+  const stopButton = document.getElementById('matrixStopButton');
+  const cancellable = matrixState.toolboxModule === 'enumeration' && !!base?.id && (base?.status === 'queued' || base?.status === 'running');
+  matrixState.currentJobId = base?.id || null;
+  matrixState.currentJobStatus = base?.status || null;
+  if (stopButton) stopButton.disabled = !cancellable;
   node.innerHTML = matrixRenderPayload(value);
   const rawDetails = node.querySelector('.matrix-raw-details');
   if (rawDetails && rawDetailsWasOpen) {
@@ -1116,6 +1246,8 @@ function setMatrixToolboxModule(moduleName) {
   if (output) {
     output.textContent = matrixDefaultOutputMessage();
   }
+  const stopButton = document.getElementById('matrixStopButton');
+  if (stopButton && matrixState.toolboxModule !== 'enumeration') stopButton.disabled = true;
 
   if (matrixState.toolboxModule === 'enumeration') {
     setMatrixEnumerationTool(matrixState.enumerationTool);
@@ -1712,9 +1844,11 @@ async function loadMatrixJobs() {
         ? 'Job completed'
         : job.status === 'failed'
           ? 'Job failed'
-          : job.status === 'running'
-            ? 'Job running'
-            : 'Job queued')}</span>
+          : job.status === 'cancelled'
+            ? 'Job cancelled'
+            : job.status === 'running'
+              ? 'Job running'
+              : 'Job queued')}</span>
     </button>
   `).join('');
 }
@@ -1757,6 +1891,8 @@ window.runMatrixEnumeration = runMatrixEnumeration;
 window.loadMatrixJobs = loadMatrixJobs;
 window.openMatrixJob = openMatrixJob;
 window.importMatrixTargets = importMatrixTargets;
+window.cancelMatrixJob = cancelMatrixJob;
+window.insertMatrixQuickLogPorts = insertMatrixQuickLogPorts;
 window.copyMatrixText = async function copyMatrixText(button) {
   const value = button?.dataset?.copy || '';
   if (!value) return;

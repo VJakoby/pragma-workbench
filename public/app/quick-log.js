@@ -1267,6 +1267,76 @@ function commitPortParse() {
   toggleToolPaste('ports');
 }
 
+function resolveMatrixPreviewTargetId(previewTarget) {
+  if (activeTargetId) return activeTargetId;
+  const targets = typeof getSessionTargets === 'function' ? getSessionTargets() : [];
+  const candidates = [previewTarget?.target, previewTarget?.displayTarget]
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (candidates.length) {
+    const match = targets.find((target) => {
+      const values = [target?.ip, target?.domain, target?.label]
+        .map(value => String(value || '').trim().toLowerCase())
+        .filter(Boolean);
+      return values.some(value => candidates.includes(value));
+    });
+    if (match?.id) return match.id;
+  }
+  if (targets.length === 1) return targets[0].id;
+  return null;
+}
+
+function insertQuickLogPortsFromMatrixPreview(previewTarget) {
+  if (!activeSessionId || !previewTarget || !Array.isArray(previewTarget.ports) || !previewTarget.ports.length) {
+    showToast('⚠ No parsed ports to insert', 'err');
+    return false;
+  }
+  const targetId = resolveMatrixPreviewTargetId(previewTarget);
+  if (!targetId) {
+    showToast('⚠ Select a target first for port insertion', 'err');
+    return false;
+  }
+  if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
+  const existing = new Set(
+    sessions[activeSessionId].services
+      .filter(entry => (entry?.target_id || null) === targetId)
+      .map(entry => `${entry.port}/${entry.proto || 'tcp'}`)
+  );
+
+  let added = 0;
+  previewTarget.ports.forEach((row) => {
+    const port = String(row?.port || '').trim();
+    const proto = String(row?.protocol || row?.proto || 'tcp').trim().toLowerCase() || 'tcp';
+    if (!port || existing.has(`${port}/${proto}`)) return;
+    sessions[activeSessionId].services.push({
+      id: `svc_${Date.now()}_${added}`,
+      target_id: targetId,
+      port,
+      proto,
+      service: String(row?.service || '').trim(),
+      version: String(row?.version || '').trim(),
+      notes: String(row?.notes || '').trim(),
+      added: Date.now(),
+    });
+    existing.add(`${port}/${proto}`);
+    added += 1;
+  });
+
+  const syncedNetworkNote = syncSessionServicesToNetworkEnumerationNote(targetId, added > 0);
+  saveNotes();
+  renderSvcLogTable();
+  updateSvcTabCounts();
+  applySyncedNoteUpdate(syncedNetworkNote);
+  if (added > 0) {
+    showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
+    return true;
+  }
+  showToast('⚠ All parsed ports already logged', 'err');
+  return false;
+}
+
+window.insertQuickLogPortsFromMatrixPreview = insertQuickLogPortsFromMatrixPreview;
+
 function parsePathOutput(text) {
   const results = [];
   const seen = new Set();

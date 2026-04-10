@@ -43,6 +43,7 @@
             <div class="matrix-toolbar-actions">
               <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX Toolbox status">Refresh</button>
               <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX Toolbox jobs">Jobs</button>
+              <button class="tb-btn" id="matrixStopButton" onclick="cancelMatrixJob()" title="Stop active MATRIX job" disabled>Stop</button>
             </div>
           </div>
           <div class="matrix-offline-state" id="matrixOfflineState" hidden>
