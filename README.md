@@ -1,6 +1,6 @@
 # PRAGMA // Workbench
 
-> A local workbench for pentest notes, encrypted workbench storage, and a target-aware knowledge base — no cloud, no clutter.
+PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
 
 ---
 ## 🚩 My Problem
@@ -94,6 +94,7 @@ In practice, this means the app is opinionated about staying operational:
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
+- Session summary export supports a consolidated markdown file and an optional PDF summary output
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting

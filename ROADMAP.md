@@ -8,7 +8,7 @@ The project is intentionally centered on operational notes, local workflow suppo
 
 ### PDF Generation And Formal Report Builders
 
-PRAGMA should not turn into a PDF reporting system.
+PRAGMA supports a basic PDF export of the generated session summary. It should still not turn into a full PDF reporting system, and advanced/custom report builders are explicitly out of scope.
 
 That path almost always drags in a second product hidden inside the first one:
 
