@@ -298,6 +298,11 @@ function matrixMarkdownList(values, empty = 'None') {
   return values.join(', ');
 }
 
+function matrixFormatSubdomainSources(sources, fallback = 'None') {
+  if (!Array.isArray(sources) || !sources.length) return fallback;
+  return sources.join(', ');
+}
+
 function matrixMarkdownMx(mxList) {
   if (!Array.isArray(mxList) || !mxList.length) return 'None';
   if (mxList.some(item => item?.isNullMx)) return 'Null MX';
@@ -391,14 +396,14 @@ function matrixBuildSubdomainMarkdown(result) {
   const header = `## ${result.rootDomain || result.normalized || result.target || 'Passive Subdomain Recon'}`;
   const rows = [
     ['Root Domain', result.rootDomain || result.normalized || result.target || 'N/A'],
-    ['Sources Used', Array.isArray(discovery.sourcesUsed) && discovery.sourcesUsed.length ? discovery.sourcesUsed.join(', ') : 'None'],
+    ['Sources Used', matrixFormatSubdomainSources(discovery.sourcesUsed)],
     ['Returned', String(discovery.returnedCount || 0)],
     ['Total Discovered', String(discovery.totalDiscovered || 0)],
   ];
   const hostList = hostnames.length
-    ? hostnames.map(item => `| ${matrixMarkdownCell(item.hostname || '')} | ${matrixMarkdownCell(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')} |`).join('\n')
+    ? hostnames.map(item => `| ${matrixMarkdownCell(item.hostname || '')} | ${matrixMarkdownCell(matrixFormatSubdomainSources(item.sources))} |`).join('\n')
     : '| None | N/A |';
-  return `${header}\n\n${matrixBuildMarkdownTable(rows)}\n\n| Hostname | Source |\n| --- | --- |\n${hostList}`;
+  return `${header}\n\n${matrixBuildMarkdownTable(rows)}\n\n| Hostname | Sources |\n| --- | --- |\n${hostList}`;
 }
 
 function matrixReconMarkdown(result) {
@@ -575,6 +580,7 @@ function matrixRenderIpResult(result) {
 function matrixRenderSubdomainResult(result) {
   const discovery = result?.discovery || {};
   const hostnames = Array.isArray(discovery.hostnames) ? discovery.hostnames : [];
+  const sourceSummary = matrixFormatSubdomainSources(discovery.sourcesUsed);
   const tone = result.error ? 'error' : (hostnames.length ? 'ok' : 'warning');
   const hostnameLines = hostnames.map(item => item.hostname || '').filter(Boolean).join('\n');
 
@@ -588,7 +594,9 @@ function matrixRenderSubdomainResult(result) {
         <div class="matrix-chip-row">
           ${matrixStatusChip(result.valid ? 'valid' : 'invalid', result.valid ? 'ok' : 'bad')}
           ${matrixStatusChip(`${discovery.returnedCount || 0} found`, hostnames.length ? 'ok' : 'warn')}
-          ${matrixStatusChip('crt.sh', 'neutral')}
+          ${Array.isArray(discovery.sourcesUsed) && discovery.sourcesUsed.length
+            ? discovery.sourcesUsed.map(source => matrixStatusChip(source, 'neutral')).join('')
+            : matrixStatusChip('no source', 'neutral')}
         </div>
       </div>
 
@@ -598,14 +606,15 @@ function matrixRenderSubdomainResult(result) {
         ${matrixRenderSection('Discovery', 'resolution', `
           ${matrixRenderKv('Root Domain', result.rootDomain || result.normalized || 'N/A')}
           ${matrixRenderKv('Mode', discovery.passive ? 'Passive' : 'N/A')}
-          ${matrixRenderKv('Sources Used', Array.isArray(discovery.sourcesUsed) && discovery.sourcesUsed.length ? discovery.sourcesUsed.join(', ') : 'None')}
+          ${matrixRenderKv('Sources Used', sourceSummary)}
           ${matrixRenderKv('Returned', String(discovery.returnedCount || 0))}
           ${matrixRenderKv('Total Discovered', String(discovery.totalDiscovered || 0))}
           ${matrixRenderKv('Truncated', discovery.truncated ? 'Yes' : 'No')}
         `)}
 
         ${matrixRenderSection('Source Detail', 'source', `
-          ${matrixRenderKv('Primary Source', 'crt.sh')}
+          ${matrixRenderKv('Lookup Sources', sourceSummary)}
+          ${matrixRenderKv('Source Count', String(Array.isArray(discovery.sourcesUsed) ? discovery.sourcesUsed.length : 0))}
           ${matrixRenderKv('Passive Only', 'Yes')}
           ${matrixRenderKv('Touches Target', 'No')}
         `)}
@@ -623,7 +632,7 @@ function matrixRenderSubdomainResult(result) {
               <div class="matrix-subdomain-item">
                 <div class="matrix-subdomain-host-wrap">
                   <div class="matrix-subdomain-host">${escapeHtml(item.hostname || '')}</div>
-                  <div class="matrix-subdomain-meta">${escapeHtml(Array.isArray(item.sources) ? item.sources.join(', ') : 'crtsh')}</div>
+                  <div class="matrix-subdomain-meta">${escapeHtml(matrixFormatSubdomainSources(item.sources))}</div>
                 </div>
                 <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(item.hostname || '')}">Copy</button>
               </div>

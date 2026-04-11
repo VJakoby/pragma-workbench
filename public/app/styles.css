@@ -954,12 +954,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .sidebar .nav-item-icon svg { width:18px; height:18px; }
 
 .nav-item-service-dot {
-  display:block;
+  display:none;
   position:absolute;
   right:1px;
   bottom:1px;
-  width:7px;
-  height:7px;
+  width:9px;
+  height:9px;
   border-radius:999px;
   background:var(--muted);
   border:1.5px solid var(--bg2);
