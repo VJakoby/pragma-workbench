@@ -382,7 +382,7 @@ See [ROADMAP.md](./ROADMAP.md).
 
 ---
 
-## Contributions
+## 🤝 Contributions
 
 If you discover new ideas, feature proposals, bugs, or other problems, opening an issue is highly appreciated. Pull requests with fixes or improvements are also very welcome.
 
