@@ -964,6 +964,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   background:var(--muted);
   border:1.5px solid var(--bg2);
   box-shadow:0 0 0 1px rgba(0,0,0,0.08);
+  pointer-events:none;
 }
 .nav-item-service-dot.online {
   background:var(--green);
