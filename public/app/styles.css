@@ -1412,6 +1412,20 @@ svg { vertical-align: middle; flex-shrink: 0; }
   cursor:pointer;
   transition:color 0.16s ease, background 0.16s ease;
 }
+.notes-list-edge-btn svg{
+  display:block;
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+}
+.notes-list-reopen-btn svg{
+  width:15px;
+  height:15px;
+}
+.notes-list-create-btn svg{
+  width:15px;
+  height:15px;
+}
 .notes-list-edge-btn:first-child{
   border-top:none;
 }
