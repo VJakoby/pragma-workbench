@@ -289,13 +289,43 @@ Write your KB docs using any of the supported placeholder styles below.
 
 ---
 
-### Optional Modules
+## Optional Modules
+
+### ENGRAM // Search Surface
+
+ENGRAM is an optional companion service that powers PRAGMA’s KB search surface. When enabled, PRAGMA queries ENGRAM for indexed results; when disabled, the module stays offline and search falls back to local content only.
+
+- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram)
+- Purpose: index and serve KB content for fast, ranked search results inside PRAGMA
+- Integration model: ENGRAM runs as its own local service, and PRAGMA points at it via `SEARCH_URL`
+
+To bring ENGRAM up as a separate container:
+
+```bash
+cd ~/engram
+docker compose build --no-cache
+docker compose up -d
+```
+
+Verify it is reachable:
+
+```bash
+curl http://127.0.0.1:3002/healthz
+```
+
+To enable it in PRAGMA:
+
+```env
+SEARCH_URL=http://127.0.0.1:3002
+```
+
+Then restart PRAGMA. If ENGRAM is online, `KB Search` will show indexed results.
 
 ### MATRIX // Toolbox
 
 MATRIX is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
 
-- Repo: [MATRIX//Toolbox](https://github.com/VJakoby/matrix-toolbox)
+- Repo: [MATRIX // Toolbox](https://github.com/VJakoby/matrix-toolbox)
 - Purpose: provide API-backed helper workflows such as passive recon, Nmap enumeration, and Masscan enumeration without turning PRAGMA itself into a scanner platform
 - Integration model: MATRIX runs as its own local service, and PRAGMA talks to it through the MATRIX proxy routes
 
