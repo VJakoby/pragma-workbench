@@ -379,6 +379,12 @@ PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notice
 The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
 
 See [ROADMAP.md](./ROADMAP.md).
+
+---
+
+## Contributions
+
+If you discover new ideas, feature proposals, bugs, or other problems, opening an issue is highly appreciated. Pull requests with fixes or improvements are also very welcome.
 ---
 
 Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
