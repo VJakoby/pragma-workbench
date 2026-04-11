@@ -1944,11 +1944,18 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 
 .notes-scope-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 10px 4px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg2);
-  overflow-x: auto; flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 1px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg3);
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .notes-scope-bar::-webkit-scrollbar { display: none; }
 .note-scope-btn {
