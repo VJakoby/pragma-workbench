@@ -1689,7 +1689,9 @@ function ensureTargetNetworkEnumerationNote(targetId) {
   if (note) return note;
 
   const id = 'note_' + Date.now();
-  const tmpl = NOTE_TEMPLATES['network-enumeration'];
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('network-enumeration')
+    : NOTE_TEMPLATES['network-enumeration'];
   note = {
     id,
     session_id: activeSessionId,
@@ -1708,6 +1710,16 @@ function ensureTargetNetworkEnumerationNote(targetId) {
   };
   notes[id] = note;
   return note;
+}
+
+function buildNetworkEnumerationBody(target) {
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('network-enumeration')
+    : NOTE_TEMPLATES['network-enumeration'];
+  const base = typeof buildNoteBodyFromTemplate === 'function'
+    ? buildNoteBodyFromTemplate(tmpl)
+    : (tmpl?.body || '');
+  return populateNetworkEnumerationOverview(base, target);
 }
 
 function syncServiceEntryToNetworkEnumerationNote(entry) {
@@ -1730,7 +1742,11 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  const nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  if (!nextBody) {
+    const fallbackBody = buildNetworkEnumerationBody(target);
+    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -1752,7 +1768,11 @@ function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = fa
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  const nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  let nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  if (!nextBody) {
+    const fallbackBody = buildNetworkEnumerationBody(target);
+    nextBody = replaceWebEndpointsTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
