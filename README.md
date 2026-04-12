@@ -353,31 +353,36 @@ curl http://127.0.0.1:3003/healthz
 To enable it in PRAGMA:
 
 ```env
-MATRIX_ENABLED=true
-MATRIX_URL=http://127.0.0.1:3003
+TOOLBOX_ENABLED=true
+TOOLBOX_URL=http://127.0.0.1:3003
 ```
 
 Or use fallback URLs:
 
 ```env
-MATRIX_ENABLED=true
-MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
+TOOLBOX_ENABLED=true
+TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
 ```
 
 Then restart PRAGMA. If enabled, `Toolbox` appears in the sidebar. If disabled, the module is hidden entirely.
+
+Compatibility note:
+
+- `TOOLBOX_*` is now the preferred config surface
+- legacy `MATRIX_*` variables are still accepted as fallbacks for existing setups
 
 In short:
 
 1. build and start PRAGMA // Toolbox as its own service/container
 2. point PRAGMA at the PRAGMA // Toolbox API
-3. enable `MATRIX_ENABLED=true`
+3. enable `TOOLBOX_ENABLED=true`
 4. restart PRAGMA
 
 Common `.env` values include:
 
-- `MATRIX_ENABLED`
-- `MATRIX_URL`
-- `MATRIX_URLS`
+- `TOOLBOX_ENABLED`
+- `TOOLBOX_URL`
+- `TOOLBOX_URLS`
 - `PRAGMA_KB_PATH`
 - `PRAGMA_SESSIONS_PATH`
 - `PDF_EXPORT_ENABLED`

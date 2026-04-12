@@ -72,9 +72,9 @@ Recommended startup flow:
 
 | Variable | Default | Description |
 |---|---|---|
-| `MATRIX_ENABLED` | `false` | Enable the optional PRAGMA // Toolbox integration in the UI and proxy routes |
-| `MATRIX_URL` | App default: `http://127.0.0.1:3003` | Primary URL to the PRAGMA // Toolbox service when enabled |
-| `MATRIX_URLS` | unset | Optional comma-separated fallback URL list tried in order |
+| `TOOLBOX_ENABLED` | `false` | Enable the optional PRAGMA // Toolbox integration in the UI and proxy routes |
+| `TOOLBOX_URL` | App default: `http://127.0.0.1:3003` | Primary URL to the PRAGMA // Toolbox service when enabled |
+| `TOOLBOX_URLS` | unset | Optional comma-separated fallback URL list tried in order |
 | `PRAGMA_UID` | `1000` | Host user ID used to run the container process |
 | `PRAGMA_GID` | `1000` | Host group ID used to run the container process |
 | `PRAGMA_KB_PATH` | `./knowledge_base` | Host path mounted into `/usr/src/app/knowledge_base` |
@@ -109,8 +109,8 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base
       - SESSIONS_DIR=/usr/src/app/sessions
       - SEARCH_URL=http://engram:3002
-      - MATRIX_ENABLED=true
-      - MATRIX_URL=http://host.docker.internal:3003
+      - TOOLBOX_ENABLED=true
+      - TOOLBOX_URL=http://host.docker.internal:3003
     extra_hosts:
       - "host.docker.internal:host-gateway"
 ```
@@ -123,9 +123,9 @@ PRAGMA_GID=1000
 PRAGMA_KB_PATH=./knowledge_base
 PRAGMA_SESSIONS_PATH=./sessions
 PDF_EXPORT_ENABLED=true
-MATRIX_ENABLED=true
-MATRIX_URL=http://127.0.0.1:3003
-MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
+TOOLBOX_ENABLED=true
+TOOLBOX_URL=http://127.0.0.1:3003
+TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
 ```
 
 ### PDF Export and Chromium
@@ -146,7 +146,9 @@ The Chromium-free image is materially smaller. In local testing:
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
 
-> **Toolbox note:** The Toolbox module is fully optional. Leave `MATRIX_ENABLED=false` to hide it completely. If you enable it and PRAGMA runs inside Docker while PRAGMA // Toolbox runs on the host machine, `MATRIX_URL=http://127.0.0.1:3003` will not work from inside the PRAGMA container. Use `MATRIX_URL=http://host.docker.internal:3003` and add the `host-gateway` mapping shown above. You can also set `MATRIX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003` so PRAGMA tries container, host-gateway, and local-host paths in order.
+> **Toolbox note:** The Toolbox module is fully optional. Leave `TOOLBOX_ENABLED=false` to hide it completely. If you enable it and PRAGMA runs inside Docker while PRAGMA // Toolbox runs on the host machine, `TOOLBOX_URL=http://127.0.0.1:3003` will not work from inside the PRAGMA container. Use `TOOLBOX_URL=http://host.docker.internal:3003` and add the `host-gateway` mapping shown above. You can also set `TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003` so PRAGMA tries container, host-gateway, and local-host paths in order.
+
+> **Compatibility note:** `TOOLBOX_*` is now the preferred config surface. PRAGMA still accepts legacy `MATRIX_*` variables as fallbacks so existing environments do not break immediately.
 
 > **Templates note:** The image already contains the checked-in `note-templates.json` from the repo. Add a bind mount only if you want host-side template edits to appear in the container without rebuilding the image.
 
@@ -211,8 +213,8 @@ In that case, set:
 
 ```yaml
 environment:
-  - MATRIX_ENABLED=true
-  - MATRIX_URL=http://host.docker.internal:3003
+  - TOOLBOX_ENABLED=true
+  - TOOLBOX_URL=http://host.docker.internal:3003
 extra_hosts:
   - "host.docker.internal:host-gateway"
 ```
@@ -220,4 +222,4 @@ extra_hosts:
 Important:
 
 - inside the PRAGMA container, `127.0.0.1` refers to the PRAGMA container itself, not the host
-- if PRAGMA // Toolbox is instead running in another container, point `MATRIX_URL` at that container/service name instead
+- if PRAGMA // Toolbox is instead running in another container, point `TOOLBOX_URL` at that container/service name instead
