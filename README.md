@@ -74,6 +74,36 @@ In practice, this means the app is opinionated about staying operational:
 | Storage | File-backed JSON + Markdown | Sessions/workbench state on disk, KB as `.md` files |
 | Containerization | Docker / Docker Compose | Optional local container runtime |
 
+## Screenshots
+
+Here are a few screenshots to give a quick impression of the platform. They help show the shape of the workflow, but the real value is in using it directly and experiencing how the views fit together during actual work.
+
+### Main View
+
+![PRAGMA Main UI](./screenshots/PRAGMA-Main-UI.png)
+
+The main workbench layout with notes in focus and supporting context around them.
+
+### Encryption
+
+![PRAGMA Encryption](./screenshots/Encrypt.png)
+
+Workbench encryption flow for protecting local session data.
+
+### Quick Log: Ports
+
+![PRAGMA Quick Log Ports](./screenshots/Log-Ports.png)
+
+Structured quick logging for open ports and service observations during enumeration.
+
+### Quick Log: Loot
+
+![PRAGMA Quick Log Loot](./screenshots/Log-Loot.png)
+
+Fast capture of credentials, hashes, tokens, and other engagement loot.
+
+---
+
 ## 🏷️ Features
 
 **Sessions & Targets**
