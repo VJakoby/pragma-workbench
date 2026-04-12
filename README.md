@@ -1,11 +1,13 @@
 # # PRAGMA // Workbench
 
-PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
+**PRAGMA** is an operational workspace built for pentest engagements — not a note app that happens to run on localhost.
+At its core: a focused Markdown editor organized around sessions and targets, with a right-side context panel that surfaces your KB, tactics, and search results without pulling you out of the flow. Evidence and loot capture is first-class, not bolted on.
 
 ---
-## 🚩 My Problem
+## 🚩 The problem it solves
 
-Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
+Pentest work demands focus, but the tools don't support it. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are rigid and built for output, not process. Cloud tools add risk you don't want.
+PRAGMA keeps everything in the same room — structured enough to be useful, local enough to be trusted.
 
 ## ❌ What it is NOT
 
