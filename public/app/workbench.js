@@ -12,6 +12,7 @@ const BLANK_NOTE_META = {
 const BUILTIN_NOTE_TYPE_META = {
   general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
+  'passive-recon': { label: 'Passive Recon', icon: '🛰', cssClass: 'note-type-passive-recon' },
   privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   'network-enumeration': { label: 'Network Enumeration', icon: '🌐', cssClass: 'note-type-network-enumeration' },
@@ -26,6 +27,7 @@ let NOTE_TYPE_META = {
 const NOTE_TEMPLATES_FALLBACK = {
   general:     { title: '',                    body: `## Overview\n\n\n## Notes\n\n\n## References\n\n` },
   credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
+  'passive-recon': { title: 'Passive Recon',   body: `## Passive Recon\n\nUse this note to collect curated passive reconnaissance results from Toolbox.\n\n` },
   privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
   recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
   'network-enumeration': { title: 'Network Enumeration', body: `## Target Overview\n\n| Field | Value |\n|-------|-------|\n| IP | |\n| Domain | |\n| Hostname | |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Notes\n\n` },

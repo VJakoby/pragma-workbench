@@ -1483,6 +1483,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .note-item.note-type-general{border-left-color:rgba(148,163,184,0.28)}
 .note-item.note-type-credentials{border-left-color:rgba(251,191,36,0.62)}
+.note-item.note-type-passive-recon{border-left-color:rgba(59,130,246,0.62)}
 .note-item.note-type-privesc{border-left-color:rgba(248,113,113,0.62)}
 .note-item.note-type-recon{border-left-color:rgba(124,58,237,0.56)}
 .note-item.note-type-network-enumeration{border-left-color:rgba(var(--green-rgb),0.6)}
@@ -2598,6 +2599,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     }
     .note-type-general     { color: var(--muted);   background: var(--bg4); }
     .note-type-credentials { color: var(--yellow);  background: rgba(251,191,36,0.1);  }
+    .note-type-passive-recon { color: #93c5fd; background: rgba(59,130,246,0.12); }
     .note-type-privesc     { color: var(--red);     background: rgba(248,113,113,0.1); }
     .note-type-recon       { color: var(--accent);  background: rgba(124,58,237,0.16); }
     .note-type-network-enumeration { color: var(--green); background: rgba(var(--green-rgb),0.12); }
@@ -2615,6 +2617,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 
     /* Borders only on the note list item badges, not the filter bar buttons */
     .note-item-type.note-type-credentials { border: 1px solid rgba(251,191,36,0.2);  }
+    .note-item-type.note-type-passive-recon { border: 1px solid rgba(59,130,246,0.2); }
     .note-item-type.note-type-privesc     { border: 1px solid rgba(248,113,113,0.2); }
     .note-item-type.note-type-recon       { border: 1px solid rgba(124,58,237,0.15); }
     .note-item-type.note-type-network-enumeration { border: 1px solid rgba(var(--green-rgb),0.18); }

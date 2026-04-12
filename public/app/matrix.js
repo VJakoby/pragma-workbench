@@ -63,7 +63,7 @@ function matrixSetStatus(label, state) {
     pill.textContent = label;
     pill.className = `matrix-service-pill ${state || ''}`.trim();
     pill.title = '';
-    pill.setAttribute('aria-label', `MATRIX status ${label}`);
+    pill.setAttribute('aria-label', `Toolbox status ${label}`);
   }
   if (versionLabel) {
     versionLabel.textContent = version;
@@ -71,13 +71,13 @@ function matrixSetStatus(label, state) {
   if (badge) {
     badge.textContent = '';
     badge.className = `nav-item-count matrix-nav-status ${state || ''}`.trim();
-    badge.title = version || `MATRIX ${label}`;
-    badge.setAttribute('aria-label', version ? `MATRIX ${label} ${version}` : `MATRIX ${label}`);
+    badge.title = version || `Toolbox ${label}`;
+    badge.setAttribute('aria-label', version ? `Toolbox ${label} ${version}` : `Toolbox ${label}`);
   }
   if (dot) {
     dot.className = `nav-item-service-dot ${state || ''}`.trim();
-    dot.title = version || `MATRIX ${label}`;
-    dot.setAttribute('aria-label', version ? `MATRIX ${label} ${version}` : `MATRIX ${label}`);
+    dot.title = version || `Toolbox ${label}`;
+    dot.setAttribute('aria-label', version ? `Toolbox ${label} ${version}` : `Toolbox ${label}`);
   }
 }
 
@@ -413,13 +413,82 @@ function matrixReconMarkdown(result) {
   return '';
 }
 
+function findSessionPassiveReconNote() {
+  if (!activeSessionId) return null;
+  return Object.values(notes).find(note => note.session_id === activeSessionId && note.type === 'passive-recon') || null;
+}
+
+function ensureSessionPassiveReconNote() {
+  if (!NOTE_TEMPLATES?.['passive-recon'] || !activeSessionId) return null;
+  let note = findSessionPassiveReconNote();
+  if (note) return note;
+
+  const id = 'note_' + Date.now();
+  const tmpl = NOTE_TEMPLATES['passive-recon'];
+  note = {
+    id,
+    session_id: activeSessionId,
+    target_id: activeTargetId || null,
+    type: 'passive-recon',
+    title: tmpl.title || 'Passive Recon',
+    body: typeof buildNoteBodyFromTemplate === 'function' ? buildNoteBodyFromTemplate(tmpl) : (tmpl.body || ''),
+    tags: tmpl.default_tags ? [...tmpl.default_tags] : [],
+    target_ip: getIP() !== '<IP>' ? getIP() : null,
+    target_domain: getDomain() !== '<DOMAIN>' ? getDomain() : null,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+  notes[id] = note;
+  return note;
+}
+
+function appendMatrixMarkdownToPassiveReconNote(markdown, targetLabel = '') {
+  if (!activeSessionId) {
+    showToast('Open a session before saving Toolbox results to notes.', 'err');
+    return false;
+  }
+  if (!markdown) return false;
+  const note = ensureSessionPassiveReconNote();
+  if (!note) {
+    showToast('Passive Recon note template is unavailable.', 'err');
+    return false;
+  }
+  const timestamp = new Date().toLocaleString('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const heading = [`### Toolbox Import`, targetLabel ? `- ${targetLabel}` : '', `(${timestamp})`].join(' ').replace(/\s+/g, ' ').trim();
+  const block = `${heading}\n\n${String(markdown).trim()}`;
+  const body = String(note.body || '').trimEnd();
+  note.body = body ? `${body}\n\n---\n\n${block}\n` : `${block}\n`;
+  note.updated = Date.now();
+  renderNotesList();
+  renderSessionSidebar();
+  saveNotes();
+  showToast(`✓ Added Toolbox result to ${note.title || 'Passive Recon'}`);
+  return note;
+}
+
+function appendMatrixResultToPassiveReconNote(button) {
+  const markdown = button?.dataset?.markdown || '';
+  const targetLabel = button?.dataset?.target || '';
+  appendMatrixMarkdownToPassiveReconNote(markdown, targetLabel);
+}
+
 function matrixCopyMarkdownAction(result) {
   const markdown = matrixReconMarkdown(result);
   if (!markdown) return '';
+  const noteAction = activeSessionId
+    ? `<button class="tb-btn matrix-copy-btn matrix-markdown-btn" type="button" onclick="appendMatrixResultToPassiveReconNote(this)" data-markdown="${matrixEscapeAttribute(markdown)}" data-target="${matrixEscapeAttribute(result.normalized || result.rootDomain || result.target || '')}">Append to Passive Recon Note</button>`
+    : `<div class="matrix-muted">Open a session to save this result into notes.</div>`;
   return `
     <div class="matrix-export-row">
-      <div class="matrix-export-copy">Copy a compact markdown summary for manual note insertion.</div>
+      <div class="matrix-export-copy">Copy a compact markdown summary or append it into a dedicated session note.</div>
       <button class="tb-btn matrix-copy-btn matrix-markdown-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(markdown)}">Copy Note Markdown</button>
+      ${noteAction}
     </div>
   `;
 }
@@ -649,8 +718,8 @@ function matrixRenderJobOverview(job) {
   const counts = job?.result?.counts || {};
   const jobName = job?.input?.name || job?.name || '';
   const fallbackTitle = job?.type === 'nmap-enumeration' || job?.type === 'masscan-enumeration' || job?.type === 'httpx-enumeration'
-    ? 'MATRIX // Active Enumeration'
-    : 'MATRIX // Passive Recon';
+    ? 'Active Enumeration'
+    : 'Passive Recon';
   const targetCount = Array.isArray(job?.input?.targets) && job.input.targets.length
     ? job.input.targets.length
     : (Object.prototype.hasOwnProperty.call(counts, 'Targets') ? counts.Targets : 0);
@@ -1028,10 +1097,10 @@ function matrixRenderPayload(value) {
           <div>
             <div class="matrix-result-title">Submitting ${escapeHtml(
               matrixState.toolboxModule === 'enumeration'
-                ? (matrixActiveEnumerationNamingValue() || 'MATRIX // Active Enumeration')
-                : (document.getElementById('matrixNaming')?.value.trim() || 'MATRIX // Passive Recon')
+                ? (matrixActiveEnumerationNamingValue() || 'Active Enumeration')
+                : (document.getElementById('matrixNaming')?.value.trim() || 'Passive Recon')
             )}</div>
-            <div class="matrix-result-subtitle">Waiting for MATRIX to queue the job</div>
+            <div class="matrix-result-subtitle">Waiting for Toolbox to queue the job</div>
           </div>
           <div class="matrix-chip-row">${matrixStatusChip('submitting', 'warn')}</div>
         </div>
@@ -1249,7 +1318,7 @@ function setMatrixToolboxModule(moduleName) {
   document.getElementById('matrixOutputCardEnumeration')?.toggleAttribute('hidden', matrixState.toolboxModule !== 'enumeration');
 
   const toolbarModuleLabel = document.getElementById('matrixToolbarModuleLabel');
-  if (toolbarModuleLabel) toolbarModuleLabel.textContent = '// Toolbox';
+  if (toolbarModuleLabel) toolbarModuleLabel.textContent = 'TOOLBOX';
 
   const output = matrixActiveOutputNode();
   if (output) {
@@ -1274,12 +1343,12 @@ async function refreshMatrixStatus() {
       fetch('/api/matrix/health'),
       fetch('/api/matrix/capabilities'),
     ]);
-    if (!healthResponse.ok || !capabilitiesResponse.ok) throw new Error('MATRIX proxy unavailable');
+    if (!healthResponse.ok || !capabilitiesResponse.ok) throw new Error('Toolbox proxy unavailable');
     const [health, capabilities] = await Promise.all([
       healthResponse.json(),
       capabilitiesResponse.json(),
     ]);
-    if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('MATRIX service unavailable');
+    if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('Toolbox service unavailable');
     matrixState.capabilities = capabilities;
     matrixState.online = true;
     matrixSetEnumCapability(capabilities?.runtime?.nmap?.available
@@ -1302,11 +1371,11 @@ async function refreshMatrixStatus() {
   } catch (error) {
     matrixState.capabilities = null;
     matrixState.online = false;
-    matrixSetEnumCapability('MATRIX unavailable');
+    matrixSetEnumCapability('Toolbox unavailable');
     const masscanNode = document.getElementById('matrixMasscanCapability');
-    if (masscanNode) masscanNode.textContent = 'MATRIX unavailable';
+    if (masscanNode) masscanNode.textContent = 'Toolbox unavailable';
     const httpxNode = document.getElementById('matrixHttpxCapability');
-    if (httpxNode) httpxNode.textContent = 'MATRIX unavailable';
+    if (httpxNode) httpxNode.textContent = 'Toolbox unavailable';
     matrixSetStatus('offline', 'offline');
     applyMatrixAvailabilityUi();
     setMatrixToolboxModule('passive');
@@ -1752,7 +1821,7 @@ async function runMatrixEnumeration() {
   if (!runtime?.available) {
     matrixSetOutput({
       error: `${tool === 'masscan' ? 'Masscan' : tool === 'httpx' ? 'httpx' : 'Nmap'} runtime unavailable`,
-      detail: runtime?.detail || `Install ${tool} in MATRIX before running enumeration jobs.`,
+      detail: runtime?.detail || `Install ${tool} in Toolbox before running enumeration jobs.`,
     });
     return;
   }
@@ -1828,7 +1897,7 @@ async function loadMatrixJobs() {
   const response = await fetch('/api/matrix/jobs?limit=32');
   const data = await response.json();
   if (!response.ok) {
-    list.textContent = data.error || 'Could not load MATRIX Toolbox jobs.';
+    list.textContent = data.error || 'Could not load Toolbox jobs.';
     return;
   }
   const jobs = (Array.isArray(data.jobs) ? data.jobs : []).filter(job => (
@@ -1902,6 +1971,7 @@ window.openMatrixJob = openMatrixJob;
 window.importMatrixTargets = importMatrixTargets;
 window.cancelMatrixJob = cancelMatrixJob;
 window.insertMatrixQuickLogPorts = insertMatrixQuickLogPorts;
+window.appendMatrixResultToPassiveReconNote = appendMatrixResultToPassiveReconNote;
 window.copyMatrixText = async function copyMatrixText(button) {
   const value = button?.dataset?.copy || '';
   if (!value) return;

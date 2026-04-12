@@ -495,6 +495,21 @@
       ]
     },
     {
+      "id": "passive-recon",
+      "label": "Passive Recon",
+      "icon": "🛰",
+      "title_prefix": "Passive Recon",
+      "default_tags": [
+        "passive-recon"
+      ],
+      "body_lines": [
+        "## Passive Recon",
+        "",
+        "Use this note to collect curated passive reconnaissance results from Toolbox.",
+        ""
+      ]
+    },
+    {
       "id": "network-enumeration",
       "label": "Network Enumeration",
       "icon": "🌐",

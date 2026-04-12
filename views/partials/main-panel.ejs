@@ -28,9 +28,9 @@
         <div class="matrix-view">
           <div class="matrix-toolbar">
             <div class="matrix-toolbar-left">
-              <div class="matrix-toolbar-title">MATRIX<span id="matrixToolbarModuleLabel">// Toolbox</span></div>
+              <div class="matrix-toolbar-title">// <span id="matrixToolbarModuleLabel">TOOLBOX</span></div>
               <div class="matrix-toolbar-status-row">
-                <div class="matrix-service-pill checking" id="matrixServicePill">MATRIX...</div>
+                <div class="matrix-service-pill checking" id="matrixServicePill">Toolbox...</div>
                 <div class="matrix-version-label" id="matrixVersionLabel"></div>
               </div>
             </div>
@@ -41,18 +41,18 @@
               </div>
             </div>
             <div class="matrix-toolbar-actions">
-              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh MATRIX Toolbox status">Refresh</button>
-              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh MATRIX Toolbox jobs">Jobs</button>
-              <button class="tb-btn" id="matrixStopButton" onclick="cancelMatrixJob()" title="Stop active MATRIX job" disabled>Stop</button>
+              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh Toolbox status">Refresh</button>
+              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh Toolbox jobs">Jobs</button>
+              <button class="tb-btn" id="matrixStopButton" onclick="cancelMatrixJob()" title="Stop active Toolbox job" disabled>Stop</button>
             </div>
           </div>
           <div class="matrix-offline-state" id="matrixOfflineState" hidden>
-            <div class="matrix-offline-title">MATRIX unavailable</div>
-            <div class="matrix-offline-copy">The Toolbox cards stay hidden until the MATRIX service is reachable again.</div>
+            <div class="matrix-offline-title">Toolbox unavailable</div>
+            <div class="matrix-offline-copy">The Toolbox cards stay hidden until the Toolbox service is reachable again.</div>
           </div>
           <div class="matrix-grid">
             <section class="matrix-card matrix-module-panel" id="matrixPanelPassive">
-              <div class="matrix-card-hdr" id="matrixModulePanelHdr">MATRIX // Passive Recon</div>
+              <div class="matrix-card-hdr" id="matrixModulePanelHdr">Passive Recon</div>
               <div class="matrix-mode-row btn-group">
                 <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
                 <button class="btn-group-item" id="matrixModeSubdomains" onclick="setMatrixMode('subdomains')">Subdomains</button>
@@ -72,7 +72,7 @@
               <input id="matrixImportFile" type="file" accept=".txt,.csv,.json,.log" hidden>
             </section>
             <section class="matrix-card matrix-module-panel" id="matrixPanelEnumeration" hidden>
-              <div class="matrix-card-hdr">MATRIX // Active Enumeration</div>
+              <div class="matrix-card-hdr">Active Enumeration</div>
               <div class="matrix-enum-stack">
                 <div class="matrix-enum-block">
                   <label class="matrix-label" for="matrixEnumToolSelect">Tool</label>
@@ -111,7 +111,7 @@
                   <div class="matrix-enum-block">
                     <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
                     <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
-                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. MATRIX captures XML itself, but the main workflow is still the raw Nmap text output.</div>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Toolbox captures XML itself, but the main workflow is still the raw Nmap text output.</div>
                   </div>
                   <div class="matrix-enum-block">
                     <label class="matrix-label" for="matrixEnumTargets">Targets</label>
