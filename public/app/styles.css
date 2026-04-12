@@ -4055,6 +4055,10 @@ body.enc-active-body .content-panel {
   box-sizing: border-box;
   line-height: 1;
 }
+.summary-export-check.is-disabled {
+  color: var(--text3);
+  border-color: rgba(248,113,113,0.25);
+}
 .summary-export-check input {
   margin: 0;
   width: 14px;
@@ -4065,12 +4069,43 @@ body.enc-active-body .content-panel {
   accent-color: var(--accent);
   appearance: auto;
 }
+.summary-export-check input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.summary-export-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.summary-export-badge.enabled {
+  color: #166534;
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+.summary-export-badge.disabled {
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.22);
+}
 
 @media (max-width: 860px) {
   .summary-export-check {
     white-space: normal;
     height: auto;
     padding: 6px 10px;
+  }
+  .summary-export-badge {
+    margin-left: 0;
   }
 }
 

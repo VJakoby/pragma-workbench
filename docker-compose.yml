@@ -1,7 +1,10 @@
 name: pragma-workbench
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_CHROMIUM: ${PDF_EXPORT_ENABLED:-true}       # Build-time choice derived from PDF export setting; rebuild after changing PDF_EXPORT_ENABLED
     container_name: pragma-workbench
     user: "${PRAGMA_UID:-1000}:${PRAGMA_GID:-1000}"
     ports:
@@ -16,7 +19,7 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
       - SEARCH_URL=http://engram:3002                        # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
-      - PDF_EXPORT_ENABLED=${PDF_EXPORT_ENABLED:-true}             # Set to false to disable Puppeteer/Chromium PDF export without removing the feature from the codebase
+      - PDF_EXPORT_ENABLED=${PDF_EXPORT_ENABLED:-true}      # Runtime choice: false disables PDF export and should be paired with a rebuild to omit Chromium
     restart: unless-stopped
     networks:
       - pragma-net
