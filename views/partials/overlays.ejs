@@ -103,12 +103,13 @@
         <label>Summary author (optional)</label>
         <div class="session-inline-field">
           <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
-          <label class="summary-export-check" style="margin-top:0">
+          <label class="summary-export-check" id="summaryExportCheck" style="margin-top:0">
             <input type="checkbox" id="summaryPdfDefault">
             Generate PDF by default
+            <span class="summary-export-badge" id="summaryExportBadge" aria-live="polite"></span>
           </label>
         </div>
-        <div class="session-field-hint">Used for summary exports.</div>
+        <div class="session-field-hint" id="summaryExportHint">Used for summary exports.</div>
       </div>
       <div id="importFeedback" style="display:none"></div>
       <!-- Existing sessions -->

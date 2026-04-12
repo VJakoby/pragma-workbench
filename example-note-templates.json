@@ -241,80 +241,6 @@
       ]
     },
     {
-      "id": "credentials",
-      "label": "Credentials",
-      "required": true,
-      "icon": "🔑",
-      "title_prefix": "Credentials",
-      "default_tags": [
-        "creds"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "label": "Default",
-          "title_prefix": "Credentials",
-          "body_lines": [
-            "> Required for Loot sync. Keep the credentials table header below.",
-            "",
-            "## Credentials",
-            "",
-            "| Username | Password | Hash | Service | Notes |",
-            "|----------|----------|------|---------|-------|",
-            "|          |          |      |         |       |",
-            "",
-            "## Password Spray / Stuffing Notes",
-            "",
-            "",
-            "## Valid Sessions / Tokens",
-            ""
-          ]
-        },
-        {
-          "id": "web",
-          "label": "Web",
-          "title_prefix": "Web Credentials",
-          "default_tags": [
-            "creds",
-            "web"
-          ],
-          "body_lines": [
-            "> Required for Loot sync. Keep the credentials table header below.",
-            "",
-            "## Credentials",
-            "",
-            "| Username | Password | URL / Path | Role | Notes |",
-            "|----------|----------|------------|------|-------|",
-            "|          |          |            |      |       |",
-            "",
-            "## Sessions / Cookies",
-            "",
-            "| Type | Value | Scope | Notes |",
-            "|------|-------|-------|-------|",
-            "|      |       |       |       |",
-            "",
-            "## Notes",
-            ""
-          ]
-        }
-      ],
-      "body_lines": [
-        "> Required for Loot sync. Keep the credentials table header below.",
-        "",
-        "## Credentials",
-        "",
-        "| Username | Password | Hash | Service | Notes |",
-        "|----------|----------|------|---------|-------|",
-        "|          |          |      |         |       |",
-        "",
-        "## Password Spray / Stuffing Notes",
-        "",
-        "",
-        "## Valid Sessions / Tokens",
-        ""
-      ]
-    },
-    {
       "id": "privesc",
       "label": "Privlilege Escalation",
       "icon": "⬆",
@@ -502,116 +428,6 @@
       ]
     },
     {
-      "id": "passive-recon",
-      "label": "Passive Recon",
-      "icon": "🛰",
-      "title_prefix": "Passive Recon",
-      "default_tags": [
-        "passive-recon"
-      ],
-      "body_lines": [
-        "## Passive Recon",
-        "",
-        "Use this note to collect curated passive reconnaissance results from Toolbox.",
-        ""
-      ]
-    },
-    {
-      "id": "network-enumeration",
-      "label": "Network Enumeration",
-      "required": true,
-      "icon": "🌐",
-      "title_prefix": "Network Enumeration",
-      "default_tags": [
-        "recon",
-        "network"
-      ],
-      "variants": [
-        {
-          "id": "default",
-          "label": "Default",
-          "title_prefix": "Network Enumeration",
-          "body_lines": [
-            "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
-            "",
-            "## Target Overview",
-            "",
-            "| Field | Value |",
-            "|-------|-------|",
-            "| IP | |",
-            "| Domain | |",
-            "| Hostname | |",
-            "",
-            "## Open Ports & Services",
-            "",
-            "| Port | Proto | Service | Version | Notes |",
-            "|------|-------|---------|---------|-------|",
-            "|      |       |         |         |       |",
-            "",
-            "## Web",
-            "",
-            "| Path | Status | Size | Notes |",
-            "|------|--------|------|-------|",
-            "|      |        |      |       |",
-            "",
-            "## Notes",
-            "",
-            ""
-          ]
-        },
-        {
-          "id": "minimal",
-          "label": "Minimal",
-          "title_prefix": "Network Enumeration",
-          "default_tags": [
-            "recon",
-            "network",
-            "minimal"
-          ],
-          "body_lines": [
-            "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
-            "",
-            "## Open Ports & Services",
-            "",
-            "| Port | Service | Notes |",
-            "|------|---------|-------|",
-            "|      |         |       |",
-            "",
-            "## Notes",
-            "",
-            ""
-          ]
-        }
-      ],
-      "body_lines": [
-        "> Required for Quick Log sync. Keep the Open Ports & Services table header below.",
-        "",
-        "## Target Overview",
-        "",
-        "| Field | Value |",
-        "|-------|-------|",
-        "| IP | |",
-        "| Domain | |",
-        "| Hostname | |",
-        "",
-        "## Open Ports & Services",
-        "",
-        "| Port | Proto | Service | Version | Notes |",
-        "|------|-------|---------|---------|-------|",
-        "|      |       |         |         |       |",
-        "",
-        "## Web",
-        "",
-        "| Path | Status | Size | Notes |",
-        "|------|--------|------|-------|",
-        "|      |        |      |       |",
-        "",
-        "## Notes",
-        "",
-        ""
-      ]
-    },
-    {
       "id": "loot",
       "label": "Loot",
       "icon": "💰",
@@ -650,6 +466,22 @@
         "exploit"
       ],
       "body_lines": [
+        "## Vulnerability",
+        "",
+        "| Field        | Value |",
+        "|--------------|-------|",
+        "| Name         |       |",
+        "| CVE          |       |",
+        "| CVSS         |       |",
+        "| Affected     |       |",
+        "| Auth Required|       |",
+        "",
+        "## Payload",
+        "",
+        "```bash",
+        "",
+        "```",
+        "",
         "## Steps",
         "",
         "1. ",
@@ -674,7 +506,7 @@
         "custom"
       ],
       "body_lines": [
-        "# Machine Name - X",
+        "# Machine Name - <LABEL>",
         "",
         "- **IP:** `<TARGET>`",
         "- **DOMAIN:** `<DOMAIN>`",
@@ -685,6 +517,7 @@
         "-----------------------------",
         "",
         "## 1. Enumeration",
+        "",
         "",
         "",
         "",

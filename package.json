@@ -5,8 +5,8 @@
   "main": "server.js",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "start": "node server.js",
-    "start:server": "node server/index.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "start:server": "node --env-file-if-exists=.env server/index.js"
   },
   "bin": {
     "pragma": "./server.js"

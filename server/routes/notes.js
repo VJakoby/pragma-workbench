@@ -1,5 +1,7 @@
 'use strict';
 
+const PDF_EXPORT_ENABLED = String(process.env.PDF_EXPORT_ENABLED || 'true').trim().toLowerCase() !== 'false';
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -76,6 +78,9 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
     });
   }
   async function renderSummaryPdf({ markdown, outDir, filename }) {
+    if (!PDF_EXPORT_ENABLED) {
+      throw new Error('PDF export is disabled for this deployment');
+    }
     let puppeteer;
     try {
       puppeteer = require('puppeteer');
@@ -538,6 +543,7 @@ ${htmlBody}
       let pdfMeta = null;
       let pdfError = null;
       if (generate_pdf) {
+        if (!PDF_EXPORT_ENABLED) throw new Error('PDF export is disabled for this deployment');
         try {
           const pdfName = `${sessSlug}.pdf`;
           await renderSummaryPdf({ markdown: consolidatedContent, outDir, filename: pdfName });

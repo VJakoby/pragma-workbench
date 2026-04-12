@@ -21,6 +21,11 @@
 <html lang="en">
 <%- include('partials/head') %>
 <body>
+<script>
+  window.PRAGMA_CONFIG = Object.freeze({
+    pdfExportEnabled: <%- JSON.stringify(Boolean(pdfExportEnabled)) %>
+  });
+</script>
 <%- include('partials/body') %>
 <%- include('partials/overlays') %>
 <div class="app-tooltip" id="appTooltip" role="tooltip" aria-hidden="true"></div>

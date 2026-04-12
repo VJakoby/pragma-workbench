@@ -18,41 +18,9 @@
 
 'use strict';
 
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
-function loadEnvFile(filePath) {
-  let raw = '';
-  try {
-    raw = fs.readFileSync(filePath, 'utf8');
-  } catch (_) {
-    return { loaded: false, filePath, imported: 0 };
-  }
-
-  let imported = 0;
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (!match) continue;
-
-    const key = match[1];
-    if (Object.prototype.hasOwnProperty.call(process.env, key)) continue;
-
-    let value = match[2] || '';
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    process.env[key] = value;
-    imported += 1;
-  }
-
-  return { loaded: true, filePath, imported };
-}
-
-const envLoad = loadEnvFile(path.resolve(__dirname, '..', '.env'));
-
-const express = require('express');
 const { marked } = require('marked');
 const { createPaths } = require('./config/paths');
 const { sanitizeRenderedHtml } = require('./lib/html-sanitize');
@@ -60,13 +28,15 @@ const { createKbIndex } = require('./lib/kb-index');
 const { runStartupIntegrityCheck } = require('./lib/startup-check');
 const { createWorkbenchStorage } = require('./lib/workbench-storage');
 const { registerKbRoutes } = require('./routes/kb');
+const { registerMatrixRoutes } = require('./routes/matrix');
 const { registerNotesRoutes } = require('./routes/notes');
 const { registerSearchProxyRoutes } = require('./routes/search-proxy');
-const { registerMatrixRoutes } = require('./routes/matrix');
 const { registerWorkbenchRoutes } = require('./routes/workbenches');
 
 let chokidar;
 try { chokidar = require('chokidar'); } catch (_) { }
+
+const PDF_EXPORT_ENABLED = String(process.env.PDF_EXPORT_ENABLED || 'true').trim().toLowerCase() !== 'false';
 
 const {
   PORT,
@@ -93,13 +63,48 @@ const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
 
 marked.setOptions({ gfm: true, breaks: false });
-const renderMarkdown = (markdown) => sanitizeRenderedHtml(marked.parse(String(markdown || '')));
+function preprocessImageResizeMarkdown(markdown) {
+  return String(markdown || '').replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{([^}]+)\})?/g, (_, alt, url, attrs) => {
+    const widthMatch = String(attrs || '').match(/\bwidth\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+    const heightMatch = String(attrs || '').match(/\bheight\s*=\s*(\d{1,4}(?:%)?)(?=\s|$)/i);
+    const cleanAlt = String(alt || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const cleanUrl = String(url || '').trim().replace(/"/g, '&quot;');
+    const widthValue = widthMatch ? widthMatch[1] : '';
+    const heightValue = heightMatch ? heightMatch[1] : '';
+    const widthAttr = widthValue && !widthValue.endsWith('%') ? ` width="${widthValue}"` : '';
+    const heightAttr = heightValue && !heightValue.endsWith('%') ? ` height="${heightValue}"` : '';
+    const styleParts = ['max-width:100%'];
+    if (widthValue.endsWith('%')) {
+      styleParts.push(`width:${widthValue}`);
+      styleParts.push('height:auto');
+    } else if (heightValue.endsWith('%')) {
+      styleParts.push(`height:${heightValue}`);
+      styleParts.push('width:auto');
+    }
+    return `<img alt="${cleanAlt}" src="${cleanUrl}"${widthAttr}${heightAttr} style="${styleParts.join(';')}">`;
+  });
+}
+function normalizeAlternateLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
+}
+const renderMarkdown = (markdown) => sanitizeRenderedHtml(
+  marked.parse(
+    preprocessImageResizeMarkdown(
+      normalizeAlternateLinkSyntax(markdown)
+    )
+  )
+);
 
 const app = express();
 app.locals.matrixEnabled = MATRIX_ENABLED;
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'ejs');
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -118,11 +123,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.render('app', { matrixEnabled: MATRIX_ENABLED });
+  res.render('app', { matrixEnabled: MATRIX_ENABLED, pdfExportEnabled: PDF_EXPORT_ENABLED });
 });
 
 app.get('/app.html', (req, res) => {
-  res.render('app', { matrixEnabled: MATRIX_ENABLED });
+  res.render('app', { matrixEnabled: MATRIX_ENABLED, pdfExportEnabled: PDF_EXPORT_ENABLED });
 });
 
 registerKbRoutes(app, {
@@ -179,7 +184,6 @@ app.listen(PORT, HOST, () => {
   console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
   console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})\n`);
-  console.log(`  Env      → ${envLoad.loaded ? `${envLoad.filePath} (${envLoad.imported} imported)` : `${envLoad.filePath} (not found)`}`);
   if (kbSubdirs.length) {
     console.log('  ============= KB Subdirectories =============');
     kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));

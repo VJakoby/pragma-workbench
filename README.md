@@ -95,6 +95,7 @@ In practice, this means the app is opinionated about staying operational:
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
 - Session summary export supports a consolidated markdown file and an optional PDF summary output
+  The Docker image uses system Chromium for PDF export through Puppeteer rather than downloading a bundled browser during install.
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -128,6 +129,7 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 
 **Knowledge Base & Tactics**
 - Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
+- The repository does not ship with a real KB corpus. Each user is expected to point PRAGMA at their own local knowledge base content
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -150,6 +152,8 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 ## 📝 Note Templates
 
 PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+
+Some automation relies on specific templates being present. For example, Quick Log ports/paths sync creates and updates a `network-enumeration` note, and Loot → Credentials sync requires a `credentials` note. If you remove those templates from `note-templates.json`, the auto-created documents will no longer appear. The templates can be minimal; they just need the matching table headers so sync can find them.
 
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
@@ -289,47 +293,50 @@ Write your KB docs using any of the supported placeholder styles below.
 
 ---
 
-## Optional Modules
+## 🛠️ Requirements
 
-### ENGRAM // Search Surface
+- Node.js 20+
+- **Optional:**
+  - Docker and `docker compose`
+  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
 
-ENGRAM is an optional companion service that powers PRAGMA’s KB search surface. When enabled, PRAGMA queries ENGRAM for indexed results; when disabled, the module stays offline and search falls back to local content only.
+See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
-- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram)
-- Purpose: index and serve KB content for fast, ranked search results inside PRAGMA
-- Integration model: ENGRAM runs as its own local service, and PRAGMA points at it via `SEARCH_URL`
+---
 
-To bring ENGRAM up as a separate container:
+## 🚀 Quick Start
 
-```bash
-cd ~/engram
-docker compose build --no-cache
-docker compose up -d
-```
+See [DOCKER.md](./DOCKER.md) for full Docker instructions.
 
-Verify it is reachable:
+Recommended Docker workflow:
 
 ```bash
-curl http://127.0.0.1:3002/healthz
+# 1. Create a local env file
+cp .example.env .env
+
+# 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
+#    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
+
+# 3. Choose whether PDF export should be enabled
+#    PDF_EXPORT_ENABLED=true  -> PDF export enabled and Chromium included in the image
+#    PDF_EXPORT_ENABLED=false -> PDF export disabled and Chromium omitted on rebuild
+
+# 4. Build and start
+docker compose up -d --build
+
+# 5. Access at
+http://localhost:3000
 ```
 
-To enable it in PRAGMA:
+### PRAGMA // Toolbox
 
-```env
-SEARCH_URL=http://127.0.0.1:3002
-```
+PRAGMA // Toolbox is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
 
-Then restart PRAGMA. If ENGRAM is online, `KB Search` will show indexed results.
-
-### MATRIX // Toolbox
-
-MATRIX is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
-
-- Repo: [MATRIX // Toolbox](https://github.com/VJakoby/matrix-toolbox)
+- Repo: [PRAGMA // Toolbox](https://github.com/VJakoby/matrix-toolbox)
 - Purpose: provide API-backed helper workflows such as passive recon, Nmap enumeration, and Masscan enumeration without turning PRAGMA itself into a scanner platform
-- Integration model: MATRIX runs as its own local service, and PRAGMA talks to it through the MATRIX proxy routes
+- Integration model: PRAGMA // Toolbox runs as its own local service, and PRAGMA talks to it through the optional Toolbox proxy routes
 
-To bring MATRIX up as a separate container:
+To bring PRAGMA // Toolbox up as a separate container:
 
 ```bash
 cd ~/matrix-toolbox
@@ -361,49 +368,40 @@ Then restart PRAGMA. If enabled, `Toolbox` appears in the sidebar. If disabled, 
 
 In short:
 
-1. build and start MATRIX as its own service/container
-2. point PRAGMA at the MATRIX API
+1. build and start PRAGMA // Toolbox as its own service/container
+2. point PRAGMA at the PRAGMA // Toolbox API
 3. enable `MATRIX_ENABLED=true`
 4. restart PRAGMA
 
-## 🛠️ Requirements
-
-- Node.js 20+
-- **Optional:**
-  - Docker and `docker compose`
-  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
-
-See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
-
----
-
-## 🚀 Quick Start
-
-See [DOCKER.md](./DOCKER.md) for full Docker instructions.
-
-Recommended Docker workflow:
-
-```bash
-# 1. Create a local env file
-cp .example.env .env
-
-# 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
-#    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
-
-# 3. Build and start
-docker compose up -d --build
-
-# 4. Access at
-http://localhost:3000
-```
-
 Common `.env` values include:
 
+- `MATRIX_ENABLED`
+- `MATRIX_URL`
+- `MATRIX_URLS`
 - `PRAGMA_KB_PATH`
 - `PRAGMA_SESSIONS_PATH`
+- `PDF_EXPORT_ENABLED`
 - `PRAGMA_UID`
 - `PRAGMA_GID`
 - `SEARCH_URL`
+
+`PDF_EXPORT_ENABLED` is now the single PDF-related setting:
+
+- `true` enables PDF export and builds Chromium into the image
+- `false` disables PDF export and, after rebuild, omits Chromium from the image
+
+Why this is a single setting:
+
+- most users do not need separate control over "PDF feature on/off" and "Chromium installed or not"
+- if PDF export is disabled, installing Chromium is unnecessary image bloat
+- the single switch keeps the choice aligned with what the user actually wants: PDF support or a smaller image
+
+Practical size impact:
+
+- `PDF_EXPORT_ENABLED=true`: about `941MB` image size
+- `PDF_EXPORT_ENABLED=false`: about `290MB` image size
+
+If you change `PDF_EXPORT_ENABLED`, rebuild the image.
 
 If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
@@ -413,6 +411,8 @@ If you edit `note-templates.json` on the host and want those changes reflected i
 npm install
 
 # 2. Start the server
+#    npm start now reads `.env` automatically, so PDF_EXPORT_ENABLED
+#    behaves consistently with Docker Compose for local runs too.
 npm start
 
 # 3. Open in browser
@@ -452,6 +452,13 @@ PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notice
 The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
 
 See [ROADMAP.md](./ROADMAP.md).
+
+---
+
+## 🤝 Contributions
+
+If you discover new ideas, feature proposals, bugs, or other problems, opening an issue is highly appreciated. Pull requests with fixes or improvements are also very welcome.
+
 ---
 
 Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)

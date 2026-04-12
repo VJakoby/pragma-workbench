@@ -4,7 +4,7 @@ This document explains the setup around:
 
 - `PRAGMA` — the main workbench
 - `ENGRAM` — optional indexed search backend
-- `MATRIX` — optional adjacent toolbox
+- `PRAGMA // Toolbox` — optional adjacent toolbox
 
 Use this as the short ecosystem/setup guide. It focuses on runtime layout, KB structure, and integration points. For container details, see [DOCKER.md](./DOCKER.md).
 
@@ -36,9 +36,9 @@ If ENGRAM is not running:
 - local KB search still works
 - only the external indexed search surface is unavailable
 
-### MATRIX
+### PRAGMA // Toolbox
 
-MATRIX is optional.
+PRAGMA // Toolbox is optional.
 
 It is not a dependency of PRAGMA. Treat it as adjacent tooling rather than part of the PRAGMA runtime.
 
@@ -83,9 +83,9 @@ Gives you:
 
 ### Optional broader ecosystem
 
-`PRAGMA + ENGRAM + MATRIX`
+`PRAGMA + ENGRAM + PRAGMA // Toolbox`
 
-Use this only if you want MATRIX as separate supporting tooling.
+Use this only if you want PRAGMA // Toolbox as separate supporting tooling.
 
 ---
 
@@ -102,7 +102,7 @@ operator-workspace/
 │   └── knowledge_base/
 └── optional/
     ├── engram/
-    └── matrix/
+    └── matrix-toolbox/
 ```
 
 Preferred PRAGMA runtime layout:
@@ -206,7 +206,7 @@ In Docker-oriented setups, you will most often care about:
 2. Start PRAGMA
 3. Confirm `ENGRAM` is reachable in `KB Search`
 
-### PRAGMA + ENGRAM + MATRIX
+### PRAGMA + ENGRAM + PRAGMA // Toolbox
 
 1. Start supporting tooling as needed
 2. Start ENGRAM
@@ -220,7 +220,7 @@ Short version:
 
 - `PRAGMA` is the required core
 - `ENGRAM` is the preferred optional search backend
-- `MATRIX` is optional supporting tooling
+- `PRAGMA // Toolbox` is optional supporting tooling
 
 Best practical setup:
 
