@@ -25,29 +25,40 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 
 Here are a few screenshots to give a quick impression of the platform. They help show the shape of the workflow, but the real value is in using it directly and experiencing how the views fit together during actual work.
 
-### Main View
+<table>
+  <tr>
+    <td><img src="./screenshots/PRAGMA-Main-UI.png" alt="PRAGMA Main UI" width="240"></td>
+    <td><img src="./screenshots/Sessions.png" alt="PRAGMA Sessions" width="240"></td>
+    <td><img src="./screenshots/Encrypt.png" alt="PRAGMA Encryption" width="240"></td>
+  </tr>
+</table>
 
-![PRAGMA Main UI](./screenshots/PRAGMA-Main-UI.png)
+- `Main View` — the main workbench layout with notes in focus and supporting context around them.
+- `Sessions` — session management with multiple engagements collected under the same workbench.
+- `Encryption` — workbench encryption flow for protecting local session data.
 
-The main workbench layout with notes in focus and supporting context around them.
+<table>
+  <tr>
+    <td><img src="./screenshots/Cmd.png" alt="PRAGMA Command Palette" width="240"></td>
+    <td><img src="./screenshots/KB-Cards.png" alt="PRAGMA KB Cards" width="240"></td>
+    <td><img src="./screenshots/Indexed-Search.png" alt="PRAGMA Indexed Search" width="240"></td>
+  </tr>
+</table>
 
-### Encryption
+- `Command Palette` — the quick-open search palette for jumping across notes, KB content, tactics, and saved commands.
+- `KB Cards` — knowledge base browsing with card-based navigation across services, tactics, and KB sections.
+- `Indexed Search` — indexed search results powered by ENGRAM, shown directly inside the workbench.
 
-![PRAGMA Encryption](./screenshots/Encrypt.png)
+<table>
+  <tr>
+    <td><img src="./screenshots/Log-Ports.png" alt="PRAGMA Quick Log Ports" width="240"></td>
+    <td><img src="./screenshots/Log-Loot.png" alt="PRAGMA Quick Log Loot" width="240"></td>
+    <td></td>
+  </tr>
+</table>
 
-Workbench encryption flow for protecting local session data.
-
-### Quick Log: Ports
-
-![PRAGMA Quick Log Ports](./screenshots/Log-Ports.png)
-
-Structured quick logging for open ports and service observations during enumeration.
-
-### Quick Log: Loot
-
-![PRAGMA Quick Log Loot](./screenshots/Log-Loot.png)
-
-Fast capture of credentials, hashes, tokens, and other engagement loot.
+- `Quick Log: Ports` — structured quick logging for open ports and service observations during enumeration.
+- `Quick Log: Loot` — fast capture of credentials, hashes, tokens, and other engagement loot.
 
 ---
 
