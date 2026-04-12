@@ -344,8 +344,7 @@ Detailed PRAGMA // Toolbox setup is shown in the quick-start section below.
 - Node.js 20+
 - **Optional:**
   - Docker and `docker compose`
-  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
-
+  
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
 ---
