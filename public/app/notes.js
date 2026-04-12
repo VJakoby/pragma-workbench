@@ -489,8 +489,9 @@ function renderNewNoteVariantPicker(type) {
   if (!variants.length) {
     variantWrap.style.display = 'none';
     variantBar.innerHTML = '';
-    createBtn.style.display = 'none';
+    createBtn.style.display = 'block';
     createHint.style.display = '';
+    renderNewNotePreview(type);
     return;
   }
 
@@ -509,7 +510,11 @@ function selectNewNoteType(type) {
   document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
   const variants = Array.isArray(NOTE_TEMPLATES[type]?.variants) ? NOTE_TEMPLATES[type].variants : [];
   if (!variants.length) {
-    newNote(type);
+    renderNewNotePreview(type);
+    const createBtn = document.getElementById('newNoteCreateBtn');
+    const createHint = document.getElementById('newNoteCreateHint');
+    if (createBtn) createBtn.style.display = 'block';
+    if (createHint) createHint.style.display = '';
     return;
   }
   if (!NOTE_TEMPLATE_VARIANT_SELECTIONS[type]) NOTE_TEMPLATE_VARIANT_SELECTIONS[type] = variants[0].id;

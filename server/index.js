@@ -35,6 +35,8 @@ const { registerWorkbenchRoutes } = require('./routes/workbenches');
 let chokidar;
 try { chokidar = require('chokidar'); } catch (_) { }
 
+const PDF_EXPORT_ENABLED = String(process.env.PDF_EXPORT_ENABLED || 'true').trim().toLowerCase() !== 'false';
+
 const {
   PORT,
   KB_DIR,
@@ -116,11 +118,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.render('app');
+  res.render('app', { pdfExportEnabled: PDF_EXPORT_ENABLED });
 });
 
 app.get('/app.html', (req, res) => {
-  res.render('app');
+  res.render('app', { pdfExportEnabled: PDF_EXPORT_ENABLED });
 });
 
 registerKbRoutes(app, {

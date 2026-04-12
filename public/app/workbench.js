@@ -64,6 +64,7 @@ function normalizeTemplateDefinition(tmpl, fromFile = false) {
     body: String(tmpl?.body || ''),
     icon: tmpl?.icon,
     label: tmpl?.label,
+    required: !!tmpl?.required,
     default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
     variants: Array.isArray(tmpl?.variants) ? tmpl.variants.map(normalizeTemplateVariant).filter(Boolean) : [],
     fromFile,
@@ -197,10 +198,14 @@ function renderNoteTypeGrid() {
     .filter(([id]) => id !== 'scratch')
     .forEach(([id, tmpl]) => {
       const meta = getNoteTypeMeta(id);
+      const isRequired = !!tmpl.required || id === 'network-enumeration' || id === 'credentials';
+      const requiredLabel = isRequired
+        ? `<span class="new-note-type-required" title="Required for Quick Log / Loot sync">Required</span>`
+        : '';
       const variantsLabel = Array.isArray(tmpl.variants) && tmpl.variants.length
         ? `<span class="new-note-type-meta">${tmpl.variants.length} variant${tmpl.variants.length !== 1 ? 's' : ''}</span>`
         : '';
-      buttons.push(`<button class="new-note-type-btn${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span>${meta.label}</span>${variantsLabel}</button>`);
+      buttons.push(`<button class="new-note-type-btn${isRequired ? ' template-required' : ''}${tmpl.fromFile ? ' template-from-file' : ''}" data-type="${id}" onclick="selectNewNoteType(decodeURIComponent('${encodeURIComponent(id)}'))">${meta.icon}<span class="new-note-type-label">${meta.label}</span>${variantsLabel}${requiredLabel}</button>`);
     });
   grid.innerHTML = buttons.join('');
 }
@@ -706,17 +711,39 @@ function updateSessionAttackerIpField() {
 function syncSummaryExportPrefsUI() {
   const authorInput = document.getElementById('summaryAuthorInput');
   const pdfInput = document.getElementById('summaryPdfDefault');
+  const pdfWrap = document.getElementById('summaryExportCheck');
+  const pdfBadge = document.getElementById('summaryExportBadge');
+  const pdfHint = document.getElementById('summaryExportHint');
+  const pdfExportEnabled = window.PRAGMA_CONFIG?.pdfExportEnabled !== false;
   if (authorInput) {
     authorInput.value = localStorage.getItem('pragma-summary-author') || '';
     authorInput.oninput = () => {
       localStorage.setItem('pragma-summary-author', authorInput.value);
     };
   }
+  if (pdfBadge) {
+    pdfBadge.textContent = pdfExportEnabled ? 'Enabled' : 'Disabled';
+    pdfBadge.classList.toggle('enabled', pdfExportEnabled);
+    pdfBadge.classList.toggle('disabled', !pdfExportEnabled);
+  }
+  if (pdfWrap) {
+    pdfWrap.classList.toggle('is-disabled', !pdfExportEnabled);
+  }
+  if (pdfHint && !pdfExportEnabled) {
+    pdfHint.textContent = 'Used for summary exports. PDF export is disabled for this deployment.';
+  }
   if (pdfInput) {
-    pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
-    pdfInput.onchange = () => {
-      localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
-    };
+    if (!pdfExportEnabled) {
+      pdfInput.checked = false;
+      pdfInput.disabled = true;
+      localStorage.setItem('pragma-summary-pdf', '0');
+    } else {
+      pdfInput.disabled = false;
+      pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
+      pdfInput.onchange = () => {
+        localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
+      };
+    }
   }
 }
 

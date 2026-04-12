@@ -66,7 +66,9 @@ Recommended startup flow:
 1. Copy `.example.env` to `.env`
 2. Point `PRAGMA_KB_PATH` at your local knowledge base
 3. Adjust `PRAGMA_SESSIONS_PATH` if you want runtime data outside the repo
-4. Run `docker compose up -d --build`
+4. Set `PDF_EXPORT_ENABLED=true|false`
+5. If you changed `PDF_EXPORT_ENABLED`, rebuild the image
+6. Run `docker compose up -d --build`
 
 | Variable | Default | Description |
 |---|---|---|
@@ -75,6 +77,7 @@ Recommended startup flow:
 | `PRAGMA_KB_PATH` | `./knowledge_base` | Host path mounted into `/usr/src/app/knowledge_base` |
 | `PRAGMA_SESSIONS_PATH` | `./sessions` | Host path mounted into `/usr/src/app/sessions` |
 | `SEARCH_URL` | `http://engram:3002` in the checked-in compose | URL to the ENGRAM indexer |
+| `PDF_EXPORT_ENABLED` | `true` | Single PDF switch. When `true`, the app enables PDF export and the Docker build includes Chromium. When `false`, the app disables PDF export and a rebuilt image omits Chromium. |
 
 Inside the container, PRAGMA still uses:
 
@@ -88,7 +91,10 @@ Example `docker-compose.yml` volume + env setup:
 ```yaml
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_CHROMIUM: ${PDF_EXPORT_ENABLED:-true}
     user: "${PRAGMA_UID:-1000}:${PRAGMA_GID:-1000}"
     ports:
       - "127.0.0.1:3000:3000"
@@ -109,13 +115,32 @@ PRAGMA_UID=1000
 PRAGMA_GID=1000
 PRAGMA_KB_PATH=./knowledge_base
 PRAGMA_SESSIONS_PATH=./sessions
+PDF_EXPORT_ENABLED=true
 ```
+
+### PDF Export and Chromium
+
+PRAGMA now uses a single user-facing setting:
+
+- `PDF_EXPORT_ENABLED=true` means PDF export is enabled and the Docker build installs Chromium.
+- `PDF_EXPORT_ENABLED=false` means PDF export is disabled and a rebuilt image omits Chromium.
+
+This keeps the behavior simple, but there is one important consequence:
+
+- If you change `PDF_EXPORT_ENABLED`, rebuild with `docker compose up -d --build` so the image matches the setting.
+
+The Chromium-free image is materially smaller. In local testing:
+
+- with Chromium: about `941MB`
+- without Chromium: about `290MB`
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
 
 > **Templates note:** The image already contains the checked-in `note-templates.json` from the repo. Add a bind mount only if you want host-side template edits to appear in the container without rebuilding the image.
 
 > **Permissions note:** Mapping the container user to `PRAGMA_UID` / `PRAGMA_GID` reduces first-run permission problems, but the host path pointed to by `PRAGMA_SESSIONS_PATH` still needs to be writable by that user.
+
+> **PDF note:** The Docker image always sets `PUPPETEER_SKIP_DOWNLOAD=true`, so Puppeteer never downloads its own browser during `npm ci`. Chromium installation is derived from `PDF_EXPORT_ENABLED` at build time.
 
 ---
 
