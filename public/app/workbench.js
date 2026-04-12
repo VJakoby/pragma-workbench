@@ -711,17 +711,39 @@ function updateSessionAttackerIpField() {
 function syncSummaryExportPrefsUI() {
   const authorInput = document.getElementById('summaryAuthorInput');
   const pdfInput = document.getElementById('summaryPdfDefault');
+  const pdfWrap = document.getElementById('summaryExportCheck');
+  const pdfBadge = document.getElementById('summaryExportBadge');
+  const pdfHint = document.getElementById('summaryExportHint');
+  const pdfExportEnabled = window.PRAGMA_CONFIG?.pdfExportEnabled !== false;
   if (authorInput) {
     authorInput.value = localStorage.getItem('pragma-summary-author') || '';
     authorInput.oninput = () => {
       localStorage.setItem('pragma-summary-author', authorInput.value);
     };
   }
+  if (pdfBadge) {
+    pdfBadge.textContent = pdfExportEnabled ? 'Enabled' : 'Disabled';
+    pdfBadge.classList.toggle('enabled', pdfExportEnabled);
+    pdfBadge.classList.toggle('disabled', !pdfExportEnabled);
+  }
+  if (pdfWrap) {
+    pdfWrap.classList.toggle('is-disabled', !pdfExportEnabled);
+  }
+  if (pdfHint && !pdfExportEnabled) {
+    pdfHint.textContent = 'Used for summary exports. PDF export is disabled for this deployment.';
+  }
   if (pdfInput) {
-    pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
-    pdfInput.onchange = () => {
-      localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
-    };
+    if (!pdfExportEnabled) {
+      pdfInput.checked = false;
+      pdfInput.disabled = true;
+      localStorage.setItem('pragma-summary-pdf', '0');
+    } else {
+      pdfInput.disabled = false;
+      pdfInput.checked = localStorage.getItem('pragma-summary-pdf') === '1';
+      pdfInput.onchange = () => {
+        localStorage.setItem('pragma-summary-pdf', pdfInput.checked ? '1' : '0');
+      };
+    }
   }
 }
 

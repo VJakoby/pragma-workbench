@@ -317,10 +317,14 @@ cp .example.env .env
 # 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
 #    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
 
-# 3. Build and start
+# 3. Choose whether PDF export should be enabled
+#    PDF_EXPORT_ENABLED=true  -> PDF export enabled and Chromium included in the image
+#    PDF_EXPORT_ENABLED=false -> PDF export disabled and Chromium omitted on rebuild
+
+# 4. Build and start
 docker compose up -d --build
 
-# 4. Access at
+# 5. Access at
 http://localhost:3000
 ```
 
@@ -328,9 +332,28 @@ Common `.env` values include:
 
 - `PRAGMA_KB_PATH`
 - `PRAGMA_SESSIONS_PATH`
+- `PDF_EXPORT_ENABLED`
 - `PRAGMA_UID`
 - `PRAGMA_GID`
 - `SEARCH_URL`
+
+`PDF_EXPORT_ENABLED` is now the single PDF-related setting:
+
+- `true` enables PDF export and builds Chromium into the image
+- `false` disables PDF export and, after rebuild, omits Chromium from the image
+
+Why this is a single setting:
+
+- most users do not need separate control over "PDF feature on/off" and "Chromium installed or not"
+- if PDF export is disabled, installing Chromium is unnecessary image bloat
+- the single switch keeps the choice aligned with what the user actually wants: PDF support or a smaller image
+
+Practical size impact:
+
+- `PDF_EXPORT_ENABLED=true`: about `941MB` image size
+- `PDF_EXPORT_ENABLED=false`: about `290MB` image size
+
+If you change `PDF_EXPORT_ENABLED`, rebuild the image.
 
 If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
@@ -340,6 +363,8 @@ If you edit `note-templates.json` on the host and want those changes reflected i
 npm install
 
 # 2. Start the server
+#    npm start now reads `.env` automatically, so PDF_EXPORT_ENABLED
+#    behaves consistently with Docker Compose for local runs too.
 npm start
 
 # 3. Open in browser
