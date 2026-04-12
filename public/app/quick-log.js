@@ -1251,14 +1251,15 @@ function commitPortParse() {
   if (!activeSessionId || !_portParsed.length) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
+  const targetId = resolveQuickLogTargetId();
   let added = 0;
   for (const r of _portParsed) {
     if (existing.has(`${r.port}/${r.proto}`)) continue;
-    const entry = { id: `svc_${Date.now()}_${added}`, target_id: activeTargetId || null, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
+    const entry = { id: `svc_${Date.now()}_${added}`, target_id: targetId, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
     sessions[activeSessionId].services.push(entry);
     added++;
   }
-  const syncedNetworkNote = activeTargetId ? syncSessionServicesToNetworkEnumerationNote(activeTargetId, added > 0) : false;
+  const syncedNetworkNote = targetId ? syncSessionServicesToNetworkEnumerationNote(targetId, added > 0) : false;
   saveNotes();
   renderSvcLogTable();
   updateSvcTabCounts();
@@ -1404,13 +1405,14 @@ function commitPathParse() {
   if (!activeSessionId || !_pathParsed.length) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
   const existing = new Set(sessions[activeSessionId].paths.map(p => p.path));
+  const targetId = resolveQuickLogTargetId();
   let added = 0;
   for (const r of _pathParsed) {
     if (existing.has(r.path)) continue;
-    sessions[activeSessionId].paths.push({ id: `path_${Date.now()}_${added}`, target_id: activeTargetId || null, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
+    sessions[activeSessionId].paths.push({ id: `path_${Date.now()}_${added}`, target_id: targetId, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
     added++;
   }
-  const syncedNetworkNote = activeTargetId ? syncSessionPathsToNetworkEnumerationNote(activeTargetId, added > 0) : false;
+  const syncedNetworkNote = targetId ? syncSessionPathsToNetworkEnumerationNote(targetId, added > 0) : false;
   saveNotes();
   renderPathTable();
   updateSvcTabCounts();
@@ -1431,9 +1433,10 @@ function addPathLog() {
   else { path = raw.split(/\s+/)[0]; notes = raw.slice(path.length).trim(); }
   if (!path.startsWith('/') && !path.includes('.')) { input.focus(); return; }
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const entry = { id: `path_${Date.now()}`, target_id: activeTargetId || null, path, status, size: '', notes, added: Date.now() };
+  const targetId = resolveQuickLogTargetId();
+  const entry = { id: `path_${Date.now()}`, target_id: targetId, path, status, size: '', notes, added: Date.now() };
   sessions[activeSessionId].paths.push(entry);
-  const syncedNetworkNote = syncSessionPathsToNetworkEnumerationNote(entry.target_id, true);
+  const syncedNetworkNote = targetId ? syncSessionPathsToNetworkEnumerationNote(targetId, true) : false;
   input.value = '';
   input.focus();
   saveNotes();
@@ -1664,6 +1667,10 @@ function populateNetworkEnumerationOverview(body, target = null) {
     .join('\n');
 }
 
+function resolveQuickLogTargetId() {
+  return activeTargetId || getActiveTarget()?.id || null;
+}
+
 function findTargetNetworkEnumerationNote(targetId) {
   if (!activeSessionId || !targetId) return null;
   return Object.values(notes).find(note =>
@@ -1682,7 +1689,9 @@ function ensureTargetNetworkEnumerationNote(targetId) {
   if (note) return note;
 
   const id = 'note_' + Date.now();
-  const tmpl = NOTE_TEMPLATES['network-enumeration'];
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('network-enumeration')
+    : NOTE_TEMPLATES['network-enumeration'];
   note = {
     id,
     session_id: activeSessionId,
@@ -1701,6 +1710,16 @@ function ensureTargetNetworkEnumerationNote(targetId) {
   };
   notes[id] = note;
   return note;
+}
+
+function buildNetworkEnumerationBody(target) {
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('network-enumeration')
+    : NOTE_TEMPLATES['network-enumeration'];
+  const base = typeof buildNoteBodyFromTemplate === 'function'
+    ? buildNoteBodyFromTemplate(tmpl)
+    : (tmpl?.body || '');
+  return populateNetworkEnumerationOverview(base, target);
 }
 
 function syncServiceEntryToNetworkEnumerationNote(entry) {
@@ -1723,7 +1742,11 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  const nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  if (!nextBody) {
+    const fallbackBody = buildNetworkEnumerationBody(target);
+    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -1745,7 +1768,11 @@ function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = fa
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  const nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  let nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  if (!nextBody) {
+    const fallbackBody = buildNetworkEnumerationBody(target);
+    nextBody = replaceWebEndpointsTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -1874,9 +1901,10 @@ function addServiceLog() {
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
+  const targetId = resolveQuickLogTargetId();
   const entry = {
     id: `svc_${Date.now()}`,
-    target_id: activeTargetId || null,
+    target_id: targetId,
     port: parsed.port,
     proto: parsed.proto,
     service: parsed.service,
@@ -1885,7 +1913,7 @@ function addServiceLog() {
     added: Date.now(),
   };
   sessions[activeSessionId].services.push(entry);
-  const syncedNetworkNote = syncSessionServicesToNetworkEnumerationNote(entry.target_id, true);
+  const syncedNetworkNote = targetId ? syncSessionServicesToNetworkEnumerationNote(targetId, true) : false;
   input.value = '';
   input.focus();
   saveNotes();

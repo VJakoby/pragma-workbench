@@ -95,6 +95,7 @@ In practice, this means the app is opinionated about staying operational:
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
 - Session summary export supports a consolidated markdown file and an optional PDF summary output
+  The Docker image uses system Chromium for PDF export through Puppeteer rather than downloading a bundled browser during install.
 - Session reassignment, target assignment, and Timeline view for chronological activity
 - Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
 - Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
@@ -128,6 +129,7 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 
 **Knowledge Base & Tactics**
 - Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
+- The repository does not ship with a real KB corpus. Each user is expected to point PRAGMA at their own local knowledge base content
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected
 - Full-text search with weighted relevance scoring, fuzzy matching, and per-result match type (exact / fuzzy / partial)
@@ -150,6 +152,8 @@ This makes Evidence the primary workflow for preserving proof from notes, while 
 ## 📝 Note Templates
 
 PRAGMA supports built-in note templates. Each opens with a pre-structured markdown body, relevant default tags, and a title prefix to keep notes consistent across engagements.
+
+Some automation relies on specific templates being present. For example, Quick Log ports/paths sync creates and updates a `network-enumeration` note, and Loot → Credentials sync requires a `credentials` note. If you remove those templates from `note-templates.json`, the auto-created documents will no longer appear. The templates can be minimal; they just need the matching table headers so sync can find them.
 
 Templates can also define **variants**. A single template type can expose multiple selectable versions in the new-note flow, each with its own title prefix, default tags, and markdown body. This is useful when one note category needs several operating modes, for example:
 
@@ -313,10 +317,14 @@ cp .example.env .env
 # 2. Edit .env and point PRAGMA_KB_PATH to your local knowledge base
 #    (and PRAGMA_SESSIONS_PATH if you want runtime data somewhere else)
 
-# 3. Build and start
+# 3. Choose whether PDF export should be enabled
+#    PDF_EXPORT_ENABLED=true  -> PDF export enabled and Chromium included in the image
+#    PDF_EXPORT_ENABLED=false -> PDF export disabled and Chromium omitted on rebuild
+
+# 4. Build and start
 docker compose up -d --build
 
-# 4. Access at
+# 5. Access at
 http://localhost:3000
 ```
 
@@ -324,9 +332,28 @@ Common `.env` values include:
 
 - `PRAGMA_KB_PATH`
 - `PRAGMA_SESSIONS_PATH`
+- `PDF_EXPORT_ENABLED`
 - `PRAGMA_UID`
 - `PRAGMA_GID`
 - `SEARCH_URL`
+
+`PDF_EXPORT_ENABLED` is now the single PDF-related setting:
+
+- `true` enables PDF export and builds Chromium into the image
+- `false` disables PDF export and, after rebuild, omits Chromium from the image
+
+Why this is a single setting:
+
+- most users do not need separate control over "PDF feature on/off" and "Chromium installed or not"
+- if PDF export is disabled, installing Chromium is unnecessary image bloat
+- the single switch keeps the choice aligned with what the user actually wants: PDF support or a smaller image
+
+Practical size impact:
+
+- `PDF_EXPORT_ENABLED=true`: about `941MB` image size
+- `PDF_EXPORT_ENABLED=false`: about `290MB` image size
+
+If you change `PDF_EXPORT_ENABLED`, rebuild the image.
 
 If you edit `note-templates.json` on the host and want those changes reflected inside Docker without rebuilding, add a bind mount for that file as described in [DOCKER.md](./DOCKER.md).
 
@@ -336,6 +363,8 @@ If you edit `note-templates.json` on the host and want those changes reflected i
 npm install
 
 # 2. Start the server
+#    npm start now reads `.env` automatically, so PDF_EXPORT_ENABLED
+#    behaves consistently with Docker Compose for local runs too.
 npm start
 
 # 3. Open in browser
@@ -375,6 +404,13 @@ PRAGMA Workbench is licensed under AGPL-3.0-or-later. Third-party license notice
 The direction of the project, explicit non-goals, and feature-boundary decisions are tracked separately in the roadmap.
 
 See [ROADMAP.md](./ROADMAP.md).
+
+---
+
+## 🤝 Contributions
+
+If you discover new ideas, feature proposals, bugs, or other problems, opening an issue is highly appreciated. Pull requests with fixes or improvements are also very welcome.
+
 ---
 
 Created by VJakoby + 🤖 | Licensed under AGPL-3.0-or-later | [View AI & Architectural Disclosure](./AI-DISCLOSURE.md)
