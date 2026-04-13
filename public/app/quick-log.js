@@ -1563,13 +1563,45 @@ function parseServiceForNetworkRow(entry) {
   };
 }
 
-function buildNetworkEnumerationTableRow(row) {
+function buildNetworkEnumerationTableRow(row, mode = 'full') {
+  if (mode === 'minimal') {
+    const svc = [row.service, row.version].filter(Boolean).join(' ').trim();
+    return `| ${row.port} | ${svc} | ${row.notes} |`;
+  }
   return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
 }
 
+function ensureNetworkEnumerationSection(lines) {
+  const insertBeforeIdx = lines.findIndex(line => /^##\s+Web$/i.test(line.trim()) || /^##\s+Notes$/i.test(line.trim()));
+  const section = [
+    '## Open Ports & Services',
+    '',
+    '| Port | Proto | Service | Version | Notes |',
+    '|------|-------|---------|---------|-------|',
+    '|      |       |         |         |       |',
+    '',
+  ];
+  const at = insertBeforeIdx === -1 ? lines.length : insertBeforeIdx;
+  lines.splice(at, 0, ...section);
+  return lines;
+}
+
 function replaceNetworkEnumerationTableInBody(body, rows) {
-  const lines = String(body || '').split('\n');
-  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let lines = String(body || '').split('\n');
+  let headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let mode = 'full';
+
+  if (headerIdx === -1) {
+    headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    if (headerIdx !== -1) mode = 'minimal';
+  }
+
+  if (headerIdx === -1) {
+    lines = ensureNetworkEnumerationSection(lines);
+    headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    mode = 'full';
+  }
+
   if (headerIdx === -1) return null;
   const separatorIdx = headerIdx + 1;
   if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
@@ -1578,8 +1610,8 @@ function replaceNetworkEnumerationTableInBody(body, rows) {
   while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
 
   const nextRows = rows.length
-    ? rows.map(buildNetworkEnumerationTableRow)
-    : ['|      |       |         |         |       |'];
+    ? rows.map(row => buildNetworkEnumerationTableRow(row, mode))
+    : (mode === 'minimal' ? ['|      |         |       |'] : ['|      |       |         |         |       |']);
 
   lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
   return lines.join('\n');
@@ -2167,13 +2199,41 @@ function commitLootParse() {
   showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
-function buildCredentialsTableRow(row) {
+function buildCredentialsTableRow(row, mode = 'default') {
+  if (mode === 'web') {
+    return `| ${row.username} | ${row.password} | ${row.service} |  | ${row.notes} |`;
+  }
   return `| ${row.username} | ${row.password} | ${row.hash} | ${row.service} | ${row.notes} |`;
 }
 
+function ensureCredentialsSection(lines) {
+  const insertBeforeIdx = lines.findIndex(line => /^##\s+Password\s+Spray/i.test(line.trim()) || /^##\s+Sessions/i.test(line.trim()) || /^##\s+Notes$/i.test(line.trim()));
+  const section = [
+    '## Credentials',
+    '',
+    '| Username | Password | Hash | Service | Notes |',
+    '|----------|----------|------|---------|-------|',
+    '|          |          |      |         |       |',
+    '',
+  ];
+  const at = insertBeforeIdx === -1 ? lines.length : insertBeforeIdx;
+  lines.splice(at, 0, ...section);
+  return lines;
+}
+
 function replaceCredentialsTableInBody(body, rows) {
-  const lines = String(body || '').split('\n');
-  const headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let lines = String(body || '').split('\n');
+  let headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let mode = 'default';
+  if (headerIdx === -1) {
+    headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*URL\s*\/\s*Path\s*\|\s*Role\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    if (headerIdx !== -1) mode = 'web';
+  }
+  if (headerIdx === -1) {
+    lines = ensureCredentialsSection(lines);
+    headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    mode = 'default';
+  }
   if (headerIdx === -1) return null;
   const separatorIdx = headerIdx + 1;
   if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
@@ -2182,8 +2242,8 @@ function replaceCredentialsTableInBody(body, rows) {
   while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
 
   const nextRows = rows.length
-    ? rows.map(buildCredentialsTableRow)
-    : ['|          |          |      |         |       |'];
+    ? rows.map(row => buildCredentialsTableRow(row, mode))
+    : (mode === 'web' ? ['|          |          |            |      |       |'] : ['|          |          |      |         |       |']);
 
   lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
   return lines.join('\n');
@@ -2200,7 +2260,9 @@ function ensureSessionCredentialsNote() {
   if (note) return note;
 
   const id = 'note_' + Date.now();
-  const tmpl = NOTE_TEMPLATES.credentials;
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('credentials')
+    : NOTE_TEMPLATES.credentials;
   note = {
     id,
     session_id: activeSessionId,
@@ -2218,6 +2280,15 @@ function ensureSessionCredentialsNote() {
   return note;
 }
 
+function buildCredentialsBody() {
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('credentials')
+    : NOTE_TEMPLATES.credentials;
+  return typeof buildNoteBodyFromTemplate === 'function'
+    ? buildNoteBodyFromTemplate(tmpl)
+    : (tmpl?.body || '');
+}
+
 function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
@@ -2229,7 +2300,11 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!note && createIfMissing && rows.length) note = ensureSessionCredentialsNote();
   if (!note) return false;
 
-  const nextBody = replaceCredentialsTableInBody(note.body || '', rows);
+  let nextBody = replaceCredentialsTableInBody(note.body || '', rows);
+  if (!nextBody) {
+    const fallbackBody = buildCredentialsBody();
+    nextBody = replaceCredentialsTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
