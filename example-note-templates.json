@@ -329,7 +329,7 @@
     },
     {
       "id": "privesc",
-      "label": "Privlilege Escalation",
+      "label": "Privilege Escalation",
       "icon": "⬆",
       "title_prefix": "Privilege Escalation",
       "default_tags": [
@@ -548,7 +548,7 @@
       "id": "exploit",
       "label": "Exploitation",
       "icon": "💥",
-      "title_prefix": "Exploit",
+      "title_prefix": "Exploitation",
       "default_tags": [
         "exploit"
       ],
