@@ -303,6 +303,12 @@ function matrixFormatSubdomainSources(sources, fallback = 'None') {
   return sources.join(', ');
 }
 
+function matrixFormatSubdomainSourceDetail(item) {
+  const hostname = item?.hostname || '';
+  const sources = matrixFormatSubdomainSources(item?.sources);
+  return hostname ? `${hostname} [${sources}]` : '';
+}
+
 function matrixMarkdownMx(mxList) {
   if (!Array.isArray(mxList) || !mxList.length) return 'None';
   if (mxList.some(item => item?.isNullMx)) return 'Null MX';
@@ -652,6 +658,7 @@ function matrixRenderSubdomainResult(result) {
   const sourceSummary = matrixFormatSubdomainSources(discovery.sourcesUsed);
   const tone = result.error ? 'error' : (hostnames.length ? 'ok' : 'warning');
   const hostnameLines = hostnames.map(item => item.hostname || '').filter(Boolean).join('\n');
+  const hostnameSourceLines = hostnames.map(matrixFormatSubdomainSourceDetail).filter(Boolean).join('\n');
 
   return `
     <section class="matrix-result-card matrix-result-card--domain matrix-result-status--${tone}">
@@ -694,6 +701,7 @@ function matrixRenderSubdomainResult(result) {
           <div class="matrix-copy-toolbar">
             <div class="matrix-copy-meta">${escapeHtml(`${hostnames.length} hostnames`)}</div>
             <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(hostnameLines)}">Copy All</button>
+            <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(hostnameSourceLines)}">Copy With Sources</button>
           </div>
           <textarea class="matrix-copy-block" readonly spellcheck="false">${escapeHtml(hostnameLines)}</textarea>
           <div class="matrix-subdomain-list">
@@ -701,7 +709,8 @@ function matrixRenderSubdomainResult(result) {
               <div class="matrix-subdomain-item">
                 <div class="matrix-subdomain-host-wrap">
                   <div class="matrix-subdomain-host">${escapeHtml(item.hostname || '')}</div>
-                  <div class="matrix-subdomain-meta">${escapeHtml(matrixFormatSubdomainSources(item.sources))}</div>
+                  <div class="matrix-subdomain-meta">Found via</div>
+                  <div class="matrix-pill-row">${matrixJoinList(item.sources || [])}</div>
                 </div>
                 <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(item.hostname || '')}">Copy</button>
               </div>
