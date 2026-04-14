@@ -104,6 +104,8 @@ In practice, this means the app is opinionated about staying operational:
 - services, tactics, and indexed KB content are there to support the current note/work, not replace it
 - when possible, supporting content should open beside the current note rather than forcing a full context switch
 
+For a practical walkthrough of how the app is meant to be used during an engagement, see [USAGE.md](./USAGE.md).
+
 ## 🧱 Tech Stack
 
 | Area | Technology | Notes |
