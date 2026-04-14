@@ -553,7 +553,10 @@ function renderCards(view) {
     grid.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
       <div class="empty-state-title">No ${view} found</div>
-      <div class="empty-state-hint">Add .md files to the ${view==='tactics'?'knowledge_base/tactics/':view==='services'?'knowledge_base/services/':`knowledge_base/${view.slice(3)}/`}</div>
+      <div class="results-offline warn" style="margin:12px 0 0;padding:18px 18px;max-width:520px;">
+        <div class="results-offline-text">KB path not configured</div>
+        <div class="results-offline-hint">Add <code>.md</code> files to the ${view==='tactics'?'knowledge_base/tactics/':view==='services'?'knowledge_base/services/':`knowledge_base/${view.slice(3)}/`} or set <code>PRAGMA_KB_PATH</code> in <code>.env</code> to point to your KB.</div>
+      </div>
     </div>`;
     return;
   }

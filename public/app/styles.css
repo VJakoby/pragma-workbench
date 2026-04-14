@@ -3000,6 +3000,14 @@ body.is-resizing *{cursor:col-resize!important}
 .results-offline.error .results-offline-icon{opacity:1}
 .results-offline.error .results-offline-text{color:var(--red);font-weight:600}
 .results-offline.error .results-offline-hint{color:var(--text2)}
+.results-offline.warn{
+  background:rgba(251,146,60,0.08);
+  border:1px solid rgba(251,146,60,0.22);
+  border-radius:8px;margin:16px;padding:32px 20px;
+}
+.results-offline.warn .results-offline-icon{opacity:1;color:var(--orange)}
+.results-offline.warn .results-offline-text{color:var(--orange);font-weight:600}
+.results-offline.warn .results-offline-hint{color:var(--text2)}
 
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
