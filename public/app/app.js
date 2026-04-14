@@ -403,7 +403,7 @@ async function buildCmdResults(q) {
     : [];
 
   if (noteList.length) {
-    html += `<div class="cmd-group-hdr">Session Notes</div>`;
+    html += `<div class="cmd-group-hdr">Engagement Notes</div>`;
     noteList.forEach(({ note: n, tagHit }) => {
       const sessionName = n.session_id && sessions[n.session_id]?.codename
         ? sessions[n.session_id].codename

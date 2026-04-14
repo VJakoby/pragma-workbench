@@ -4,6 +4,9 @@ sessions/
 # Backup files that should only be local
 *.bak
 
+# Example files
+exampel-note-templates.json
+
 # Enviromental variables that should only be local
 .env
 
@@ -21,3 +24,4 @@ node_modules/*
 # VSCode specific
 *.vscode
 *.code-workspacex
+example-note-templates.json

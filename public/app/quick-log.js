@@ -11,6 +11,14 @@ let _editingQuickLog = null;
 let _evidenceFilterType = '';
 let _evidenceFilterTarget = '';
 
+function ensureActiveSession(actionLabel = 'this action') {
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    showToast(`⚠ Open a session first to ${actionLabel}`, 'err');
+    return false;
+  }
+  return true;
+}
+
 const SVC_TAB_ORDER = ['ports', 'paths', 'loot'];
 const SVC_TAB_CONFIG = {
   ports: {
@@ -1248,7 +1256,8 @@ function parseAndPreviewPorts() {
 }
 
 function commitPortParse() {
-  if (!activeSessionId || !_portParsed.length) return;
+  if (!_portParsed.length) return;
+  if (!ensureActiveSession('add ports')) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
   const targetId = resolveQuickLogTargetId();
@@ -1472,7 +1481,8 @@ function parseAndPreviewPaths() {
 }
 
 function commitPathParse() {
-  if (!activeSessionId || !_pathParsed.length) return;
+  if (!_pathParsed.length) return;
+  if (!ensureActiveSession('add paths')) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
   const existing = new Set(sessions[activeSessionId].paths.map(p => p.path));
   const targetId = resolveQuickLogTargetId();
@@ -1494,7 +1504,8 @@ function commitPathParse() {
 function addPathLog() {
   const input = document.getElementById('pathQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
-  if (!raw || !activeSessionId) { if (input) input.focus(); return; }
+  if (!raw) { if (input) input.focus(); return; }
+  if (!ensureActiveSession('add a path')) { if (input) input.focus(); return; }
   let status = '';
   let path = '';
   let notes = '';
@@ -1516,7 +1527,7 @@ function addPathLog() {
 }
 
 function deletePathLog(pathId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('remove a path')) return;
   const path = (sessions[activeSessionId].paths || []).find(p => p.id === pathId);
   if (isQuickLogEditing('path', pathId)) clearQuickLogEditing();
   sessions[activeSessionId].paths = (sessions[activeSessionId].paths || []).filter(p => p.id !== pathId);
@@ -1528,7 +1539,7 @@ function deletePathLog(pathId) {
 }
 
 function updatePathNotes(pathId, val) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('update a path')) return;
   const p = (sessions[activeSessionId].paths || []).find(path => path.id === pathId);
   if (!p) return;
   p.notes = val;
@@ -1538,7 +1549,7 @@ function updatePathNotes(pathId, val) {
 }
 
 function commitPathEdit(pathId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('edit a path')) return;
   const p = (sessions[activeSessionId].paths || []).find(path => path.id === pathId);
   if (!p) return;
   const status = (document.getElementById(`pathEditStatus_${pathId}`)?.value || '').trim();
@@ -1633,13 +1644,45 @@ function parseServiceForNetworkRow(entry) {
   };
 }
 
-function buildNetworkEnumerationTableRow(row) {
+function buildNetworkEnumerationTableRow(row, mode = 'full') {
+  if (mode === 'minimal') {
+    const svc = [row.service, row.version].filter(Boolean).join(' ').trim();
+    return `| ${row.port} | ${svc} | ${row.notes} |`;
+  }
   return `| ${row.port} | ${row.proto} | ${row.service} | ${row.version} | ${row.notes} |`;
 }
 
+function ensureNetworkEnumerationSection(lines) {
+  const insertBeforeIdx = lines.findIndex(line => /^##\s+Web$/i.test(line.trim()) || /^##\s+Notes$/i.test(line.trim()));
+  const section = [
+    '## Open Ports & Services',
+    '',
+    '| Port | Proto | Service | Version | Notes |',
+    '|------|-------|---------|---------|-------|',
+    '|      |       |         |         |       |',
+    '',
+  ];
+  const at = insertBeforeIdx === -1 ? lines.length : insertBeforeIdx;
+  lines.splice(at, 0, ...section);
+  return lines;
+}
+
 function replaceNetworkEnumerationTableInBody(body, rows) {
-  const lines = String(body || '').split('\n');
-  const headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let lines = String(body || '').split('\n');
+  let headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let mode = 'full';
+
+  if (headerIdx === -1) {
+    headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    if (headerIdx !== -1) mode = 'minimal';
+  }
+
+  if (headerIdx === -1) {
+    lines = ensureNetworkEnumerationSection(lines);
+    headerIdx = lines.findIndex(line => /^\|\s*Port\s*\|\s*Proto\s*\|\s*Service\s*\|\s*Version\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    mode = 'full';
+  }
+
   if (headerIdx === -1) return null;
   const separatorIdx = headerIdx + 1;
   if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
@@ -1648,8 +1691,8 @@ function replaceNetworkEnumerationTableInBody(body, rows) {
   while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
 
   const nextRows = rows.length
-    ? rows.map(buildNetworkEnumerationTableRow)
-    : ['|      |       |         |         |       |'];
+    ? rows.map(row => buildNetworkEnumerationTableRow(row, mode))
+    : (mode === 'minimal' ? ['|      |         |       |'] : ['|      |       |         |         |       |']);
 
   lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
   return lines.join('\n');
@@ -1967,7 +2010,8 @@ function renderEvidenceRowActions(id) {
 function addServiceLog() {
   const input = document.getElementById('svcQuickInput');
   const raw = (input && input.value) ? input.value.trim() : '';
-  if (!raw || !activeSessionId) { if (input) input.focus(); return; }
+  if (!raw) { if (input) input.focus(); return; }
+  if (!ensureActiveSession('add a service')) { if (input) input.focus(); return; }
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
@@ -1993,7 +2037,7 @@ function addServiceLog() {
 }
 
 function deleteServiceLog(svcId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('remove a service')) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
   if (isQuickLogEditing('service', svcId)) clearQuickLogEditing();
   sessions[activeSessionId].services = (sessions[activeSessionId].services || []).filter(s => s.id !== svcId);
@@ -2004,7 +2048,7 @@ function deleteServiceLog(svcId) {
 }
 
 function updateSvcNotes(svcId, val) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('update a service')) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
   if (!svc) return;
   svc.notes = val;
@@ -2014,7 +2058,7 @@ function updateSvcNotes(svcId, val) {
 }
 
 function commitServiceEdit(svcId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('edit a service')) return;
   const svc = (sessions[activeSessionId].services || []).find(s => s.id === svcId);
   if (!svc) return;
   const port = (document.getElementById(`svcEditPort_${svcId}`)?.value || '').trim();
@@ -2189,7 +2233,8 @@ function parseAndPreviewLoot() {
 }
 
 function commitLootParse() {
-  if (!activeSessionId || !_lootParsed.length) return;
+  if (!_lootParsed.length) return;
+  if (!ensureActiveSession('add loot')) return;
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
 
   const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
@@ -2237,13 +2282,41 @@ function commitLootParse() {
   showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
-function buildCredentialsTableRow(row) {
+function buildCredentialsTableRow(row, mode = 'default') {
+  if (mode === 'web') {
+    return `| ${row.username} | ${row.password} | ${row.service} |  | ${row.notes} |`;
+  }
   return `| ${row.username} | ${row.password} | ${row.hash} | ${row.service} | ${row.notes} |`;
 }
 
+function ensureCredentialsSection(lines) {
+  const insertBeforeIdx = lines.findIndex(line => /^##\s+Password\s+Spray/i.test(line.trim()) || /^##\s+Sessions/i.test(line.trim()) || /^##\s+Notes$/i.test(line.trim()));
+  const section = [
+    '## Credentials',
+    '',
+    '| Username | Password | Hash | Service | Notes |',
+    '|----------|----------|------|---------|-------|',
+    '|          |          |      |         |       |',
+    '',
+  ];
+  const at = insertBeforeIdx === -1 ? lines.length : insertBeforeIdx;
+  lines.splice(at, 0, ...section);
+  return lines;
+}
+
 function replaceCredentialsTableInBody(body, rows) {
-  const lines = String(body || '').split('\n');
-  const headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let lines = String(body || '').split('\n');
+  let headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+  let mode = 'default';
+  if (headerIdx === -1) {
+    headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*URL\s*\/\s*Path\s*\|\s*Role\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    if (headerIdx !== -1) mode = 'web';
+  }
+  if (headerIdx === -1) {
+    lines = ensureCredentialsSection(lines);
+    headerIdx = lines.findIndex(line => /^\|\s*Username\s*\|\s*Password\s*\|\s*Hash\s*\|\s*Service\s*\|\s*Notes\s*\|$/i.test(line.trim()));
+    mode = 'default';
+  }
   if (headerIdx === -1) return null;
   const separatorIdx = headerIdx + 1;
   if (!lines[separatorIdx] || !/^\|\s*-+/.test(lines[separatorIdx].trim())) return null;
@@ -2252,8 +2325,8 @@ function replaceCredentialsTableInBody(body, rows) {
   while (tableEnd < lines.length && /^\|/.test(lines[tableEnd].trim())) tableEnd++;
 
   const nextRows = rows.length
-    ? rows.map(buildCredentialsTableRow)
-    : ['|          |          |      |         |       |'];
+    ? rows.map(row => buildCredentialsTableRow(row, mode))
+    : (mode === 'web' ? ['|          |          |            |      |       |'] : ['|          |          |      |         |       |']);
 
   lines.splice(separatorIdx + 1, tableEnd - (separatorIdx + 1), ...nextRows);
   return lines.join('\n');
@@ -2270,7 +2343,9 @@ function ensureSessionCredentialsNote() {
   if (note) return note;
 
   const id = 'note_' + Date.now();
-  const tmpl = NOTE_TEMPLATES.credentials;
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('credentials')
+    : NOTE_TEMPLATES.credentials;
   note = {
     id,
     session_id: activeSessionId,
@@ -2288,6 +2363,15 @@ function ensureSessionCredentialsNote() {
   return note;
 }
 
+function buildCredentialsBody() {
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('credentials')
+    : NOTE_TEMPLATES.credentials;
+  return typeof buildNoteBodyFromTemplate === 'function'
+    ? buildNoteBodyFromTemplate(tmpl)
+    : (tmpl?.body || '');
+}
+
 function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
@@ -2299,7 +2383,11 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!note && createIfMissing && rows.length) note = ensureSessionCredentialsNote();
   if (!note) return false;
 
-  const nextBody = replaceCredentialsTableInBody(note.body || '', rows);
+  let nextBody = replaceCredentialsTableInBody(note.body || '', rows);
+  if (!nextBody) {
+    const fallbackBody = buildCredentialsBody();
+    nextBody = replaceCredentialsTableInBody(fallbackBody, rows);
+  }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
@@ -2308,7 +2396,7 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
 }
 
 function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
-  if (!activeSessionId) return { entry: null, syncedCredentialsNote: false, duplicate: false };
+  if (!ensureActiveSession('add loot')) return { entry: null, syncedCredentialsNote: false, duplicate: false };
   const cleanCredential = String(credential || '').trim();
   if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
@@ -2341,7 +2429,8 @@ function addLootEntry() {
   const cred = credEl?.value.trim();
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
-  if (!cred || !activeSessionId) { credEl?.focus(); return; }
+  if (!cred) { credEl?.focus(); return; }
+  if (!ensureActiveSession('add loot')) { credEl?.focus(); return; }
   const { entry, syncedCredentialsNote } = addLootEntryFromData({
     type: _activeLootType,
     credential: cred,
@@ -2377,7 +2466,7 @@ function addLootEntry() {
 }
 
 function deleteLootEntry(lootId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('remove loot')) return;
   if (isQuickLogEditing('loot', lootId)) clearQuickLogEditing();
   sessions[activeSessionId].loot = (sessions[activeSessionId].loot || []).filter(l => l.id !== lootId);
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
@@ -2401,7 +2490,7 @@ function deleteLootEntry(lootId) {
 }
 
 function updateLootNote(lootId, val) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('update loot')) return;
   const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
   if (!entry) return;
   entry.note = val;
@@ -2424,7 +2513,7 @@ function updateLootNote(lootId, val) {
 }
 
 function commitLootEdit(lootId) {
-  if (!activeSessionId) return;
+  if (!ensureActiveSession('edit loot')) return;
   const entry = (sessions[activeSessionId].loot || []).find(l => l.id === lootId);
   if (!entry) return;
   const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();

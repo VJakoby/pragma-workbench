@@ -13,11 +13,11 @@ const BUILTIN_NOTE_TYPE_META = {
   general:     { label: 'General',     icon: '📋', cssClass: 'note-type-general'     },
   credentials: { label: 'Credentials', icon: '🔑', cssClass: 'note-type-credentials' },
   'passive-recon': { label: 'Passive Recon', icon: '🛰', cssClass: 'note-type-passive-recon' },
-  privesc:     { label: 'PrivEsc',     icon: '⬆',  cssClass: 'note-type-privesc'     },
+  privesc:     { label: 'Privilege Escalation', icon: '⬆',  cssClass: 'note-type-privesc'     },
   recon:       { label: 'Recon',       icon: '🔭', cssClass: 'note-type-recon'       },
   'network-enumeration': { label: 'Network Enumeration', icon: '🌐', cssClass: 'note-type-network-enumeration' },
   loot:        { label: 'Loot',        icon: '💰', cssClass: 'note-type-loot'        },
-  exploit:     { label: 'Exploit',     icon: '💥', cssClass: 'note-type-exploit'     },
+  exploit:     { label: 'Exploitation', icon: '💥', cssClass: 'note-type-exploit'     },
 };
 
 let NOTE_TYPE_META = {
@@ -25,19 +25,18 @@ let NOTE_TYPE_META = {
 };
 
 const NOTE_TEMPLATES_FALLBACK = {
-  general:     { title: '',                    body: `## Overview\n\n\n## Notes\n\n\n## References\n\n` },
   credentials: { title: 'Credentials',         body: `## Credentials\n\n| Username | Password | Hash | Service | Notes |\n|----------|----------|------|---------|-------|\n|          |          |      |         |       |\n\n## Password Spray / Stuffing Notes\n\n\n## Valid Sessions / Tokens\n\n` },
   'passive-recon': { title: 'Passive Recon',   body: `## Passive Recon\n\nUse this note to collect curated passive reconnaissance results from Toolbox.\n\n` },
   privesc:     { title: 'Privilege Escalation', body: `## System Info\n\n| Field     | Value |\n|-----------|-------|\n| OS        |       |\n| Kernel    |       |\n| Hostname  |       |\n| Current User |    |\n| Groups    |       |\n\n## Enumeration\n\n### SUID / SGID Binaries\n\n\n### Sudo Rights\n\n\n### Cron Jobs\n\n\n### Writable Paths / Misconfigs\n\n\n### Interesting Files\n\n\n## Vectors Attempted\n\n| Vector | Result | Notes |\n|--------|--------|-------|\n|        |        |       |\n\n## Escalation Path\n\n\n` },
   recon:       { title: 'Recon',               body: `## Target Overview\n\n| Field   | Value |\n|---------|-------|\n| IP      |       |\n| Domain  |       |\n| OS      |       |\n| In Scope|       |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Web Endpoints\n\n\n## DNS / Hostnames\n\n\n## Users / Groups Discovered\n\n\n## Findings\n\n` },
   'network-enumeration': { title: 'Network Enumeration', body: `## Target Overview\n\n| Field | Value |\n|-------|-------|\n| IP | |\n| Domain | |\n| Hostname | |\n\n## Open Ports & Services\n\n| Port | Proto | Service | Version | Notes |\n|------|-------|---------|---------|-------|\n|      |       |         |         |       |\n\n## Notes\n\n` },
-  loot:        { title: 'Loot',                body: `## Files & Data\n\n| Path | Description | Hash / Value | Exfil Method |\n|------|-------------|--------------|--------------|\n|      |             |              |              |\n\n## Credentials Found\n\n\n## Flags / Proofs\n\n\`\`\`\n# root.txt / user.txt / proof.txt\n\n\`\`\`\n\n## Notes\n\n` },
-  exploit:     { title: 'Exploit',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
+  exploit:     { title: 'Exploitation',             body: `## Vulnerability\n\n| Field       | Value |\n|-------------|-------|\n| Name        |       |\n| CVE         |       |\n| CVSS        |       |\n| Affected    |       |\n| Auth Required|      |\n\n## Payload\n\n\`\`\`bash\n\n\`\`\`\n\n## Steps\n\n1. \n2. \n3. \n\n## Outcome\n\n\n## Cleanup / Artifacts to Remove\n\n` },
   scratch:     { title: '',                    body: '' },
 };
 
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
+let NOTE_TEMPLATE_WARNING_SHOWN = false;
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -157,6 +156,10 @@ async function loadNoteTemplates() {
     if (!d.templates || !d.templates.length) {
       console.log('[Templates] No templates file or empty — using hardcoded fallback');
       setNoteTemplates(getFallbackTemplates());
+      if (!NOTE_TEMPLATE_WARNING_SHOWN) {
+        NOTE_TEMPLATE_WARNING_SHOWN = true;
+        showToast('⚠ note-templates.json missing or empty — using built-in templates', 'err');
+      }
       renderNoteTypeGrid();
       renderNoteFilterBar();
       return;
@@ -187,6 +190,10 @@ async function loadNoteTemplates() {
   } catch (e) {
     console.warn('[Templates] Failed to load templates file, using hardcoded fallback:', e.message);
     setNoteTemplates(getFallbackTemplates());
+    if (!NOTE_TEMPLATE_WARNING_SHOWN) {
+      NOTE_TEMPLATE_WARNING_SHOWN = true;
+      showToast('⚠ note-templates.json could not be loaded — using built-in templates', 'err');
+    }
     renderNoteTypeGrid();
     renderNoteFilterBar();
   }
