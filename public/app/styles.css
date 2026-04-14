@@ -3170,7 +3170,7 @@ body.is-resizing *{cursor:col-resize!important}
   min-width:0;
 }
 .cmd-item-title{
-  font-size:14px;
+  font-size:15px;
   color:var(--text);
   font-weight:600;
   line-height:1.2;
