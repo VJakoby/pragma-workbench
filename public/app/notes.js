@@ -273,9 +273,9 @@ function updateNoteSearchPlaceholder() {
   const input = document.getElementById('noteSearchInput');
   if (!input) return;
   const placeholderByScope = {
-    session: 'Search current session notes…',
+    session: 'Search current engagement notes…',
     unassigned: 'Search unassigned notes…',
-    all: 'Search all session notes…',
+    all: 'Search all engagement notes…',
   };
   input.placeholder = placeholderByScope[activeNoteScope] || 'Search notes…';
 }

@@ -49,7 +49,7 @@ Titles and note content stay flexible, while session assignment and target assig
 
 PRAGMA is built around a simple interaction rule:
 
-- **Session Notes are the primary workspace** during an engagement
+- **Engagement Notes are the primary workspace** during an engagement
 - **Knowledge Base, Tactics, search, and quick-log are supporting tools**
 - supporting views should help you retrieve context, not pull you out of the note-taking flow unnecessarily
 
