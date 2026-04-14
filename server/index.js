@@ -184,7 +184,13 @@ app.listen(PORT, HOST, () => {
     console.log('');
   }
 
-  const checks = runStartupIntegrityCheck({ sessionsDir: SESSIONS_DIR, storage });
+  const checks = runStartupIntegrityCheck({
+    sessionsDir: SESSIONS_DIR,
+    storage,
+    kbDir: KB_DIR,
+    servicesDir: SERVICES_DIR,
+    tacticsDir: TACTICS_DIR,
+  });
   const icons = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };
   checks.forEach(({ level, msg }) => console.log(`${icons[level] || '  ?'} [${level.toUpperCase()}] ${msg}`));
   if (checks.some(result => result.level === 'error')) {
