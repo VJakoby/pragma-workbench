@@ -72,6 +72,9 @@ Recommended startup flow:
 
 | Variable | Default | Description |
 |---|---|---|
+| `TOOLBOX_ENABLED` | `false` | Enable the optional PRAGMA // Toolbox integration in the UI and proxy routes |
+| `TOOLBOX_URL` | App default: `http://127.0.0.1:3003` | Primary URL to the PRAGMA // Toolbox service when enabled |
+| `TOOLBOX_URLS` | unset | Optional comma-separated fallback URL list tried in order |
 | `PRAGMA_UID` | `1000` | Host user ID used to run the container process |
 | `PRAGMA_GID` | `1000` | Host group ID used to run the container process |
 | `PRAGMA_KB_PATH` | `./knowledge_base` | Host path mounted into `/usr/src/app/knowledge_base` |
@@ -106,6 +109,10 @@ services:
       - KB_DIR=/usr/src/app/knowledge_base
       - SESSIONS_DIR=/usr/src/app/sessions
       - SEARCH_URL=http://engram:3002
+      - TOOLBOX_ENABLED=true
+      - TOOLBOX_URL=http://host.docker.internal:3003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 ```
 
 Example `.env`:
@@ -116,6 +123,9 @@ PRAGMA_GID=1000
 PRAGMA_KB_PATH=./knowledge_base
 PRAGMA_SESSIONS_PATH=./sessions
 PDF_EXPORT_ENABLED=true
+TOOLBOX_ENABLED=true
+TOOLBOX_URL=http://127.0.0.1:3003
+TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
 ```
 
 ### PDF Export and Chromium
@@ -135,6 +145,10 @@ The Chromium-free image is materially smaller. In local testing:
 - without Chromium: about `290MB`
 
 > **ENGRAM note:** The checked-in `docker-compose.yml` only defines the PRAGMA app container. `SEARCH_URL=http://engram:3002` assumes you are running ENGRAM separately on the same Docker network (or that you have added an `engram` service yourself).
+
+> **Toolbox note:** The Toolbox module is fully optional. Leave `TOOLBOX_ENABLED=false` to hide it completely. If you enable it and PRAGMA runs inside Docker while PRAGMA // Toolbox runs on the host machine, `TOOLBOX_URL=http://127.0.0.1:3003` will not work from inside the PRAGMA container. Use `TOOLBOX_URL=http://host.docker.internal:3003` and add the `host-gateway` mapping shown above. You can also set `TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003` so PRAGMA tries container, host-gateway, and local-host paths in order.
+
+> **Compatibility note:** `TOOLBOX_*` is now the preferred config surface. PRAGMA still accepts legacy `MATRIX_*` variables as fallbacks so existing environments do not break immediately.
 
 > **Templates note:** The image already contains the checked-in `note-templates.json` from the repo. Add a bind mount only if you want host-side template edits to appear in the container without rebuilding the image.
 
@@ -185,3 +199,27 @@ docker compose down && docker compose up -d --build
 To enable full-text search of indexed online sources, run PRAGMA and ENGRAM on a shared Docker network. The default `SEARCH_URL` in the checked-in compose file already points at `http://engram:3002`, but you still need to provide the ENGRAM container separately.
 
 See the [ENGRAM repository](https://github.com/VJakoby/engram) for setup instructions.
+
+## Running with PRAGMA // Toolbox
+
+To enable the `PRAGMA // Toolbox` module from a Dockerized PRAGMA instance, PRAGMA must be able to reach the Toolbox HTTP API from inside the container.
+
+Recommended topology:
+
+- PRAGMA in Docker
+- PRAGMA // Toolbox running on the host at `http://127.0.0.1:3003`
+
+In that case, set:
+
+```yaml
+environment:
+  - TOOLBOX_ENABLED=true
+  - TOOLBOX_URL=http://host.docker.internal:3003
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+Important:
+
+- inside the PRAGMA container, `127.0.0.1` refers to the PRAGMA container itself, not the host
+- if PRAGMA // Toolbox is instead running in another container, point `TOOLBOX_URL` at that container/service name instead

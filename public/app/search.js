@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════
 function updateSearchNavBadge(status = 'checking') {
   const badge = document.getElementById('search-index-badge');
+  const dot = document.getElementById('search-status-dot');
   if (!badge) return;
   const count = Array.isArray(knownSources)
     ? knownSources.reduce((sum, src) => sum + Math.max(0, Number(src.page_count) || 0), 0)
@@ -12,6 +13,15 @@ function updateSearchNavBadge(status = 'checking') {
   badge.title = count > 0
     ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
     : `No indexed pages loaded · ENGRAM ${status}`;
+  if (dot) {
+    dot.className = `nav-item-service-dot ${status}`.trim();
+    dot.title = count > 0
+      ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+      : `No indexed pages loaded · ENGRAM ${status}`;
+    dot.setAttribute('aria-label', count > 0
+      ? `${count} indexed page${count === 1 ? '' : 's'} · ENGRAM ${status}`
+      : `No indexed pages loaded · ENGRAM ${status}`);
+  }
 }
 
 if (document.readyState === 'loading') {

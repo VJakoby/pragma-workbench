@@ -6,7 +6,7 @@ const ACCENT_COLORS = [
 const THEME_ORDER = ['dark', 'light'];
 const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
-const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', 'search']);
+const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', 'search', 'matrix']);
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 
@@ -198,6 +198,7 @@ async function init() {
   await Promise.allSettled([
     typeof loadSearchSources === 'function' ? loadSearchSources() : Promise.resolve(),
     typeof checkEngramStatus === 'function' ? checkEngramStatus() : Promise.resolve(),
+    typeof initMatrix === 'function' ? initMatrix() : Promise.resolve(),
   ]);
 
   renderCards('services');
@@ -225,7 +226,7 @@ async function restoreLastLocation() {
     return;
   }
 
-  if (['notes', 'services', 'tactics', 'search'].includes(view)) {
+  if (['notes', 'services', 'tactics', 'search', 'matrix'].includes(view)) {
     switchView(view, document.getElementById(`nav-${view}`));
   }
 }
@@ -268,6 +269,10 @@ function switchView(view, navEl) {
     setTimeout(() => document.getElementById('searchInput').focus(), 50);
     checkEngramStatus();
     if (!knownSources.length) loadSearchSources();
+  }
+
+  if (view === 'matrix' && typeof onMatrixViewOpen === 'function') {
+    onMatrixViewOpen();
   }
 }
 
