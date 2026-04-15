@@ -10,6 +10,19 @@
         <button class="content-panel-close" onclick="closeContent()">&times;</button>
       </div>
       <div class="content-panel-tabs" id="cpQuickTabs" style="display:none"></div>
+      <div class="content-panel-searchbar" id="cpSearchBar" style="display:none">
+        <div class="local-search content-panel-search">
+          <span class="local-search-icon">&#8981;</span>
+          <input type="text" id="cpSearchInput" placeholder="Find in document…" autocomplete="off" spellcheck="false" oninput="updateContentPanelSearch()" onkeydown="handleContentPanelSearchKey(event)">
+        </div>
+        <span class="content-panel-search-count" id="cpSearchCount">0</span>
+        <button class="content-panel-search-btn" id="cpSearchPrevBtn" onclick="stepContentPanelSearch(-1)" title="Previous match" aria-label="Previous match">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="content-panel-search-btn" id="cpSearchNextBtn" onclick="stepContentPanelSearch(1)" title="Next match" aria-label="Next match">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
       <div class="content-panel-body" id="cpReadBody">
         <div class="md-content" id="cpContent"></div>
       </div>
