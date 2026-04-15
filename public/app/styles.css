@@ -535,12 +535,19 @@ body{
 .session-active-dot.live     { background: var(--green);  box-shadow: 0 0 6px var(--green); }
 .session-active-dot.paused   { background: var(--yellow); }
 .session-active-dot.complete { background: var(--muted);  }
-.session-active-info { flex: 1 1 auto; min-width: 0; }
+.session-active-info { flex: 1 1 auto; min-width: 0; padding: 1px 0; }
 .session-active-name {
   font-size: 13px; font-weight: 700; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: 'Inter', sans-serif;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  max-height: calc(1.25em * 2);
 }
 .session-active-target {
   font-size: 11px; color: var(--text2);
