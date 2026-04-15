@@ -213,6 +213,14 @@ async function restoreLastLocation() {
   const view = String(saved.view || '').trim();
   const noteId = String(saved.noteId || '').trim();
   const configDoc = String(saved.configDoc || '').trim();
+  const contentPanelKind = String(saved.contentPanelKind || '').trim();
+  const contentPanelView = String(saved.contentPanelView || '').trim();
+  const contentPanelId = String(saved.contentPanelId || '').trim();
+
+  async function restoreContentPanel() {
+    if (contentPanelKind !== 'kb-item' || !contentPanelView || !contentPanelId || typeof openItem !== 'function') return;
+    await openItem(contentPanelView, contentPanelId);
+  }
 
   if (view === 'notes' && configDoc === 'templates' && typeof openTemplatesConfig === 'function') {
     await openTemplatesConfig(document.getElementById('nav-config-templates'));
@@ -222,12 +230,15 @@ async function restoreLastLocation() {
   if (view === 'notes' && noteId && notes[noteId] && typeof openNote === 'function') {
     switchView('notes', document.getElementById('nav-notes'));
     await openNote(noteId);
+    await restoreContentPanel();
     return;
   }
 
   if (['notes', 'services', 'tactics', 'search'].includes(view)) {
     switchView(view, document.getElementById(`nav-${view}`));
   }
+
+  await restoreContentPanel();
 }
 
 function switchView(view, navEl) {

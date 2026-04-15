@@ -5,6 +5,16 @@ let contentPanelBackState = null;
 let contentPanelCreateState = null;
 let contentPanelSearchState = { query: '', matches: [], activeIndex: -1 };
 
+function persistContentPanelLocation(patch = {}) {
+  if (typeof persistLastLocation !== 'function') return;
+  persistLastLocation(patch);
+}
+
+function clearContentPanelLocation() {
+  if (typeof clearLastLocationFields !== 'function') return;
+  clearLastLocationFields('contentPanelKind', 'contentPanelView', 'contentPanelId');
+}
+
 function setContentPanelHeader(icon, title, meta, opts = {}) {
   const iconEl = document.getElementById('cpIcon');
   const titleEl = document.getElementById('cpTitle');
@@ -433,6 +443,11 @@ async function openItem(view, id) {
       folder: itemMeta?.folder || '',
       category: itemMeta?.category || d.category || '',
     };
+    persistContentPanelLocation({
+      contentPanelKind: 'kb-item',
+      contentPanelView: view,
+      contentPanelId: id,
+    });
     setContentPanelBackState(backState);
     setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
     renderContentPanelTabs(activeDoc);
@@ -450,6 +465,7 @@ async function openItem(view, id) {
 async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
   clearContentPanelBackState();
   clearContentPanelCreateState();
+  clearContentPanelLocation();
   renderContentPanelTabs(null);
   setContentPanelSearchVisible(false);
   const panel = document.getElementById('contentPanel');
@@ -572,6 +588,7 @@ function closeContent() {
   document.getElementById('contentPanel').classList.add('hidden-panel');
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
+  clearContentPanelLocation();
   renderContentPanelTabs(null);
   clearContentPanelBackState();
   clearContentPanelCreateState();
