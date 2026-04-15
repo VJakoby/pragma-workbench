@@ -199,6 +199,13 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
+#noteFlagEvidenceBtn{
+  font-size:13px;
+}
+#noteFlagEvidenceBtn span{
+  font-size:13px;
+  line-height:1;
+}
 
 .theme-toggle{
   display:flex;align-items:center;
