@@ -84,17 +84,6 @@ Recommended pattern:
 7. Open Services or Tactics when you need guidance, then continue writing in the note.
 8. Generate a session summary when the work needs to be reviewed or exported.
 
-## KB Links In Notes
-
-Notes and templates can link directly to KB content:
-
-- `[[kb:services/ldap]]`
-- `[[kb:services/kerberos]]`
-- `[[kb:tactics/active-directory]]`
-- `[[kb:attacks/xss]]`
-
-Clicking a KB link from note preview opens the referenced KB document in the normal KB panel flow.
-
 ## What PRAGMA Is Not
 
 PRAGMA is not trying to be:
