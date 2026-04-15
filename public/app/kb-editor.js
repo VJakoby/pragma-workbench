@@ -140,6 +140,12 @@ function isKbEditModeOpen() {
 
 function syncKbEditorToActiveDoc() {
   if (!kbEditor || !activeDoc) return;
+  if (typeof setContentPanelHeader === 'function') {
+    const isLocalKbDoc = !!activeDoc?.isLocal && !activeDoc?.isBrowser;
+    setContentPanelHeader(activeDoc.icon || ICONS.notes, activeDoc.title || '', activeDoc.meta || '', {
+      showIcon: !isLocalKbDoc,
+    });
+  }
   kbEditorSyncing = true;
   try {
     cmSetValue(kbEditor, activeDoc.raw || '');
