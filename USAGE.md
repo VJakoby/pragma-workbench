@@ -31,6 +31,10 @@ Recommended pattern:
 These are reference surfaces.
 Open them when you need a procedure, checklist, or reminder, then return to the note.
 
+They are optional.
+If you do not configure a `PRAGMA_KB_PATH`, PRAGMA still works perfectly fine as an engagement editor and note workspace.
+The default KB folders are created automatically, but you do not need to use them unless you want KB content inside the app.
+
 Recommended pattern:
 
 - treat KB content as guidance, not as the main place you write
@@ -83,14 +87,3 @@ Recommended pattern:
 6. Flag important proof from the editor as Evidence.
 7. Open Services or Tactics when you need guidance, then continue writing in the note.
 8. Generate a session summary when the work needs to be reviewed or exported.
-
-## What PRAGMA Is Not
-
-PRAGMA is not trying to be:
-
-- a scanner platform
-- a ticketing system
-- a generic note app
-- a full reporting suite
-
-It is an operational workspace for live engagement notes, structured capture, and KB-assisted execution.
