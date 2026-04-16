@@ -786,19 +786,25 @@ async function encryptPayload(plaintext, password) {
   const key  = await deriveKey(password, salt, 2);
   const enc  = new TextEncoder();
   const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-  const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
   return {
     pragma_version: 1,
     crypto_version: 2,
     encrypted: true,
-    salt: b64(salt),
-    iv: b64(iv),
-    data: b64(ct),
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(ct),
   };
 }
 
 function bytesToBase64(value) {
-  return btoa(String.fromCharCode(...new Uint8Array(value)));
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
 }
 
 function base64ToBytes(value) {

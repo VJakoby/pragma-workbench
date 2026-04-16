@@ -73,6 +73,37 @@ function resolveStoredAttachmentPath(sessionsDir, noteId, filename) {
   const paths = resolveAttachmentPaths(sessionsDir, noteId, filename);
   if (fs.existsSync(paths.rawPath)) return { ...paths, mode: 'raw', filePath: paths.rawPath };
   if (fs.existsSync(paths.encryptedPath)) return { ...paths, mode: 'encrypted', filePath: paths.encryptedPath };
+
+  const requestedExt = path.extname(paths.filename);
+  if (!requestedExt && fs.existsSync(paths.dir)) {
+    const baseName = path.basename(paths.filename, path.extname(paths.filename));
+    const matches = fs.readdirSync(paths.dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => {
+        if (name === paths.filename || name === `${paths.filename}.enc`) return true;
+        if (name.endsWith('.enc')) {
+          return path.basename(name, '.enc').startsWith(`${baseName}.`);
+        }
+        return name.startsWith(`${baseName}.`);
+      });
+
+    if (matches.length === 1) {
+      const resolvedName = matches[0];
+      const resolvedPath = path.join(paths.dir, resolvedName);
+      const isEncrypted = resolvedName.endsWith('.enc');
+      const normalizedFilename = isEncrypted ? path.basename(resolvedName, '.enc') : resolvedName;
+      return {
+        ...paths,
+        filename: normalizedFilename,
+        rawPath: isEncrypted ? path.join(paths.dir, normalizedFilename) : resolvedPath,
+        encryptedPath: isEncrypted ? resolvedPath : `${resolvedPath}.enc`,
+        mode: isEncrypted ? 'encrypted' : 'raw',
+        filePath: resolvedPath,
+      };
+    }
+  }
+
   return { ...paths, mode: null, filePath: '' };
 }
 

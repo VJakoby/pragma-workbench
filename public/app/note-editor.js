@@ -19,7 +19,14 @@ function escapeRegExp(value) {
 }
 
 function uint8ToBase64(value) {
-  return btoa(String.fromCharCode(...new Uint8Array(value)));
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
 }
 
 function extractNoteAttachmentRefs(markdown) {
