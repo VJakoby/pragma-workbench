@@ -314,6 +314,9 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   document.getElementById('cpTitle').textContent = label;
   document.getElementById('cpMeta').textContent = countLabel;
   document.getElementById('cpEditBtn').style.display = 'none';
+  if (typeof clearLastLocationFields === 'function') {
+    clearLastLocationFields('contentPanelKind', 'contentPanelView', 'contentPanelId');
+  }
   if (typeof setContentPanelCreateState === 'function') setContentPanelCreateState({ view, folder, label });
   activeDoc = { isBrowser: true, isLocal: true, view, folder, label };
 

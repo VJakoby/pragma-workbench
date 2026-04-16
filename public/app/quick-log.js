@@ -2145,8 +2145,14 @@ function escapeCredentialsCell(value) {
   return String(value || '').replace(/\|/g, '\\|').trim();
 }
 
+function lootEntryShouldSyncToCredentials(entry) {
+  return !!entry
+    && ['cleartext', 'hash'].includes(String(entry.type || '').trim())
+    && entry.sync_credentials !== false;
+}
+
 function parseLootForCredentialsRow(entry) {
-  if (!entry || !['cleartext', 'hash'].includes(entry.type) || entry.sync_credentials === false) return null;
+  if (!lootEntryShouldSyncToCredentials(entry)) return null;
   const credential = String(entry.credential || '').trim();
   const host = String(entry.host || '').trim();
   const note = String(entry.note || '').trim();
@@ -2337,6 +2343,10 @@ function findSessionCredentialsNote() {
   return Object.values(notes).find(note => note.session_id === activeSessionId && note.type === 'credentials') || null;
 }
 
+function sessionHasCredentialSyncLootEntries() {
+  return getSessionLoot().some(lootEntryShouldSyncToCredentials);
+}
+
 function ensureSessionCredentialsNote() {
   if (!NOTE_TEMPLATES?.credentials || !activeSessionId) return null;
   let note = findSessionCredentialsNote();
@@ -2378,9 +2388,10 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   const rows = getSessionLoot()
     .map(parseLootForCredentialsRow)
     .filter(Boolean);
+  const shouldEnsureNote = !!createIfMissing || rows.length > 0 || sessionHasCredentialSyncLootEntries();
 
   let note = findSessionCredentialsNote();
-  if (!note && createIfMissing && rows.length) note = ensureSessionCredentialsNote();
+  if (!note && shouldEnsureNote) note = ensureSessionCredentialsNote();
   if (!note) return false;
 
   let nextBody = replaceCredentialsTableInBody(note.body || '', rows);

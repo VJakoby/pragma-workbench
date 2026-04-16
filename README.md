@@ -1,11 +1,15 @@
 # # PRAGMA // Workbench
 
-PRAGMA is a purpose-built operational workspace, not a general note app. At its core it is a focused Markdown editor with session/target structure, a right-side knowledge context panel, and fast capture of evidence/loot during an engagement. The design keeps you in the note flow while pulling in KB, tactics, and search context only when needed.
+**PRAGMA** is an operational workspace built for pentest engagements — not a note app that happens to run on localhost.
+
+At its core: a focused Markdown editor organized around sessions and targets, with a right-side context panel that surfaces your KB, tactics, and search results without pulling you out of the flow. Evidence and loot capture is first-class, not bolted on.
 
 ---
-## 🚩 My Problem
+## 🚩 The problem it solves
 
-Pentest workflows are fragmented — notes, findings, and knowledge live in different places, breaking focus and increasing cognitive load. Generic note tools lack structure, reporting platforms are too rigid, and cloud solutions add risk.
+Pentest work demands focus, but the tools don't support it. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are rigid and built for output, not process. Cloud tools add risk you don't want.
+
+PRAGMA keeps everything in the same room — structured enough to be useful, local enough to be trusted.
 
 ## ❌ What it is NOT
 
@@ -20,6 +24,47 @@ Pentest workflows are fragmented — notes, findings, and knowledge live in diff
 - **A local web application** — PRAGMA runs entirely on your machine, combining structured note-taking with a searchable knowledge base
 - **A workflow workbench** — built to support the natural flow of a penetration test, from initial access to post-exploitation with findings, without breaking focus
 - **A knowledge-integrated interface** — local KB search is built in, and ENGRAM integration is optional for searching indexed external sources from inside the app
+
+## Screenshots
+
+Here are a few screenshots to give a quick impression of the platform. They help show the shape of the workflow, but the real value is in using it directly and experiencing how the views fit together during actual work.
+
+<table>
+  <tr>
+    <td><img src="./screenshots/PRAGMA-Main-UI.png" alt="PRAGMA Main UI" width="240"></td>
+    <td><img src="./screenshots/Sessions.png" alt="PRAGMA Sessions" width="240"></td>
+    <td><img src="./screenshots/Encrypt.png" alt="PRAGMA Encryption" width="240"></td>
+  </tr>
+</table>
+
+- `Main View` — the main workbench layout with notes in focus and supporting context around them.
+- `Sessions` — session management with multiple engagements collected under the same workbench.
+- `Encryption` — workbench encryption flow for protecting local session data.
+
+<table>
+  <tr>
+    <td><img src="./screenshots/Cmd.png" alt="PRAGMA Command Palette" width="240"></td>
+    <td><img src="./screenshots/KB-Cards.png" alt="PRAGMA KB Cards" width="240"></td>
+    <td><img src="./screenshots/Indexed-Search.png" alt="PRAGMA Indexed Search" width="240"></td>
+  </tr>
+</table>
+
+- `Command Palette` — the quick-open search palette for jumping across notes, KB content, tactics, and saved commands.
+- `KB Cards` — knowledge base browsing with card-based navigation across services, tactics, and KB sections.
+- `Indexed Search` — indexed search results powered by ENGRAM, shown directly inside the workbench.
+
+<table>
+  <tr>
+    <td><img src="./screenshots/Log-Ports.png" alt="PRAGMA Quick Log Ports" width="240"></td>
+    <td><img src="./screenshots/Log-Loot.png" alt="PRAGMA Quick Log Loot" width="240"></td>
+    <td></td>
+  </tr>
+</table>
+
+- `Quick Log: Ports` — structured quick logging for open ports and service observations during enumeration.
+- `Quick Log: Loot` — fast capture of credentials, hashes, tokens, and other engagement loot.
+
+---
 
 ## 👤 Who This Is For
 
@@ -58,6 +103,8 @@ In practice, this means the app is opinionated about staying operational:
 - notes are where active engagement context lives
 - services, tactics, and indexed KB content are there to support the current note/work, not replace it
 - when possible, supporting content should open beside the current note rather than forcing a full context switch
+
+For a practical walkthrough of how the app is meant to be used during an engagement, see [USAGE.md](./USAGE.md).
 
 ## 🧱 Tech Stack
 
