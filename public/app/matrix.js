@@ -157,6 +157,19 @@ function matrixSetEnumCapability(text) {
   if (node) node.textContent = text;
 }
 
+function matrixSetCapabilityBadge(node, status) {
+  if (!node) return;
+  if (status === 'available') {
+    node.innerHTML = '<span class="matrix-job-item-status-pill ok">Available</span>';
+    return;
+  }
+  if (status === 'unavailable') {
+    node.innerHTML = '<span class="matrix-job-item-status-pill bad">Unavailable</span>';
+    return;
+  }
+  node.innerHTML = '<span class="matrix-job-item-status-pill warn">Checking</span>';
+}
+
 function matrixActiveEnumerationTool() {
   return matrixState.enumerationTool || 'nmap';
 }
@@ -1433,31 +1446,28 @@ async function refreshMatrixStatus() {
     if (!health?.ok || capabilities?.service !== 'matrix') throw new Error('Toolbox service unavailable');
     matrixState.capabilities = capabilities;
     matrixState.online = true;
-    matrixSetEnumCapability(capabilities?.runtime?.nmap?.available
-      ? `Nmap available${capabilities.runtime.nmap.version ? ` • ${capabilities.runtime.nmap.version}` : ''}`
-      : `Nmap unavailable${capabilities?.runtime?.nmap?.detail ? ` • ${capabilities.runtime.nmap.detail}` : ''}`);
+    matrixSetCapabilityBadge(
+      document.getElementById('matrixEnumCapability'),
+      capabilities?.runtime?.nmap?.available ? 'available' : 'unavailable',
+    );
     const masscanNode = document.getElementById('matrixMasscanCapability');
     if (masscanNode) {
-      masscanNode.textContent = capabilities?.runtime?.masscan?.available
-        ? `Masscan available${capabilities.runtime.masscan.version ? ` • ${capabilities.runtime.masscan.version}` : ''}`
-        : `Masscan unavailable${capabilities?.runtime?.masscan?.detail ? ` • ${capabilities.runtime.masscan.detail}` : ''}`;
+      matrixSetCapabilityBadge(masscanNode, capabilities?.runtime?.masscan?.available ? 'available' : 'unavailable');
     }
     const httpxNode = document.getElementById('matrixHttpxCapability');
     if (httpxNode) {
-      httpxNode.textContent = capabilities?.runtime?.httpx?.available
-        ? `httpx available${capabilities.runtime.httpx.version ? ` • ${capabilities.runtime.httpx.version}` : ''}`
-        : `httpx unavailable${capabilities?.runtime?.httpx?.detail ? ` • ${capabilities.runtime.httpx.detail}` : ''}`;
+      matrixSetCapabilityBadge(httpxNode, capabilities?.runtime?.httpx?.available ? 'available' : 'unavailable');
     }
     matrixSetStatus('online', 'online');
     applyMatrixAvailabilityUi();
   } catch (error) {
     matrixState.capabilities = null;
     matrixState.online = false;
-    matrixSetEnumCapability('Toolbox unavailable');
+    matrixSetCapabilityBadge(document.getElementById('matrixEnumCapability'), 'unavailable');
     const masscanNode = document.getElementById('matrixMasscanCapability');
-    if (masscanNode) masscanNode.textContent = 'Toolbox unavailable';
+    if (masscanNode) matrixSetCapabilityBadge(masscanNode, 'unavailable');
     const httpxNode = document.getElementById('matrixHttpxCapability');
-    if (httpxNode) httpxNode.textContent = 'Toolbox unavailable';
+    if (httpxNode) matrixSetCapabilityBadge(httpxNode, 'unavailable');
     matrixSetStatus('offline', 'offline');
     applyMatrixAvailabilityUi();
     setMatrixToolboxModule('passive');
