@@ -235,6 +235,10 @@ function injectTargetsInCodeLine(rawLine) {
   return injectTargets(esc(rawLine));
 }
 
+function copyIconSvg() {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+}
+
 function highlightCodeBlock(codeEl) {
   if (!codeEl || codeEl.dataset.hljsDone === '1') return;
   if (!window.hljs?.highlightElement) return;
@@ -270,18 +274,20 @@ function wrapCodeBlocks(container) {
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'code-block-copy-btn';
-        copyBtn.textContent = 'Copy';
+        copyBtn.innerHTML = copyIconSvg();
+        copyBtn.title = 'Copy code';
+        copyBtn.setAttribute('aria-label', 'Copy code');
         wrap.appendChild(copyBtn);
 
         copyBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           navigator.clipboard.writeText(rawText.trimEnd()).then(() => {
             wrap.classList.add('flash');
-            copyBtn.textContent = 'Copied';
+            copyBtn.classList.add('copied');
             showToast('✓ Copied to clipboard');
             setTimeout(() => {
               wrap.classList.remove('flash');
-              copyBtn.textContent = 'Copy';
+              copyBtn.classList.remove('copied');
             }, 1200);
           });
         });
@@ -296,7 +302,7 @@ function wrapCodeBlocks(container) {
       const injected = injectTargetsInCodeLine(line);
       return '<span class="code-line">' +
              injected +
-             '<span class="code-line-copy">\u2398 copy</span>' +
+             `<span class="code-line-copy" aria-hidden="true">${copyIconSvg()}</span>` +
              '</span>';
     }).join('');
 
@@ -308,11 +314,11 @@ function wrapCodeBlocks(container) {
         navigator.clipboard.writeText(plain).then(() => {
           lineEl.classList.add('flash');
           const hint = lineEl.querySelector('.code-line-copy');
-          if (hint) hint.textContent = '✓ copied';
+          if (hint) hint.classList.add('copied');
           showToast('✓ Copied to clipboard');
           setTimeout(() => {
             lineEl.classList.remove('flash');
-            if (hint) hint.textContent = '\u2398 copy';
+            if (hint) hint.classList.remove('copied');
           }, 1200);
         });
       });
