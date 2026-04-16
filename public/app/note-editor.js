@@ -43,7 +43,15 @@ function extractNoteAttachmentRefs(markdown) {
 
 async function fetchNoteAttachmentBlobFromUrl(url) {
   const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Attachment fetch failed');
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const payload = await res.json();
+      detail = payload?.error || payload?.detail || '';
+    } catch (_) {}
+    const suffix = detail ? `: ${detail}` : '';
+    throw new Error(`Attachment fetch failed (${res.status}) for ${url}${suffix}`);
+  }
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
   if (contentType.includes('application/json')) {
     const payload = await res.json();
@@ -82,7 +90,13 @@ async function collectAttachmentPayloadsForNotes(noteList) {
     for (const ref of refs) {
       if (!payloads[ref.noteId]) payloads[ref.noteId] = {};
       if (payloads[ref.noteId][ref.filename]) continue;
-      const blob = await fetchNoteAttachmentBlobFromUrl(ref.url);
+      let blob;
+      try {
+        blob = await fetchNoteAttachmentBlobFromUrl(ref.url);
+      } catch (err) {
+        const title = String(note?.title || note?.id || ref.noteId || 'unknown note');
+        throw new Error(`${err.message} (referenced by "${title}")`);
+      }
       const buffer = await blob.arrayBuffer();
       payloads[ref.noteId][ref.filename] = {
         mime_type: blob.type || 'application/octet-stream',
