@@ -23,7 +23,8 @@
 <body>
 <script>
   window.PRAGMA_CONFIG = Object.freeze({
-    pdfExportEnabled: <%- JSON.stringify(Boolean(pdfExportEnabled)) %>
+    pdfExportEnabled: <%- JSON.stringify(Boolean(pdfExportEnabled)) %>,
+    engramSearchEnabled: <%- JSON.stringify(Boolean(engramSearchEnabled)) %>
   });
 </script>
 <%- include('partials/body') %>

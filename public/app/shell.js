@@ -6,7 +6,8 @@ const ACCENT_COLORS = [
 const THEME_ORDER = ['dark', 'light'];
 const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
-const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', 'search', 'matrix']);
+const ENGRAM_SEARCH_ENABLED = Boolean(window.PRAGMA_CONFIG?.engramSearchEnabled);
+const RESTORABLE_VIEWS = new Set(['notes', 'services', 'tactics', ...(ENGRAM_SEARCH_ENABLED ? ['search'] : []), 'matrix']);
 
 const accentFor = i => ACCENT_COLORS[i % ACCENT_COLORS.length];
 
@@ -235,7 +236,7 @@ async function restoreLastLocation() {
     return;
   }
 
-  if (['notes', 'services', 'tactics', 'search', 'matrix'].includes(view)) {
+  if (RESTORABLE_VIEWS.has(view)) {
     switchView(view, document.getElementById(`nav-${view}`));
   }
 
@@ -348,7 +349,7 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
-  if (ctrl && key === 'f') {
+  if (ctrl && key === 'f' && ENGRAM_SEARCH_ENABLED) {
     if (document.activeElement.tagName !== 'TEXTAREA' &&
         document.activeElement.id !== 'noteBody' &&
         document.activeElement.id !== 'noteTitleInput') {
@@ -365,7 +366,7 @@ document.addEventListener('keydown', async e => {
       Digit1: ['notes', 'nav-notes'],
       Digit2: ['services', null],
       Digit3: ['tactics', 'nav-tactics'],
-      Digit4: ['search', 'nav-search'],
+      ...(ENGRAM_SEARCH_ENABLED ? { Digit4: ['search', 'nav-search'] } : {}),
     };
     const viewConfig = viewMap[code];
     if (viewConfig) switchView(viewConfig[0], viewConfig[1] ? document.getElementById(viewConfig[1]) : null);
@@ -462,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     [document.getElementById('nav-notes'), '⌘1'],
     [document.getElementById('nav-services'), '⌘2'],
     [document.getElementById('nav-tactics'), '⌘3'],
-    [document.getElementById('nav-search'), '⌘4'],
+    ...(ENGRAM_SEARCH_ENABLED ? [[document.getElementById('nav-search'), '⌘4']] : []),
   ];
   hints.forEach(([el, key]) => {
     if (el) el.title = key;

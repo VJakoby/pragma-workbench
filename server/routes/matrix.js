@@ -78,7 +78,7 @@ function registerMatrixRoutes(app, { matrixUrl, matrixUrls = [] }) {
         }
         preferredMatrixBaseUrl = baseUrl;
         if (previousPreferredBaseUrl && previousPreferredBaseUrl !== baseUrl) {
-          console.log(`[PRAGMA] MATRIX endpoint switched to ${baseUrl}`);
+          console.log(`[PRAGMA] Toolbox endpoint switched to ${baseUrl}`);
         }
         return res.json(data);
       } catch (error) {
