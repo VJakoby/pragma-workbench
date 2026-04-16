@@ -6,6 +6,9 @@ let activeNoteScope  = 'session';
 let activeTagFilter  = null;
 let activeTargetFilter = null;
 let activeNoteSearch = '';
+let notesPeekSearch = '';
+let notesPeekOpen = false;
+let notesPeekCloseTimer = null;
 let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
@@ -260,11 +263,17 @@ function setNoteFilter(type, btn) {
   renderNotesList();
 }
 
+function syncAllNoteScopeButtons() {
+  document.querySelectorAll('.note-scope-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.scope === activeNoteScope);
+  });
+}
+
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
   activeTargetFilter = null;
-  document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  syncAllNoteScopeButtons();
+  if (btn) btn.classList.add('active');
   updateNoteSearchPlaceholder();
   renderNotesList();
 }
@@ -302,36 +311,17 @@ function renderNotesList() {
     renderTimeline();
     updateNotesCountBadges();
     renderTargetFilterBar();
+    renderNotesPeekList();
     return;
   }
   const list = document.getElementById('notesList');
-  let items = Object.values(notes).sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return (b.updated || 0) - (a.updated || 0);
-  });
-
-  if (activeNoteScope === 'session') {
-    items = activeSessionId ? items.filter(n => n.session_id === activeSessionId) : items.filter(n => !n.session_id);
-  } else if (activeNoteScope === 'unassigned') {
-    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
-  }
-
-  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
-  if (activeTagFilter) items = items.filter(n => (n.tags || []).includes(activeTagFilter));
-  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
-  if (activeNoteSearch) {
-    const q = activeNoteSearch.toLowerCase();
-    items = items.filter(n =>
-      (n.title || '').toLowerCase().includes(q) ||
-      (n.body || '').toLowerCase().includes(q)
-    );
-  }
+  const items = getVisibleNotes({ scope: activeNoteScope, search: activeNoteSearch });
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;text-align:center">
       ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
+    renderNotesPeekList();
     return;
   }
 
@@ -364,7 +354,151 @@ function renderNotesList() {
 
   updateNotesCountBadges();
   renderTargetFilterBar();
+  renderNotesPeekList();
 }
+
+function getVisibleNotes(opts = {}) {
+  const scope = opts.scope || activeNoteScope;
+  const search = String(opts.search || '').trim().toLowerCase();
+  let items = Object.values(notes).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated || 0) - (a.updated || 0);
+  });
+
+  if (scope === 'session') {
+    items = activeSessionId ? items.filter(n => n.session_id === activeSessionId) : items.filter(n => !n.session_id);
+  } else if (scope === 'unassigned') {
+    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
+  }
+
+  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
+  if (activeTagFilter) items = items.filter(n => (n.tags || []).includes(activeTagFilter));
+  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
+  if (search) {
+    items = items.filter(n =>
+      (n.title || '').toLowerCase().includes(search) ||
+      (n.body || '').toLowerCase().includes(search)
+    );
+  }
+
+  return items;
+}
+
+function renderNotesPeekList() {
+  const list = document.getElementById('notesPeekList');
+  if (!list) return;
+  syncNotesPeekScopeButtons();
+  const items = getVisibleNotes({ scope: activeNoteScope, search: notesPeekSearch });
+  if (!items.length) {
+    list.innerHTML = `<div class="notes-peek-empty">${notesPeekSearch ? 'No matching notes' : 'No current notes'}</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map((n) => {
+    const preview = esc((n.body || '').replace(/\n/g, ' ').trim().slice(0, 82));
+    const meta = getNoteTypeMeta(n.type);
+    const sess = n.session_id && sessions[n.session_id];
+    const showSessionBadge = activeNoteScope === 'all' || activeNoteScope === 'unassigned';
+    const sessionBadge = showSessionBadge && sess
+      ? `<span class="notes-peek-item-session">${esc(sess.codename)}</span>`
+      : showSessionBadge && !sess
+        ? '<span class="notes-peek-item-session">Unassigned</span>'
+        : '';
+    return `<button class="notes-peek-item ${meta.cssClass || ''}${n.id === activeNoteId ? ' active' : ''}" type="button" onclick="openNoteFromPeek('${n.id}')">
+      <div class="notes-peek-item-head">
+        <span class="notes-peek-item-title">${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}${esc(n.title || 'Untitled')}</span>
+        <span class="notes-peek-item-date">${formatDate(n.updated)}</span>
+      </div>
+      ${sessionBadge ? `<div class="notes-peek-item-meta">${sessionBadge}</div>` : ''}
+      <div class="notes-peek-item-preview">${preview || '&nbsp;'}</div>
+    </button>`;
+  }).join('');
+}
+
+function openNotesPeek() {
+  if (!notesListHidden) return;
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekOpen = true;
+  document.querySelector('.notes-layout')?.classList.add('notes-peek-open');
+  renderNotesPeekList();
+  setTimeout(() => document.getElementById('notesPeekSearchInput')?.focus(), 20);
+}
+
+function closeNotesPeek() {
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekOpen = false;
+  document.querySelector('.notes-layout')?.classList.remove('notes-peek-open');
+  notesPeekSearch = '';
+  const input = document.getElementById('notesPeekSearchInput');
+  if (input) input.value = '';
+}
+
+function toggleNotesPeek(event) {
+  event?.stopPropagation();
+  if (!notesListHidden) return;
+  if (notesPeekOpen) closeNotesPeek();
+  else openNotesPeek();
+}
+
+function scheduleNotesPeekClose() {
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekCloseTimer = setTimeout(() => {
+    if (!notesPeekOpen) return;
+    closeNotesPeek();
+  }, 120);
+}
+
+function syncNotesPeekScopeButtons() {
+  syncAllNoteScopeButtons();
+}
+
+function setNotesPeekScope(scope, button) {
+  activeNoteScope = scope;
+  activeTargetFilter = null;
+  syncNotesPeekScopeButtons();
+  updateNoteSearchPlaceholder();
+  renderNotesList();
+  if (button) button.blur();
+}
+
+function onNotesPeekSearch(value) {
+  notesPeekSearch = String(value || '').trim();
+  renderNotesPeekList();
+}
+
+function openNoteFromPeek(id) {
+  closeNotesPeek();
+  openNote(id);
+}
+
+document.addEventListener('click', (event) => {
+  if (!notesPeekOpen) return;
+  if (event.target.closest('#notesPeekFlyout') || event.target.closest('#notesListPeekBtn')) return;
+  closeNotesPeek();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const peekBtn = document.getElementById('notesListPeekBtn');
+  const peekFlyout = document.getElementById('notesPeekFlyout');
+  if (peekBtn) {
+    peekBtn.addEventListener('mouseenter', () => {
+      if (!notesListHidden) return;
+      openNotesPeek();
+    });
+    peekBtn.addEventListener('mouseleave', () => {
+      if (!notesPeekOpen) return;
+      scheduleNotesPeekClose();
+    });
+  }
+  if (peekFlyout) {
+    peekFlyout.addEventListener('mouseenter', () => clearTimeout(notesPeekCloseTimer));
+    peekFlyout.addEventListener('mouseleave', () => {
+      if (!notesPeekOpen) return;
+      scheduleNotesPeekClose();
+    });
+  }
+});
 
 function onNoteSearch(val) {
   activeNoteSearch = val.trim();
