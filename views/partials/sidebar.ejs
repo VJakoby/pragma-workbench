@@ -43,11 +43,13 @@
           <span class="nav-item-label">Tactics</span>
           <span class="nav-item-count" id="tactics-count">&mdash;</span>
         </div>
+        <% if (engramSearchEnabled) { %>
         <div class="nav-item" onclick="switchView('search',this)" id="nav-search" title="Search indexed knowledge bases">
-          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="nav-item-service-dot checking" id="search-status-dot"></span></span>
           <span class="nav-item-label">KB Search</span>
           <span class="nav-item-count search-nav-badge checking" id="search-index-badge">&mdash;</span>
         </div>
+        <% } %>
         <div class="sidebar-subsection-hdr" id="kbNavSubhdr" style="display:none">Discovered Sections</div>
         <div id="kbNavList"></div>
       </div>
@@ -62,8 +64,18 @@
         <div class="sidebar-section-hdr">Tags</div>
         <div class="tag-filter-scroll" id="tagFilterList"></div>
       </div>
-
+      <% if (matrixEnabled) { %>
       <div class="sidebar-divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-hdr">Modules</div>
+        <div class="nav-item" onclick="switchView('matrix',this)" id="nav-matrix" title="PRAGMA // Toolbox">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M4 11h14"/><path d="M11 4a11 11 0 0 1 0 14"/><path d="M11 4a11 11 0 0 0 0 14"/><path d="M17 17l4 4"/><path d="M18 21h3"/><path d="M21 18v3"/></svg><span class="nav-item-service-dot checking" id="matrix-status-dot"></span></span>
+          <span class="nav-item-label">Toolbox</span>
+          <span class="nav-item-count search-nav-badge checking" id="matrix-status-badge">&mdash;</span>
+        </div>
+      </div>
+      <div class="sidebar-divider"></div>
+      <% } %>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Configuration</div>
         <div class="nav-item" onclick="openTemplatesConfig(this)" id="nav-config-templates" title="Note Templates">

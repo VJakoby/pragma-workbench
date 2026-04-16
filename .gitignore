@@ -5,7 +5,7 @@ sessions/
 *.bak
 
 # Example files
-exampel-note-templates.json
+example-note-templates.json
 
 # Enviromental variables that should only be local
 .env

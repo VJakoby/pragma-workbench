@@ -23,7 +23,8 @@
 <body>
 <script>
   window.PRAGMA_CONFIG = Object.freeze({
-    pdfExportEnabled: <%- JSON.stringify(Boolean(pdfExportEnabled)) %>
+    pdfExportEnabled: <%- JSON.stringify(Boolean(pdfExportEnabled)) %>,
+    engramSearchEnabled: <%- JSON.stringify(Boolean(engramSearchEnabled)) %>
   });
 </script>
 <%- include('partials/body') %>
@@ -35,6 +36,9 @@
 <script src="app/placeholders.js?v=20260401"></script>
 <script src="app/kb.js?v=20260410"></script>
 <script src="app/search.js?v=20260325"></script>
+<% if (matrixEnabled) { %>
+<script src="app/matrix.js?v=20260406"></script>
+<% } %>
 <script src="app/content-panel.js?v=20260402"></script>
 <script src="app/editor-theme.js?v=20260325"></script>
 <script src="app/note-editor.js?v=20260407"></script>

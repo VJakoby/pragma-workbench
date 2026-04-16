@@ -340,13 +340,58 @@ Write your KB docs using any of the supported placeholder styles below.
 
 ---
 
+## Optional Modules
+
+PRAGMA works on its own. Optional modules extend the workbench, but they are not required for the core note/session workflow.
+
+### ENGRAM // Indexed Search Surface
+
+ENGRAM is an optional companion service that powers PRAGMA's KB search surface. When enabled, PRAGMA queries ENGRAM for indexed results; when disabled, the module stays offline and search falls back to local content only.
+
+- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram)
+- Purpose: index and serve KB content for fast, ranked search results inside PRAGMA
+- Integration model: ENGRAM runs as its own local service, and PRAGMA points at it via `SEARCH_URL`
+
+To bring ENGRAM up as a separate container:
+
+```bash
+cd ~/engram
+docker compose build --no-cache
+docker compose up -d
+```
+
+Verify it is reachable:
+
+```bash
+curl http://127.0.0.1:3002/healthz
+```
+
+To enable it in PRAGMA:
+
+```env
+SEARCH_URL=http://127.0.0.1:3002
+```
+
+Then restart PRAGMA. If ENGRAM is online, `KB Search` will show indexed results.
+
+### PRAGMA // Toolbox
+
+PRAGMA // Toolbox is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
+
+- Repo: [PRAGMA // Toolbox](https://github.com/VJakoby/matrix-toolbox)
+- Purpose: provide API-backed helper workflows such as passive recon, Nmap enumeration, and Masscan enumeration without turning PRAGMA itself into a scanner platform
+- Integration model: PRAGMA // Toolbox runs as its own local service, and PRAGMA talks to it through the optional Toolbox proxy routes
+
+Detailed PRAGMA // Toolbox setup is shown in the quick-start section below.
+
+---
+
 ## 🛠️ Requirements
 
 - Node.js 20+
 - **Optional:**
   - Docker and `docker compose`
-  - [ENGRAM](https://github.com/VJakoby/engram) — required only if you want search of indexed online sources
-
+  
 See [DOCKER.md](./DOCKER.md) for the full project directory structure, volume mounts, and how to run PRAGMA with an external ENGRAM instance over a shared Docker network.
 
 ---
@@ -375,8 +420,61 @@ docker compose up -d --build
 http://localhost:3000
 ```
 
+### PRAGMA // Toolbox
+
+PRAGMA // Toolbox is an optional companion service that can assist with selected passive recon and active enumeration workflows. It is exposed inside PRAGMA as the `Toolbox` module when enabled.
+
+- Repo: [PRAGMA // Toolbox](https://github.com/VJakoby/matrix-toolbox)
+- Purpose: provide API-backed helper workflows such as passive recon, Nmap enumeration, and Masscan enumeration without turning PRAGMA itself into a scanner platform
+- Integration model: PRAGMA // Toolbox runs as its own local service, and PRAGMA talks to it through the optional Toolbox proxy routes
+
+To bring PRAGMA // Toolbox up as a separate container:
+
+```bash
+cd ~/matrix-toolbox
+docker compose build --no-cache
+docker compose up -d
+```
+
+Verify it is reachable:
+
+```bash
+curl http://127.0.0.1:3003/healthz
+```
+
+To enable it in PRAGMA:
+
+```env
+TOOLBOX_ENABLED=true
+TOOLBOX_URL=http://127.0.0.1:3003
+```
+
+Or use fallback URLs:
+
+```env
+TOOLBOX_ENABLED=true
+TOOLBOX_URLS=http://matrix:3003,http://host.docker.internal:3003,http://127.0.0.1:3003
+```
+
+Then restart PRAGMA. If enabled, `Toolbox` appears in the sidebar. If disabled, the module is hidden entirely.
+
+Compatibility note:
+
+- `TOOLBOX_*` is now the preferred config surface
+- legacy `MATRIX_*` variables are still accepted as fallbacks for existing setups
+
+In short:
+
+1. build and start PRAGMA // Toolbox as its own service/container
+2. point PRAGMA at the PRAGMA // Toolbox API
+3. enable `TOOLBOX_ENABLED=true`
+4. restart PRAGMA
+
 Common `.env` values include:
 
+- `TOOLBOX_ENABLED`
+- `TOOLBOX_URL`
+- `TOOLBOX_URLS`
 - `PRAGMA_KB_PATH`
 - `PRAGMA_SESSIONS_PATH`
 - `PDF_EXPORT_ENABLED`

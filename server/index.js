@@ -28,6 +28,7 @@ const { createKbIndex } = require('./lib/kb-index');
 const { runStartupIntegrityCheck } = require('./lib/startup-check');
 const { createWorkbenchStorage } = require('./lib/workbench-storage');
 const { registerKbRoutes } = require('./routes/kb');
+const { registerMatrixRoutes } = require('./routes/matrix');
 const { registerNotesRoutes } = require('./routes/notes');
 const { registerSearchProxyRoutes } = require('./routes/search-proxy');
 const { registerWorkbenchRoutes } = require('./routes/workbenches');
@@ -46,6 +47,10 @@ const {
   SESSIONS_DIR,
   TEMPLATES_FILE,
   SEARCH_URL,
+  MATRIX_URL,
+  MATRIX_URLS,
+  MATRIX_ENABLED,
+  ENGRAM_SEARCH_ENABLED,
   HOST,
 } = createPaths(path.resolve(__dirname, '..'));
 
@@ -97,6 +102,8 @@ const renderMarkdown = (markdown) => sanitizeRenderedHtml(
 );
 
 const app = express();
+app.locals.matrixEnabled = MATRIX_ENABLED;
+app.locals.engramSearchEnabled = ENGRAM_SEARCH_ENABLED;
 app.set('views', path.join(__dirname, '..', 'views'));
 app.set('view engine', 'ejs');
 app.use(express.json({ limit: '50mb' }));
@@ -118,11 +125,19 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-  res.render('app', { pdfExportEnabled: PDF_EXPORT_ENABLED });
+  res.render('app', {
+    matrixEnabled: MATRIX_ENABLED,
+    pdfExportEnabled: PDF_EXPORT_ENABLED,
+    engramSearchEnabled: ENGRAM_SEARCH_ENABLED,
+  });
 });
 
 app.get('/app.html', (req, res) => {
-  res.render('app', { pdfExportEnabled: PDF_EXPORT_ENABLED });
+  res.render('app', {
+    matrixEnabled: MATRIX_ENABLED,
+    pdfExportEnabled: PDF_EXPORT_ENABLED,
+    engramSearchEnabled: ENGRAM_SEARCH_ENABLED,
+  });
 });
 
 registerKbRoutes(app, {
@@ -141,6 +156,7 @@ registerKbRoutes(app, {
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });
+if (MATRIX_ENABLED) registerMatrixRoutes(app, { matrixUrl: MATRIX_URL, matrixUrls: MATRIX_URLS });
 registerWorkbenchRoutes(app, { sessionsDir: SESSIONS_DIR, storage });
 registerNotesRoutes(app, { sessionsDir: SESSIONS_DIR, templatesFile: TEMPLATES_FILE, storage, renderMarkdown });
 
@@ -177,14 +193,23 @@ app.listen(PORT, HOST, () => {
   console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
   console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
   console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
-  console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})\n`);
+  console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})`);
+  console.log(`   -> PDF Export → ${PDF_EXPORT_ENABLED ? 'Enabled' : 'Disabled'}`);
+  console.log(`  Toolbox  → ${MATRIX_ENABLED ? 'Enabled' : 'Disabled'}  (${MATRIX_URL})`);
+  console.log(`  ENGRAM   → ${ENGRAM_SEARCH_ENABLED ? 'Enabled' : 'Disabled'}  (${SEARCH_URL})\n`);
   if (kbSubdirs.length) {
     console.log('  ============= KB Subdirectories =============');
     kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));
     console.log('');
   }
 
-  const checks = runStartupIntegrityCheck({ sessionsDir: SESSIONS_DIR, storage });
+  const checks = runStartupIntegrityCheck({
+    sessionsDir: SESSIONS_DIR,
+    storage,
+    kbDir: KB_DIR,
+    servicesDir: SERVICES_DIR,
+    tacticsDir: TACTICS_DIR,
+  });
   const icons = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };
   checks.forEach(({ level, msg }) => console.log(`${icons[level] || '  ?'} [${level.toUpperCase()}] ${msg}`));
   if (checks.some(result => result.level === 'error')) {

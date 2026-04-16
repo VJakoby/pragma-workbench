@@ -23,7 +23,225 @@
         </div>
         <div class="cards-area" id="methGrid"></div>
       </div>
+      <% if (matrixEnabled) { %>
+      <div class="panel-view" id="view-matrix">
+        <div class="matrix-view">
+          <div class="matrix-toolbar">
+            <div class="matrix-toolbar-left">
+              <div class="matrix-toolbar-title">// <span id="matrixToolbarModuleLabel">TOOLBOX</span></div>
+              <div class="matrix-toolbar-status-row">
+                <div class="matrix-service-pill checking" id="matrixServicePill">Toolbox...</div>
+                <div class="matrix-version-label" id="matrixVersionLabel"></div>
+              </div>
+            </div>
+            <div class="matrix-toolbar-center">
+              <div class="matrix-submodule-row utility-topbar-group">
+                <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-left matrix-submodule-btn active" id="matrixModulePassive" onclick="setMatrixToolboxModule('passive')" type="button">Passive Recon</button>
+                <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-right matrix-submodule-btn" id="matrixModuleEnumeration" onclick="setMatrixToolboxModule('enumeration')" type="button">Active Enumeration</button>
+              </div>
+            </div>
+            <div class="matrix-toolbar-actions">
+              <button class="tb-btn" onclick="refreshMatrixStatus()" title="Refresh Toolbox status">Refresh</button>
+              <button class="tb-btn" onclick="loadMatrixJobs()" title="Refresh Toolbox jobs">Jobs</button>
+              <button class="tb-btn" id="matrixStopButton" onclick="cancelMatrixJob()" title="Stop active Toolbox job" disabled>Stop</button>
+            </div>
+          </div>
+          <div class="matrix-offline-state" id="matrixOfflineState" hidden>
+            <div class="matrix-offline-title">Toolbox unavailable</div>
+            <div class="matrix-offline-copy">The Toolbox cards stay hidden until the Toolbox service is reachable again.</div>
+          </div>
+          <div class="matrix-grid">
+            <section class="matrix-card matrix-module-panel" id="matrixPanelPassive">
+              <div class="matrix-card-hdr" id="matrixModulePanelHdr">Passive Recon</div>
+              <div class="matrix-mode-row btn-group">
+                <button class="btn-group-item active" id="matrixModeDomains" onclick="setMatrixMode('domains')">Domains</button>
+                <button class="btn-group-item" id="matrixModeSubdomains" onclick="setMatrixMode('subdomains')">Subdomains</button>
+                <button class="btn-group-item" id="matrixModeIps" onclick="setMatrixMode('ips')">IPs</button>
+              </div>
+              <label class="matrix-label" for="matrixNaming" id="matrixNamingLabel">Naming</label>
+              <input class="matrix-input" id="matrixNaming" type="text" placeholder="optional: Acme perimeter">
+              <label class="matrix-label" for="matrixDkimSelectors" id="matrixDkimLabel">DKIM Selectors</label>
+              <input class="matrix-input" id="matrixDkimSelectors" type="text" placeholder="optional: selector1 selector2">
+              <label class="matrix-label" for="matrixTargets" id="matrixTargetsLabel">Targets</label>
+              <div class="matrix-enum-copy" id="matrixSubdomainSourcesInfo" hidden>Passive subdomain discovery uses aggregated external sources such as <strong>Cert Spotter</strong>, <strong>subfinder</strong>, and <strong>Sublist3r</strong>.</div>
+              <textarea class="matrix-textarea" id="matrixTargets" placeholder="example.com&#10;sub.example.com"></textarea>
+              <div class="matrix-action-row">
+                <button class="tb-btn" onclick="submitMatrixJob()">Run</button>
+                <button class="tb-btn" onclick="importMatrixTargets()">Import</button>
+                <button class="tb-btn" onclick="clearMatrixForm()">Clear</button>
+              </div>
+              <input id="matrixImportFile" type="file" accept=".txt,.csv,.json,.log" hidden>
+            </section>
+            <section class="matrix-card matrix-module-panel" id="matrixPanelEnumeration" hidden>
+              <div class="matrix-card-hdr">Active Enumeration</div>
+              <div class="matrix-enum-stack">
+                <div class="matrix-enum-block">
+                  <label class="matrix-label" for="matrixEnumToolSelect">Tool</label>
+                  <select class="matrix-input matrix-select" id="matrixEnumToolSelect" onchange="setMatrixEnumerationTool(this.value)">
+                    <option value="nmap">Nmap</option>
+                    <option value="masscan">Masscan</option>
+                    <option value="httpx">httpx</option>
+                  </select>
+                </div>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolNmap">
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">Nmap</div>
+                    <div class="matrix-capability-row" id="matrixEnumCapability">Checking Nmap runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved Nmap profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> to parse and add the discovered services.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixNmapProfileSelect" onchange="selectMatrixNmapProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixNmapProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNaming">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNaming" type="text" placeholder="optional: Internal edge sweep">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixNmapProfileLabel" type="text" placeholder="TCP Service Scan">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixNmapProfileDescription" type="text" placeholder="Container-safe TCP connect service detection">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixNmapCommandTemplate">Nmap Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixNmapCommandTemplate" placeholder="nmap -sT -sV -Pn {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Toolbox captures XML itself, but the main workflow is still the raw Nmap text output.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargets">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargets" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                    <div class="matrix-enum-copy">For best Quick Log results, run one host at a time when you want clean per-target port insertion.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixNmapProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixNmapProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixNmapProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
+                  </div>
+                </div>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolMasscan" hidden>
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">Masscan</div>
+                    <div class="matrix-capability-row" id="matrixMasscanCapability">Checking Masscan runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved Masscan profile, keep the raw CLI output, then paste that output into Quick Log under <strong>Ports</strong> when you want to extract discovered services manually.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixMasscanProfileSelect" onchange="selectMatrixMasscanProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixMasscanProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNamingMasscan">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNamingMasscan" type="text" placeholder="optional: Fast edge sweep">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixMasscanProfileLabel" type="text" placeholder="Top TCP 1000">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixMasscanProfileDescription" type="text" placeholder="Fast scan of the top 1000 TCP ports">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixMasscanCommandTemplate">Masscan Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixMasscanCommandTemplate" placeholder="masscan --top-ports 1000 --rate 1000 {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Keep Masscan output raw-first for copy and later parsing.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargetsMasscan">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargetsMasscan" placeholder="10.10.10.10&#10;10.10.10.20"></textarea>
+                    <div class="matrix-enum-copy">Masscan is best used for broad fast discovery. Use tighter targets and explicit port ranges when you want more controlled output.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixMasscanProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixMasscanProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixMasscanProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
+                  </div>
+                </div>
+                <div class="matrix-enum-tool-panel" id="matrixEnumToolHttpx" hidden>
+                  <div class="matrix-enum-block">
+                    <div class="matrix-label">Module</div>
+                    <div class="matrix-enum-title">httpx</div>
+                    <div class="matrix-capability-row" id="matrixHttpxCapability">Checking httpx runtime availability...</div>
+                    <div class="matrix-enum-copy">Run a saved httpx profile to verify web services, collect titles and status codes, and enrich HTTP targets discovered by other recon workflows.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileSelect">Saved Profiles</label>
+                    <div class="matrix-inline-row">
+                      <select class="matrix-input matrix-select" id="matrixHttpxProfileSelect" onchange="selectMatrixHttpxProfile(this.value)"></select>
+                      <button class="tb-btn" type="button" onclick="loadMatrixHttpxProfiles()">Refresh</button>
+                    </div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumNamingHttpx">Naming</label>
+                    <input class="matrix-input" id="matrixEnumNamingHttpx" type="text" placeholder="optional: Web surface baseline">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileLabel">Profile Label</label>
+                    <input class="matrix-input" id="matrixHttpxProfileLabel" type="text" placeholder="Web Baseline">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxProfileDescription">Description</label>
+                    <input class="matrix-input" id="matrixHttpxProfileDescription" type="text" placeholder="HTTP status, title, server, and detected technologies">
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixHttpxCommandTemplate">httpx Command Template</label>
+                    <textarea class="matrix-textarea matrix-textarea-compact matrix-codearea" id="matrixHttpxCommandTemplate" placeholder="httpx -sc -title -server -td {{targets}}"></textarea>
+                    <div class="matrix-enum-copy">Use CLI-style templates. Include exactly one <code>{{targets}}</code> placeholder. Prefer hostnames or URLs when you want cleaner web probe output.</div>
+                  </div>
+                  <div class="matrix-enum-block">
+                    <label class="matrix-label" for="matrixEnumTargetsHttpx">Targets</label>
+                    <textarea class="matrix-textarea" id="matrixEnumTargetsHttpx" placeholder="app.example.com&#10;https://portal.example.com/login"></textarea>
+                    <div class="matrix-enum-copy">Use hostnames or URLs. httpx is best for quick validation and metadata enrichment after discovery.</div>
+                  </div>
+                  <div class="matrix-action-row matrix-enum-actions">
+                    <button class="tb-btn" type="button" onclick="runMatrixEnumeration()">Run</button>
+                    <button class="tb-btn" type="button" onclick="saveMatrixHttpxProfile()">Save Profile</button>
+                    <button class="tb-btn" type="button" onclick="newMatrixHttpxProfile()">New Profile</button>
+                    <button class="tb-btn" type="button" onclick="deleteMatrixHttpxProfile()">Delete</button>
+                    <button class="tb-btn" type="button" onclick="importMatrixTargets()">Import</button>
+                    <button class="tb-btn" type="button" onclick="clearMatrixForm()">Clear</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="matrix-card matrix-submodule-card" id="matrixJobsCardPassive">
+              <div class="matrix-card-hdr">Recent Jobs</div>
+              <div class="matrix-jobs-list" id="matrixJobsListPassive">No recon jobs yet.</div>
+            </section>
+            <section class="matrix-card matrix-card-wide matrix-submodule-card" id="matrixOutputCardPassive">
+              <div class="matrix-card-hdr">Job Output</div>
+              <div class="matrix-output" id="matrixOutputPassive">Run a recon job.</div>
+            </section>
+            <section class="matrix-card matrix-submodule-card" id="matrixJobsCardEnumeration" hidden>
+              <div class="matrix-card-hdr">Recent Jobs</div>
+              <div class="matrix-jobs-list" id="matrixJobsListEnumeration">No enumeration jobs yet.</div>
+            </section>
+            <section class="matrix-card matrix-card-wide matrix-submodule-card" id="matrixOutputCardEnumeration" hidden>
+              <div class="matrix-card-hdr">Job Output</div>
+              <div class="matrix-output" id="matrixOutputEnumeration">Run an enumeration job.</div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <% } %>
 
+      <% if (engramSearchEnabled) { %>
       <div class="panel-view" id="view-search">
         <div class="search-toolbar">
           <div class="search-toolbar-brand-row">
@@ -79,6 +297,7 @@
           </div>
         </div>
       </div>
+      <% } %>
 
       <div class="panel-view active" id="view-notes">
         <div class="notes-layout">

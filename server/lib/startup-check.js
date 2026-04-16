@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function runStartupIntegrityCheck({ sessionsDir, storage }) {
+function runStartupIntegrityCheck({ sessionsDir, storage, kbDir, servicesDir, tacticsDir }) {
   const results = [];
   const notesFile = storage.workbenchFile();
   const notesEncFile = storage.workbenchEncFile();
@@ -27,6 +27,32 @@ function runStartupIntegrityCheck({ sessionsDir, storage }) {
     } catch (e) {
       results.push({ level: 'error', msg: `Could not create sessions directory: ${e.message}` });
     }
+  }
+
+  if (kbDir) {
+    if (!fs.existsSync(kbDir)) {
+      try {
+        fs.mkdirSync(kbDir, { recursive: true });
+        results.push({ level: 'info', msg: `Created KB directory: ${kbDir}` });
+      } catch (e) {
+        results.push({ level: 'error', msg: `Could not create KB directory: ${e.message}` });
+      }
+    }
+    const kbSubdirs = [
+      { dir: servicesDir, label: 'services' },
+      { dir: tacticsDir, label: 'tactics' },
+    ];
+    kbSubdirs.forEach(({ dir, label }) => {
+      if (!dir) return;
+      if (!fs.existsSync(dir)) {
+        try {
+          fs.mkdirSync(dir, { recursive: true });
+          results.push({ level: 'info', msg: `Created KB ${label} directory: ${dir}` });
+        } catch (e) {
+          results.push({ level: 'warn', msg: `Could not create KB ${label} directory: ${e.message}` });
+        }
+      }
+    });
   }
 
   const encExists = fs.existsSync(notesEncFile);

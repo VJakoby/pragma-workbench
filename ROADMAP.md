@@ -55,7 +55,7 @@ Small session-bound workflow helpers such as TODOs make sense because they direc
 
 PRAGMA may integrate optional supporting modules, but that does not mean it should become an operator console.
 
-Modules such as [MATRIX](https://github.com/VJakoby/matrix-toolbox) can make sense when they assist with bounded workflows like passive recon, active enumeration, validation, or result collection. Those capabilities support the workbench without replacing its purpose.
+Modules such as [PRAGMA // Toolbox](https://github.com/VJakoby/matrix-toolbox) can make sense when they assist with bounded workflows like passive recon, active enumeration, validation, or result collection. Those capabilities support the workbench without replacing its purpose.
 
 The boundary should stay clear:
 

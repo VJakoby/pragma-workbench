@@ -140,6 +140,161 @@
       ]
     },
     {
+      "id": "recon",
+      "label": "Recon",
+      "icon": "🔭",
+      "title_prefix": "Recon",
+      "default_tags": [
+        "recon"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "label": "Default",
+          "title_prefix": "Recon",
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| OS       |       |",
+            "| In Scope |       |",
+            "",
+            "## Open Ports & Services",
+            "",
+            "| Port | Proto | Service | Version | Notes |",
+            "|------|-------|---------|---------|-------|",
+            "|      |       |         |         |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "",
+            "## DNS / Hostnames",
+            "",
+            "",
+            "## Users / Groups Discovered",
+            "",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "web",
+          "label": "Web",
+          "title_prefix": "Web Recon",
+          "default_tags": [
+            "recon",
+            "web"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field    | Value |",
+            "|----------|-------|",
+            "| IP       |       |",
+            "| Domain   |       |",
+            "| VHost    |       |",
+            "| Tech     |       |",
+            "",
+            "## Web Endpoints",
+            "",
+            "| Path | Status | Notes |",
+            "|------|--------|-------|",
+            "|      |        |       |",
+            "",
+            "## Parameters / Inputs",
+            "",
+            "| Parameter | Source | Notes |",
+            "|-----------|--------|-------|",
+            "|           |        |       |",
+            "",
+            "## Findings",
+            "",
+            ""
+          ]
+        },
+        {
+          "id": "ad",
+          "label": "AD",
+          "title_prefix": "AD Recon",
+          "default_tags": [
+            "recon",
+            "ad"
+          ],
+          "body_lines": [
+            "## Target Overview",
+            "",
+            "| Field      | Value |",
+            "|------------|-------|",
+            "| IP         |       |",
+            "| Domain     |       |",
+            "| Hostname   |       |",
+            "| Role       |       |",
+            "",
+            "## Users / Groups",
+            "",
+            "## Shares / SMB",
+            "",
+            "## Kerberos / LDAP",
+            "",
+            "## BloodHound / AD Findings",
+            "",
+            "## Notes",
+            "",
+            ""
+          ]
+        }
+      ],
+      "body_lines": [
+        "## Target Overview",
+        "",
+        "| Field    | Value |",
+        "|----------|-------|",
+        "| IP       |       |",
+        "| Domain   |       |",
+        "| OS       |       |",
+        "| In Scope |       |",
+        "",
+        "## Open Ports & Services",
+        "",
+        "| Port | Proto | Service | Version | Notes |",
+        "|------|-------|---------|---------|-------|",
+        "|      |       |         |         |       |",
+        "",
+        "## Web Endpoints",
+        "",
+        "",
+        "## DNS / Hostnames",
+        "",
+        "",
+        "## Users / Groups Discovered",
+        "",
+        "",
+        "## Findings",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "passive-recon",
+      "label": "Passive Recon",
+      "icon": "🛰",
+      "title_prefix": "Passive Recon",
+      "default_tags": [
+        "passive-recon"
+      ],
+      "body_lines": [
+        "## Passive Recon",
+        "",
+        "Use this note to collect curated passive reconnaissance results from Toolbox.",
+        ""
+      ]
+    },
+    {
       "id": "network-enumeration",
       "label": "Network Enumeration",
       "required": true,

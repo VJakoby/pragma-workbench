@@ -425,7 +425,7 @@ async function buildCmdResults(q) {
   }
 
   // Search action
-  if (ql) {
+  if (ql && window.PRAGMA_CONFIG?.engramSearchEnabled) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
     html += `<div class="cmd-group-hdr">KB Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
@@ -513,6 +513,7 @@ function execCmd(idx) {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => setTagFilter(item.tag), 50);
   } else if (item.type === 'search') {
+    if (!window.PRAGMA_CONFIG?.engramSearchEnabled) return;
     switchView('search', document.getElementById('nav-search'));
     document.getElementById('searchInput').value = item.query;
     runSearch(item.query);
