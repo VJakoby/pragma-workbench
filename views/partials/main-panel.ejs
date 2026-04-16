@@ -63,6 +63,7 @@
               <label class="matrix-label" for="matrixDkimSelectors" id="matrixDkimLabel">DKIM Selectors</label>
               <input class="matrix-input" id="matrixDkimSelectors" type="text" placeholder="optional: selector1 selector2">
               <label class="matrix-label" for="matrixTargets" id="matrixTargetsLabel">Targets</label>
+              <div class="matrix-enum-copy" id="matrixSubdomainSourcesInfo" hidden>Passive subdomain discovery uses aggregated external sources such as <strong>Cert Spotter</strong>, <strong>subfinder</strong>, and <strong>Sublist3r</strong>.</div>
               <textarea class="matrix-textarea" id="matrixTargets" placeholder="example.com&#10;sub.example.com"></textarea>
               <div class="matrix-action-row">
                 <button class="tb-btn" onclick="submitMatrixJob()">Run</button>

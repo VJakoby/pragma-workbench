@@ -736,7 +736,7 @@ function matrixRenderJobOverview(job) {
     ? (job?.input?.profileLabel || (job?.type === 'masscan-enumeration' ? 'Masscan Scan' : job?.type === 'httpx-enumeration' ? 'httpx Scan' : 'Nmap Scan'))
     : `${matrixFormatJobType(job.type)} • Job ${job.id || ''}`;
   return `
-    <section class="matrix-result-card matrix-result-card--job">
+    <section class="matrix-result-card matrix-result-card--job" data-matrix-job-id="${escapeHtml(job.id || '')}">
       <div class="matrix-result-head matrix-result-top">
           <div>
             <div class="matrix-result-title">${escapeHtml(jobName || fallbackTitle)}</div>
@@ -839,6 +839,78 @@ function matrixRenderNmapParsedResult(parsed) {
                   </div>
                 </div>
                 ${host?.os?.name ? `<div class="matrix-assessment-note">${escapeHtml(host.os.name)}${host.os.accuracy != null ? ` (${escapeHtml(String(host.os.accuracy))}% )` : ''}</div>`.replace('% )','%)') : ''}
+                <div class="matrix-httpx-table-wrap matrix-nmap-table-wrap">
+                  <table class="matrix-httpx-table matrix-nmap-table">
+                    <thead>
+                      <tr>
+                        <th>Port</th>
+                        <th>State</th>
+                        <th>Service</th>
+                        <th>Version</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${openPorts.length ? openPorts.map((port) => `
+                        <tr>
+                          <td>${escapeHtml(`${port?.port || '—'}/${port?.protocol || 'tcp'}`)}</td>
+                          <td>${escapeHtml(port?.state || '—')}</td>
+                          <td>${escapeHtml(port?.service || '—')}</td>
+                          <td>${escapeHtml([port?.product, port?.version, port?.extrainfo].filter(Boolean).join(' ') || '—')}</td>
+                          <td>${escapeHtml(port?.note || '—')}</td>
+                        </tr>
+                      `).join('') : `
+                        <tr>
+                          <td colspan="5">No open ports parsed.</td>
+                        </tr>
+                      `}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function matrixRenderMasscanParsedResult(parsed) {
+  const hosts = Array.isArray(parsed?.hosts) ? parsed.hosts : [];
+  if (!hosts.length) return '';
+
+  return `
+    <section class="matrix-section matrix-section--highlights matrix-section-status--neutral">
+      <div class="matrix-section-top">PARSED PORTS</div>
+      <div class="matrix-section-body">
+        <div class="matrix-section-grid matrix-section-grid--compact">
+          ${matrixRenderSection('Coverage', 'counts', `
+            ${matrixRenderKv('Hosts', String(parsed?.summary?.hostCount ?? parsed?.stats?.totalHosts ?? hosts.length))}
+            ${matrixRenderKv('Ports', String(parsed?.summary?.portCount ?? parsed?.stats?.totalPorts ?? hosts.reduce((count, host) => count + ((host?.ports || []).length), 0)))}
+            ${matrixRenderKv('Open', String(parsed?.summary?.openPortCount ?? parsed?.stats?.openPorts ?? hosts.reduce((count, host) => count + ((host?.ports || []).filter((port) => port?.state === 'open').length), 0)))}
+          `)}
+        </div>
+        <div class="matrix-nmap-host-list">
+          ${hosts.map((host) => {
+            const openPorts = (Array.isArray(host?.ports) ? host.ports : []).filter((port) => port?.state === 'open');
+            const previewTarget = matrixResolveNmapQuickLogTarget(parsed, host);
+            const copyPayload = openPorts.map((port) => {
+              const version = [port?.product, port?.version, port?.extrainfo].filter(Boolean).join(' ');
+              return `${port?.port || ''}/${port?.protocol || 'tcp'} ${port?.service || ''}${version ? ` ${version}` : ''}`.trim();
+            }).join('\n');
+            return `
+              <div class="matrix-nmap-host-card">
+                <div class="matrix-copy-toolbar matrix-copy-toolbar--tight">
+                  <div>
+                    <div class="matrix-nmap-host-title">${escapeHtml(host?.displayTarget || host?.target || host?.ip || 'Host')}</div>
+                    <div class="matrix-nmap-host-meta">${escapeHtml(host?.ip || host?.target || 'N/A')} • ${escapeHtml(String(host?.openPortsCount ?? openPorts.length))} open</div>
+                  </div>
+                  <div class="matrix-inline-row">
+                    <button class="tb-btn matrix-copy-btn" type="button" onclick="copyMatrixText(this)" data-copy="${matrixEscapeAttribute(copyPayload)}">Copy Ports</button>
+                    ${previewTarget && openPorts.length ? `<button class="tb-btn matrix-copy-btn" type="button" onclick="insertMatrixQuickLogPorts(this)" data-preview="${matrixEscapeAttribute(JSON.stringify(previewTarget))}">Insert Ports</button>` : ''}
+                  </div>
+                </div>
                 <div class="matrix-httpx-table-wrap matrix-nmap-table-wrap">
                   <table class="matrix-httpx-table matrix-nmap-table">
                     <thead>
@@ -1035,6 +1107,7 @@ function matrixRenderEnumerationResult(job, resultEnvelope) {
       </div>
       <div class="matrix-result-body">
         ${toolLabel === 'Nmap' && Array.isArray(parsed?.hosts) && parsed.hosts.length ? matrixRenderNmapParsedResult(parsed) : ''}
+        ${toolLabel === 'Masscan' && Array.isArray(parsed?.hosts) && parsed.hosts.length ? matrixRenderMasscanParsedResult(parsed) : ''}
         <div class="matrix-section-grid">
           ${matrixRenderSection('Command', 'resolution', `
             ${matrixRenderKv('Profile', result.profile?.label || job?.input?.profileLabel || toolLabel)}
@@ -1399,12 +1472,14 @@ function setMatrixMode(mode) {
   const dkimLabel = document.getElementById('matrixDkimLabel');
   const dkimInput = document.getElementById('matrixDkimSelectors');
   const targetsLabel = document.getElementById('matrixTargetsLabel');
+  const subdomainSourcesInfo = document.getElementById('matrixSubdomainSourcesInfo');
   const targets = document.getElementById('matrixTargets');
   if (dkimLabel) dkimLabel.style.display = matrixState.mode === 'domains' ? '' : 'none';
   if (dkimInput) {
     dkimInput.style.display = matrixState.mode === 'domains' ? '' : 'none';
     dkimInput.disabled = matrixState.mode !== 'domains';
   }
+  if (subdomainSourcesInfo) subdomainSourcesInfo.hidden = matrixState.mode !== 'subdomains';
   if (targetsLabel) {
     targetsLabel.textContent = matrixState.mode === 'domains'
       ? 'Domains'
@@ -1949,6 +2024,15 @@ async function openMatrixJob(jobId) {
   const summary = await summaryRes.json();
   const result = await resultRes.json();
   matrixSetOutput({ summary, result });
+  requestAnimationFrame(() => {
+    const output = matrixActiveOutputNode();
+    const card = output?.querySelector(`[data-matrix-job-id="${CSS.escape(jobId)}"]`);
+    if (card) {
+      card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } else if (output) {
+      output.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  });
 }
 
 window.initMatrix = initMatrix;
