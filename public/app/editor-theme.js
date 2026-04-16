@@ -160,8 +160,8 @@ function cmThemeVars() {
       text2: '#333333',
       muted: '#6a737d',
       bg3: '#f3f3f3',
-      selection: 'rgba(37, 99, 235, 0.72)',
-      selectionOutline: 'rgba(29, 78, 216, 0.92)',
+      selection: '#2563eb',
+      selectionOutline: '#1d4ed8',
       activeLine: '#f5f5f5',
     };
   }
@@ -182,23 +182,28 @@ function buildCmTheme() {
   const v = cmThemeVars();
   const theme = document.documentElement.getAttribute('data-theme') || 'dark';
   const dark = theme !== 'light';
+  const selectionText = '#ffffff';
 
   const editorTheme = CM.EditorView.theme({
     '&': { background: 'transparent', height: '100%' },
     '.cm-scroller': { fontSize: 'var(--editor-font-size, 13px)', fontFamily: 'var(--editor-font-family, "JetBrains Mono", monospace)' },
     '.cm-content': { color: v.text2, caretColor: v.text, padding: '0', fontWeight: '500' },
     '.cm-cursor': { borderLeftColor: v.text },
-    '.cm-selectionBackground, ::selection': { background: `${v.selection} !important` },
-    '.cm-content::selection, .cm-content *::selection': { background: `${v.selection} !important` },
-    '.cm-line::selection, .cm-line > span::selection': { background: `${v.selection} !important` },
+    '.cm-selectionBackground, ::selection': { background: `${v.selection} !important`, color: `${selectionText} !important` },
+    '.cm-content::selection, .cm-content *::selection': { background: `${v.selection} !important`, color: `${selectionText} !important` },
+    '.cm-line::selection, .cm-line span::selection, .cm-line span *::selection': { background: `${v.selection} !important`, color: `${selectionText} !important` },
+    '.cm-content::-moz-selection, .cm-content *::-moz-selection': { background: `${v.selection} !important`, color: `${selectionText} !important` },
+    '.cm-line::-moz-selection, .cm-line span::-moz-selection, .cm-line span *::-moz-selection': { background: `${v.selection} !important`, color: `${selectionText} !important` },
     '.cm-selectionLayer .cm-selectionBackground': {
       background: `${v.selection} !important`,
       boxShadow: `inset 0 0 0 2px ${v.selectionOutline}`,
       borderRadius: '2px',
+      color: `${selectionText} !important`,
     },
     '&.cm-focused .cm-selectionBackground': {
       background: `${v.selection} !important`,
       boxShadow: `inset 0 0 0 2px ${v.selectionOutline}`,
+      color: `${selectionText} !important`,
     },
     '.cm-activeLine': { background: v.activeLine },
     '.cm-gutters': {
