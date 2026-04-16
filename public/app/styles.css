@@ -2056,10 +2056,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   border:1px solid rgba(124,58,237,0.16);
   background:rgba(124,58,237,0.08);
-  border-radius:3px;
-  padding:1px 5px;
-  min-height:18px;
-  line-height:1;
+  border-radius:999px;
+  padding:2px 7px;
+  min-height:19px;
+  line-height:1.2;
   box-sizing:border-box;
 }
 
@@ -4126,11 +4126,15 @@ body.is-resizing *{cursor:col-resize!important}
   padding: 4px 14px 4px; flex-shrink: 0;
 }
 .note-tag {
+  display:inline-flex;
+  align-items:center;
+  min-height:20px;
   font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
   color: #e8fafb; background: rgba(127, 181, 191, 0.16);
-  border: 1px solid rgba(127, 181, 191, 0.28); border-radius: 3px;
-  padding: 1px 6px; cursor: pointer; transition: all 0.12s;
+  border: 1px solid rgba(127, 181, 191, 0.28); border-radius: 999px;
+  padding: 2px 8px; cursor: pointer; transition: all 0.12s;
   user-select: none;
+  line-height: 1.2;
 }
 .note-tag:hover {
   background: rgba(127, 181, 191, 0.22);
@@ -4151,9 +4155,9 @@ body.is-resizing *{cursor:col-resize!important}
   align-items:center;
   font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
   color: #d2eef4; background: rgba(127, 181, 191, 0.18);
-  border: 1px solid rgba(127, 181, 191, 0.34); border-radius: 3px; padding: 1px 5px;
-  min-height: 18px;
-  line-height: 1;
+  border: 1px solid rgba(127, 181, 191, 0.34); border-radius: 999px; padding: 2px 7px;
+  min-height: 19px;
+  line-height: 1.2;
   box-sizing: border-box;
 }
 [data-theme="light"] .note-item-tag {
@@ -4229,10 +4233,10 @@ body.is-resizing *{cursor:col-resize!important}
   display: inline-flex; align-items: center; gap: 3px;
   font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
   color: var(--green); background: rgba(var(--green-rgb),0.08);
-  border: 1px solid rgba(var(--green-rgb),0.2); border-radius: 3px;
-  padding: 1px 5px;
-  min-height: 18px;
-  line-height: 1;
+  border: 1px solid rgba(var(--green-rgb),0.2); border-radius: 999px;
+  padding: 2px 7px;
+  min-height: 19px;
+  line-height: 1.2;
   box-sizing: border-box;
 }
 
