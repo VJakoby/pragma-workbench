@@ -1059,7 +1059,7 @@ body{
 .content-panel-title{
   flex:1;
   font-family:'Inter', sans-serif;
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
   letter-spacing:0.02em;
   color: color-mix(in srgb, var(--text) 96%, black 4%);
@@ -1842,7 +1842,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   gap:6px;
   max-height:min(52vh, 468px);
   overflow-y:auto;
-  padding-right:2px;
+  padding:2px 3px 3px 1px;
 }
 .notes-peek-list::-webkit-scrollbar{ width:4px; }
 .notes-peek-list::-webkit-scrollbar-thumb{ background:var(--border2); }
