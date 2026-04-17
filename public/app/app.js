@@ -371,18 +371,15 @@ async function buildCmdResults(q) {
     });
   }
 
-  const kbDocHits = getCommandPaletteKbResults(ql);
+  const kbDocHits = getCommandPaletteKbResults(ql)
+    .filter(({ entry }) => entry.type === 'knowledge');
   if (kbDocHits.length) {
     html += `<div class="cmd-group-hdr">KB Documents</div>`;
     kbDocHits.forEach(({ entry, snippet }) => {
-      const scopeLabel = entry.type === 'service'
-        ? 'Service'
-        : entry.type === 'tactic'
-          ? 'Tactic'
-          : 'Knowledge';
+      const scopeLabel = 'Knowledge';
       const metaParts = [scopeLabel];
       if (entry.category) metaParts.push(esc(entry.category));
-      if (entry.folder && entry.type === 'knowledge') metaParts.push(esc(entry.folder));
+      if (entry.folder) metaParts.push(esc(entry.folder));
       if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
       html += pushCmdItem({
         type: 'kbdoc',
