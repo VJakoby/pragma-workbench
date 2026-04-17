@@ -1500,7 +1500,7 @@ async function deleteCurrentNote() {
   delete notes[activeNoteId];
   activeNoteId = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
-  saveNotes();
+  await saveNotes({ reason: 'note-delete', immediate: true });
   renderNotesList();
   renderSessionSidebar();
   const total = Object.keys(notes).length;

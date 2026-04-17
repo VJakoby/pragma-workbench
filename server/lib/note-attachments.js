@@ -160,6 +160,12 @@ function cleanupAttachmentStore(sessionsDir, manifest = {}) {
   });
 
   fs.readdirSync(root, { withFileTypes: true })
+    .filter((entry) => !entry.isDirectory())
+    .forEach((entry) => {
+      try { fs.unlinkSync(path.join(root, entry.name)); } catch (_) {}
+    });
+
+  fs.readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .forEach((entry) => {
       const dirName = entry.name;
@@ -170,9 +176,13 @@ function cleanupAttachmentStore(sessionsDir, manifest = {}) {
         return;
       }
       fs.readdirSync(dirPath, { withFileTypes: true }).forEach((fileEntry) => {
-        if (!fileEntry.isFile()) return;
+        const filePath = path.join(dirPath, fileEntry.name);
+        if (!fileEntry.isFile()) {
+          try { fs.rmSync(filePath, { recursive: true, force: true }); } catch (_) {}
+          return;
+        }
         if (!expected.has(fileEntry.name)) {
-          try { fs.unlinkSync(path.join(dirPath, fileEntry.name)); } catch (_) {}
+          try { fs.unlinkSync(filePath); } catch (_) {}
         }
       });
       try {

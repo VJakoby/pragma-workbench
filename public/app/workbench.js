@@ -361,7 +361,7 @@ async function toggleEncryptedStorage(e) {
       return;
     }
     if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
-    saveNotes();
+    await saveNotes({ reason: 'enable-encrypted-storage', immediate: true });
   } else {
     let confirmPw;
     try {
@@ -411,7 +411,7 @@ async function toggleEncryptedStorage(e) {
     encryptedStoragePassword = null;
     updateEncryptedStorageUI();
     if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
-    saveNotes();
+    await saveNotes({ reason: 'disable-encrypted-storage', immediate: true });
   }
 }
 
