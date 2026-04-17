@@ -360,6 +360,7 @@ async function toggleEncryptedStorage(e) {
       showToast('⚠ Attachment encryption failed: ' + (err.message || 'unknown error'), 'err');
       return;
     }
+    if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
     saveNotes();
   } else {
     let confirmPw;
@@ -409,6 +410,7 @@ async function toggleEncryptedStorage(e) {
     encryptedStorageEnabled  = false;
     encryptedStoragePassword = null;
     updateEncryptedStorageUI();
+    if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
     saveNotes();
   }
 }

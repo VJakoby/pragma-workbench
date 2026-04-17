@@ -18,6 +18,15 @@ function escapeRegExp(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function escapeAttachmentWarningHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function uint8ToBase64(value) {
   const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
   const chunkSize = 0x8000;
@@ -112,6 +121,32 @@ async function collectAttachmentPayloadsForNotes(noteList) {
     }
   }
   return payloads;
+}
+
+async function validateNoteAttachmentsForNotes(noteList, opts = {}) {
+  const failures = [];
+  const seen = new Set();
+  const limit = Math.max(1, Number(opts.limit || 12));
+  for (const note of noteList || []) {
+    const refs = extractNoteAttachmentRefs(note?.body || '');
+    for (const ref of refs) {
+      const key = `${ref.noteId}:${ref.filename}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      try {
+        await fetchNoteAttachmentBlobFromUrl(ref.url);
+      } catch (err) {
+        failures.push({
+          ...ref,
+          noteId: ref.noteId,
+          noteTitle: String(note?.title || note?.id || ref.noteId || 'unknown note'),
+          error: String(err?.message || 'Attachment validation failed'),
+        });
+        if (failures.length >= limit) return failures;
+      }
+    }
+  }
+  return failures;
 }
 
 function buildAttachmentManifestFromClientNotes(notesMap) {
@@ -230,11 +265,35 @@ async function uploadNoteImage(file, opts = {}) {
 }
 
 async function resolveRenderedAttachmentImages(root) {
-  if (!encryptedStorageEnabled || !encryptedStoragePassword || !root) return;
+  if (!root) return;
   const images = [...root.querySelectorAll('img[src^="/api/notes/attachments/"]')];
+
+  const renderAttachmentWarning = (img, message) => {
+    if (!img || img.dataset.pragmaAttachmentBroken === '1') return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'attachment-warning';
+    wrapper.innerHTML = `
+      <span class="attachment-warning-icon" aria-hidden="true">${window.ICONS?.warning || '!'}</span>
+      <div class="attachment-warning-copy">
+        <div class="attachment-warning-title">Attachment unavailable</div>
+        <div class="attachment-warning-text">${escapeAttachmentWarningHtml(message || 'Could not load attachment')}</div>
+      </div>
+    `;
+    img.dataset.pragmaAttachmentBroken = '1';
+    img.replaceWith(wrapper);
+  };
+
   for (const img of images) {
     const src = img.getAttribute('src') || '';
     if (!src || img.dataset.pragmaResolvedAttachment === src) continue;
+    img.addEventListener('error', () => {
+      renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
+    }, { once: true });
+    if (!encryptedStorageEnabled) continue;
+    if (!encryptedStoragePassword) {
+      renderAttachmentWarning(img, 'Workbench is locked. Unlock it to decrypt this attachment.');
+      continue;
+    }
     try {
       const blob = await fetchNoteAttachmentBlobFromUrl(src);
       const objectUrl = URL.createObjectURL(blob);
@@ -244,7 +303,9 @@ async function resolveRenderedAttachmentImages(root) {
       img.dataset.pragmaResolvedAttachment = src;
       img.dataset.pragmaObjectUrl = objectUrl;
       img.src = objectUrl;
-    } catch (_) {}
+    } catch (err) {
+      renderAttachmentWarning(img, err?.message || 'Could not decrypt attachment');
+    }
   }
 }
 
@@ -360,6 +421,18 @@ async function updateNotePreview() {
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+}
+
+async function refreshRenderedMarkdownSurfaces() {
+  try {
+    if (typeof updateNotePreview === 'function') await updateNotePreview();
+  } catch (_) {}
+  try {
+    if (typeof updateKbPreview === 'function') await updateKbPreview();
+  } catch (_) {}
+  try {
+    if (typeof renderContent === 'function' && activeDoc) await renderContent(activeDoc);
+  } catch (_) {}
 }
 
 function toggleNotePreview() {

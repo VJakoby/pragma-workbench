@@ -94,6 +94,7 @@ function setNoteEditorMode(mode) {
   const tags = document.getElementById('noteTagsRow');
   const backlinks = document.getElementById('noteBacklinks');
   const exportBtn = document.getElementById('noteExportBtn');
+  const attachmentCleanupBtn = document.getElementById('noteAttachmentCleanupBtn');
   const duplicateBtn = document.getElementById('noteDuplicateBtn');
   const deleteBtn = document.getElementById('noteDeleteBtn');
   const previewPane = document.getElementById('notePreviewPane');
@@ -125,6 +126,7 @@ function setNoteEditorMode(mode) {
   if (backlinks) backlinks.style.display = isConfig ? 'none' : '';
   if (duplicateBtn) duplicateBtn.style.display = isConfig ? 'none' : '';
   if (deleteBtn) deleteBtn.style.display = isConfig ? 'none' : '';
+  if (attachmentCleanupBtn) attachmentCleanupBtn.style.display = isConfig ? '' : 'none';
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
@@ -1800,6 +1802,38 @@ async function exportNotesMarkdown(sessionId) {
       n.session_id === sessionId ||
       (!n.session_id || !sessions[n.session_id])
     );
+    const brokenAttachments = typeof validateNoteAttachmentsForNotes === 'function'
+      ? await validateNoteAttachmentsForNotes(sessionNotes, { limit: 8 })
+      : [];
+    if (brokenAttachments.length) {
+      const summary = brokenAttachments
+        .slice(0, 3)
+        .map((item) => `"${item.noteTitle}"`)
+        .join(', ');
+      const extra = brokenAttachments.length > 3 ? ` (+${brokenAttachments.length - 3} more)` : '';
+      throw new Error(`Broken attachment references found in ${summary}${extra}. Remove or restore them before export.`);
+    }
+    const exportWarnings = [];
+    const services = Array.isArray(sess.services) ? sess.services : [];
+    const paths = Array.isArray(sess.paths) ? sess.paths : [];
+    const loot = Array.isArray(sess.loot) ? sess.loot : [];
+    const hasNetworkEnumerationNote = sessionNotes.some((note) => String(note?.type || '').trim() === 'network-enumeration');
+    const hasCredentialsNote = sessionNotes.some((note) => String(note?.type || '').trim() === 'credentials');
+    if ((services.length || paths.length) && !hasNetworkEnumerationNote) {
+      exportWarnings.push('Network Enumeration note is missing. Quick Log data will still export, but the canonical note is not present.');
+    }
+    if (loot.some((entry) => ['cleartext', 'hash'].includes(String(entry?.type || '').trim())) && !hasCredentialsNote) {
+      exportWarnings.push('Credentials note is missing. Loot will export, but there is no canonical credentials document in the session.');
+    }
+    if (exportWarnings.length) {
+      await showConfirmDialog({
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        title: 'Export Preflight Warnings',
+        bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        description: `Export can continue, but there are issues to review first.<br><br>${exportWarnings.map((line) => `• ${line}`).join('<br><br>')}`,
+        confirmLabel: 'Export Anyway',
+      });
+    }
     const attachmentPayloads = typeof collectAttachmentPayloadsForNotes === 'function'
       ? await collectAttachmentPayloadsForNotes(sessionNotes)
       : {};
@@ -1847,6 +1881,25 @@ async function exportNotesMarkdown(sessionId) {
       showToast('Markdown export failed: ' + (d.error || 'unknown error'), 'err');
     }
   } catch (e) {
+    if (String(e?.message || '').toLowerCase().includes('cancelled')) return;
     showToast('Markdown export failed: ' + e.message, 'err');
+  }
+}
+
+async function cleanupOrphanedAttachments() {
+  try {
+    const res = await fetch('/api/notes/attachments/cleanup-orphans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions, notes }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok !== true) throw new Error(data.error || 'Attachment cleanup failed');
+    const removed = Number(data.removed_count || 0);
+    const missing = Number(data.missing_count || 0);
+    const refs = Number(data.referenced_count || 0);
+    showToast(`✓ Attachment cleanup complete: removed ${removed} orphaned file(s), ${refs} referenced, ${missing} missing reference(s)`);
+  } catch (err) {
+    showToast(`⚠ ${err.message || 'Attachment cleanup failed'}`, 'err');
   }
 }

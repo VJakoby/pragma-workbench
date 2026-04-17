@@ -142,6 +142,104 @@ Relevant files:
 - `public/app/workbench.js`
 - `server/routes/notes.js`
 
+### 6a. Encrypted attachments are not directly viewable outside PRAGMA
+
+Risk:
+
+- attachment screenshots and images must not be stored as directly viewable plaintext files when encrypted workbench mode is enabled
+- the security claim around attachments should be precise and verifiable
+
+Important claim language:
+
+- do **not** claim attachment decryption is "impossible" outside the app
+- the defensible claim is:
+  `Encrypted attachments are not directly viewable outside PRAGMA without the decryption password, assuming the cryptography implementation is correct and the password is strong.`
+
+Current design:
+
+- in plaintext mode, note attachments are stored as normal image bytes on disk
+- in encrypted mode, the browser encrypts attachment bytes first, then stores encrypted JSON payloads on disk as `*.enc`
+- the server does not decrypt those attachments before returning them
+- the browser decrypts them client-side when the workbench is unlocked
+
+Relevant files:
+
+- `server/routes/notes.js`
+- `server/lib/note-attachments.js`
+- `public/app/app.js`
+- `public/app/note-editor.js`
+
+Relevant implementation points:
+
+- `public/app/app.js:799`
+  `bytesToBase64()` chunked base64 conversion used by encrypted payload paths
+- `public/app/app.js:814`
+  `encryptBinaryPayload()` for encrypted attachment payload creation
+- `public/app/app.js:853`
+  `decryptBinaryPayload()` for client-side attachment decryption
+- `public/app/note-editor.js:21`
+  `uint8ToBase64()` used while preparing attachment payloads for export
+- `public/app/note-editor.js:51`
+  `fetchNoteAttachmentBlobFromUrl()` fetches attachment data and decrypts encrypted payloads client-side
+- `public/app/note-editor.js:203`
+  encrypted image upload path
+- `server/routes/notes.js:148`
+  `POST /api/notes/attachments`
+- `server/routes/notes.js:196`
+  `GET /api/notes/attachments/:noteId/:filename`
+- `server/routes/notes.js:366`
+  `POST /api/notes/save-encrypted`
+- `server/routes/notes.js:385`
+  `POST /api/notes/storage/disable-encrypted`
+
+Security-focused API surface for encrypted/decrypted mode:
+
+- `POST /api/notes/attachments`
+  Used for note image upload.
+  In plaintext mode it stores raw image bytes.
+  In encrypted mode it stores an encrypted JSON payload (`encrypted_blob`) plus metadata.
+
+- `GET /api/notes/attachments/:noteId/:filename`
+  Used when PRAGMA renders note attachments.
+  Returns raw file bytes in plaintext mode.
+  Returns encrypted JSON payload in encrypted mode.
+
+- `POST /api/notes/save-encrypted`
+  Writes the encrypted workbench blob to disk and removes plaintext workbench state.
+
+- `POST /api/notes/storage/disable-encrypted`
+  Writes decrypted workbench state back to plaintext storage and removes encrypted workbench state.
+
+Encrypted workbench decrypt/load API surface:
+
+- `GET /api/notes/encrypted`
+  Returns the encrypted workbench blob from disk so the browser can decrypt it locally.
+
+- `POST /api/notes/save-encrypted`
+  Accepts the encrypted workbench blob produced client-side and stores it on disk.
+
+- `POST /api/notes/storage/disable-encrypted`
+  Accepts decrypted `sessions` and `notes` from the browser when encrypted mode is being disabled, then restores plaintext storage on disk.
+
+- `GET /api/notes/storage-info`
+  Reports whether plaintext or encrypted workbench storage is currently active.
+
+- `GET /api/notes/attachments/:noteId/:filename`
+  Relevant during unlocked encrypted mode because encrypted attachments are returned as encrypted JSON payloads and then decrypted client-side for rendering.
+
+Verification checklist for attachment confidentiality:
+
+1. Enable encrypted workbench mode.
+2. Paste or drag in a screenshot/image into a note.
+3. Inspect the stored file under `sessions/attachments/<noteId>/`.
+4. Confirm the stored attachment is `*.enc` and not directly viewable as an image file.
+5. Open browser devtools Network tab.
+6. Load the note preview containing the image.
+7. Confirm `GET /api/notes/attachments/:noteId/:filename` returns encrypted JSON for encrypted attachments, not raw PNG/JPG bytes.
+8. Confirm the decryption password is not sent to the server in any request.
+9. Lock the workbench or reload without unlocking it and confirm the same encrypted attachment is not rendered until unlock.
+10. Export behavior should be tested separately, because plaintext export is a deliberate workflow that may inline or copy attachments in usable form.
+
 ### 7. Missing baseline browser hardening headers
 
 Risk:
@@ -238,6 +336,7 @@ Verified:
 
 - encrypted workbench save/load roundtrip succeeds
 - wrong password fails cleanly
+- encrypted attachments are returned as encrypted JSON payloads by the server and decrypted client-side for rendering
 - fetched encrypted blob from `/api/notes/encrypted` decrypts successfully with the correct password
 - the on-disk encrypted workbench file contains ciphertext plus encryption metadata only
 - new encrypted blobs now write:

@@ -2240,8 +2240,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .note-save-status{
   font-family:'Inter',sans-serif;font-size:10px;color:var(--text2);font-weight:500;
   flex-shrink:0;
-  min-width:48px;
+  min-width:92px;
   text-align:right;
+  white-space:nowrap;
 }
 .note-save-status.saved{color:var(--green)}
 .note-save-status.error{color:var(--red)}
@@ -2826,11 +2827,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   font-size:12px;
   color:color-mix(in srgb, var(--muted) 88%, var(--text2));
   white-space:normal;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
   overflow:hidden;
   text-overflow:ellipsis;
-  line-height:1.45;
-  max-height:2.9em;
-  padding:5px 8px;
+  line-height:1.5;
+  padding:8px 8px;
   border-radius:6px;
   background:color-mix(in srgb, var(--bg3) 80%, var(--bg2));
   border:1px solid color-mix(in srgb, var(--border) 68%, transparent);
@@ -3271,8 +3274,51 @@ svg { vertical-align: middle; flex-shrink: 0; }
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  min-width: 48px;
+  min-width: 92px;
   text-align: right;
+}
+
+.attachment-warning{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  margin:8px 0;
+  border:1px solid rgba(245,158,11,0.24);
+  border-radius:8px;
+  background:rgba(245,158,11,0.08);
+  color:var(--text2);
+}
+.attachment-warning-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 18px;
+  color:var(--warning);
+  margin-top:1px;
+}
+.attachment-warning-icon svg{
+  width:16px;
+  height:16px;
+}
+.attachment-warning-copy{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.attachment-warning-title{
+  font-family:'Inter',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  color:var(--text);
+}
+.attachment-warning-text{
+  font-family:'Inter',sans-serif;
+  font-size:12px;
+  line-height:1.45;
+  color:var(--text2);
+  word-break:break-word;
 }
 
 /* ── Note wiki links [[...]] ── */

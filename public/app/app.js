@@ -493,22 +493,58 @@ function shouldOpenCmdItemInSidePanel() {
   return activeView === 'notes' && !!activeNoteId && !!notes[activeNoteId] && !!noteArea && noteArea.style.display !== 'none';
 }
 
-function execCmd(idx) {
+async function commandPaletteItemExists(item) {
+  if (!item) return false;
+  if (item.type === 'note') return !!notes[item.id];
+  if (item.type === 'service' || item.type === 'tactic') {
+    const view = item.type === 'service' ? 'services' : 'tactics';
+    if (getKbCollection(view).some((entry) => entry.id === item.id)) return true;
+    try {
+      const res = await fetch(getKbFetchConfig(view).detailUrl(item.id), { cache: 'no-store' });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+  if (item.type === 'kbdoc') {
+    const view = item.view || 'services';
+    if (getKbCollection(view).some((entry) => entry.id === item.id)) return true;
+    try {
+      const res = await fetch(getKbFetchConfig(view).detailUrl(item.id), { cache: 'no-store' });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function execCmd(idx) {
   const item = cmdItems[idx];
   if (!item) return;
   closeCmd();
+  if (!(await commandPaletteItemExists(item))) {
+    showToast(`⚠ This ${item.type === 'note' ? 'note' : 'KB entry'} no longer exists. Refresh the search and try again.`, 'err');
+    return;
+  }
   if (item.type === 'service') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('services');
-    openItem('services', item.id);
+    await openItem('services', item.id);
   } else if (item.type === 'kbdoc') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('services', document.getElementById('nav-services'));
-    openItem(item.view || 'services', item.id);
+    await openItem(item.view || 'services', item.id);
   } else if (item.type === 'tactic') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('tactics', document.getElementById('nav-tactics'));
-    openItem('tactics', item.id);
+    await openItem('tactics', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
-    setTimeout(() => openNote(item.id), 50);
+    setTimeout(() => {
+      if (!notes[item.id]) {
+        showToast('⚠ This note no longer exists. Refresh the search and try again.', 'err');
+        return;
+      }
+      openNote(item.id);
+    }, 50);
   } else if (item.type === 'tag') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => setTagFilter(item.tag), 50);

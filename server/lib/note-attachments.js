@@ -181,6 +181,70 @@ function cleanupAttachmentStore(sessionsDir, manifest = {}) {
     });
 }
 
+function inspectAttachmentStore(sessionsDir, notes = {}) {
+  const manifest = buildAttachmentManifestFromNotes(notes);
+  const referenced = [];
+  const missing = [];
+  Object.entries(manifest).forEach(([noteId, filenames]) => {
+    (Array.isArray(filenames) ? filenames : []).forEach((filename) => {
+      const resolved = resolveStoredAttachmentPath(sessionsDir, noteId, filename);
+      const item = {
+        noteId,
+        filename: normalizeAttachmentFilename(filename),
+        url: buildAttachmentUrl(noteId, filename),
+      };
+      referenced.push({
+        ...item,
+        exists: !!resolved.mode && !!resolved.filePath,
+        storedPath: resolved.filePath || '',
+        mode: resolved.mode || null,
+      });
+      if (!resolved.mode || !resolved.filePath) missing.push(item);
+    });
+  });
+
+  const root = buildAttachmentRoot(sessionsDir);
+  const orphaned = [];
+  if (fs.existsSync(root)) {
+    const expected = new Map();
+    Object.entries(manifest).forEach(([noteId, filenames]) => {
+      const safeNoteId = sanitizePathSegment(noteId, '');
+      if (!safeNoteId) return;
+      expected.set(safeNoteId, new Set(
+        (Array.isArray(filenames) ? filenames : [])
+          .map((name) => normalizeAttachmentFilename(name))
+          .filter(Boolean)
+          .flatMap((name) => [name, `${name}.enc`])
+      ));
+    });
+
+    fs.readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .forEach((entry) => {
+        const dirName = entry.name;
+        const dirPath = path.join(root, dirName);
+        const allowed = expected.get(dirName) || new Set();
+        fs.readdirSync(dirPath, { withFileTypes: true })
+          .filter((fileEntry) => fileEntry.isFile())
+          .forEach((fileEntry) => {
+            if (allowed.has(fileEntry.name)) return;
+            orphaned.push({
+              noteId: dirName,
+              filename: fileEntry.name,
+              path: path.join(dirPath, fileEntry.name),
+            });
+          });
+      });
+  }
+
+  return {
+    manifest,
+    referenced,
+    missing,
+    orphaned,
+  };
+}
+
 module.exports = {
   IMAGE_TYPE_TO_EXT,
   sanitizePathSegment,
@@ -194,4 +258,5 @@ module.exports = {
   extractAttachmentRefsFromMarkdown,
   buildAttachmentManifestFromNotes,
   cleanupAttachmentStore,
+  inspectAttachmentStore,
 };

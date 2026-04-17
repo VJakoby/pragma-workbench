@@ -46,11 +46,24 @@ function setNoteSaveIndicator(phase, text) {
   const status = document.getElementById('noteSaveStatus');
   if (!status) return;
   status.textContent = text || (phase === 'saving' ? '...saving' : phase === 'saved' ? 'saved' : 'save failed');
+  status.dataset.phase = phase || 'idle';
   status.className = phase === 'saved'
     ? 'note-save-status saved'
     : phase === 'error'
       ? 'note-save-status error'
       : 'note-save-status';
+  if (phase === 'saved' && appSaveState.lastSavedAt) {
+    status.title = `Last saved ${new Date(appSaveState.lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}`;
+  } else if (phase === 'error' && appSaveState.lastError) {
+    status.title = String(appSaveState.lastError?.message || appSaveState.lastError || 'Save failed');
+  } else {
+    status.title = '';
+  }
+}
+
+function formatSaveTimestamp(time) {
+  if (!time) return 'saved';
+  return `saved ${new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 }
 
 function beginAppSave(text = '...saving') {
@@ -66,14 +79,16 @@ function finishAppSaveSuccess(seq, text = 'saved') {
   appSaveState.phase = 'saved';
   appSaveState.lastSavedAt = Date.now();
   appSaveState.lastError = null;
-  setNoteSaveIndicator('saved', text);
+  setNoteSaveIndicator('saved', text === 'saved' ? formatSaveTimestamp(appSaveState.lastSavedAt) : text);
 }
 
 function finishAppSaveError(seq, error, text = 'save failed') {
   if (seq !== appSaveState.seq) return;
   appSaveState.phase = 'error';
   appSaveState.lastError = error || null;
-  setNoteSaveIndicator('error', text);
+  const detail = String(error?.message || '').trim();
+  const label = text === 'save failed' && detail ? `save failed: ${detail.slice(0, 36)}` : text;
+  setNoteSaveIndicator('error', label);
 }
 
 function markAppDirty(reason = 'changes') {
