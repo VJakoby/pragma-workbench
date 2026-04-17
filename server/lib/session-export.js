@@ -139,7 +139,7 @@ function injectTargetPlaceholders(text, target) {
     domainPatterns,
     labelPatterns,
     attackerPatterns,
-  } = getPlaceholderMatchers();
+  } = getPlaceholderMatchers({ includeBare: false });
 
   if (ip) {
     output = replaceAllPatterns(output, ipPatterns, ip);

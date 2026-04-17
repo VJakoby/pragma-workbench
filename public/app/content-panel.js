@@ -207,7 +207,7 @@ function goBackContentPanel() {
   }
 }
 
-function injectTargets(rawHtml) {
+function injectTargets(rawHtml, opts = {}) {
   const ip     = esc(getIP());
   const domain = esc(getDomain());
   const label  = esc(getTargetLabelValue());
@@ -220,7 +220,10 @@ function injectTargets(rawHtml) {
     domainPatterns,
     labelPatterns,
     attackerPatterns,
-  } = matcherFactory({ htmlEscapedAngles: true });
+  } = matcherFactory({
+    htmlEscapedAngles: true,
+    includeBare: opts.includeBare === true,
+  });
 
   let out = rawHtml;
   for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
@@ -232,7 +235,7 @@ function injectTargets(rawHtml) {
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  return injectTargets(esc(rawLine));
+  return injectTargets(esc(rawLine), { includeBare: true });
 }
 
 function copyIconSvg() {
@@ -268,7 +271,7 @@ function wrapCodeBlocks(container) {
       codeEl.textContent = rawText;
       delete codeEl.dataset.hljsDone;
       highlightCodeBlock(codeEl);
-      codeEl.innerHTML = injectTargets(codeEl.innerHTML);
+      codeEl.innerHTML = injectTargets(codeEl.innerHTML, { includeBare: true });
 
       if (!copyBtn) {
         copyBtn = document.createElement('button');
@@ -331,7 +334,7 @@ function wrapInlineCodes(container) {
     if (el.dataset.inlineWrapped) return;
     el.dataset.inlineWrapped = '1';
 
-    el.innerHTML = injectTargets(el.innerHTML);
+    el.innerHTML = injectTargets(el.innerHTML, { includeBare: true });
     el.style.cursor = 'pointer';
     el.title = 'Click to copy';
 
