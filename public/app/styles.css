@@ -850,10 +850,10 @@ body{
 }
 .card-service-body {
   margin: 0;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  border: none;
+  padding: 8px 10px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg2) 70%, var(--bg3));
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
 }
 .card-service-body .card-service-desc {
   margin: 0;
@@ -882,12 +882,13 @@ body{
   white-space: nowrap;
 }
 .card-service-desc {
-  margin-top: 2px;
-  font-size: 11px;
-  line-height: 1.58;
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 1.52;
   -webkit-line-clamp: 4;
-  opacity: 0.68;
-  color: var(--text2);
+  opacity: 0.85;
+  color: color-mix(in srgb, var(--text2) 88%, transparent);
+  font-weight: 500;
   min-height: 4.5em;
 }
 .card-service-footer {
@@ -2169,8 +2170,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-top: none; overflow: hidden; min-height: 80px;
 }
 .note-preview-label {
-  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-  color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700;
+  color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em;
   padding: 5px 16px 4px; flex-shrink: 0; border-bottom: 1px solid var(--border);
   background: var(--bg2);
 }
@@ -3044,7 +3045,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .cards-area.cards-list-mode .card-meta-inline {
   max-width:42%;
 }
-.cards-area.cards-list-mode .card-desc { display:none; }
+.cards-area.cards-list-mode .card:not(.card-service):not(.card-knowledge) .card-desc { display:none; }
 .cards-area.cards-list-mode .card-cat {
   position:static; flex-shrink:0; margin-left:4px;
   font-size:8px; padding:1px 5px;
@@ -3073,9 +3074,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   line-height: 1.12;
 }
 .cards-area.cards-list-mode .card-service-body {
-  padding: 0;
-  background: transparent;
-  border: none;
+  padding: 8px 10px 7px;
+  background: color-mix(in srgb, var(--bg2) 70%, var(--bg3));
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-radius: 6px;
   margin: 0;
 }
 .cards-area.cards-list-mode .card-service-desc {
@@ -3183,7 +3185,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     .card-service-type.note-type-general {
       font-family:'Inter', sans-serif;
       letter-spacing:0.01em;
-      color: color-mix(in srgb, var(--text) 88%, white 12%);
+      color: color-mix(in srgb, var(--text) 96%, black 4%);
       background: color-mix(in srgb, var(--card-accent, var(--accent)) 22%, var(--bg4));
       border-bottom-color: color-mix(in srgb, var(--card-accent, var(--accent)) 28%, var(--border));
     }
