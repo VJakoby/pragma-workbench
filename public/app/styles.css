@@ -460,6 +460,13 @@ body{
   font-weight: 900;
   line-height: 1;
 }
+.sidebar-toggle-logo{
+  display:block;
+  width:20px;
+  height:20px;
+  object-fit:contain;
+  image-rendering:auto;
+}
 .sidebar-toggle-btn:hover .sidebar-toggle-mark,
 .sidebar-toggle-btn:active .sidebar-toggle-mark { color: var(--accent2); }
 .sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
