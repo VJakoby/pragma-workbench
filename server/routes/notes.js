@@ -19,6 +19,7 @@ const {
   extractAttachmentRefsFromMarkdown,
   buildAttachmentManifestFromNotes,
   cleanupAttachmentStore,
+  inspectAttachmentStore,
 } = require('../lib/note-attachments');
 const {
   loadTemplateMeta,
@@ -32,6 +33,14 @@ const {
 } = require('../lib/session-export');
 
 function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderMarkdown }) {
+  function resolveNotesSourceFromRequest(req) {
+    const clientSessions = req.body?.sessions;
+    const clientNotes = req.body?.notes;
+    if (clientSessions && clientNotes) return { sessions: clientSessions, notes: clientNotes };
+    if (fs.existsSync(storage.workbenchEncFile())) return null;
+    return storage.loadNotesFile();
+  }
+
   function expandTemplateBody(template) {
     return {
       ...template,
@@ -208,6 +217,43 @@ ${htmlBody}
         return res.json(payload);
       }
       return res.status(404).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/notes/attachments/cleanup-orphans', (req, res) => {
+    try {
+      const source = resolveNotesSourceFromRequest(req);
+      if (!source) {
+        return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes.' });
+      }
+      const inspection = inspectAttachmentStore(sessionsDir, source.notes);
+      let removedCount = 0;
+      inspection.orphaned.forEach((item) => {
+        try {
+          fs.unlinkSync(item.path);
+          removedCount += 1;
+        } catch (_) {}
+      });
+      const attachmentRoot = path.join(sessionsDir, 'attachments');
+      if (fs.existsSync(attachmentRoot)) {
+        fs.readdirSync(attachmentRoot, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .forEach((entry) => {
+            const dirPath = path.join(attachmentRoot, entry.name);
+            try {
+              if (!fs.readdirSync(dirPath).length) fs.rmdirSync(dirPath);
+            } catch (_) {}
+          });
+      }
+      res.json({
+        ok: true,
+        removed_count: removedCount,
+        orphaned_count: inspection.orphaned.length,
+        missing_count: inspection.missing.length,
+        referenced_count: inspection.referenced.length,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -410,9 +456,7 @@ ${htmlBody}
       const attachmentPayloads = req.body?.attachment_payloads && typeof req.body.attachment_payloads === 'object'
         ? req.body.attachment_payloads
         : {};
-      const source = fs.existsSync(storage.workbenchEncFile())
-        ? (req.body?.sessions && req.body?.notes ? { sessions: req.body.sessions, notes: req.body.notes } : null)
-        : storage.loadNotesFile();
+      const source = resolveNotesSourceFromRequest(req);
       if (!source) {
         return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes.' });
       }

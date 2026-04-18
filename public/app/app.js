@@ -371,18 +371,15 @@ async function buildCmdResults(q) {
     });
   }
 
-  const kbDocHits = getCommandPaletteKbResults(ql);
+  const kbDocHits = getCommandPaletteKbResults(ql)
+    .filter(({ entry }) => entry.type === 'knowledge');
   if (kbDocHits.length) {
     html += `<div class="cmd-group-hdr">KB Documents</div>`;
     kbDocHits.forEach(({ entry, snippet }) => {
-      const scopeLabel = entry.type === 'service'
-        ? 'Service'
-        : entry.type === 'tactic'
-          ? 'Tactic'
-          : 'Knowledge';
+      const scopeLabel = 'Knowledge';
       const metaParts = [scopeLabel];
       if (entry.category) metaParts.push(esc(entry.category));
-      if (entry.folder && entry.type === 'knowledge') metaParts.push(esc(entry.folder));
+      if (entry.folder) metaParts.push(esc(entry.folder));
       if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
       html += pushCmdItem({
         type: 'kbdoc',
@@ -493,22 +490,58 @@ function shouldOpenCmdItemInSidePanel() {
   return activeView === 'notes' && !!activeNoteId && !!notes[activeNoteId] && !!noteArea && noteArea.style.display !== 'none';
 }
 
-function execCmd(idx) {
+async function commandPaletteItemExists(item) {
+  if (!item) return false;
+  if (item.type === 'note') return !!notes[item.id];
+  if (item.type === 'service' || item.type === 'tactic') {
+    const view = item.type === 'service' ? 'services' : 'tactics';
+    if (getKbCollection(view).some((entry) => entry.id === item.id)) return true;
+    try {
+      const res = await fetch(getKbFetchConfig(view).detailUrl(item.id), { cache: 'no-store' });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+  if (item.type === 'kbdoc') {
+    const view = item.view || 'services';
+    if (getKbCollection(view).some((entry) => entry.id === item.id)) return true;
+    try {
+      const res = await fetch(getKbFetchConfig(view).detailUrl(item.id), { cache: 'no-store' });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function execCmd(idx) {
   const item = cmdItems[idx];
   if (!item) return;
   closeCmd();
+  if (!(await commandPaletteItemExists(item))) {
+    showToast(`⚠ This ${item.type === 'note' ? 'note' : 'KB entry'} no longer exists. Refresh the search and try again.`, 'err');
+    return;
+  }
   if (item.type === 'service') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('services');
-    openItem('services', item.id);
+    await openItem('services', item.id);
   } else if (item.type === 'kbdoc') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('services', document.getElementById('nav-services'));
-    openItem(item.view || 'services', item.id);
+    await openItem(item.view || 'services', item.id);
   } else if (item.type === 'tactic') {
     if (!shouldOpenCmdItemInSidePanel()) switchView('tactics', document.getElementById('nav-tactics'));
-    openItem('tactics', item.id);
+    await openItem('tactics', item.id);
   } else if (item.type === 'note') {
     switchView('notes', document.getElementById('nav-notes'));
-    setTimeout(() => openNote(item.id), 50);
+    setTimeout(() => {
+      if (!notes[item.id]) {
+        showToast('⚠ This note no longer exists. Refresh the search and try again.', 'err');
+        return;
+      }
+      openNote(item.id);
+    }, 50);
   } else if (item.type === 'tag') {
     switchView('notes', document.getElementById('nav-notes'));
     setTimeout(() => setTagFilter(item.tag), 50);
@@ -786,19 +819,25 @@ async function encryptPayload(plaintext, password) {
   const key  = await deriveKey(password, salt, 2);
   const enc  = new TextEncoder();
   const ct   = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
-  const b64  = arr => btoa(String.fromCharCode(...new Uint8Array(arr)));
   return {
     pragma_version: 1,
     crypto_version: 2,
     encrypted: true,
-    salt: b64(salt),
-    iv: b64(iv),
-    data: b64(ct),
+    salt: bytesToBase64(salt),
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(ct),
   };
 }
 
 function bytesToBase64(value) {
-  return btoa(String.fromCharCode(...new Uint8Array(value)));
+  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
 }
 
 function base64ToBytes(value) {
@@ -874,6 +913,7 @@ function applyNotesListVisibility() {
   const editorBtn = document.getElementById('notesListToggleBtnEditor');
   const listBtn = document.getElementById('notesListToggleBtn');
   const reopenBtn = document.getElementById('notesListReopenBtn');
+  const peekBtn = document.getElementById('notesListPeekBtn');
   if (layout) layout.classList.toggle('notes-list-hidden', notesListHidden);
   if (editorBtn) {
     editorBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
@@ -883,6 +923,8 @@ function applyNotesListVisibility() {
   }
   if (listBtn) listBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
   if (reopenBtn) reopenBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
+  if (peekBtn) peekBtn.title = 'Quick note switcher';
+  if (!notesListHidden && typeof closeNotesPeek === 'function') closeNotesPeek();
   localStorage.setItem('ops-notes-list-hidden', notesListHidden ? '1' : '0');
 }
 

@@ -305,9 +305,24 @@
             <button class="notes-list-edge-btn notes-list-reopen-btn" id="notesListReopenBtn" onclick="toggleNotesList()" title="Show notes list" aria-label="Show notes list">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><polyline points="13,9 16,12 13,15"/></svg>
             </button>
+            <button class="notes-list-edge-btn notes-list-peek-btn" id="notesListPeekBtn" onclick="toggleNotesPeek(event)" title="Quick note switcher" aria-label="Quick note switcher">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
             <button class="notes-list-edge-btn notes-list-create-btn" id="notesListCreateBtn" onclick="openNewNoteModal()" title="New note" aria-label="Create new note">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
+          </div>
+          <div class="notes-peek-flyout" id="notesPeekFlyout" aria-label="Quick note switcher">
+            <div class="notes-peek-hdr">Current Notes</div>
+            <div class="notes-peek-scope">
+              <div class="notes-scope-bar notes-peek-scope-bar">
+                <button class="note-scope-btn active" id="notesPeekScopeSession" data-scope="session" onclick="setNotesPeekScope('session', this)">Current Session</button>
+                <button class="note-scope-btn" id="notesPeekScopeUnassigned" data-scope="unassigned" onclick="setNotesPeekScope('unassigned', this)">Unassigned</button>
+                <button class="note-scope-btn" id="notesPeekScopeAll" data-scope="all" onclick="setNotesPeekScope('all', this)">All Sessions</button>
+              </div>
+            </div>
+            <input class="notes-peek-search" id="notesPeekSearchInput" type="text" placeholder="Search current notes…" autocomplete="off" spellcheck="false" oninput="onNotesPeekSearch(this.value)">
+            <div class="notes-peek-list" id="notesPeekList"></div>
           </div>
           <div class="notes-list">
             <div class="notes-list-hdr">
@@ -388,6 +403,7 @@
                   <button class="tb-btn" id="noteFlagEvidenceBtn" onclick="flagSelectionAsEvidence()" title="Flag selected block as evidence"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg> Flag</span></button>
                   <div class="notes-editor-hdr-spacer"></div>
                   <div id="noteHeaderActions" class="note-header-actions">
+                    <button class="icon-btn" id="noteAttachmentCleanupBtn" onclick="cleanupOrphanedAttachments()" title="Clean orphaned attachments" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
                     <button class="icon-btn" id="noteExportBtn" onclick="exportCurrentNote()" title="Export note as .md"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                     <button class="icon-btn" id="noteDuplicateBtn" onclick="duplicateCurrentNote()" title="Duplicate note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                     <button class="icon-btn danger" id="noteDeleteBtn" onclick="deleteCurrentNote()" title="Delete note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>

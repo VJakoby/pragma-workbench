@@ -138,6 +138,33 @@ For a practical walkthrough of how the app is meant to be used during an engagem
 **Notes**
 - Typed notes with structured markdown templates — see [Note Templates](#-note-templates) below
 - Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
+
+## Potential Issues
+
+### Attachment encryption: `Maximum call stack size exceeded`
+
+If this appears while enabling encrypted workbench mode or saving encrypted attachments, the failure is usually caused by browser-side base64 conversion of large image buffers, not by Node or Docker stack size.
+
+The relevant client-side conversion points are:
+
+- [public/app/app.js](/home/jakvan/Git/pragma-workbench/public/app/app.js#L799)  
+  `bytesToBase64()` used by `encryptPayload()` / `encryptBinaryPayload()`
+- [public/app/note-editor.js](/home/jakvan/Git/pragma-workbench/public/app/note-editor.js#L21)  
+  `uint8ToBase64()` used when preparing attachment payloads for export
+
+Current implementation uses chunked conversion with:
+
+```js
+const chunkSize = 0x8000;
+```
+
+If you ever need to tune this manually, reduce that value rather than trying to increase runtime stack size. For example:
+
+```js
+const chunkSize = 0x4000;
+```
+
+Smaller chunks are safer for very large attachments. Larger chunks may be a little faster, but they are more likely to trigger stack overflows in the browser.
 - Full-text search across note titles and bodies, with type/tag/target/scope filters
 - Tags, pin, auto-save, duplicate, and per-note `.md` export
 - Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images

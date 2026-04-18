@@ -73,6 +73,37 @@ function resolveStoredAttachmentPath(sessionsDir, noteId, filename) {
   const paths = resolveAttachmentPaths(sessionsDir, noteId, filename);
   if (fs.existsSync(paths.rawPath)) return { ...paths, mode: 'raw', filePath: paths.rawPath };
   if (fs.existsSync(paths.encryptedPath)) return { ...paths, mode: 'encrypted', filePath: paths.encryptedPath };
+
+  const requestedExt = path.extname(paths.filename);
+  if (!requestedExt && fs.existsSync(paths.dir)) {
+    const baseName = path.basename(paths.filename, path.extname(paths.filename));
+    const matches = fs.readdirSync(paths.dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => {
+        if (name === paths.filename || name === `${paths.filename}.enc`) return true;
+        if (name.endsWith('.enc')) {
+          return path.basename(name, '.enc').startsWith(`${baseName}.`);
+        }
+        return name.startsWith(`${baseName}.`);
+      });
+
+    if (matches.length === 1) {
+      const resolvedName = matches[0];
+      const resolvedPath = path.join(paths.dir, resolvedName);
+      const isEncrypted = resolvedName.endsWith('.enc');
+      const normalizedFilename = isEncrypted ? path.basename(resolvedName, '.enc') : resolvedName;
+      return {
+        ...paths,
+        filename: normalizedFilename,
+        rawPath: isEncrypted ? path.join(paths.dir, normalizedFilename) : resolvedPath,
+        encryptedPath: isEncrypted ? resolvedPath : `${resolvedPath}.enc`,
+        mode: isEncrypted ? 'encrypted' : 'raw',
+        filePath: resolvedPath,
+      };
+    }
+  }
+
   return { ...paths, mode: null, filePath: '' };
 }
 
@@ -129,6 +160,12 @@ function cleanupAttachmentStore(sessionsDir, manifest = {}) {
   });
 
   fs.readdirSync(root, { withFileTypes: true })
+    .filter((entry) => !entry.isDirectory())
+    .forEach((entry) => {
+      try { fs.unlinkSync(path.join(root, entry.name)); } catch (_) {}
+    });
+
+  fs.readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .forEach((entry) => {
       const dirName = entry.name;
@@ -139,15 +176,83 @@ function cleanupAttachmentStore(sessionsDir, manifest = {}) {
         return;
       }
       fs.readdirSync(dirPath, { withFileTypes: true }).forEach((fileEntry) => {
-        if (!fileEntry.isFile()) return;
+        const filePath = path.join(dirPath, fileEntry.name);
+        if (!fileEntry.isFile()) {
+          try { fs.rmSync(filePath, { recursive: true, force: true }); } catch (_) {}
+          return;
+        }
         if (!expected.has(fileEntry.name)) {
-          try { fs.unlinkSync(path.join(dirPath, fileEntry.name)); } catch (_) {}
+          try { fs.unlinkSync(filePath); } catch (_) {}
         }
       });
       try {
         if (!fs.readdirSync(dirPath).length) fs.rmdirSync(dirPath);
       } catch (_) {}
     });
+}
+
+function inspectAttachmentStore(sessionsDir, notes = {}) {
+  const manifest = buildAttachmentManifestFromNotes(notes);
+  const referenced = [];
+  const missing = [];
+  Object.entries(manifest).forEach(([noteId, filenames]) => {
+    (Array.isArray(filenames) ? filenames : []).forEach((filename) => {
+      const resolved = resolveStoredAttachmentPath(sessionsDir, noteId, filename);
+      const item = {
+        noteId,
+        filename: normalizeAttachmentFilename(filename),
+        url: buildAttachmentUrl(noteId, filename),
+      };
+      referenced.push({
+        ...item,
+        exists: !!resolved.mode && !!resolved.filePath,
+        storedPath: resolved.filePath || '',
+        mode: resolved.mode || null,
+      });
+      if (!resolved.mode || !resolved.filePath) missing.push(item);
+    });
+  });
+
+  const root = buildAttachmentRoot(sessionsDir);
+  const orphaned = [];
+  if (fs.existsSync(root)) {
+    const expected = new Map();
+    Object.entries(manifest).forEach(([noteId, filenames]) => {
+      const safeNoteId = sanitizePathSegment(noteId, '');
+      if (!safeNoteId) return;
+      expected.set(safeNoteId, new Set(
+        (Array.isArray(filenames) ? filenames : [])
+          .map((name) => normalizeAttachmentFilename(name))
+          .filter(Boolean)
+          .flatMap((name) => [name, `${name}.enc`])
+      ));
+    });
+
+    fs.readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .forEach((entry) => {
+        const dirName = entry.name;
+        const dirPath = path.join(root, dirName);
+        const allowed = expected.get(dirName) || new Set();
+        fs.readdirSync(dirPath, { withFileTypes: true })
+          .filter((fileEntry) => fileEntry.isFile())
+          .forEach((fileEntry) => {
+            if (allowed.has(fileEntry.name)) return;
+            orphaned.push({
+              noteId: dirName,
+              filename: fileEntry.name,
+              path: path.join(dirPath, fileEntry.name),
+            });
+          });
+      });
+  }
+
+  return {
+    manifest,
+    referenced,
+    missing,
+    orphaned,
+  };
 }
 
 module.exports = {
@@ -163,4 +268,5 @@ module.exports = {
   extractAttachmentRefsFromMarkdown,
   buildAttachmentManifestFromNotes,
   cleanupAttachmentStore,
+  inspectAttachmentStore,
 };

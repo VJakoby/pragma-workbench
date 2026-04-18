@@ -56,7 +56,8 @@
 
   function buildGroupPatterns(group, options = {}) {
     const aliases = GROUP_ALIASES[group] || [];
-    const bareAliases = GROUP_BARE_ALIASES[group] || aliases;
+    const includeBare = options.includeBare === true;
+    const bareAliases = includeBare ? (GROUP_BARE_ALIASES[group] || aliases) : [];
     const extras = GROUP_EXTRAS[group] || [];
     const patterns = [];
 
@@ -64,7 +65,7 @@
       patterns.push(...buildDelimitedPatterns(alias, options));
     });
     bareAliases.forEach((alias) => patterns.push(buildBarePattern(alias)));
-    extras.forEach((token) => patterns.push(buildBarePattern(token)));
+    if (includeBare) extras.forEach((token) => patterns.push(buildBarePattern(token)));
 
     return uniquePatterns(patterns);
   }

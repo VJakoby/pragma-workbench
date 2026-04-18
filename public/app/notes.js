@@ -6,6 +6,9 @@ let activeNoteScope  = 'session';
 let activeTagFilter  = null;
 let activeTargetFilter = null;
 let activeNoteSearch = '';
+let notesPeekSearch = '';
+let notesPeekOpen = false;
+let notesPeekCloseTimer = null;
 let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
@@ -91,6 +94,7 @@ function setNoteEditorMode(mode) {
   const tags = document.getElementById('noteTagsRow');
   const backlinks = document.getElementById('noteBacklinks');
   const exportBtn = document.getElementById('noteExportBtn');
+  const attachmentCleanupBtn = document.getElementById('noteAttachmentCleanupBtn');
   const duplicateBtn = document.getElementById('noteDuplicateBtn');
   const deleteBtn = document.getElementById('noteDeleteBtn');
   const previewPane = document.getElementById('notePreviewPane');
@@ -122,6 +126,7 @@ function setNoteEditorMode(mode) {
   if (backlinks) backlinks.style.display = isConfig ? 'none' : '';
   if (duplicateBtn) duplicateBtn.style.display = isConfig ? 'none' : '';
   if (deleteBtn) deleteBtn.style.display = isConfig ? 'none' : '';
+  if (attachmentCleanupBtn) attachmentCleanupBtn.style.display = isConfig ? '' : 'none';
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
@@ -260,11 +265,17 @@ function setNoteFilter(type, btn) {
   renderNotesList();
 }
 
+function syncAllNoteScopeButtons() {
+  document.querySelectorAll('.note-scope-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.scope === activeNoteScope);
+  });
+}
+
 function setNoteScope(scope, btn) {
   activeNoteScope = scope;
   activeTargetFilter = null;
-  document.querySelectorAll('.note-scope-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  syncAllNoteScopeButtons();
+  if (btn) btn.classList.add('active');
   updateNoteSearchPlaceholder();
   renderNotesList();
 }
@@ -302,36 +313,17 @@ function renderNotesList() {
     renderTimeline();
     updateNotesCountBadges();
     renderTargetFilterBar();
+    renderNotesPeekList();
     return;
   }
   const list = document.getElementById('notesList');
-  let items = Object.values(notes).sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return (b.updated || 0) - (a.updated || 0);
-  });
-
-  if (activeNoteScope === 'session') {
-    items = activeSessionId ? items.filter(n => n.session_id === activeSessionId) : items.filter(n => !n.session_id);
-  } else if (activeNoteScope === 'unassigned') {
-    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
-  }
-
-  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
-  if (activeTagFilter) items = items.filter(n => (n.tags || []).includes(activeTagFilter));
-  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
-  if (activeNoteSearch) {
-    const q = activeNoteSearch.toLowerCase();
-    items = items.filter(n =>
-      (n.title || '').toLowerCase().includes(q) ||
-      (n.body || '').toLowerCase().includes(q)
-    );
-  }
+  const items = getVisibleNotes({ scope: activeNoteScope, search: activeNoteSearch });
 
   if (!items.length) {
     list.innerHTML = `<div style="padding:20px 12px;font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;text-align:center">
       ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
+    renderNotesPeekList();
     return;
   }
 
@@ -364,7 +356,151 @@ function renderNotesList() {
 
   updateNotesCountBadges();
   renderTargetFilterBar();
+  renderNotesPeekList();
 }
+
+function getVisibleNotes(opts = {}) {
+  const scope = opts.scope || activeNoteScope;
+  const search = String(opts.search || '').trim().toLowerCase();
+  let items = Object.values(notes).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated || 0) - (a.updated || 0);
+  });
+
+  if (scope === 'session') {
+    items = activeSessionId ? items.filter(n => n.session_id === activeSessionId) : items.filter(n => !n.session_id);
+  } else if (scope === 'unassigned') {
+    items = items.filter(n => !n.session_id || !sessions[n.session_id]);
+  }
+
+  if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
+  if (activeTagFilter) items = items.filter(n => (n.tags || []).includes(activeTagFilter));
+  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
+  if (search) {
+    items = items.filter(n =>
+      (n.title || '').toLowerCase().includes(search) ||
+      (n.body || '').toLowerCase().includes(search)
+    );
+  }
+
+  return items;
+}
+
+function renderNotesPeekList() {
+  const list = document.getElementById('notesPeekList');
+  if (!list) return;
+  syncNotesPeekScopeButtons();
+  const items = getVisibleNotes({ scope: activeNoteScope, search: notesPeekSearch });
+  if (!items.length) {
+    list.innerHTML = `<div class="notes-peek-empty">${notesPeekSearch ? 'No matching notes' : 'No current notes'}</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map((n) => {
+    const preview = esc((n.body || '').replace(/\n/g, ' ').trim().slice(0, 82));
+    const meta = getNoteTypeMeta(n.type);
+    const sess = n.session_id && sessions[n.session_id];
+    const showSessionBadge = activeNoteScope === 'all' || activeNoteScope === 'unassigned';
+    const sessionBadge = showSessionBadge && sess
+      ? `<span class="notes-peek-item-session">${esc(sess.codename)}</span>`
+      : showSessionBadge && !sess
+        ? '<span class="notes-peek-item-session">Unassigned</span>'
+        : '';
+    return `<button class="notes-peek-item ${meta.cssClass || ''}${n.id === activeNoteId ? ' active' : ''}" type="button" onclick="openNoteFromPeek('${n.id}')">
+      <div class="notes-peek-item-head">
+        <span class="notes-peek-item-title">${n.pinned ? '<span class="note-item-pin">' + ICONS.pin + '</span>' : ''}${esc(n.title || 'Untitled')}</span>
+        <span class="notes-peek-item-date">${formatDate(n.updated)}</span>
+      </div>
+      ${sessionBadge ? `<div class="notes-peek-item-meta">${sessionBadge}</div>` : ''}
+      <div class="notes-peek-item-preview">${preview || '&nbsp;'}</div>
+    </button>`;
+  }).join('');
+}
+
+function openNotesPeek() {
+  if (!notesListHidden) return;
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekOpen = true;
+  document.querySelector('.notes-layout')?.classList.add('notes-peek-open');
+  renderNotesPeekList();
+  setTimeout(() => document.getElementById('notesPeekSearchInput')?.focus(), 20);
+}
+
+function closeNotesPeek() {
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekOpen = false;
+  document.querySelector('.notes-layout')?.classList.remove('notes-peek-open');
+  notesPeekSearch = '';
+  const input = document.getElementById('notesPeekSearchInput');
+  if (input) input.value = '';
+}
+
+function toggleNotesPeek(event) {
+  event?.stopPropagation();
+  if (!notesListHidden) return;
+  if (notesPeekOpen) closeNotesPeek();
+  else openNotesPeek();
+}
+
+function scheduleNotesPeekClose() {
+  clearTimeout(notesPeekCloseTimer);
+  notesPeekCloseTimer = setTimeout(() => {
+    if (!notesPeekOpen) return;
+    closeNotesPeek();
+  }, 120);
+}
+
+function syncNotesPeekScopeButtons() {
+  syncAllNoteScopeButtons();
+}
+
+function setNotesPeekScope(scope, button) {
+  activeNoteScope = scope;
+  activeTargetFilter = null;
+  syncNotesPeekScopeButtons();
+  updateNoteSearchPlaceholder();
+  renderNotesList();
+  if (button) button.blur();
+}
+
+function onNotesPeekSearch(value) {
+  notesPeekSearch = String(value || '').trim();
+  renderNotesPeekList();
+}
+
+function openNoteFromPeek(id) {
+  closeNotesPeek();
+  openNote(id);
+}
+
+document.addEventListener('click', (event) => {
+  if (!notesPeekOpen) return;
+  if (event.target.closest('#notesPeekFlyout') || event.target.closest('#notesListPeekBtn')) return;
+  closeNotesPeek();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const peekBtn = document.getElementById('notesListPeekBtn');
+  const peekFlyout = document.getElementById('notesPeekFlyout');
+  if (peekBtn) {
+    peekBtn.addEventListener('mouseenter', () => {
+      if (!notesListHidden) return;
+      openNotesPeek();
+    });
+    peekBtn.addEventListener('mouseleave', () => {
+      if (!notesPeekOpen) return;
+      scheduleNotesPeekClose();
+    });
+  }
+  if (peekFlyout) {
+    peekFlyout.addEventListener('mouseenter', () => clearTimeout(notesPeekCloseTimer));
+    peekFlyout.addEventListener('mouseleave', () => {
+      if (!notesPeekOpen) return;
+      scheduleNotesPeekClose();
+    });
+  }
+});
 
 function onNoteSearch(val) {
   activeNoteSearch = val.trim();
@@ -1364,7 +1500,7 @@ async function deleteCurrentNote() {
   delete notes[activeNoteId];
   activeNoteId = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
-  saveNotes();
+  await saveNotes({ reason: 'note-delete', immediate: true });
   renderNotesList();
   renderSessionSidebar();
   const total = Object.keys(notes).length;
@@ -1666,6 +1802,38 @@ async function exportNotesMarkdown(sessionId) {
       n.session_id === sessionId ||
       (!n.session_id || !sessions[n.session_id])
     );
+    const brokenAttachments = typeof validateNoteAttachmentsForNotes === 'function'
+      ? await validateNoteAttachmentsForNotes(sessionNotes, { limit: 8 })
+      : [];
+    if (brokenAttachments.length) {
+      const summary = brokenAttachments
+        .slice(0, 3)
+        .map((item) => `"${item.noteTitle}"`)
+        .join(', ');
+      const extra = brokenAttachments.length > 3 ? ` (+${brokenAttachments.length - 3} more)` : '';
+      throw new Error(`Broken attachment references found in ${summary}${extra}. Remove or restore them before export.`);
+    }
+    const exportWarnings = [];
+    const services = Array.isArray(sess.services) ? sess.services : [];
+    const paths = Array.isArray(sess.paths) ? sess.paths : [];
+    const loot = Array.isArray(sess.loot) ? sess.loot : [];
+    const hasNetworkEnumerationNote = sessionNotes.some((note) => String(note?.type || '').trim() === 'network-enumeration');
+    const hasCredentialsNote = sessionNotes.some((note) => String(note?.type || '').trim() === 'credentials');
+    if ((services.length || paths.length) && !hasNetworkEnumerationNote) {
+      exportWarnings.push('Network Enumeration note is missing. Quick Log data will still export, but the canonical note is not present.');
+    }
+    if (loot.some((entry) => ['cleartext', 'hash'].includes(String(entry?.type || '').trim())) && !hasCredentialsNote) {
+      exportWarnings.push('Credentials note is missing. Loot will export, but there is no canonical credentials document in the session.');
+    }
+    if (exportWarnings.length) {
+      await showConfirmDialog({
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        title: 'Export Preflight Warnings',
+        bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        description: `Export can continue, but there are issues to review first.<br><br>${exportWarnings.map((line) => `• ${line}`).join('<br><br>')}`,
+        confirmLabel: 'Export Anyway',
+      });
+    }
     const attachmentPayloads = typeof collectAttachmentPayloadsForNotes === 'function'
       ? await collectAttachmentPayloadsForNotes(sessionNotes)
       : {};
@@ -1713,6 +1881,25 @@ async function exportNotesMarkdown(sessionId) {
       showToast('Markdown export failed: ' + (d.error || 'unknown error'), 'err');
     }
   } catch (e) {
+    if (String(e?.message || '').toLowerCase().includes('cancelled')) return;
     showToast('Markdown export failed: ' + e.message, 'err');
+  }
+}
+
+async function cleanupOrphanedAttachments() {
+  try {
+    const res = await fetch('/api/notes/attachments/cleanup-orphans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions, notes }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok !== true) throw new Error(data.error || 'Attachment cleanup failed');
+    const removed = Number(data.removed_count || 0);
+    const missing = Number(data.missing_count || 0);
+    const refs = Number(data.referenced_count || 0);
+    showToast(`✓ Attachment cleanup complete: removed ${removed} orphaned file(s), ${refs} referenced, ${missing} missing reference(s)`);
+  } catch (err) {
+    showToast(`⚠ ${err.message || 'Attachment cleanup failed'}`, 'err');
   }
 }

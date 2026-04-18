@@ -172,7 +172,7 @@ function showToast(msg, type = 'ok') {
   t.style.cssText = `
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background:${type === 'err' ? 'var(--red)' : 'var(--accent)'};
-    color:#fff; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    color:#fff; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;
     padding:9px 18px; border-radius:8px; z-index:9999;
     box-shadow:0 4px 20px rgba(0,0,0,0.4);
     animation:toastIn 0.15s ease;
@@ -183,7 +183,7 @@ function showToast(msg, type = 'ok') {
     t.style.opacity = '0';
     t.style.transition = 'opacity 0.3s';
     setTimeout(() => t.remove(), 300);
-  }, 3000);
+  }, 4000);
 }
 
 function downloadJSON(obj, filename) {

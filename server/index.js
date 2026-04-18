@@ -175,47 +175,56 @@ buildIndex();
 buildTacticsIndex();
 
 app.listen(PORT, HOST, () => {
-  const serviceIndex = kbIndex.getServiceIndex();
-  const tacticsIndex = kbIndex.getTacticsIndex();
-  let kbSubdirs = [];
-  try {
-    kbSubdirs = fs.readdirSync(KB_DIR, { withFileTypes: true })
-      .filter(entry => entry.isDirectory())
-      .map(entry => entry.name)
-      .sort((a, b) => a.localeCompare(b));
-  } catch (_) {}
+  (async () => {
+    const serviceIndex = kbIndex.getServiceIndex();
+    const tacticsIndex = kbIndex.getTacticsIndex();
+    let kbSubdirs = [];
+    try {
+      kbSubdirs = fs.readdirSync(KB_DIR, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+        .sort((a, b) => a.localeCompare(b));
+    } catch (_) {}
 
-  console.log(`\n  ██████╗ ██████╗  █████╗  ██████╗ ███╗   ███╗ █████╗`);
-  console.log(`  ██╔══██╗██╔══██╗██╔══██╗██╔════╝ ████╗ ████║██╔══██╗`);
-  console.log(`  ██████╔╝██████╔╝███████║██║  ███╗██╔████╔██║███████║`);
-  console.log(`  ██╔═══╝ ██╔══██╗██╔══██║██║   ██║██║╚██╔╝██║██╔══██║`);
-  console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
-  console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
-  console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
-  console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
-  console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})`);
-  console.log(`   -> PDF Export → ${PDF_EXPORT_ENABLED ? 'Enabled' : 'Disabled'}`);
-  console.log(`  Toolbox  → ${MATRIX_ENABLED ? 'Enabled' : 'Disabled'}  (${MATRIX_URL})`);
-  console.log(`  ENGRAM   → ${ENGRAM_SEARCH_ENABLED ? 'Enabled' : 'Disabled'}  (${SEARCH_URL})\n`);
-  if (kbSubdirs.length) {
-    console.log('  ============= KB Subdirectories =============');
-    kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));
+    console.log(`\n  ██████╗ ██████╗  █████╗  ██████╗ ███╗   ███╗ █████╗`);
+    console.log(`  ██╔══██╗██╔══██╗██╔══██╗██╔════╝ ████╗ ████║██╔══██╗`);
+    console.log(`  ██████╔╝██████╔╝███████║██║  ███╗██╔████╔██║███████║`);
+    console.log(`  ██╔═══╝ ██╔══██╗██╔══██║██║   ██║██║╚██╔╝██║██╔══██║`);
+    console.log(`  ██║     ██║  ██║██║  ██║╚██████╔╝██║ ╚═╝ ██║██║  ██║`);
+    console.log(`  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝\n`);
+    console.log(`  App      → http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}/`);
+    console.log(`  KB       → ${KB_DIR}  (${serviceIndex.length} knowledge files, ${tacticsIndex.length} tactics)`);
+    console.log(`  Workbench → ${SESSIONS_DIR}  (active: ${storage.getActiveWorkbenchName()})`);
+    console.log(`   -> PDF Export → ${PDF_EXPORT_ENABLED ? 'Enabled' : 'Disabled'}`);
+    console.log(`  Toolbox  → ${MATRIX_ENABLED ? 'Enabled' : 'Disabled'}  (${MATRIX_URL})`);
+    console.log(`  ENGRAM   → ${ENGRAM_SEARCH_ENABLED ? 'Enabled' : 'Disabled'}  (${SEARCH_URL})\n`);
+    if (kbSubdirs.length) {
+      console.log('  ============= KB Subdirectories =============');
+      kbSubdirs.forEach(dir => console.log(`  ${dir} → ${path.join(KB_DIR, dir)}`));
+      console.log('');
+    }
+
+    const checks = await runStartupIntegrityCheck({
+      sessionsDir: SESSIONS_DIR,
+      storage,
+      kbDir: KB_DIR,
+      servicesDir: SERVICES_DIR,
+      tacticsDir: TACTICS_DIR,
+      templatesFile: TEMPLATES_FILE,
+      matrixEnabled: MATRIX_ENABLED,
+      matrixUrl: MATRIX_URL,
+      engramSearchEnabled: ENGRAM_SEARCH_ENABLED,
+      searchUrl: SEARCH_URL,
+    });
+    const icons = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };
+    checks.forEach(({ level, msg }) => console.log(`${icons[level] || '  ?'} [${level.toUpperCase()}] ${msg}`));
+    if (checks.some(result => result.level === 'error')) {
+      console.log('\n  ⚠ One or more errors detected above — check workbench files before use.');
+    } else if (checks.every(result => result.level === 'ok' || result.level === 'info')) {
+      console.log('  ✓ All checks passed.');
+    }
     console.log('');
-  }
-
-  const checks = runStartupIntegrityCheck({
-    sessionsDir: SESSIONS_DIR,
-    storage,
-    kbDir: KB_DIR,
-    servicesDir: SERVICES_DIR,
-    tacticsDir: TACTICS_DIR,
+  })().catch((err) => {
+    console.error(`  ✖ [ERROR] Startup integrity check failed: ${err.message}`);
   });
-  const icons = { ok: '  ✓', info: '  ℹ', warn: '  ⚠', error: '  ✖' };
-  checks.forEach(({ level, msg }) => console.log(`${icons[level] || '  ?'} [${level.toUpperCase()}] ${msg}`));
-  if (checks.some(result => result.level === 'error')) {
-    console.log('\n  ⚠ One or more errors detected above — check workbench files before use.');
-  } else if (checks.every(result => result.level === 'ok' || result.level === 'info')) {
-    console.log('  ✓ All checks passed.');
-  }
-  console.log('');
 });
