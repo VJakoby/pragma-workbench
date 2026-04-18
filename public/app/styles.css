@@ -472,7 +472,7 @@ body{
 .sidebar.sidebar-hidden { width: 0 !important; overflow: hidden; border-right: none; min-width: 0; }
 .sidebar { transition: width 0.16s ease, border-color 0.12s ease, box-shadow 0.12s ease; }
 .sidebar.sidebar-icon-only {
-  width: 44px !important; min-width: 44px;
+  width: 48px !important; min-width: 48px;
 }
 .sidebar.sidebar-icon-only .sidebar-section-hdr,
 .sidebar.sidebar-icon-only .sidebar-subsection-hdr,
@@ -494,14 +494,18 @@ body{
 }
 .sidebar.sidebar-icon-only .nav-item {
   padding: 9px 0;
-  margin: 3px 6px;
+  margin: 3px 8px;
+  width: 32px;
+  min-width: 32px;
   min-height: 42px;
   justify-content: center;
   gap: 0;
 }
 .sidebar.sidebar-icon-only .session-active {
   padding: 10px 0;
-  margin: 3px 6px;
+  margin: 3px 8px;
+  width: 32px;
+  min-width: 32px;
   min-height: 42px;
   justify-content: center;
 }
@@ -513,6 +517,10 @@ body{
 }
 .sidebar.sidebar-icon-only .nav-item-icon svg {
   width: 20px; height: 20px;
+}
+.sidebar.sidebar-icon-only .sidebar-subtle-divider{
+  width: 32px;
+  margin: 8px auto 2px;
 }
 .sidebar.sidebar-icon-only .sidebar-toggle-btn {
   width: 32px;
@@ -2925,7 +2933,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Sidebar icon-only mode ── */
 .sidebar { transition: width 0.16s ease, border-color 0.12s ease, box-shadow 0.12s ease; }
 .sidebar.sidebar-icon-only {
-  width: 44px !important; min-width: 44px;
+  width: 48px !important; min-width: 48px;
 }
 .sidebar.sidebar-icon-only .sidebar-section-hdr,
 .sidebar.sidebar-icon-only .sidebar-subsection-hdr,
@@ -2947,14 +2955,18 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .sidebar.sidebar-icon-only .nav-item {
   padding: 9px 0;
-  margin: 3px 6px;
+  margin: 3px 8px;
+  width: 32px;
+  min-width: 32px;
   min-height: 42px;
   justify-content: center;
   gap: 0;
 }
 .sidebar.sidebar-icon-only .session-active {
   padding: 10px 0;
-  margin: 3px 6px;
+  margin: 3px 8px;
+  width: 32px;
+  min-width: 32px;
   min-height: 42px;
   justify-content: center;
 }
@@ -2969,6 +2981,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .sidebar.sidebar-icon-only .nav-item-service-dot {
   display:block;
+}
+.sidebar.sidebar-icon-only .sidebar-subtle-divider{
+  width: 32px;
+  margin: 8px auto 2px;
 }
 .sidebar.sidebar-icon-only .sidebar-toggle-btn {
   width: 32px;
