@@ -448,7 +448,7 @@ body{
 .sidebar-toggle-btn.sidebar-collapsed {
   color: var(--accent);
   border-color: rgba(124,58,237,0.35);
-  margin-left: -9px;
+  margin-left: -7px;
 }
 .sidebar-toggle-mark {
   display: flex;
@@ -2907,7 +2907,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .sidebar-toggle-btn.sidebar-collapsed {
   color: var(--accent);
   border-color: rgba(124,58,237,0.35);
-  margin-left: -9px;
+  margin-left: -7px;
 }
 .sidebar-toggle-mark {
   display: flex;
