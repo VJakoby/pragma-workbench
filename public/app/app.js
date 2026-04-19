@@ -131,10 +131,6 @@ function closeCmd() {
   cmdSelected = 0; cmdItems = [];
 }
 
-function closeCmdIfOutside(e) {
-  if (e.target === document.getElementById('cmdOverlay')) closeCmd();
-}
-
 const TOOLTIP_TARGET_SELECTOR = [
   '.icon-btn[title]',
   '.tb-btn[title]',
