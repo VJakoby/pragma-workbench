@@ -303,10 +303,99 @@ function evidenceTargetDisplay(entry) {
   return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
 }
 
+function getEvidenceEntryById(entryId, entries = getSessionEvidence()) {
+  const list = Array.isArray(entries) ? entries : [];
+  return list.find((entry) => entry.id === entryId) || null;
+}
+
+function getEvidenceEntryDisplayTitle(entry) {
+  const title = String(entry?.title || '').trim();
+  return title || 'Untitled';
+}
+
+function getEvidenceParentCandidates(excludeEntryId = '', entries = getSessionEvidence()) {
+  const list = Array.isArray(entries) ? entries.slice() : [];
+  if (!excludeEntryId) return list;
+  const blocked = new Set([excludeEntryId]);
+  const queue = [excludeEntryId];
+  while (queue.length) {
+    const currentId = queue.shift();
+    list.forEach((entry) => {
+      if (entry?.derived_from_evidence_id !== currentId || blocked.has(entry.id)) return;
+      blocked.add(entry.id);
+      queue.push(entry.id);
+    });
+  }
+  return list.filter((entry) => !blocked.has(entry.id));
+}
+
+function renderEvidenceParentOptions(selectId, selectedValue = '', excludeEntryId = '') {
+  const select = document.getElementById(selectId);
+  const row = select?.closest('.pw-field, .evidence-edit-field') || null;
+  if (!select) return;
+  const candidates = getEvidenceParentCandidates(excludeEntryId)
+    .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
+  const normalizedSelected = selectedValue && candidates.find((entry) => entry.id === selectedValue) ? selectedValue : '';
+  const options = ['<option value="">Start of chain</option>'];
+  candidates.forEach((entry) => {
+    options.push(`<option value="${esc(entry.id)}"${entry.id === normalizedSelected ? ' selected' : ''}>${esc(getEvidenceEntryDisplayTitle(entry))}</option>`);
+  });
+  select.innerHTML = options.join('');
+  if (row) row.style.display = candidates.length ? '' : 'none';
+}
+
+function sortEvidenceEntriesForChain(entries) {
+  const list = Array.isArray(entries) ? entries.slice() : [];
+  const byId = new Map(list.map((entry) => [entry.id, entry]));
+  const childrenByParent = new Map(list.map((entry) => [entry.id, []]));
+  const normalizedParent = new Map();
+  list.forEach((entry) => {
+    const parentId = entry?.derived_from_evidence_id;
+    const normalized = parentId && parentId !== entry.id && byId.has(parentId) ? parentId : null;
+    normalizedParent.set(entry.id, normalized);
+    if (normalized && childrenByParent.has(normalized)) childrenByParent.get(normalized).push(entry);
+  });
+  const sortByTime = (a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0);
+  childrenByParent.forEach((children) => children.sort(sortByTime));
+  const roots = list.filter((entry) => !normalizedParent.get(entry.id)).sort(sortByTime);
+  const ordered = [];
+  const depthById = new Map();
+  const visited = new Set();
+  const walk = (entry, depth) => {
+    if (!entry || visited.has(entry.id)) return;
+    visited.add(entry.id);
+    depthById.set(entry.id, depth);
+    ordered.push(entry);
+    (childrenByParent.get(entry.id) || []).forEach((child) => walk(child, depth + 1));
+  };
+  roots.forEach((entry) => walk(entry, 0));
+  list.sort(sortByTime).forEach((entry) => walk(entry, 0));
+  return { ordered, depthById };
+}
+
+function renderEvidenceChain(entry, allEntries) {
+  const sourceEntries = Array.isArray(allEntries) ? allEntries : getSessionEvidence();
+  const parent = entry?.derived_from_evidence_id ? getEvidenceEntryById(entry.derived_from_evidence_id, sourceEntries) : null;
+  const children = sourceEntries.filter((item) => item?.derived_from_evidence_id === entry?.id);
+  if (!parent && !children.length) return '';
+  const parts = [];
+  if (parent) {
+    parts.push(`<span class="evidence-chain-pill" title="${esc(getEvidenceEntryDisplayTitle(parent))}"><span class="evidence-chain-key">From</span><span class="evidence-chain-value">${esc(getEvidenceEntryDisplayTitle(parent))}</span></span>`);
+  }
+  if (children.length === 1) {
+    parts.push(`<span class="evidence-chain-pill evidence-chain-pill-next" title="${esc(getEvidenceEntryDisplayTitle(children[0]))}"><span class="evidence-chain-key">Leads to</span><span class="evidence-chain-value">${esc(getEvidenceEntryDisplayTitle(children[0]))}</span></span>`);
+  } else if (children.length > 1) {
+    parts.push(`<span class="evidence-chain-pill evidence-chain-pill-next"><span class="evidence-chain-key">Leads to</span><span class="evidence-chain-value">${children.length} follow-on steps</span></span>`);
+  }
+  return `<div class="evidence-item-chain">${parts.join('<span class="evidence-chain-sep" aria-hidden="true">→</span>')}</div>`;
+}
+
 function renderEvidenceProofCell(entry) {
   const lines = [];
+  if (entry.outcome) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Outcome</span>${esc(entry.outcome)}</span>`);
   if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
   if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
+  if (entry.source_output) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Output</span>${esc(entry.source_output)}</span>`);
   if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
   return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
@@ -452,10 +541,18 @@ function buildEvidenceMarkdownBlock(entry) {
     '',
     `- Target: ${targetText}`,
   ];
+  if (entry.outcome) lines.push(`- Outcome: ${entry.outcome}`);
   if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
   if (entry.details) lines.push(`- Details: ${entry.details}`);
+  if (entry.derived_from_evidence_id) {
+    const parent = getEvidenceEntryById(entry.derived_from_evidence_id);
+    if (parent) lines.push(`- Derived from: ${getEvidenceEntryDisplayTitle(parent)}`);
+  }
   if (entry.source_command) {
     lines.push('', '```text', entry.source_command, '```');
+  }
+  if (entry.source_output) {
+    lines.push('', '```text', entry.source_output, '```');
   }
   lines.push(`<!-- ${marker}:end -->`);
   return lines.join('\n');
@@ -733,10 +830,11 @@ function renderEvidenceList() {
     return;
   }
 
-  const allEntries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  const allEntries = [...getSessionEvidence()];
+  const { ordered: orderedEntries, depthById } = sortEvidenceEntriesForChain(allEntries);
   const targets = getSessionTargets();
   const notes = getSessionNotesForEvidence();
-  const entries = allEntries.filter((entry) => {
+  const entries = orderedEntries.filter((entry) => {
     if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
     if (_evidenceFilterTarget) {
       const targetId = entry.target_id || '__session__';
@@ -795,9 +893,10 @@ function renderEvidenceList() {
       const syncNote = getEvidenceSyncNote(entry);
       const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
       const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
+      const chainDepth = depthById.get(entry.id) || 0;
       if (isQuickLogEditing('evidence', entry.id)) {
         return `
-          <section class="evidence-item evidence-item-editing">
+          <section class="evidence-item evidence-item-editing" style="--evidence-chain-depth:${chainDepth}">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group evidence-item-title-group-editing">
                 <label class="evidence-edit-field evidence-edit-field-type">
@@ -840,8 +939,16 @@ function renderEvidenceList() {
                   ${notes.map((item) => `<option value="${esc(item.id)}"${item.id === entry.note_id ? ' selected' : ''}>${esc(item.title || 'Untitled')}</option>`).join('')}
                 </select>
               </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Derived from</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditDerived_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></select>
+              </label>
             </div>
             <div class="evidence-item-body evidence-item-body-editing">
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Outcome</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditOutcome_${entry.id}" type="text" value="${esc(entry.outcome || '')}" placeholder="outcome" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Impact</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
@@ -854,12 +961,16 @@ function renderEvidenceList() {
                 <span class="evidence-edit-label">Command</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
               </label>
+              <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Output</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditOutput_${entry.id}" type="text" value="${esc(entry.source_output || '')}" placeholder="source output" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
             </div>
           </section>
         `;
       }
       return `
-        <section class="evidence-item">
+        <section class="evidence-item" style="--evidence-chain-depth:${chainDepth}">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group">
               <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
@@ -888,6 +999,7 @@ function renderEvidenceList() {
             </span>
             ` : ''}
           </div>
+          ${renderEvidenceChain(entry, allEntries)}
           <div class="evidence-item-body">
             ${renderEvidenceProofCell(entry)}
           </div>
@@ -896,7 +1008,11 @@ function renderEvidenceList() {
     }).join('')}</div>
   `;
 
-  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+  if (_editingQuickLog?.kind === 'evidence') {
+    const entry = allEntries.find((item) => item.id === _editingQuickLog.id);
+    if (entry) renderEvidenceParentOptions(`evidenceEditDerived_${entry.id}`, entry.derived_from_evidence_id || '', entry.id);
+    focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+  }
 }
 
 function addEvidenceEntry() {
@@ -928,8 +1044,11 @@ function addEvidenceEntry() {
     id: `evidence_${Date.now()}`,
     type,
     title,
+    outcome: '',
     details,
     source_command: sourceCommand,
+    source_output: '',
+    derived_from_evidence_id: (document.getElementById('evidenceDerivedInput')?.value || '').trim() || null,
     target_id: targetId,
     note_id: noteId,
     sync_mode: syncMode,
@@ -956,6 +1075,11 @@ function deleteEvidenceEntry(entryId) {
   const entries = ensureSessionEvidence();
   if (!entries) return;
   const entry = entries.find((item) => item.id === entryId);
+  entries.forEach((item) => {
+    if (item?.derived_from_evidence_id !== entryId) return;
+    item.derived_from_evidence_id = null;
+    item.updated = Date.now();
+  });
   if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
   sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
   const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
@@ -994,9 +1118,12 @@ function commitEvidenceEdit(entryId) {
   }
   entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
   entry.title = title;
+  entry.outcome = (document.getElementById(`evidenceEditOutcome_${entryId}`)?.value || '').trim();
   entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
   entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
   entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
+  entry.source_output = (document.getElementById(`evidenceEditOutput_${entryId}`)?.value || '').trim();
+  entry.derived_from_evidence_id = (document.getElementById(`evidenceEditDerived_${entryId}`)?.value || '').trim() || null;
   entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;

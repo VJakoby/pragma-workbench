@@ -531,17 +531,24 @@ function renderEvidenceSection(model) {
     .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
   if (!evidence.length) return '';
 
+  const evidenceById = Object.fromEntries(evidence.map((entry) => [entry.id, entry]));
   const lines = ['## Evidence', ''];
   evidence.forEach((entry) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
+    const parent = entry.derived_from_evidence_id ? evidenceById[entry.derived_from_evidence_id] : null;
     lines.push(`### ${entry.title || 'Untitled'}`);
     lines.push('');
     lines.push(`- Type: ${evidenceType(entry.type)}`);
     lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
+    if (parent?.title) lines.push(`- Derived from: ${parent.title}`);
+    if (entry.outcome) lines.push(`- Outcome: ${entry.outcome}`);
     if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
     if (entry.details) lines.push(`- Details: ${entry.details}`);
     if (entry.source_command) {
       lines.push('', '```text', escapeFenceContent(entry.source_command), '```');
+    }
+    if (entry.source_output) {
+      lines.push('', '```text', escapeFenceContent(entry.source_output), '```');
     }
     lines.push('');
   });

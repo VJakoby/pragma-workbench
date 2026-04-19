@@ -1037,6 +1037,24 @@ function deriveEvidenceDetails(text, sourceCommand) {
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
 }
 
+function deriveEvidenceOutcome(text, type = 'discovery') {
+  const clean = stripInlineEvidenceMarkers(String(text || '')).replace(/\s+/g, ' ').trim();
+  const lower = clean.toLowerCase();
+  if (!clean) return '';
+  if (/local\.txt/.test(lower)) return 'Recovered local.txt';
+  if (/proof\.txt/.test(lower)) return 'Recovered proof.txt';
+  if (/evil-winrm|winrm/.test(lower)) return 'Confirmed WinRM access';
+  if (/psexec|wmiexec|smbexec|dcomexec|atexec/.test(lower)) return 'Confirmed lateral movement path';
+  if (/seimpersonate|printspoofer|juicypotato|godpotato|sudo -l/.test(lower)) return 'Identified privilege escalation path';
+  if (/kerberoast|asrep|secretsdump|mimikatz|lsass/.test(lower)) return 'Confirmed credential access';
+  if (/chisel|ligolo|proxychains|sshuttle|portfwd|autoroute/.test(lower)) return 'Established pivoting path';
+  if (/nmap|rustscan|masscan/.test(lower)) return 'Confirmed exposed services';
+  if (/gobuster|ffuf|feroxbuster|dirsearch/.test(lower)) return 'Confirmed reachable web content';
+  if (/shell|powershell|cmd\.exe|bash -c|sh -c|python -c/.test(lower)) return 'Confirmed code execution';
+  const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Evidence').trim();
+  return `${label} confirmed`;
+}
+
 function extractEvidenceBlocksFromBody(body) {
   const text = String(body || '');
   const blocks = new Map();
@@ -1070,6 +1088,13 @@ function syncEvidenceEntriesFromNote(noteId) {
     if (!entry.details && nextDetails) {
       entry.details = nextDetails;
       entryChanged = true;
+    }
+    if (!entry.outcome) {
+      const nextOutcome = deriveEvidenceOutcome(block, entry.type || 'discovery');
+      if (nextOutcome) {
+        entry.outcome = nextOutcome;
+        entryChanged = true;
+      }
     }
     if (entryChanged) {
       entry.updated = Date.now();
@@ -1264,14 +1289,17 @@ function syncEvidenceFlagLootUi() {
   if (!syncRelevant) syncEl.checked = false;
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '', loot = null } = {}) {
+function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', details = '', command = '', output = '', derived_from_evidence_id = '', evidenceEntryId = '', loot = null } = {}) {
   return new Promise((resolve) => {
     _evidenceFlagResolver = resolve;
     const overlay = document.getElementById('evidenceFlagOverlay');
     const titleEl = document.getElementById('evidenceFlagTitle');
     const typeEl = document.getElementById('evidenceFlagType');
+    const outcomeEl = document.getElementById('evidenceFlagOutcome');
+    const derivedFromEl = document.getElementById('evidenceFlagDerivedFrom');
     const detailsEl = document.getElementById('evidenceFlagDetails');
     const commandEl = document.getElementById('evidenceFlagCommand');
+    const outputEl = document.getElementById('evidenceFlagOutput');
     const alsoLootEl = document.getElementById('evidenceFlagAlsoLoot');
     const lootTypeEl = document.getElementById('evidenceFlagLootType');
     const lootValueEl = document.getElementById('evidenceFlagLootValue');
@@ -1283,8 +1311,13 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', 
       titleEl.placeholder = `${deriveEvidenceTitleHint(command || details, type)}…`;
     }
     if (typeEl) typeEl.value = type;
+    if (outcomeEl) outcomeEl.value = outcome;
+    if (typeof renderEvidenceParentOptions === 'function' && derivedFromEl) {
+      renderEvidenceParentOptions('evidenceFlagDerivedFrom', derived_from_evidence_id, evidenceEntryId);
+    }
     if (detailsEl) detailsEl.value = details;
     if (commandEl) commandEl.value = command;
+    if (outputEl) outputEl.value = output;
     if (alsoLootEl) alsoLootEl.checked = !!loot?.enabled;
     if (lootTypeEl) lootTypeEl.value = loot?.type || 'other';
     if (lootValueEl) lootValueEl.value = loot?.value || '';
@@ -1315,8 +1348,11 @@ function cancelEvidenceFlagDialog() {
 function confirmEvidenceFlagDialog() {
   const title = (document.getElementById('evidenceFlagTitle')?.value || '').trim();
   const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
+  const outcome = (document.getElementById('evidenceFlagOutcome')?.value || '').trim();
+  const derived_from_evidence_id = (document.getElementById('evidenceFlagDerivedFrom')?.value || '').trim() || null;
   const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
   const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
+  const source_output = (document.getElementById('evidenceFlagOutput')?.value || '').trim();
   if (!title) {
     document.getElementById('evidenceFlagTitle')?.focus();
     return;
@@ -1341,7 +1377,7 @@ function confirmEvidenceFlagDialog() {
       sync_to_credentials: syncToCredentials,
     };
   }
-  finishEvidenceFlagDialog({ title, type, details, source_command, loot });
+  finishEvidenceFlagDialog({ title, type, outcome, derived_from_evidence_id, details, source_command, source_output, loot });
 }
 
 function handleEvidenceFlagKey(event) {
@@ -1387,8 +1423,10 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   const confirmed = await openEvidenceFlagDialog({
     title: '',
     type: suggestedType,
+    outcome: deriveEvidenceOutcome(block.text, suggestedType),
     details: deriveEvidenceDetails(block.text, sourceCommand),
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
+    output: sourceCommand ? deriveLootValue(block.text, '') : '',
     loot: {
       enabled: shouldSuggestLoot(block.text, defaultLootType),
       type: defaultLootType,
@@ -1403,8 +1441,11 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     id: entryId,
     type: confirmed.type,
     title: confirmed.title,
+    outcome: confirmed.outcome,
+    derived_from_evidence_id: confirmed.derived_from_evidence_id || null,
     details: confirmed.details,
     source_command: confirmed.source_command,
+    source_output: confirmed.source_output,
     target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
     source_note_id: activeNoteId,
     note_id: activeNoteId,

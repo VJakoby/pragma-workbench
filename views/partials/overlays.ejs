@@ -315,12 +315,24 @@
         <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
       </div>
       <div class="pw-field">
+        <label>Outcome</label>
+        <input class="pw-input" id="evidenceFlagOutcome" type="text" placeholder="What did this prove or enable?" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+      </div>
+      <div class="pw-field" id="evidenceFlagDerivedFromRow" style="display:none">
+        <label>Derived from</label>
+        <select class="pw-input evidence-flag-select" id="evidenceFlagDerivedFrom" onkeydown="handleEvidenceFlagKey(event)"></select>
+      </div>
+      <div class="pw-field">
         <label>Details</label>
         <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
       </div>
       <div class="pw-field">
-        <label>Command / Block</label>
+        <label>Command / Proof</label>
         <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </div>
+      <div class="pw-field">
+        <label>Output / Result</label>
+        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagOutput" placeholder="Relevant output, access confirmation, or proof excerpt…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
       </div>
       <div class="evidence-flag-toggle-row">
         <label class="evidence-flag-check">
