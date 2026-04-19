@@ -67,6 +67,17 @@ The best version of this feature would reduce friction in searching local engage
 - transparent
 - workflow-focused
 
+### Implementation Readiness
+
+The first practical use-case for local AI in PRAGMA should be narrow and grounded in the local knowledge base.
+
+That workflow would look like this:
+
+- the user asks a question
+- PRAGMA retrieves relevant context from the local knowledge base and the knowledge that the local model have.
+- the local model uses that context to suggest sensible next steps
+- the operator reviews and decides what to do
+
 ## Explicit Non-Goals
 
 Not every useful feature belongs in PRAGMA.
