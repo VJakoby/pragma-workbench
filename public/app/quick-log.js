@@ -10,6 +10,8 @@ let _editingTodoId = null;
 let _editingQuickLog = null;
 let _evidenceFilterType = '';
 let _evidenceFilterTarget = '';
+let _evidenceFilterChainOnly = false;
+const _collapsedEvidenceChains = new Set();
 
 function ensureActiveSession(actionLabel = 'this action') {
   if (!activeSessionId || !sessions[activeSessionId]) {
@@ -424,6 +426,36 @@ function sortEvidenceEntriesForChain(entries) {
   return { ordered, depthById };
 }
 
+function getEvidenceDirectParent(entry, entries = getSessionEvidence()) {
+  return entry?.derived_from_evidence_id ? getEvidenceEntryById(entry.derived_from_evidence_id, entries) : null;
+}
+
+function getEvidenceDirectChildren(entryId, entries = getSessionEvidence()) {
+  const list = Array.isArray(entries) ? entries : [];
+  return list.filter((entry) => entry?.derived_from_evidence_id === entryId)
+    .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
+}
+
+function isEvidenceChained(entry, entries = getSessionEvidence()) {
+  if (!entry) return false;
+  return !!getEvidenceDirectParent(entry, entries) || getEvidenceDirectChildren(entry.id, entries).length > 0;
+}
+
+function buildEvidenceSummaryLine(entry, allEntries) {
+  const parent = getEvidenceDirectParent(entry, allEntries);
+  if (parent) {
+    return `${evidenceRelationLabel(entry.relation_type)} ${getEvidenceEntryDisplayTitle(parent)}`;
+  }
+  const children = getEvidenceDirectChildren(entry.id, allEntries);
+  if (children.length === 1) {
+    return `Leads to ${getEvidenceEntryDisplayTitle(children[0])}`;
+  }
+  if (children.length > 1) {
+    return `Leads to ${children.length} follow-on steps`;
+  }
+  return '';
+}
+
 function renderEvidenceChain(entry, allEntries) {
   const sourceEntries = Array.isArray(allEntries) ? allEntries : getSessionEvidence();
   const parent = entry?.derived_from_evidence_id ? getEvidenceEntryById(entry.derived_from_evidence_id, sourceEntries) : null;
@@ -479,6 +511,46 @@ function buildEvidenceChains(entries) {
   return chains.filter((chain) => chain.length);
 }
 
+function getEvidenceChainKey(chain) {
+  return chain.map((entry) => entry.id).join('>');
+}
+
+function toggleEvidenceChainCollapse(chainKey) {
+  if (!chainKey) return;
+  if (_collapsedEvidenceChains.has(chainKey)) _collapsedEvidenceChains.delete(chainKey);
+  else _collapsedEvidenceChains.add(chainKey);
+  renderEvidenceList();
+}
+
+function renderEvidenceChainNodes(chain, chainKey) {
+  const shouldCollapse = chain.length > 5;
+  const collapsed = shouldCollapse && !_collapsedEvidenceChains.has(chainKey);
+  const hiddenCount = chain.length - 4;
+  const visibleChain = collapsed
+    ? [chain[0], chain[1], { __collapsed: true, hiddenCount, chainKey }, chain[chain.length - 2], chain[chain.length - 1]]
+    : chain;
+  return visibleChain.map((entry, entryIndex) => {
+    const isCollapsedNode = !!entry?.__collapsed;
+    const nextRealEntry = visibleChain.slice(entryIndex + 1).find((item) => !item?.__collapsed);
+    if (isCollapsedNode) {
+      return `
+        <button class="evidence-flow-collapse" type="button" onclick="toggleEvidenceChainCollapse('${esc(entry.chainKey)}')" title="Show hidden chain steps">
+          ${esc(String(entry.hiddenCount))} more
+        </button>
+        ${entryIndex < visibleChain.length - 1 ? '<span class="evidence-flow-link" aria-hidden="true"></span>' : ''}
+      `;
+    }
+    return `
+      <button class="evidence-flow-node" data-evidence-node="${esc(entry.id)}" type="button" onclick="focusEvidenceCard('${esc(entry.id)}')" title="${esc(getEvidenceEntryDisplayTitle(entry))}">
+        <span class="loot-type-badge evidence-flow-node-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
+        <span class="evidence-flow-node-title">${esc(getEvidenceEntryDisplayTitle(entry))}</span>
+        <span class="evidence-flow-node-target">${esc(evidenceTargetDisplay(entry))}</span>
+      </button>
+      ${entryIndex < visibleChain.length - 1 && nextRealEntry ? '<span class="evidence-flow-link" aria-hidden="true"></span>' : ''}
+    `;
+  }).join('');
+}
+
 function focusEvidenceCard(entryId) {
   const card = document.querySelector(`[data-evidence-card="${CSS.escape(entryId)}"]`);
   const node = document.querySelector(`[data-evidence-node="${CSS.escape(entryId)}"]`);
@@ -495,6 +567,59 @@ function focusEvidenceCard(entryId) {
   }, 2200);
 }
 
+function moveEvidenceStep(entryId, direction) {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const entries = ensureSessionEvidence();
+  const entry = getEvidenceEntryById(entryId, entries);
+  if (!entry || !entry.derived_from_evidence_id) return;
+  if (direction === 'left') {
+    const prev = getEvidenceDirectParent(entry, entries);
+    const prevPrev = getEvidenceDirectParent(prev, entries);
+    const next = getEvidenceDirectChildren(entry.id, entries);
+    if (!prev || next.length > 1) return;
+    const nextChild = next[0] || null;
+    entry.derived_from_evidence_id = prevPrev?.id || null;
+    prev.derived_from_evidence_id = entry.id;
+    if (nextChild) nextChild.derived_from_evidence_id = prev.id;
+    entry.updated = prev.updated = Date.now();
+    if (nextChild) nextChild.updated = Date.now();
+  } else if (direction === 'right') {
+    const next = getEvidenceDirectChildren(entry.id, entries);
+    if (next.length !== 1) return;
+    const nextEntry = next[0];
+    const prev = getEvidenceDirectParent(entry, entries);
+    const nextNext = getEvidenceDirectChildren(nextEntry.id, entries);
+    if (nextNext.length > 1) return;
+    const nextNextEntry = nextNext[0] || null;
+    nextEntry.derived_from_evidence_id = prev?.id || null;
+    entry.derived_from_evidence_id = nextEntry.id;
+    if (nextNextEntry) nextNextEntry.derived_from_evidence_id = entry.id;
+    entry.updated = nextEntry.updated = Date.now();
+    if (nextNextEntry) nextNextEntry.updated = Date.now();
+  } else {
+    return;
+  }
+  saveNotes();
+  renderEvidenceList();
+  focusEvidenceCard(entryId);
+}
+
+function canMoveEvidenceStep(entry, direction, entries = getSessionEvidence()) {
+  if (!entry) return false;
+  if (direction === 'left') {
+    if (!entry.derived_from_evidence_id) return false;
+    const next = getEvidenceDirectChildren(entry.id, entries);
+    return next.length <= 1;
+  }
+  if (direction === 'right') {
+    const next = getEvidenceDirectChildren(entry.id, entries);
+    if (next.length !== 1) return false;
+    const nextNext = getEvidenceDirectChildren(next[0].id, entries);
+    return nextNext.length <= 1;
+  }
+  return false;
+}
+
 function renderEvidenceChainStrip(entries) {
   const chains = buildEvidenceChains(entries);
   if (!chains.length || (chains.length === entries.length && entries.every((entry) => !entry?.derived_from_evidence_id))) {
@@ -506,19 +631,7 @@ function renderEvidenceChainStrip(entries) {
       <div class="evidence-flow-list">
         ${chains.map((chain, chainIndex) => `
           <div class="evidence-flow-row" data-chain-index="${chainIndex}">
-            ${chain.map((entry, entryIndex) => `
-              <button class="evidence-flow-node" data-evidence-node="${esc(entry.id)}" type="button" onclick="focusEvidenceCard('${esc(entry.id)}')" title="${esc(getEvidenceEntryDisplayTitle(entry))}">
-                <span class="loot-type-badge evidence-flow-node-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
-                <span class="evidence-flow-node-title">${esc(getEvidenceEntryDisplayTitle(entry))}</span>
-                <span class="evidence-flow-node-target">${esc(evidenceTargetDisplay(entry))}</span>
-                <span class="evidence-flow-node-preview">
-                  ${entry.outcome ? `<span class="evidence-flow-node-preview-line"><span class="evidence-flow-node-preview-key">Outcome</span>${esc(entry.outcome)}</span>` : ''}
-                  ${entry.source_command ? `<span class="evidence-flow-node-preview-line"><span class="evidence-flow-node-preview-key">Command</span>${esc(entry.source_command)}</span>` : ''}
-                  ${getEvidenceSourceNote(entry)?.title ? `<span class="evidence-flow-node-preview-line"><span class="evidence-flow-node-preview-key">Source</span>${esc(getEvidenceSourceNote(entry).title)}</span>` : ''}
-                </span>
-              </button>
-              ${entryIndex < chain.length - 1 ? '<span class="evidence-flow-link" aria-hidden="true"></span>' : ''}
-            `).join('')}
+            ${renderEvidenceChainNodes(chain, getEvidenceChainKey(chain))}
           </div>
         `).join('')}
       </div>
@@ -774,6 +887,11 @@ function setEvidenceFilterTarget(value) {
   renderEvidenceList();
 }
 
+function toggleEvidenceChainFilter() {
+  _evidenceFilterChainOnly = !_evidenceFilterChainOnly;
+  renderEvidenceList();
+}
+
 function renderTodoClearAction() {
   const btn = document.getElementById('todoClearBtn');
   if (!btn) return;
@@ -976,6 +1094,7 @@ function renderEvidenceList() {
       const targetId = entry.target_id || '__session__';
       if (targetId !== _evidenceFilterTarget) return false;
     }
+    if (_evidenceFilterChainOnly && !isEvidenceChained(entry, allEntries)) return false;
     return true;
   });
   if (!entries.length) {
@@ -997,6 +1116,7 @@ function renderEvidenceList() {
             return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
           }).join('')}
         </select>
+        <button class="svc-del-btn evidence-filter-toggle${_evidenceFilterChainOnly ? ' active' : ''}" onclick="toggleEvidenceChainFilter()" type="button">Chain Only</button>
       </div>
       <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
     `;
@@ -1017,6 +1137,7 @@ function renderEvidenceList() {
           return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
         }).join('')}
       </select>
+      <button class="svc-del-btn evidence-filter-toggle${_evidenceFilterChainOnly ? ' active' : ''}" onclick="toggleEvidenceChainFilter()" type="button">Chain Only</button>
       <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
     </div>
     ${renderEvidenceChainStrip(entries)}
@@ -1031,6 +1152,7 @@ function renderEvidenceList() {
       const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
       const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
       const chainDepth = depthById.get(entry.id) || 0;
+      const summaryLine = buildEvidenceSummaryLine(entry, allEntries);
       if (isQuickLogEditing('evidence', entry.id)) {
         return `
           <section class="evidence-item evidence-item-editing" data-evidence-card="${esc(entry.id)}" style="--evidence-chain-depth:${chainDepth}">
@@ -1119,6 +1241,7 @@ function renderEvidenceList() {
               <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
               <div class="evidence-item-title-wrap">
                 <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
+                ${summaryLine ? `<div class="evidence-item-summary">${esc(summaryLine)}</div>` : ''}
                 <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
                 ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
               </div>
@@ -2270,8 +2393,17 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
 
 function renderEvidenceRowActions(id) {
   if (isQuickLogEditing('evidence', id)) return renderQuickLogRowActions('evidence', id, 'deleteEvidenceEntry');
+  const entry = getEvidenceEntryById(id);
+  const canMoveLeft = canMoveEvidenceStep(entry, 'left');
+  const canMoveRight = canMoveEvidenceStep(entry, 'right');
   return `
     <div class="ql-row-actions">
+      <button class="svc-del-btn ql-row-edit-btn evidence-move-btn" onclick="event.stopPropagation(); moveEvidenceStep('${id}','left')" title="Move earlier in chain" aria-label="Move earlier in chain"${canMoveLeft ? '' : ' disabled'}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn evidence-move-btn" onclick="event.stopPropagation(); moveEvidenceStep('${id}','right')" title="Move later in chain" aria-label="Move later in chain"${canMoveRight ? '' : ' disabled'}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
       </button>

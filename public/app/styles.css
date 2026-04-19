@@ -5235,6 +5235,20 @@ body.enc-active-body .content-panel {
   text-transform: uppercase;
   color: var(--yellow);
 }
+.evidence-filter-toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+.evidence-filter-toggle.active {
+  border-color: rgba(var(--accent-rgb),0.3);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.1);
+}
 .evidence-flow-wrap {
   margin-bottom: 10px;
   padding: 9px 10px 10px;
@@ -5254,15 +5268,15 @@ body.enc-active-body .content-panel {
 .evidence-flow-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 .evidence-flow-row {
   display: flex;
   align-items: stretch;
   gap: 8px;
   overflow-x: auto;
-  overflow-y: hidden;
-  padding: 2px 2px 6px;
+  overflow-y: visible;
+  padding: 8px 2px 2px;
   scrollbar-width: thin;
   scroll-snap-type: x proximity;
 }
@@ -5290,6 +5304,27 @@ body.enc-active-body .content-panel {
   cursor: pointer;
   transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
   scroll-snap-align: start;
+}
+.evidence-flow-collapse {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 7px 9px;
+  border: 1px dashed color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg4) 74%, var(--bg3));
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+}
+.evidence-flow-collapse:hover {
+  border-color: rgba(var(--accent-rgb),0.28);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.08);
 }
 .evidence-flow-node:hover {
   border-color: rgba(var(--accent-rgb),0.3);
@@ -5329,41 +5364,6 @@ body.enc-active-body .content-panel {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
   color: var(--text2);
-}
-.evidence-flow-node-preview {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 8px);
-  min-width: 200px;
-  max-width: 260px;
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 9px;
-  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg2) 92%, var(--bg3));
-  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-}
-.evidence-flow-node:hover .evidence-flow-node-preview,
-.evidence-flow-node.chain-focus .evidence-flow-node-preview {
-  display: flex;
-}
-.evidence-flow-node-preview-line {
-  display: block;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--text2);
-  word-break: break-word;
-}
-.evidence-flow-node-preview-key {
-  margin-right: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 .evidence-flow-link {
   position: relative;
@@ -5436,6 +5436,17 @@ body.enc-active-body .content-panel {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.evidence-item-summary {
+  margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .evidence-item-snippet {
   margin-top: 5px;
   font-size: 11px;
@@ -5453,6 +5464,11 @@ body.enc-active-body .content-panel {
 .evidence-item-actions .svc-del-btn svg {
   width: 17px;
   height: 17px;
+}
+.evidence-item-actions .evidence-move-btn[disabled] {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
 }
 .evidence-item-timestamp {
   margin-top: 6px;
@@ -5612,10 +5628,6 @@ body.enc-active-body .content-panel {
   .evidence-flow-node {
     min-width: 154px;
     max-width: 188px;
-  }
-  .evidence-flow-node-preview {
-    min-width: 180px;
-    max-width: 220px;
   }
   .evidence-flow-link {
     flex-basis: 28px;

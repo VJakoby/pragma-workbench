@@ -1308,8 +1308,10 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', 
     const lootNoteEl = document.getElementById('evidenceFlagLootNote');
     const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
     if (titleEl) {
+      const suggestedTitle = deriveEvidenceTitleHint(command || details, type);
       titleEl.value = title;
-      titleEl.placeholder = `${deriveEvidenceTitleHint(command || details, type)}…`;
+      titleEl.placeholder = `${suggestedTitle}…`;
+      titleEl.dataset.defaultTitle = suggestedTitle;
     }
     if (typeEl) typeEl.value = type;
     if (outcomeEl) outcomeEl.value = outcome;
@@ -1351,7 +1353,8 @@ function cancelEvidenceFlagDialog() {
 }
 
 function confirmEvidenceFlagDialog() {
-  const title = (document.getElementById('evidenceFlagTitle')?.value || '').trim();
+  const titleEl = document.getElementById('evidenceFlagTitle');
+  const title = (titleEl?.value || '').trim() || (titleEl?.dataset.defaultTitle || '').trim();
   const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
   const outcome = (document.getElementById('evidenceFlagOutcome')?.value || '').trim();
   const derived_from_evidence_id = (document.getElementById('evidenceFlagDerivedFrom')?.value || '').trim() || null;
@@ -1362,7 +1365,7 @@ function confirmEvidenceFlagDialog() {
   const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
   const source_output = (document.getElementById('evidenceFlagOutput')?.value || '').trim();
   if (!title) {
-    document.getElementById('evidenceFlagTitle')?.focus();
+    titleEl?.focus();
     return;
   }
   let loot = null;
