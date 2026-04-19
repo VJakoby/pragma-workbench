@@ -1289,7 +1289,7 @@ function syncEvidenceFlagLootUi() {
   if (!syncRelevant) syncEl.checked = false;
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', details = '', command = '', output = '', derived_from_evidence_id = '', evidenceEntryId = '', loot = null } = {}) {
+function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', details = '', command = '', output = '', derived_from_evidence_id = '', relation_type = 'derived_from', evidenceEntryId = '', loot = null } = {}) {
   return new Promise((resolve) => {
     _evidenceFlagResolver = resolve;
     const overlay = document.getElementById('evidenceFlagOverlay');
@@ -1297,6 +1297,7 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', 
     const typeEl = document.getElementById('evidenceFlagType');
     const outcomeEl = document.getElementById('evidenceFlagOutcome');
     const derivedFromEl = document.getElementById('evidenceFlagDerivedFrom');
+    const relationEl = document.getElementById('evidenceFlagRelation');
     const detailsEl = document.getElementById('evidenceFlagDetails');
     const commandEl = document.getElementById('evidenceFlagCommand');
     const outputEl = document.getElementById('evidenceFlagOutput');
@@ -1314,6 +1315,10 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', 
     if (outcomeEl) outcomeEl.value = outcome;
     if (typeof renderEvidenceParentOptions === 'function' && derivedFromEl) {
       renderEvidenceParentOptions('evidenceFlagDerivedFrom', derived_from_evidence_id, evidenceEntryId);
+    }
+    if (relationEl) relationEl.value = relation_type || 'derived_from';
+    if (typeof syncEvidenceRelationUi === 'function') {
+      syncEvidenceRelationUi('evidenceFlagDerivedFrom', 'evidenceFlagRelation', 'evidenceFlagRelationRow');
     }
     if (detailsEl) detailsEl.value = details;
     if (commandEl) commandEl.value = command;
@@ -1350,6 +1355,9 @@ function confirmEvidenceFlagDialog() {
   const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
   const outcome = (document.getElementById('evidenceFlagOutcome')?.value || '').trim();
   const derived_from_evidence_id = (document.getElementById('evidenceFlagDerivedFrom')?.value || '').trim() || null;
+  const relation_type = derived_from_evidence_id
+    ? (document.getElementById('evidenceFlagRelation')?.value || 'derived_from').trim()
+    : 'derived_from';
   const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
   const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
   const source_output = (document.getElementById('evidenceFlagOutput')?.value || '').trim();
@@ -1377,7 +1385,7 @@ function confirmEvidenceFlagDialog() {
       sync_to_credentials: syncToCredentials,
     };
   }
-  finishEvidenceFlagDialog({ title, type, outcome, derived_from_evidence_id, details, source_command, source_output, loot });
+  finishEvidenceFlagDialog({ title, type, outcome, derived_from_evidence_id, relation_type, details, source_command, source_output, loot });
 }
 
 function handleEvidenceFlagKey(event) {
@@ -1420,10 +1428,16 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   const sourceCommand = deriveEvidenceCommand(block.text);
   const defaultLootType = deriveLootType(block.text);
   const suggestedType = deriveEvidenceType(block.text);
+  const suggestedTargetId = detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null;
+  const suggestedParent = typeof suggestEvidenceParent === 'function'
+    ? suggestEvidenceParent({ sourceNoteId: activeNoteId, targetId: suggestedTargetId })
+    : null;
   const confirmed = await openEvidenceFlagDialog({
     title: '',
     type: suggestedType,
     outcome: deriveEvidenceOutcome(block.text, suggestedType),
+    derived_from_evidence_id: suggestedParent?.id || '',
+    relation_type: suggestedParent ? inferEvidenceRelationType({ type: suggestedType }) : 'derived_from',
     details: deriveEvidenceDetails(block.text, sourceCommand),
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
     output: sourceCommand ? deriveLootValue(block.text, '') : '',
@@ -1443,10 +1457,11 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     title: confirmed.title,
     outcome: confirmed.outcome,
     derived_from_evidence_id: confirmed.derived_from_evidence_id || null,
+    relation_type: confirmed.derived_from_evidence_id ? (confirmed.relation_type || 'derived_from') : 'derived_from',
     details: confirmed.details,
     source_command: confirmed.source_command,
     source_output: confirmed.source_output,
-    target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
+    target_id: suggestedTargetId,
     source_note_id: activeNoteId,
     note_id: activeNoteId,
     sync_mode: 'export_only',

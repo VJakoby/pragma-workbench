@@ -532,6 +532,13 @@ function renderEvidenceSection(model) {
   if (!evidence.length) return '';
 
   const evidenceById = Object.fromEntries(evidence.map((entry) => [entry.id, entry]));
+  const relationLabels = {
+    derived_from: 'Derived from',
+    found_via: 'Found via',
+    used_for: 'Used for',
+    pivoted_from: 'Pivoted from',
+    confirmed_by: 'Confirmed by',
+  };
   const lines = ['## Evidence', ''];
   evidence.forEach((entry) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
@@ -540,7 +547,7 @@ function renderEvidenceSection(model) {
     lines.push('');
     lines.push(`- Type: ${evidenceType(entry.type)}`);
     lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
-    if (parent?.title) lines.push(`- Derived from: ${parent.title}`);
+    if (parent?.title) lines.push(`- ${relationLabels[String(entry.relation_type || 'derived_from').trim()] || 'Derived from'}: ${parent.title}`);
     if (entry.outcome) lines.push(`- Outcome: ${entry.outcome}`);
     if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
     if (entry.details) lines.push(`- Details: ${entry.details}`);
