@@ -328,11 +328,11 @@
             <input class="pw-input" id="evidenceFlagOutcome" type="text" placeholder="What did this prove or enable?" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
           </div>
           <div class="pw-field" id="evidenceFlagDerivedFromRow" style="display:none">
-            <label>Derived from</label>
+            <label>Parent Step</label>
             <select class="pw-input evidence-flag-select" id="evidenceFlagDerivedFrom" onchange="syncEvidenceRelationUi('evidenceFlagDerivedFrom','evidenceFlagRelation','evidenceFlagRelationRow')" onkeydown="handleEvidenceFlagKey(event)"></select>
           </div>
           <div class="pw-field" id="evidenceFlagRelationRow" style="display:none">
-            <label>Relation</label>
+            <label>Link Type</label>
             <select class="pw-input evidence-flag-select" id="evidenceFlagRelation" onkeydown="handleEvidenceFlagKey(event)">
               <option value="derived_from">Derived from</option>
               <option value="found_via">Found via</option>

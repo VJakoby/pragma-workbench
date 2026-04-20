@@ -5309,7 +5309,46 @@ body.enc-active-body .content-panel {
 .evidence-flow-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
+}
+.evidence-flow-row-wrap {
+  padding-top: 4px;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 84%, transparent);
+}
+.evidence-flow-row-wrap:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.evidence-flow-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.evidence-flow-row-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, rgba(var(--accent-rgb),0.3) 100%, transparent);
+  background: color-mix(in srgb, rgba(var(--accent-rgb),0.12) 100%, var(--bg4));
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.evidence-flow-row-title {
+  min-width: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .evidence-flow-row {
   display: flex;
@@ -5463,6 +5502,19 @@ body.enc-active-body .content-panel {
   box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.16), inset 0 1px 0 rgba(255,255,255,0.02);
   background: color-mix(in srgb, rgba(var(--accent-rgb),0.09) 46%, var(--bg3));
 }
+.evidence-item-root {
+  border-color: color-mix(in srgb, rgba(var(--green-rgb),0.26) 100%, var(--border));
+}
+.evidence-item-root::before,
+.evidence-item-root::after {
+  background: color-mix(in srgb, rgba(var(--green-rgb),0.28) 100%, transparent);
+}
+.evidence-item-derived {
+  background: color-mix(in srgb, rgba(var(--accent-rgb),0.04) 30%, var(--bg3));
+}
+.evidence-item-recent {
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.16), inset 0 1px 0 rgba(255,255,255,0.02), 0 0 18px rgba(var(--accent-rgb),0.08);
+}
 .evidence-item-head {
   display: flex;
   align-items: flex-start;
@@ -5510,7 +5562,7 @@ body.enc-active-body .content-panel {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.evidence-item-snippet {
+.evidence-item-operator-summary {
   margin-top: 5px;
   font-size: 11px;
   line-height: 1.45;
@@ -5533,11 +5585,16 @@ body.enc-active-body .content-panel {
   cursor: default;
   pointer-events: none;
 }
+.evidence-item-actions .ql-row-edit-btn[disabled] {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
 .evidence-item-timestamp {
   margin-top: 6px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
 }
 .evidence-item-meta {
   display: flex;
@@ -5562,6 +5619,9 @@ body.enc-active-body .content-panel {
 .evidence-level-pill .evidence-meta-value {
   color: color-mix(in srgb, var(--accent) 82%, var(--text));
   font-weight: 700;
+}
+.evidence-meta-pill-secondary {
+  opacity: 0.72;
 }
 .evidence-meta-key {
   flex: 0 0 auto;
@@ -5608,6 +5668,26 @@ body.enc-active-body .content-panel {
   background: color-mix(in srgb, rgba(var(--green-rgb),0.08) 58%, var(--bg4));
   border-color: color-mix(in srgb, rgba(var(--green-rgb),0.28) 72%, var(--border));
 }
+.evidence-chain-pill-found_via {
+  background: color-mix(in srgb, rgba(var(--green-rgb),0.1) 62%, var(--bg4));
+  border-color: color-mix(in srgb, rgba(var(--green-rgb),0.32) 75%, var(--border));
+}
+.evidence-chain-pill-used_for {
+  background: color-mix(in srgb, rgba(251,191,36,0.12) 62%, var(--bg4));
+  border-color: color-mix(in srgb, rgba(251,191,36,0.34) 75%, var(--border));
+}
+.evidence-chain-pill-pivoted_from {
+  background: color-mix(in srgb, rgba(59,130,246,0.13) 62%, var(--bg4));
+  border-color: color-mix(in srgb, rgba(59,130,246,0.34) 75%, var(--border));
+}
+.evidence-chain-pill-confirmed_by {
+  background: color-mix(in srgb, rgba(244,114,182,0.12) 62%, var(--bg4));
+  border-color: color-mix(in srgb, rgba(244,114,182,0.34) 75%, var(--border));
+}
+.evidence-chain-pill-derived_from {
+  background: color-mix(in srgb, rgba(var(--accent-rgb),0.09) 58%, var(--bg4));
+  border-color: color-mix(in srgb, rgba(var(--accent-rgb),0.28) 72%, var(--border));
+}
 .evidence-chain-key {
   flex: 0 0 auto;
   font-family: 'JetBrains Mono', monospace;
@@ -5635,6 +5715,38 @@ body.enc-active-body .content-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+.evidence-edit-section {
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg4) 72%, var(--bg3));
+}
+.evidence-edit-section summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.evidence-edit-section summary::-webkit-details-marker {
+  display: none;
+}
+.evidence-edit-section summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.12s ease;
+}
+.evidence-edit-section[open] summary::before {
+  transform: rotate(90deg);
+}
+.evidence-edit-section .evidence-item-body-editing {
+  padding: 0 10px 10px;
 }
 .evidence-edit-grid {
   display: grid;
@@ -5697,11 +5809,21 @@ body.enc-active-body .content-panel {
 }
 @media (max-width: 860px) {
   .evidence-flow-node {
-    min-width: 154px;
-    max-width: 188px;
+    min-width: 146px;
+    max-width: 176px;
   }
   .evidence-flow-link {
-    flex-basis: 28px;
+    flex-basis: 22px;
+  }
+  .evidence-flow-row {
+    gap: 6px;
+    padding: 6px 0 2px;
+  }
+  .evidence-flow-row-label {
+    gap: 6px;
+  }
+  .evidence-flow-row-title {
+    font-size: 11px;
   }
   .evidence-item {
     margin-left: 0;
@@ -5710,6 +5832,18 @@ body.enc-active-body .content-panel {
   .evidence-item-body-editing {
     grid-template-columns: 1fr;
   }
+}
+.evidence-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.evidence-empty-state strong {
+  color: var(--text);
+}
+.evidence-empty-state span {
+  color: var(--text2);
+  line-height: 1.5;
 }
 
 /* ── Paths table ── */

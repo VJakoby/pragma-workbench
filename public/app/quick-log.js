@@ -456,6 +456,39 @@ function buildEvidenceSummaryLine(entry, allEntries) {
   return '';
 }
 
+function buildEvidenceOperatorSummary(entry, sourceSnippet = '') {
+  const outcome = String(entry?.outcome || '').trim();
+  if (outcome) return { text: outcome, source: 'outcome' };
+  const details = String(entry?.details || '').trim();
+  if (details) return { text: details, source: 'details' };
+  const snippet = String(sourceSnippet || '').trim();
+  if (snippet) return { text: snippet, source: 'snippet' };
+  const output = String(entry?.source_output || '').replace(/\s+/g, ' ').trim();
+  if (output) return { text: output, source: 'output' };
+  const command = String(entry?.source_command || '').replace(/\s+/g, ' ').trim();
+  if (command) return { text: command, source: 'command' };
+  return { text: '', source: '' };
+}
+
+function mostRecentEvidenceEntryId(entries = getSessionEvidence()) {
+  const list = Array.isArray(entries) ? entries : [];
+  let latestId = '';
+  let latestTs = 0;
+  list.forEach((entry) => {
+    const ts = entry?.updated || entry?.created || 0;
+    if (ts >= latestTs) {
+      latestTs = ts;
+      latestId = entry?.id || '';
+    }
+  });
+  return latestId;
+}
+
+function evidenceRelationCssClass(value) {
+  const normalized = String(value || 'derived_from').trim() || 'derived_from';
+  return `evidence-chain-pill-${normalized.replace(/[^a-z0-9_-]+/gi, '-')}`;
+}
+
 function renderEvidenceChain(entry, allEntries) {
   const sourceEntries = Array.isArray(allEntries) ? allEntries : getSessionEvidence();
   const parent = entry?.derived_from_evidence_id ? getEvidenceEntryById(entry.derived_from_evidence_id, sourceEntries) : null;
@@ -463,7 +496,7 @@ function renderEvidenceChain(entry, allEntries) {
   if (!parent && !children.length) return '';
   const parts = [];
   if (parent) {
-    parts.push(`<span class="evidence-chain-pill" title="${esc(getEvidenceEntryDisplayTitle(parent))}"><span class="evidence-chain-key">${esc(evidenceRelationLabel(entry.relation_type))}</span><span class="evidence-chain-value">${esc(getEvidenceEntryDisplayTitle(parent))}</span></span>`);
+    parts.push(`<span class="evidence-chain-pill ${evidenceRelationCssClass(entry.relation_type)}" title="${esc(getEvidenceEntryDisplayTitle(parent))}"><span class="evidence-chain-key">${esc(evidenceRelationLabel(entry.relation_type))}</span><span class="evidence-chain-value">${esc(getEvidenceEntryDisplayTitle(parent))}</span></span>`);
   }
   if (children.length === 1) {
     parts.push(`<span class="evidence-chain-pill evidence-chain-pill-next" title="${esc(getEvidenceEntryDisplayTitle(children[0]))}"><span class="evidence-chain-key">Leads to</span><span class="evidence-chain-value">${esc(getEvidenceEntryDisplayTitle(children[0]))}</span></span>`);
@@ -567,6 +600,16 @@ function focusEvidenceCard(entryId) {
   }, 2200);
 }
 
+function jumpToEvidenceParent(entryId) {
+  const entry = getEvidenceEntryById(entryId);
+  const parentId = entry?.derived_from_evidence_id || '';
+  if (!parentId) {
+    showToast('⚠ No parent step linked', 'err');
+    return;
+  }
+  focusEvidenceCard(parentId);
+}
+
 function moveEvidenceStep(entryId, direction) {
   if (!activeSessionId || !sessions[activeSessionId]) return;
   const entries = ensureSessionEvidence();
@@ -630,8 +673,14 @@ function renderEvidenceChainStrip(entries) {
       <div class="evidence-flow-hdr">Operational Chain</div>
       <div class="evidence-flow-list">
         ${chains.map((chain, chainIndex) => `
-          <div class="evidence-flow-row" data-chain-index="${chainIndex}">
-            ${renderEvidenceChainNodes(chain, getEvidenceChainKey(chain))}
+          <div class="evidence-flow-row-wrap" data-chain-index="${chainIndex}">
+            <div class="evidence-flow-row-label">
+              <span class="evidence-flow-row-badge">Lead ${chainIndex + 1}</span>
+              <span class="evidence-flow-row-title">${esc(getEvidenceEntryDisplayTitle(chain[0]))}</span>
+            </div>
+            <div class="evidence-flow-row">
+              ${renderEvidenceChainNodes(chain, getEvidenceChainKey(chain))}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -639,13 +688,13 @@ function renderEvidenceChainStrip(entries) {
   `;
 }
 
-function renderEvidenceProofCell(entry) {
+function renderEvidenceProofCell(entry, summarySource = '') {
   const lines = [];
-  if (entry.outcome) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Outcome</span>${esc(entry.outcome)}</span>`);
+  if (entry.outcome && summarySource !== 'outcome') lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Outcome</span>${esc(entry.outcome)}</span>`);
   if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
   if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
   if (entry.source_output) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Output</span>${esc(entry.source_output)}</span>`);
-  if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
+  if (entry.details && summarySource !== 'details') lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
   return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
@@ -1080,7 +1129,7 @@ function renderEvidenceList() {
   updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
 
   if (!activeSessionId || !sessions[activeSessionId]) {
-    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    listEl.innerHTML = `<div class="todo-empty evidence-empty-state"><strong>No active session.</strong><span>Open or create a session first, then flag a command or proof block from a note to start building evidence.</span></div>`;
     return;
   }
 
@@ -1088,6 +1137,7 @@ function renderEvidenceList() {
   const { ordered: orderedEntries, depthById } = sortEvidenceEntriesForChain(allEntries);
   const targets = getSessionTargets();
   const notes = getSessionNotesForEvidence();
+  const latestEntryId = mostRecentEvidenceEntryId(allEntries);
   const entries = orderedEntries.filter((entry) => {
     if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
     if (_evidenceFilterTarget) {
@@ -1099,7 +1149,7 @@ function renderEvidenceList() {
   });
   if (!entries.length) {
     if (!allEntries.length) {
-      listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
+      listEl.innerHTML = `<div class="todo-empty evidence-empty-state"><strong>No evidence yet.</strong><span>Select a command or proof block inside a session note, then use <em>Flag as Evidence</em> to add the first step here.</span></div>`;
       return;
     }
     listEl.innerHTML = `
@@ -1118,7 +1168,7 @@ function renderEvidenceList() {
         </select>
         <button class="svc-del-btn evidence-filter-toggle${_evidenceFilterChainOnly ? ' active' : ''}" onclick="toggleEvidenceChainFilter()" type="button">Chain Only</button>
       </div>
-      <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
+      <div class="todo-empty evidence-empty-state"><strong>No matching evidence.</strong><span>Clear the type or target filter, or turn off <em>Chain Only</em> to bring hidden entries back into view.</span></div>
     `;
     return;
   }
@@ -1153,10 +1203,15 @@ function renderEvidenceList() {
       const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
       const chainDepth = depthById.get(entry.id) || 0;
       const chainLevelLabel = chainDepth === 0 ? 'Root Step' : `Chain Level ${chainDepth + 1}`;
+      const operatorSummary = buildEvidenceOperatorSummary(entry, sourceSnippet);
       const summaryLine = buildEvidenceSummaryLine(entry, allEntries);
+      const parentExists = !!getEvidenceDirectParent(entry, allEntries);
+      const cardStateClass = parentExists ? 'evidence-item-derived' : 'evidence-item-root';
+      const recentClass = entry.id === latestEntryId ? ' evidence-item-recent' : '';
+      const advancedOpen = !!(entry.outcome || entry.impact || entry.details || entry.source_command || entry.source_output);
       if (isQuickLogEditing('evidence', entry.id)) {
         return `
-          <section class="evidence-item evidence-item-editing" data-evidence-card="${esc(entry.id)}" style="--evidence-chain-depth:${chainDepth}">
+          <section class="evidence-item evidence-item-editing ${cardStateClass}${recentClass}" data-evidence-card="${esc(entry.id)}" style="--evidence-chain-depth:${chainDepth}">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group evidence-item-title-group-editing">
                 <label class="evidence-edit-field evidence-edit-field-type">
@@ -1184,7 +1239,7 @@ function renderEvidenceList() {
                 </select>
               </label>
               <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Sync</span>
+                <span class="evidence-edit-label">Summary Sync</span>
                 <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
                   <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
                   <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
@@ -1200,17 +1255,19 @@ function renderEvidenceList() {
                 </select>
               </label>
               <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Derived from</span>
+                <span class="evidence-edit-label">Parent Step</span>
                 <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditDerived_${entry.id}" onclick="event.stopPropagation(); syncEvidenceRelationUi('evidenceEditDerived_${entry.id}','evidenceEditRelation_${entry.id}','evidenceEditRelationWrap_${entry.id}')" onchange="syncEvidenceRelationUi('evidenceEditDerived_${entry.id}','evidenceEditRelation_${entry.id}','evidenceEditRelationWrap_${entry.id}')" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')"></select>
               </label>
               <label class="evidence-edit-field" id="evidenceEditRelationWrap_${entry.id}" style="display:${entry.derived_from_evidence_id ? '' : 'none'}">
-                <span class="evidence-edit-label">Relation</span>
+                <span class="evidence-edit-label">Link Type</span>
                 <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditRelation_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
                   ${renderEvidenceRelationOptions(entry.relation_type || inferEvidenceRelationType(entry))}
                 </select>
               </label>
             </div>
-            <div class="evidence-item-body evidence-item-body-editing">
+            <details class="evidence-edit-section"${advancedOpen ? ' open' : ''}>
+              <summary>Proof And Context</summary>
+              <div class="evidence-item-body evidence-item-body-editing">
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Outcome</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditOutcome_${entry.id}" type="text" value="${esc(entry.outcome || '')}" placeholder="outcome" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
@@ -1231,31 +1288,32 @@ function renderEvidenceList() {
                 <span class="evidence-edit-label">Output</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditOutput_${entry.id}" type="text" value="${esc(entry.source_output || '')}" placeholder="source output" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
               </label>
-            </div>
+              </div>
+            </details>
           </section>
         `;
       }
       return `
-        <section class="evidence-item" data-evidence-card="${esc(entry.id)}" style="--evidence-chain-depth:${chainDepth}">
+        <section class="evidence-item ${cardStateClass}${recentClass}" data-evidence-card="${esc(entry.id)}" style="--evidence-chain-depth:${chainDepth}">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group">
               <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
               <div class="evidence-item-title-wrap">
                 <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
                 ${summaryLine ? `<div class="evidence-item-summary">${esc(summaryLine)}</div>` : ''}
-                <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
-                ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
+                ${operatorSummary.text ? `<div class="evidence-item-operator-summary" title="${esc(operatorSummary.text)}">${esc(operatorSummary.text)}</div>` : ''}
+                <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">From note: ${esc(sourceNoteLabel)}</div>
               </div>
             </div>
             <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
           </div>
-          ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
+          ${timestampLabel ? `<div class="evidence-item-timestamp">Tracked ${esc(timestampLabel)}</div>` : ''}
           <div class="evidence-item-meta">
             <span class="evidence-meta-pill evidence-level-pill">
               <span class="evidence-meta-key">Level</span>
               <span class="evidence-meta-value">${esc(chainLevelLabel)}</span>
             </span>
-            <span class="evidence-meta-pill">
+            <span class="evidence-meta-pill evidence-meta-pill-secondary">
               <span class="evidence-meta-key">Sync</span>
               <span class="evidence-meta-value">${esc(syncLabel)}</span>
             </span>
@@ -1264,7 +1322,7 @@ function renderEvidenceList() {
               <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
             </span>
             ${evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? `
-            <span class="evidence-meta-pill" title="${esc(syncNoteLabel)}">
+            <span class="evidence-meta-pill evidence-meta-pill-secondary" title="${esc(syncNoteLabel)}">
               <span class="evidence-meta-key">Synced</span>
               <span class="evidence-meta-value">${esc(syncNoteLabel)}</span>
             </span>
@@ -1272,7 +1330,7 @@ function renderEvidenceList() {
           </div>
           ${renderEvidenceChain(entry, allEntries)}
           <div class="evidence-item-body">
-            ${renderEvidenceProofCell(entry)}
+            ${renderEvidenceProofCell(entry, operatorSummary.source)}
           </div>
         </section>
       `;
@@ -2401,6 +2459,7 @@ function renderEvidenceRowActions(id) {
   const entry = getEvidenceEntryById(id);
   const canMoveLeft = canMoveEvidenceStep(entry, 'left');
   const canMoveRight = canMoveEvidenceStep(entry, 'right');
+  const hasParent = !!entry?.derived_from_evidence_id;
   return `
     <div class="ql-row-actions">
       <button class="svc-del-btn ql-row-edit-btn evidence-move-btn" onclick="event.stopPropagation(); moveEvidenceStep('${id}','left')" title="Move earlier in chain" aria-label="Move earlier in chain"${canMoveLeft ? '' : ' disabled'}>
@@ -2411,6 +2470,9 @@ function renderEvidenceRowActions(id) {
       </button>
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+      </button>
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceParent('${id}')" title="Jump to parent step" aria-label="Jump to parent step"${hasParent ? '' : ' disabled'}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/><path d="M20 12H9"/></svg>
       </button>
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
