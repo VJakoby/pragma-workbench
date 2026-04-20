@@ -1280,8 +1280,10 @@ function syncEvidenceFlagLootUi() {
   const typeEl = document.getElementById('evidenceFlagLootType');
   const syncWrapEl = document.getElementById('evidenceFlagLootSyncWrap');
   const syncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+  const lootSectionEl = document.getElementById('evidenceFlagLootSection');
   const enabled = !!enabledEl?.checked;
   if (fieldsEl) fieldsEl.style.display = enabled ? 'block' : 'none';
+  if (lootSectionEl) lootSectionEl.open = enabled;
   if (!syncWrapEl || !syncEl) return;
   const syncRelevant = enabled && ['cleartext', 'hash'].includes((typeEl?.value || '').trim());
   syncWrapEl.style.display = syncRelevant ? 'block' : 'none';
@@ -1307,6 +1309,8 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', 
     const lootHostEl = document.getElementById('evidenceFlagLootHost');
     const lootNoteEl = document.getElementById('evidenceFlagLootNote');
     const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+    const advancedSectionEl = document.getElementById('evidenceFlagAdvancedSection');
+    const lootSectionEl = document.getElementById('evidenceFlagLootSection');
     if (titleEl) {
       const suggestedTitle = deriveEvidenceTitleHint(command || details, type);
       titleEl.value = title;
@@ -1331,6 +1335,15 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', outcome = '', 
     if (lootHostEl) lootHostEl.value = loot?.host || '';
     if (lootNoteEl) lootNoteEl.value = loot?.note || '';
     if (lootSyncEl) lootSyncEl.checked = !!loot?.sync_to_credentials;
+    if (advancedSectionEl) {
+      advancedSectionEl.open = !!(
+        (outcome || '').trim() ||
+        (details || '').trim() ||
+        (output || '').trim() ||
+        (derived_from_evidence_id || '').trim()
+      );
+    }
+    if (lootSectionEl) lootSectionEl.open = !!loot?.enabled;
     syncEvidenceFlagLootUi();
     overlay?.classList.add('open');
     setTimeout(() => {

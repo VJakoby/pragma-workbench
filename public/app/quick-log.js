@@ -1152,6 +1152,7 @@ function renderEvidenceList() {
       const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
       const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
       const chainDepth = depthById.get(entry.id) || 0;
+      const chainLevelLabel = chainDepth === 0 ? 'Root Step' : `Chain Level ${chainDepth + 1}`;
       const summaryLine = buildEvidenceSummaryLine(entry, allEntries);
       if (isQuickLogEditing('evidence', entry.id)) {
         return `
@@ -1250,6 +1251,10 @@ function renderEvidenceList() {
           </div>
           ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
           <div class="evidence-item-meta">
+            <span class="evidence-meta-pill evidence-level-pill">
+              <span class="evidence-meta-key">Level</span>
+              <span class="evidence-meta-value">${esc(chainLevelLabel)}</span>
+            </span>
             <span class="evidence-meta-pill">
               <span class="evidence-meta-key">Sync</span>
               <span class="evidence-meta-value">${esc(syncLabel)}</span>

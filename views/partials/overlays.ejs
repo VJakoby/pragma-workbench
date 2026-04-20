@@ -291,97 +291,109 @@
       <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
     </div>
     <div class="pw-body">
-      <div class="pw-description">Review the selected note block, choose the evidence type, and add any supporting context before saving it to the session tracker.</div>
-      <div class="pw-field">
-        <label>Type</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="enumeration">Enumeration</option>
-          <option value="initial_access">Initial Access</option>
-          <option value="execution">Execution</option>
-          <option value="persistence">Persistence</option>
-          <option value="privilege_escalation">Privilege Escalation</option>
-          <option value="credential_access">Credential Access</option>
-          <option value="discovery">Discovery</option>
-          <option value="lateral_movement">Lateral Movement</option>
-          <option value="pivoting">Pivoting</option>
-          <option value="collection">Collection</option>
-          <option value="exfiltration">Exfiltration</option>
-          <option value="cleanup">Cleanup</option>
-          <option value="proof">Proof</option>
-        </select>
-      </div>
-      <div class="pw-field">
-        <label>Title</label>
-        <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
-      </div>
-      <div class="pw-field">
-        <label>Outcome</label>
-        <input class="pw-input" id="evidenceFlagOutcome" type="text" placeholder="What did this prove or enable?" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
-      </div>
-      <div class="pw-field" id="evidenceFlagDerivedFromRow" style="display:none">
-        <label>Derived from</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagDerivedFrom" onchange="syncEvidenceRelationUi('evidenceFlagDerivedFrom','evidenceFlagRelation','evidenceFlagRelationRow')" onkeydown="handleEvidenceFlagKey(event)"></select>
-      </div>
-      <div class="pw-field" id="evidenceFlagRelationRow" style="display:none">
-        <label>Relation</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagRelation" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="derived_from">Derived from</option>
-          <option value="found_via">Found via</option>
-          <option value="used_for">Used for</option>
-          <option value="pivoted_from">Pivoted from</option>
-          <option value="confirmed_by">Confirmed by</option>
-        </select>
-      </div>
-      <div class="pw-field">
-        <label>Details</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      <div class="pw-description">Capture the selected block as evidence, then add more structure only if you need it.</div>
+      <div class="evidence-flag-primary-grid">
+        <div class="pw-field">
+          <label>Type</label>
+          <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
+            <option value="enumeration">Enumeration</option>
+            <option value="initial_access">Initial Access</option>
+            <option value="execution">Execution</option>
+            <option value="persistence">Persistence</option>
+            <option value="privilege_escalation">Privilege Escalation</option>
+            <option value="credential_access">Credential Access</option>
+            <option value="discovery">Discovery</option>
+            <option value="lateral_movement">Lateral Movement</option>
+            <option value="pivoting">Pivoting</option>
+            <option value="collection">Collection</option>
+            <option value="exfiltration">Exfiltration</option>
+            <option value="cleanup">Cleanup</option>
+            <option value="proof">Proof</option>
+          </select>
+        </div>
+        <div class="pw-field">
+          <label>Title</label>
+          <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+        </div>
       </div>
       <div class="pw-field">
         <label>Command / Proof</label>
         <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
       </div>
-      <div class="pw-field">
-        <label>Output / Result</label>
-        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagOutput" placeholder="Relevant output, access confirmation, or proof excerpt…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
-      </div>
-      <div class="evidence-flag-toggle-row">
-        <label class="evidence-flag-check">
-          <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
-          <span>Also add as Loot</span>
-        </label>
-      </div>
-      <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
-        <div class="evidence-flag-loot-grid">
+      <details class="evidence-flag-section" id="evidenceFlagAdvancedSection">
+        <summary>Advanced Evidence Details</summary>
+        <div class="evidence-flag-section-body">
           <div class="pw-field">
-            <label>Loot type</label>
-            <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
-              <option value="cleartext">Cleartext</option>
-              <option value="hash">Hash</option>
-              <option value="token">Token</option>
-              <option value="key">Key</option>
-              <option value="other">Other</option>
+            <label>Outcome</label>
+            <input class="pw-input" id="evidenceFlagOutcome" type="text" placeholder="What did this prove or enable?" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+          </div>
+          <div class="pw-field" id="evidenceFlagDerivedFromRow" style="display:none">
+            <label>Derived from</label>
+            <select class="pw-input evidence-flag-select" id="evidenceFlagDerivedFrom" onchange="syncEvidenceRelationUi('evidenceFlagDerivedFrom','evidenceFlagRelation','evidenceFlagRelationRow')" onkeydown="handleEvidenceFlagKey(event)"></select>
+          </div>
+          <div class="pw-field" id="evidenceFlagRelationRow" style="display:none">
+            <label>Relation</label>
+            <select class="pw-input evidence-flag-select" id="evidenceFlagRelation" onkeydown="handleEvidenceFlagKey(event)">
+              <option value="derived_from">Derived from</option>
+              <option value="found_via">Found via</option>
+              <option value="used_for">Used for</option>
+              <option value="pivoted_from">Pivoted from</option>
+              <option value="confirmed_by">Confirmed by</option>
             </select>
           </div>
           <div class="pw-field">
-            <label>Target / Host</label>
-            <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+            <label>Details</label>
+            <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+          </div>
+          <div class="pw-field">
+            <label>Output / Result</label>
+            <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagOutput" placeholder="Relevant output, access confirmation, or proof excerpt…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
           </div>
         </div>
-        <div class="pw-field">
-          <label>Loot value</label>
-          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </details>
+      <details class="evidence-flag-section" id="evidenceFlagLootSection">
+        <summary>Also Add As Loot</summary>
+        <div class="evidence-flag-section-body">
+          <div class="evidence-flag-toggle-row">
+            <label class="evidence-flag-check">
+              <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
+              <span>Create a linked loot entry from this evidence</span>
+            </label>
+          </div>
+          <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
+            <div class="evidence-flag-loot-grid">
+              <div class="pw-field">
+                <label>Loot type</label>
+                <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
+                  <option value="cleartext">Cleartext</option>
+                  <option value="hash">Hash</option>
+                  <option value="token">Token</option>
+                  <option value="key">Key</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="pw-field">
+                <label>Target / Host</label>
+                <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+              </div>
+            </div>
+            <div class="pw-field">
+              <label>Loot value</label>
+              <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+            </div>
+            <div class="pw-field">
+              <label>Loot context</label>
+              <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+            </div>
+            <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
+              <label class="evidence-flag-check">
+                <input id="evidenceFlagLootSyncCredentials" type="checkbox">
+                <span>Sync cleartext/hash into the Credentials note</span>
+              </label>
+            </div>
+          </div>
         </div>
-        <div class="pw-field">
-          <label>Loot context</label>
-          <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
-        </div>
-        <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
-          <label class="evidence-flag-check">
-            <input id="evidenceFlagLootSyncCredentials" type="checkbox">
-            <span>Sync cleartext/hash into the Credentials note</span>
-          </label>
-        </div>
-      </div>
+      </details>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
         <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
