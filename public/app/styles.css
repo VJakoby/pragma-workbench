@@ -5826,7 +5826,7 @@ body.enc-active-body .content-panel {
     font-size: 11px;
   }
   .evidence-item {
-    margin-left: 0;
+    margin-left: calc(min(var(--evidence-chain-depth), 4) * 10px);
   }
   .evidence-edit-grid,
   .evidence-item-body-editing {
