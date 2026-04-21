@@ -579,6 +579,7 @@ async function executeAppSave() {
 }
 
 function saveNotes(opts = {}) {
+  if (typeof renderSessionOverviewBar === 'function') renderSessionOverviewBar();
   return queueAppSave(opts);
 }
 
@@ -660,10 +661,15 @@ function getSessionOverviewCards() {
   const loot = Array.isArray(sess.loot) ? sess.loot : [];
   const credentialCount = loot.filter((entry) => ['cleartext', 'hash'].includes(String(entry?.type || '').trim())).length;
   const serviceCount = Array.isArray(sess.services) ? sess.services.length : 0;
+  const evidenceEntries = Array.isArray(sess.evidence) ? sess.evidence : [];
+  const chainedEvidenceCount = evidenceEntries.filter((entry) => typeof isEvidenceChained === 'function' && isEvidenceChained(entry, evidenceEntries)).length;
+  const evidenceChains = typeof buildEvidenceChains === 'function' ? buildEvidenceChains(evidenceEntries) : [];
+  const chainCount = evidenceChains.filter((chain) => chain.length > 1).length;
+  const longestChain = evidenceChains.reduce((max, chain) => Math.max(max, chain.length), 0);
   const unassignedCount = sessionNotes.filter((note) => !note.target_id).length;
   const status = (sess.status || 'active').trim();
   const noteCount = sessionNotes.length;
-  const isFreshSession = noteCount === 0 && todos.length === 0 && loot.length === 0 && serviceCount === 0;
+  const isFreshSession = noteCount === 0 && todos.length === 0 && loot.length === 0 && serviceCount === 0 && evidenceEntries.length === 0;
   const targetLabel = activeTarget
     ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'Target')
     : ((sess.targets || []).length ? 'No target selected' : 'Session-wide');
@@ -678,6 +684,18 @@ function getSessionOverviewCards() {
         { key: 'Ports', value: 'Log first service', action: "openSessionOverviewPorts()", clickable: typeof toggleSvcPopover === 'function' && typeof switchSvcTab === 'function', cardClass: 'card-ports', tooltip: 'Open Quick Log on the Ports tab' },
         { key: 'Credentials', value: 'None yet', action: "openSessionOverviewLoot()", clickable: typeof toggleSvcPopover === 'function' && typeof switchSvcTab === 'function', cardClass: 'card-credentials', tooltip: 'Open Quick Log on the Loot tab' },
         { key: 'Notes', value: '0 in session', cardClass: 'card-neutral', tooltip: 'No session notes yet' },
+        {
+          key: 'Chain Summary',
+          stats: [
+            { key: 'Chains', value: '0' },
+            { key: 'Linked', value: '0' },
+            { key: 'Tracked', value: String(evidenceEntries.length) },
+          ],
+          action: "openSessionOverviewEvidenceChain()",
+          clickable: typeof openSessionOverviewEvidenceChain === 'function',
+          cardClass: 'card-chain card-wide',
+          tooltip: 'Open evidence in chain mode',
+        },
       ]
     : [
         { key: 'Current Target', value: targetLabel, action: "openTargetsPanel()", clickable: typeof openTargetsPanel === 'function', cardClass: `status-${status}`, tooltip: targetLabel },
@@ -688,6 +706,18 @@ function getSessionOverviewCards() {
         unassignedCount > 0
           ? { key: 'Unassigned', value: `${unassignedCount} note${unassignedCount === 1 ? '' : 's'}`, action: "openSessionOverviewUnassigned()", clickable: typeof setNoteScope === 'function', cardClass: 'card-unassigned', tooltip: `${unassignedCount} session note${unassignedCount === 1 ? ' is' : 's are'} not assigned to a target` }
           : { key: 'Notes', value: `${noteCount} in session`, cardClass: 'card-neutral', tooltip: `${noteCount} note${noteCount === 1 ? '' : 's'} in the current session` },
+        {
+          key: 'Chain Summary',
+          stats: [
+            { key: 'Chains', value: String(chainCount) },
+            { key: 'Linked', value: String(chainedEvidenceCount) },
+            { key: 'Tracked', value: String(evidenceEntries.length) },
+          ],
+          action: "openSessionOverviewEvidenceChain()",
+          clickable: typeof openSessionOverviewEvidenceChain === 'function',
+          cardClass: chainCount > 0 ? 'card-chain card-wide' : 'card-neutral card-wide',
+          tooltip: chainCount > 0 ? `${chainCount} evidence chain${chainCount === 1 ? '' : 's'} and ${chainedEvidenceCount} linked step${chainedEvidenceCount === 1 ? '' : 's'}` : 'Open evidence in chain mode',
+        },
       ];
 }
 
@@ -695,15 +725,17 @@ function renderSessionOverviewCardsMarkup(cards) {
   return cards.map((card) => `
     <button class="session-overview-card${card.clickable ? ' is-action' : ''}${card.cardClass ? ` ${card.cardClass}` : ''}" type="button" title="${esc(card.tooltip || card.value)}"${card.clickable ? ` onclick="${card.action}"` : ' disabled'}>
       <span class="session-overview-key">${card.key}</span>
-      <span class="session-overview-value${card.statusClass ? ` ${card.statusClass}` : ''}">${esc(card.value)}</span>
+      ${card.stats
+        ? `<span class="session-overview-stats">${card.stats.map((stat) => `
+            <span class="session-overview-stat">
+              <span class="session-overview-stat-key">${esc(stat.key)}</span>
+              <span class="session-overview-stat-value">${esc(stat.value)}</span>
+            </span>
+          `).join('')}</span>`
+        : `<span class="session-overview-value${card.statusClass ? ` ${card.statusClass}` : ''}">${esc(card.value)}</span>`}
+      ${card.detail ? `<span class="session-overview-detail">${esc(card.detail)}</span>` : ''}
     </button>
   `).join('');
-}
-
-function renderNotesEmptyContextCards() {
-  const container = document.getElementById('notesEmptyContextCards');
-  if (!container) return;
-  container.innerHTML = renderSessionOverviewCardsMarkup(getSessionOverviewCards());
 }
 
 function renderSessionOverviewBar() {
@@ -711,7 +743,6 @@ function renderSessionOverviewBar() {
   if (!bar) return;
 
   const cards = getSessionOverviewCards();
-  renderNotesEmptyContextCards();
   if (!cards.length) {
     bar.style.display = 'none';
     bar.innerHTML = '';

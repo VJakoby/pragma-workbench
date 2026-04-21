@@ -941,6 +941,15 @@ function toggleEvidenceChainFilter() {
   renderEvidenceList();
 }
 
+function openSessionOverviewEvidenceChain() {
+  _evidenceFilterChainOnly = true;
+  if (!document.getElementById('evidencePopover')?.classList.contains('open') && typeof toggleEvidencePopover === 'function') {
+    toggleEvidencePopover();
+    return;
+  }
+  renderEvidenceList();
+}
+
 function renderTodoClearAction() {
   const btn = document.getElementById('todoClearBtn');
   if (!btn) return;

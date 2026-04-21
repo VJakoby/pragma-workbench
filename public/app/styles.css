@@ -2264,37 +2264,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .note-save-status.error{color:var(--red)}
 
 .notes-empty{
-  flex:1;display:flex;align-items:stretch;justify-content:center;
-  gap:18px;color:var(--muted);padding:28px;
-}
-.notes-empty-copy{
-  flex:0 1 280px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;text-align:center;
-  gap:10px;padding:20px 12px;
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;color:var(--muted);text-align:center;padding:40px;
 }
 .notes-empty-icon{font-size:28px;opacity:0.3}
 .notes-empty-text{font-size:14px}
 .notes-empty-hint{font-size:12px;font-family:'Inter',sans-serif}
-.notes-empty-context{
-  flex:1 1 420px;display:flex;flex-direction:column;
-  justify-content:center;gap:10px;min-width:0;
-  padding:16px 18px;border-left:1px solid color-mix(in srgb, var(--border) 88%, transparent);
-}
-.notes-empty-context-label{
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;font-weight:700;letter-spacing:0.08em;
-  text-transform:uppercase;color:var(--muted);
-}
-.notes-empty-context-cards{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
-}
-.notes-empty-context-cards:empty::before{
-  content:'No active session context';
-  grid-column:1 / -1;
-  padding:12px 14px;border:1px dashed var(--border);
-  border-radius:10px;color:var(--muted);font-size:12px;
-  text-align:left;background:color-mix(in srgb, var(--bg3) 82%, transparent);
-}
 
 .icon-btn{
   background:transparent;border:1px solid transparent;cursor:pointer;
@@ -6526,9 +6502,18 @@ body.enc-active-body .content-panel {
   border-color: rgba(var(--accent-rgb),0.34);
   background: color-mix(in srgb, rgba(var(--accent-rgb),0.08) 100%, var(--bg3));
 }
+.session-overview-card.card-chain {
+  border-color: rgba(56,189,248,0.34);
+  background: color-mix(in srgb, rgba(56,189,248,0.1) 100%, var(--bg3));
+}
+.session-overview-card.card-wide {
+  grid-column: 1 / -1;
+  gap: 4px;
+  padding: 9px 10px;
+}
 .session-overview-key {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -6536,7 +6521,7 @@ body.enc-active-body .content-panel {
 }
 .session-overview-value {
   width: 100%;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.3;
   color: var(--text);
@@ -6544,28 +6529,60 @@ body.enc-active-body .content-panel {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.session-overview-card.card-wide .session-overview-value {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.session-overview-stats {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.session-overview-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg3) 92%, transparent);
+}
+.session-overview-stat-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.session-overview-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+.session-overview-detail {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text2);
+  white-space: normal;
+}
 @media (max-width: 1180px) {
-  .notes-empty{
-    flex-direction:column;
-    justify-content:center;
-  }
-  .notes-empty-copy{
-    flex:0 0 auto;
-    padding-bottom:8px;
-  }
-  .notes-empty-context{
-    flex:0 0 auto;
-    border-left:none;
-    border-top:1px solid color-mix(in srgb, var(--border) 88%, transparent);
-    padding:16px 0 0;
-  }
 }
 @media (max-width: 860px) {
   .notes-empty{
     padding:22px;
   }
-  .notes-empty-context-cards{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+  .session-overview-card.card-wide {
+    grid-column: 1 / -1;
+  }
+  .session-overview-stats {
+    grid-template-columns: 1fr;
   }
 }
 .notes-view-btn {
