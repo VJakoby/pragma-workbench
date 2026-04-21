@@ -41,7 +41,6 @@ function setTlTargetFilter(val) {
 function renderTimeline() {
   const el = document.getElementById('timelineList');
   if (!el) return;
-  if (typeof renderSessionOverviewBar === 'function') renderSessionOverviewBar();
 
   const sess = activeSessionId ? sessions[activeSessionId] : null;
   const targets = sess ? (sess.targets || []) : [];

@@ -307,7 +307,6 @@ function updateNotesCountBadges() {
 }
 
 function renderNotesList() {
-  if (typeof renderSessionOverviewBar === 'function') renderSessionOverviewBar();
   updateNoteSearchPlaceholder();
   updateNotesCountBadges();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
