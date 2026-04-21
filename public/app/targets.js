@@ -56,6 +56,7 @@ function updateTargetSelector() {
     if (cpyIpBtn) cpyIpBtn.disabled = true;
     if (cpyDomBtn) cpyDomBtn.disabled = true;
   }
+  if (typeof renderSessionOverviewBar === 'function') renderSessionOverviewBar();
 }
 
 function copyActiveTarget(kind = 'ip') {
