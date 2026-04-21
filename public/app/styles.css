@@ -5298,13 +5298,13 @@ body.enc-active-body .content-panel {
   background: color-mix(in srgb, var(--bg4) 68%, var(--bg3));
 }
 .evidence-flow-hdr {
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent);
 }
 .evidence-flow-list {
   display: flex;

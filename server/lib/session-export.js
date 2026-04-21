@@ -562,6 +562,83 @@ function renderEvidenceSection(model) {
   return lines.join('\n').trimEnd();
 }
 
+function buildOperationalSnapshot(model) {
+  const evidence = model.evidence
+    .filter((entry) => ['export_only', 'both'].includes(String(entry.sync_mode || 'export_only').trim()))
+    .slice();
+  if (!evidence.length) {
+    return {
+      leadCount: 0,
+      touchedTargets: 0,
+      credentialSteps: 0,
+      pivotSteps: 0,
+      proofSteps: 0,
+      latest: null,
+      leads: [],
+    };
+  }
+  const byId = new Map(evidence.map((entry) => [entry.id, entry]));
+  const childrenByParent = new Map(evidence.map((entry) => [entry.id, []]));
+  evidence.forEach((entry) => {
+    const parentId = entry?.derived_from_evidence_id;
+    if (parentId && parentId !== entry.id && byId.has(parentId)) {
+      childrenByParent.get(parentId)?.push(entry);
+    }
+  });
+  const roots = evidence
+    .filter((entry) => !entry?.derived_from_evidence_id || !byId.has(entry.derived_from_evidence_id))
+    .sort((a, b) => (b.updated || b.created || 0) - (a.updated || a.created || 0));
+  const leads = roots.map((root, index) => {
+    const chainEntries = [];
+    const walk = (entry) => {
+      if (!entry) return;
+      chainEntries.push(entry);
+      (childrenByParent.get(entry.id) || [])
+        .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0))
+        .forEach((child) => walk(child));
+    };
+    walk(root);
+    const latest = chainEntries
+      .slice()
+      .sort((a, b) => (b.updated || b.created || 0) - (a.updated || a.created || 0))[0] || root;
+    return {
+      index: index + 1,
+      root,
+      latest,
+      stepCount: chainEntries.length,
+      chainEntries,
+    };
+  });
+  const touchedTargets = new Set(evidence.map((entry) => entry?.target_id).filter(Boolean)).size;
+  const credentialSteps = evidence.filter((entry) => String(entry?.type || '').trim() === 'credential_access').length;
+  const pivotSteps = evidence.filter((entry) => ['pivoting', 'lateral_movement'].includes(String(entry?.type || '').trim())).length;
+  const proofSteps = evidence.filter((entry) => String(entry?.type || '').trim() === 'proof').length;
+  const latest = evidence.slice().sort((a, b) => (b.updated || b.created || 0) - (a.updated || a.created || 0))[0] || null;
+  return { leadCount: leads.length, touchedTargets, credentialSteps, pivotSteps, proofSteps, latest, leads };
+}
+
+function renderOperationalSnapshotSection(model) {
+  const snapshot = buildOperationalSnapshot(model);
+  if (!snapshot.leadCount) return '';
+  const lines = ['## Operational Snapshot', ''];
+  lines.push(`- Active leads: ${snapshot.leadCount}`);
+  lines.push(`- Targets touched: ${snapshot.touchedTargets}`);
+  lines.push(`- Credential steps: ${snapshot.credentialSteps}`);
+  lines.push(`- Pivot / movement steps: ${snapshot.pivotSteps}`);
+  lines.push(`- Proof steps: ${snapshot.proofSteps}`);
+  if (snapshot.latest?.title) lines.push(`- Latest tracked step: ${snapshot.latest.title}`);
+  lines.push('', '### Current Leads', '');
+  snapshot.leads.forEach((lead) => {
+    const rootTarget = lead.root?.target_id ? model.targetById[lead.root.target_id] : null;
+    const latestTarget = lead.latest?.target_id ? model.targetById[lead.latest.target_id] : null;
+    lines.push(`- Lead ${lead.index}: ${lead.root?.title || 'Untitled'}`);
+    lines.push(`  Root type: ${evidenceType(lead.root?.type)}${rootTarget ? ` · ${targetLabel(rootTarget)}` : ''}`);
+    lines.push(`  Steps: ${lead.stepCount}`);
+    lines.push(`  Latest: ${lead.latest?.title || 'Untitled'}${latestTarget ? ` · ${targetLabel(latestTarget)}` : ''}`);
+  });
+  return lines.join('\n').trimEnd();
+}
+
 function evidenceType(type) {
   const labels = {
     enumeration: 'Enumeration',
@@ -629,6 +706,11 @@ function renderConsolidatedSession(model) {
         lines.push(`| ${escapeTableCell(entry.type)} | \`${escapeTableCell(entry.credential)}\` | ${escapeTableCell(entry.host || '—')} | ${escapeTableCell(entry.note)} |`);
       });
     lines.push('');
+  }
+
+  const operationalSnapshot = renderOperationalSnapshotSection(model);
+  if (operationalSnapshot) {
+    lines.push('---', '', operationalSnapshot, '');
   }
 
   const evidenceSection = renderEvidenceSection(model);
