@@ -2256,13 +2256,37 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .note-save-status.error{color:var(--red)}
 
 .notes-empty{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:10px;color:var(--muted);text-align:center;padding:40px;
+  flex:1;display:flex;align-items:stretch;justify-content:center;
+  gap:18px;color:var(--muted);padding:28px;
+}
+.notes-empty-copy{
+  flex:0 1 280px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  gap:10px;padding:20px 12px;
 }
 .notes-empty-icon{font-size:28px;opacity:0.3}
 .notes-empty-text{font-size:14px}
 .notes-empty-hint{font-size:12px;font-family:'Inter',sans-serif}
+.notes-empty-context{
+  flex:1 1 420px;display:flex;flex-direction:column;
+  justify-content:center;gap:10px;min-width:0;
+  padding:16px 18px;border-left:1px solid color-mix(in srgb, var(--border) 88%, transparent);
+}
+.notes-empty-context-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--muted);
+}
+.notes-empty-context-cards{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+}
+.notes-empty-context-cards:empty::before{
+  content:'No active session context';
+  grid-column:1 / -1;
+  padding:12px 14px;border:1px dashed var(--border);
+  border-radius:10px;color:var(--muted);font-size:12px;
+  text-align:left;background:color-mix(in srgb, var(--bg3) 82%, transparent);
+}
 
 .icon-btn{
   background:transparent;border:1px solid transparent;cursor:pointer;
@@ -6057,6 +6081,30 @@ body.enc-active-body .content-panel {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+@media (max-width: 1180px) {
+  .notes-empty{
+    flex-direction:column;
+    justify-content:center;
+  }
+  .notes-empty-copy{
+    flex:0 0 auto;
+    padding-bottom:8px;
+  }
+  .notes-empty-context{
+    flex:0 0 auto;
+    border-left:none;
+    border-top:1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    padding:16px 0 0;
+  }
+}
+@media (max-width: 860px) {
+  .notes-empty{
+    padding:22px;
+  }
+  .notes-empty-context-cards{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
 }
 .notes-view-btn {
   flex: 1; background: none; border: none; cursor: pointer;

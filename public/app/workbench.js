@@ -645,15 +645,9 @@ function openSessionOverviewUnassigned() {
   if (typeof setNoteScope === 'function') setNoteScope('unassigned');
 }
 
-function renderSessionOverviewBar() {
-  const bar = document.getElementById('sessionOverviewBar');
+function getSessionOverviewCards() {
   const sess = activeSessionId && sessions[activeSessionId];
-  if (!bar) return;
-  if (!sess) {
-    bar.style.display = 'none';
-    bar.innerHTML = '';
-    return;
-  }
+  if (!sess) return [];
 
   const activeTarget = typeof getActiveTarget === 'function' ? getActiveTarget() : null;
   const sessionNotes = Object.values(notes)
@@ -676,7 +670,7 @@ function renderSessionOverviewBar() {
   const latestLabel = latestNote
     ? `${latestNoteMeta?.label || 'Note'} · ${latestNote.title || 'Untitled'}`
     : 'No notes yet';
-  const cards = isFreshSession
+  return isFreshSession
     ? [
         { key: 'Current Target', value: targetLabel, action: "openTargetsPanel()", clickable: typeof openTargetsPanel === 'function', cardClass: `status-${status}` },
         { key: 'Start Notes', value: 'Create first note', action: "openNewNoteModal()", clickable: typeof openNewNoteModal === 'function', cardClass: 'card-starter', tooltip: 'Create the first note in this session' },
@@ -695,13 +689,36 @@ function renderSessionOverviewBar() {
           ? { key: 'Unassigned', value: `${unassignedCount} note${unassignedCount === 1 ? '' : 's'}`, action: "openSessionOverviewUnassigned()", clickable: typeof setNoteScope === 'function', cardClass: 'card-unassigned', tooltip: `${unassignedCount} session note${unassignedCount === 1 ? ' is' : 's are'} not assigned to a target` }
           : { key: 'Notes', value: `${noteCount} in session`, cardClass: 'card-neutral', tooltip: `${noteCount} note${noteCount === 1 ? '' : 's'} in the current session` },
       ];
+}
 
-  bar.innerHTML = cards.map((card) => `
+function renderSessionOverviewCardsMarkup(cards) {
+  return cards.map((card) => `
     <button class="session-overview-card${card.clickable ? ' is-action' : ''}${card.cardClass ? ` ${card.cardClass}` : ''}" type="button" title="${esc(card.tooltip || card.value)}"${card.clickable ? ` onclick="${card.action}"` : ' disabled'}>
       <span class="session-overview-key">${card.key}</span>
       <span class="session-overview-value${card.statusClass ? ` ${card.statusClass}` : ''}">${esc(card.value)}</span>
     </button>
   `).join('');
+}
+
+function renderNotesEmptyContextCards() {
+  const container = document.getElementById('notesEmptyContextCards');
+  if (!container) return;
+  container.innerHTML = renderSessionOverviewCardsMarkup(getSessionOverviewCards());
+}
+
+function renderSessionOverviewBar() {
+  const bar = document.getElementById('sessionOverviewBar');
+  if (!bar) return;
+
+  const cards = getSessionOverviewCards();
+  renderNotesEmptyContextCards();
+  if (!cards.length) {
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+    return;
+  }
+
+  bar.innerHTML = renderSessionOverviewCardsMarkup(cards);
   bar.style.display = 'grid';
 }
 
