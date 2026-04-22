@@ -12,17 +12,27 @@
 At its core: a focused Markdown editor organized around sessions and targets, with a right-side context panel that surfaces your KB, tactics, and search results without pulling you out of the flow. Evidence and loot capture is first-class, not bolted on.
 
 ---
+
+## ⚠️ Notice
+
+PRAGMA is a documentation and workflow tool for security testing.
+
+It does not interact with targets directly, but is intended for use in authorized environments only, such as professional engagements, lab setups, and CTF platforms.
+
+You are responsible for ensuring your work complies with applicable laws and rules of engagement.
+
+---
 ## 🚩 The problem it solves
 
-Pentest work demands focus, but the tools don't support it. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are rigid and built for output, not process. Cloud tools add risk you don't want.
+Pentest work demands focus, but the tools don't support it. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process. 
 
-PRAGMA keeps everything in the same room — structured enough to be useful, local enough to be trusted.
+PRAGMA keeps everything in the same view — structured enough to be useful, local enough to be trusted.
 
 ## ❌ What it is NOT
 
-- **Not a reporting tool** — notes are for operational use, only drafts and not deliverables
+- **Not a reporting tool** — notes are for operational use, only drafts and not final deliverables
 - **Not a team platform** — single-operator, local-first by design
-- **Not a scanner, exploit framework or automation platform** — it does not touch your targets or automate any scanning or exploitation
+- **Not a exploit framework** — it does not exploit your targets
 - **Not cloud-dependent** — everything runs locally on your machine, and nothing leaves it
 
 
@@ -36,42 +46,51 @@ PRAGMA keeps everything in the same room — structured enough to be useful, loc
 
 Here are a few screenshots to give a quick impression of the platform. They help show the shape of the workflow, but the real value is in using it directly and experiencing how the views fit together during actual work.
 
-<table>
-  <tr>
-    <td><img src="./screenshots/PRAGMA-Main-UI.png" alt="PRAGMA Main UI" width="240"></td>
-    <td><img src="./screenshots/Sessions.png" alt="PRAGMA Sessions" width="240"></td>
-    <td><img src="./screenshots/Encrypt.png" alt="PRAGMA Encryption" width="240"></td>
+
+<table align="center">
+  <tr align="center" valign="middle">
+    <td width="33%">
+      <img src="./screenshots/PRAGMA-Main-UI.png" alt="PRAGMA Main UI" width="240">
+    </td>
+    <td width="33%">
+      <img src="./screenshots/Sessions.png" alt="PRAGMA Sessions" width="240">
+    </td>
+    <td width="33%">
+      <img src="./screenshots/Encrypt.png" alt="PRAGMA Encryption" width="240">
+    </td>
+  </tr>
+  <tr align="center" valign="top">
+    <td><em>Main View — central workbench for active engagement notes and context</em></td>
+    <td><em>Sessions — organize multiple engagements within a single workbench</em></td>
+    <td><em>Encryption — client-side encrypted storage for workbench data</em></td>
   </tr>
 </table>
 
-- `Main View` — the main workbench layout with notes in focus and supporting context around them.
-- `Sessions` — session management with multiple engagements collected under the same workbench.
-- `Encryption` — workbench encryption flow for protecting local session data.
-
-<table>
-  <tr>
-    <td><img src="./screenshots/Cmd.png" alt="PRAGMA Command Palette" width="240"></td>
-    <td><img src="./screenshots/KB-Cards.png" alt="PRAGMA KB Cards" width="240"></td>
-    <td><img src="./screenshots/Indexed-Search.png" alt="PRAGMA Indexed Search" width="240"></td>
+<table align="center">
+  <tr align="center" valign="middle">
+    <td width="33%">
+      <img src="./screenshots/Cmd.png" alt="PRAGMA Command Palette" width="240">
+    </td>
+    <td width="33%">
+      <img src="./screenshots/KB-Cards.png" alt="PRAGMA KB Cards" width="240">
+    </td>
+    <td width="33%">
+      <img src="./screenshots/Indexed-Search.png" alt="PRAGMA Indexed Search" width="240">
+    </td>
+  </tr>
+  <tr align="center" valign="top">
+    <td>
+      <em>Command Palette — quick-open search across notes, KB, tactics, and commands</em>
+    </td>
+    <td>
+      <em>KB Cards — browse services, tactics, and KB sections in a card layout</em>
+    </td>
+    <td>
+      <em>Indexed Search — ENGRAM-powered results inside the workbench</em>
+    </td>
   </tr>
 </table>
 
-- `Command Palette` — the quick-open search palette for jumping across notes, KB content, tactics, and saved commands.
-- `KB Cards` — knowledge base browsing with card-based navigation across services, tactics, and KB sections.
-- `Indexed Search` — indexed search results powered by ENGRAM, shown directly inside the workbench.
-
-<table>
-  <tr>
-    <td><img src="./screenshots/Log-Ports.png" alt="PRAGMA Quick Log Ports" width="240"></td>
-    <td><img src="./screenshots/Log-Loot.png" alt="PRAGMA Quick Log Loot" width="240"></td>
-    <td></td>
-  </tr>
-</table>
-
-- `Quick Log: Ports` — structured quick logging for open ports and service observations during enumeration.
-- `Quick Log: Loot` — fast capture of credentials, hashes, tokens, and other engagement loot.
-
----
 
 ## 👤 Who This Is For
 
@@ -145,42 +164,6 @@ For a practical walkthrough of how the app is meant to be used during an engagem
 **Notes**
 - Typed notes with structured markdown templates — see [Note Templates](#-note-templates) below
 - Note templates support per-template variants, so one template type can expose multiple predefined workflows or note layouts
-
-## Potential Issues
-
-### Attachment encryption: `Maximum call stack size exceeded`
-
-If this appears while enabling encrypted workbench mode or saving encrypted attachments, the failure is usually caused by browser-side base64 conversion of large image buffers, not by Node or Docker stack size.
-
-The relevant client-side conversion points are:
-
-- [public/app/app.js](/home/jakvan/Git/pragma-workbench/public/app/app.js#L799)  
-  `bytesToBase64()` used by `encryptPayload()` / `encryptBinaryPayload()`
-- [public/app/note-editor.js](/home/jakvan/Git/pragma-workbench/public/app/note-editor.js#L21)  
-  `uint8ToBase64()` used when preparing attachment payloads for export
-
-Current implementation uses chunked conversion with:
-
-```js
-const chunkSize = 0x8000;
-```
-
-If you ever need to tune this manually, reduce that value rather than trying to increase runtime stack size. For example:
-
-```js
-const chunkSize = 0x4000;
-```
-
-Smaller chunks are safer for very large attachments. Larger chunks may be a little faster, but they are more likely to trigger stack overflows in the browser.
-- Full-text search across note titles and bodies, with type/tag/target/scope filters
-- Tags, pin, auto-save, duplicate, and per-note `.md` export
-- Drag-and-drop and clipboard image support in notes; pasted or dropped screenshots are stored as note attachments and inserted as standard markdown images
-- Session summary export supports a consolidated markdown file and an optional PDF summary output
-  The Docker image uses system Chromium for PDF export through Puppeteer rather than downloading a bundled browser during install.
-- Session reassignment, target assignment, and Timeline view for chronological activity
-- Checklist support (`- [ ]` / `- [x]`) in preview with live sync-back to source
-- Tool output parser — paste raw output from `nmap`, `masscan`, `gobuster` and similar tools directly into notes with structured formatting
-- In-app editing of `note-templates.json` through the Configuration section, using the same editor/autosave flow as notes
 
 **Quick Log (`Ctrl+L`)**
 
