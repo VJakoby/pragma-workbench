@@ -1,4 +1,11 @@
-# # PRAGMA // Workbench
+
+<table>
+  <tr>
+    <td valign="middle">
+      <img src="public/Top-bar-logo.png" alt="PRAGMA Logo" width="500">
+    </td>
+  </tr>
+</table>
 
 **PRAGMA** is an operational workspace built for pentest engagements — not a note app that happens to run on localhost.
 
