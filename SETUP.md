@@ -115,9 +115,9 @@ pragma-data/
 │   ├── attachments/
 │   └── backup/
 └── knowledge_base/
-    ├── services/
-    ├── tactics/
-    └── <other-sections>/
+    ├── services/            # Directory must exist
+    ├── tactics/             # Directory must exist
+    └── <other-sections>/    # Can be whatever
 ```
 
 This keeps:
