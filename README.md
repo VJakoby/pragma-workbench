@@ -7,7 +7,7 @@
   </tr>
 </table>
 
-**PRAGMA** is an operational workspace built for pentest engagements — not a note app that happens to run on localhost.
+**PRAGMA** is an operational workspace built for pentest engagements and CTF — not a note app that happens to run on localhost.
 
 At its core: a focused Markdown editor organized around sessions and targets, with a right-side context panel that surfaces your KB, tactics, and search results without pulling you out of the flow. Evidence and loot capture is first-class, not bolted on.
 
