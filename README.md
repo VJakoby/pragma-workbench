@@ -361,11 +361,11 @@ Write your KB docs using any of the supported placeholder styles below.
 
 PRAGMA works on its own. Optional modules extend the workbench, but they are not required for the core note/session workflow.
 
-### ENGRAM // Indexed Search Surface
+### ENGRAM // Indexed Search
 
-ENGRAM is an optional companion service that powers PRAGMA's KB search surface. When enabled, PRAGMA queries ENGRAM for indexed results; when disabled, the module stays offline and search falls back to local content only.
+ENGRAM is an optional companion service that powers PRAGMA's KB search. When enabled, PRAGMA queries ENGRAM for indexed results; when disabled, the module stays offline and search falls back to local content only.
 
-- Repo: [ENGRAM // Indexed Search Surface](https://github.com/VJakoby/engram)
+- Repo: [ENGRAM // Indexed Search](https://github.com/VJakoby/engram)
 - Purpose: index and serve KB content for fast, ranked search results inside PRAGMA
 - Integration model: ENGRAM runs as its own local service, and PRAGMA points at it via `SEARCH_URL`
 
