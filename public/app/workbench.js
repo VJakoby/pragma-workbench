@@ -5,7 +5,7 @@ const TEMPLATES_PATH = '/api/templates';
 
 const BLANK_NOTE_META = {
   label: 'Blank',
-  icon: '📄',
+  icon: '📋',
   cssClass: 'note-type-scratch',
 };
 
