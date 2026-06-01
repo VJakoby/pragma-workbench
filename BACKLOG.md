@@ -32,10 +32,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Header toggle click listeners should fire uniformly across all layout screens, enabling code-folding/header minimization on `###` structures in full preview mode.
   - **Resolution:** Fixed incorrect `renderContent` call signature in `note-editor.js:434` that passed an object instead of individual parameters. Added defensive try/catch around `wrapCodeBlocks` and `wrapInlineCodes` in `content-panel.js` to ensure `makeCollapsible` is always called. Made `makeCollapsible` idempotent by skipping headings that already have the `kb-heading-toggle` class.
 
-- [ ] **P1-06: Direct Engagement Note Creation from Services/Ports**
+- [x] **P1-06: Direct Engagement Note Creation from Services/Ports**
   - **Problem:** There is currently friction when documenting an active port/service. There needs to be a rapid trigger to spin up notes.
   - **Exploration Target:** Locate the UI rendering ports/services lists (e.g., NMAP parser or target asset view).
-  - **Expected Behavior:** Implement a direct function button (e.g., next to "53/domain") that immediately initializes a fresh Engagement Note tied to that exact target port context, or injects a rule to auto-generate the note layout directly when an NMAP log is successfully imported.
+  - **Expected Behavior:** Implement a direct function button (e.g., next to "53/domain"), beside the left side of the "Edit" button on each nmap row finding to immediately initializes a fresh Engagement Note tied to that exact target port context.
+  - **Resolution:** Added `createNoteForService()` function in `public/app/quick-log.js` that creates a 'recon' type engagement note with service context header (port, protocol, service name, version, target IP/domain) followed by simplified `## Enumeration` and `## Exploitation` sections with proper spacing (2 blank lines after horizontal rule). Added document icon button to service rows in `renderQuickLogRowActions()` that appears before the Edit button. Widened actions column from 84px to 110px in `public/app/styles.css` to accommodate the third button. Notes are automatically opened for editing after creation and linked to the correct session and target. Added duplicate detection to prevent creating multiple notes for the same service (shows orange warning toast if note already exists). Extended `showToast()` in `public/app/timeline.js` to support 'warn' type with orange background color.
 
 - [ ] **P1-07: 'Convert Port to TODO' Fast Trigger**
   - **Problem:** Need an efficient way to track actionable items directly from discovery logs.

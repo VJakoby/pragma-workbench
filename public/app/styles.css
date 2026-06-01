@@ -5792,7 +5792,7 @@ body.enc-active-body .content-panel {
 }
 .svc-table-ports th:nth-child(5),
 .svc-table-ports td:nth-child(5) {
-  width: 84px;
+  width: 110px;
 }
 #portParsePreview,
 #pathParsePreview {

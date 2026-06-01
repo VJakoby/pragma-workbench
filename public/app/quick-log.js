@@ -1980,8 +1980,16 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
       </div>
     `;
   }
+  
+  const noteButton = kind === 'service' ? `
+    <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); createNoteForService('${id}')" title="Create note for this service" aria-label="Create note for this service">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </button>
+  ` : '';
+  
   return `
     <div class="ql-row-actions">
+      ${noteButton}
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('${kind}','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
@@ -2081,6 +2089,90 @@ function commitServiceEdit(svcId) {
   saveNotes();
   renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+}
+
+function createNoteForService(svcId) {
+  if (!activeSessionId) {
+    showToast('No active session', 'err');
+    return;
+  }
+
+  const svcs = getSessionServices();
+  const svc = svcs.find(s => s.id === svcId);
+  if (!svc) {
+    showToast('Service not found', 'err');
+    return;
+  }
+
+  const target = svc.target_id ? getSessionTargetById(svc.target_id) : null;
+  const targetIp = target?.ip || getIP();
+  const targetDomain = target?.domain || getDomain();
+
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('recon')
+    : NOTE_TEMPLATES['recon'] || NOTE_TEMPLATES['scratch'];
+
+  const id = 'note_' + Date.now();
+  const portProto = `${svc.port}${svc.proto ? '/' + svc.proto : ''}`;
+  const serviceLabel = svc.service || 'Unknown Service';
+  const title = `${portProto} ${serviceLabel} - ${targetIp !== '<IP>' ? targetIp : 'No Target'}`;
+
+  const existingNote = Object.values(notes).find(n => 
+    n.title === title && n.session_id === activeSessionId
+  );
+  if (existingNote) {
+    showToast('The engagement note already exists', 'warn');
+    return;
+  }
+
+  const contextHeader = [
+    '## Service Context',
+    `- **Port**: ${portProto}`,
+    `- **Service**: ${serviceLabel}`,
+    svc.version ? `- **Version**: ${svc.version}` : null,
+    `- **Target**: ${targetIp !== '<IP>' ? targetIp : 'N/A'}${targetDomain && targetDomain !== '<DOMAIN>' ? ' (' + targetDomain + ')' : ''}`,
+    '',
+    '---',
+    '',
+    '',
+  ].filter(item => item !== null && item !== undefined).join('\n');
+
+  const body = contextHeader + '## Enumeration\n\n\n## Exploitation\n';
+
+  const note = {
+    id,
+    session_id: activeSessionId,
+    target_id: svc.target_id || null,
+    type: 'recon',
+    template_variant: tmpl.variant_id || null,
+    title,
+    body,
+    tags: tmpl.default_tags ? [...tmpl.default_tags, 'service-enumeration'] : ['service-enumeration'],
+    target_ip: targetIp !== '<IP>' ? targetIp : null,
+    target_domain: targetDomain !== '<DOMAIN>' ? targetDomain : null,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+
+  notes[id] = note;
+  saveNotes();
+
+  if (activeSessionId) {
+    tlLog(activeSessionId, {
+      type: 'note_created',
+      noteId: id,
+      noteType: 'recon',
+      targetId: svc.target_id || null,
+      context: `Created from service ${portProto} ${serviceLabel}`
+    });
+  }
+
+  renderNotesList();
+  renderSessionSidebar();
+  switchView('notes', document.getElementById('nav-notes'));
+  openNote(id);
+
+  showToast(`Created note: ${title}`, 'ok');
 }
 
 function renderSvcLogTable() {
