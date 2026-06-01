@@ -208,11 +208,20 @@ function goBackContentPanel() {
 }
 
 function injectTargets(rawHtml, opts = {}) {
-  const ip     = esc(getIP());
-  const domain = esc(getDomain());
-  const label  = esc(getTargetLabelValue());
-  const attacker = esc(getAttackerIP());
+  const rawIp = getIP();
+  const rawDomain = getDomain();
+  const rawLabel = getTargetLabelValue();
+  const rawAttacker = getAttackerIP();
+  const ipSet = rawIp !== '<IP>';
+  const domainSet = rawDomain !== '<DOMAIN>';
+  const labelSet = rawLabel !== '<LABEL>';
+  const attackerSet = rawAttacker !== '<ATTACKER-IP>';
+  const ip     = esc(rawIp);
+  const domain = esc(rawDomain);
+  const label  = esc(rawLabel);
+  const attacker = esc(rawAttacker);
   const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
+  const unsetBadge = (text) => `<span class="ip-injected ip-injected-unset">${text}</span>`;
   const matcherFactory = globalThis.PRAGMA_PLACEHOLDERS?.getPlaceholderMatchers;
   if (typeof matcherFactory !== 'function') return rawHtml;
   const {
@@ -225,11 +234,21 @@ function injectTargets(rawHtml, opts = {}) {
     includeBare: opts.includeBare === true,
   });
 
+  function combinePatterns(patterns) {
+    const source = patterns.map(p => '(?:' + p.source + ')').join('|');
+    return new RegExp(source, 'gi');
+  }
+
+  const ipCombined = combinePatterns(ipPatterns);
+  const domainCombined = combinePatterns(domainPatterns);
+  const labelCombined = combinePatterns(labelPatterns);
+  const attackerCombined = combinePatterns(attackerPatterns);
+
   let out = rawHtml;
-  for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
-  for (const p of domainPatterns) out = out.replace(p, span(domain, 'ip-injected ip-injected-domain'));
-  for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
-  for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
+  out = out.replace(ipCombined, ipSet ? span(ip, 'ip-injected ip-injected-ip') : unsetBadge('[IP NOT SET]'));
+  out = out.replace(domainCombined, domainSet ? span(domain, 'ip-injected ip-injected-domain') : unsetBadge('[DOMAIN NOT SET]'));
+  out = out.replace(labelCombined, labelSet ? span(label, 'ip-injected ip-injected-label') : unsetBadge('[LABEL NOT SET]'));
+  out = out.replace(attackerCombined, attackerSet ? span(attacker, 'ip-injected ip-injected-attacker') : unsetBadge('[ATTACKER NOT SET]'));
 
   return out;
 }

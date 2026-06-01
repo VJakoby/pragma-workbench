@@ -1692,6 +1692,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .code-block-wrap .ip-injected-domain{color:var(--domain-blue) !important}
 .code-block-wrap .ip-injected-label{color:var(--text2) !important}
 .code-block-wrap .ip-injected-attacker{color:var(--accent) !important}
+.ip-injected-unset{color:var(--muted);font-style:italic;opacity:0.7;font-weight:500}
+.code-block-wrap .ip-injected-unset{color:var(--muted) !important;font-style:italic;opacity:0.7;font-weight:500}
 
 /* ── NOTES VIEW ── */
 .notes-layout{display:flex;flex:1;overflow:hidden;position:relative}

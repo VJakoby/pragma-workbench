@@ -3,10 +3,11 @@
 ## Phase 1: P1 Fixes & Features
 These are critical bugs, UI adjustments, or high-priority features that must be resolved first.
 
-- [ ] **P1-01: Injection Variable Fallback Formatting**
+- [x] **P1-01: Injection Variable Fallback Formatting**
   - **Problem:** When `LHOST` (Attacker IP) or `<<DOMAIN>>` variables are unassigned or empty, the preview view renders broken placeholders like `LHOST=<<<ATTACKER-IP>>`-IP>` instead of handling the missing data cleanly.
   - **Exploration Target:** Search the codebase for string interpolation, regex replacements, or template rendering logic handling `LHOST`, `ATTACKER-IP`, and variable parsing.
   - **Expected Behavior:** If a template variable is empty or not set, render a clean fallback placeholder string (e.g., `[LHOST NOT SET]`) or completely suppress the artifacting strings.
+  - **Resolution:** Modified `injectTargets()` in `public/app/content-panel.js` to detect unset sentinel values (`<IP>`, `<DOMAIN>`, `<LABEL>`, `<ATTACKER-IP>`) before regex replacement. Unset variables now render styled fallback badges (`[IP NOT SET]`, `[DOMAIN NOT SET]`, `[LABEL NOT SET]`, `[ATTACKER NOT SET]`) via `.ip-injected-unset` CSS class in `public/app/styles.css`.
 
 - [ ] **P1-02: Command Palette Icon Update**
   - **Problem:** The current visual icon/symbol assigned to the Command Palette component needs to be modernized.
