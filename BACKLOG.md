@@ -15,10 +15,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Change the active icon or image symbol specifically to a terminal-style `>_` text symbol or equivalent code icon.
   - **Resolution:** Replaced magnifying glass SVG with terminal `>_` prompt SVG (polyline chevron + underline cursor) in `views/partials/topbar.ejs` trigger button, `views/partials/overlays.ejs` input icon, and `public/app.html` static fallback (both trigger and overlay).
 
-- [ ] **P1-03: Remove/Improve Hover Visuals**
+- [x] **P1-03: Remove/Improve Hover Visuals**
   - **Problem:** The hover animation on the Engagement Notes list items and the Search Command results feels "spongy" due to awkward border shifts or layout layout-jumps when triggered.
   - **Exploration Target:** Locate the CSS/Tailwind definitions or class variables styling the hover states (`:hover`) on Engagement Notes cards/lists and Search results.
   - **Expected Behavior:** Smooth out or entirely remove the border alterations on hover. Use a clean, non-disruptive background color change or a subtle opacity shift instead of modifying border widths.
+  - **Resolution:** Removed `transform:translateY(-1px)`, `border-color` shifts, and heavy `box-shadow` changes from `.note-item:hover`, `.notes-peek-item:hover`, and `.cmd-item:hover` in `public/app/styles.css`. Hover now uses a clean background color change only.
 
 - [ ] **P1-04: Fix 'Find in Document' for KB Side-Card**
   - **Problem:** The text-search feature inside the Knowledge Base (KB) side-card component is entirely broken. Searching for text doesn't highlight or navigate results.
