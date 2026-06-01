@@ -46,13 +46,20 @@ function clearAllRecentSearches() {
   buildCmdResults('');
 }
 
-function openCmd() {
+async function openCmd() {
   const overlay = document.getElementById('cmdOverlay');
   const input = document.getElementById('cmdInput');
   overlay.classList.add('open');
   overlay.classList.remove('cmd-has-query');
   input.value = '';
   cmdSelected = -1;
+  
+  try {
+    await ensureUnifiedSearchIndex();
+  } catch (err) {
+    console.warn('[PRAGMA] unified search index unavailable:', err?.message || err);
+  }
+  
   buildCmdResults('');
   setTimeout(() => input.focus(), 30);
 }
@@ -623,17 +630,111 @@ async function buildCmdResults(q) {
         <span>Recent Searches</span>
         <button onclick="event.stopPropagation();clearAllRecentSearches()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px" title="Clear all">Clear all</button>
       </div>`;
-      recent.forEach(query => {
-        cmdItems.push({ type: 'recent-search', query, label: query });
-        html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
-          <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
-          <div class="cmd-item-main">
-            <div class="cmd-item-title">${esc(query)}</div>
-            <div class="cmd-item-sub">Recent search</div>
-          </div>
-          <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove">×</button>
-        </div>`;
-      });
+      
+      if (Array.isArray(cmdUnifiedIndex)) {
+        for (const query of recent) {
+          const ql = query.toLowerCase().trim();
+          const matches = cmdUnifiedIndex
+            .map(item => {
+              const title = String(item.title || '').toLowerCase();
+              const description = String(item.description || '').toLowerCase();
+              const content = String(item.content || '').toLowerCase();
+              const tags = Array.isArray(item.metadata?.tags) ? item.metadata.tags.join(' ').toLowerCase() : '';
+              const category = String(item.metadata?.category || '').toLowerCase();
+              
+              const titleIdx = title.indexOf(ql);
+              const descIdx = description.indexOf(ql);
+              const contentIdx = content.indexOf(ql);
+              const tagIdx = tags.indexOf(ql);
+              const catIdx = category.indexOf(ql);
+              
+              if (titleIdx === -1 && descIdx === -1 && contentIdx === -1 && tagIdx === -1 && catIdx === -1) {
+                return null;
+              }
+              
+              const score = 
+                (titleIdx === 0 ? 100 : titleIdx > -1 ? 70 : 0) +
+                (descIdx === 0 ? 60 : descIdx > -1 ? 40 : 0) +
+                (tagIdx > -1 ? 50 : 0) +
+                (catIdx > -1 ? 30 : 0) +
+                (contentIdx > -1 ? 20 : 0);
+              
+              return { item, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.score - a.score);
+          
+          if (matches.length > 0) {
+            const { item } = matches[0];
+            const snippet = buildCommandPaletteKbSnippet({ content: item.content }, query);
+            const metaParts = [esc(item.metadata?.category || item.type.replace('kb-', ''))];
+            if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
+            if (snippet) metaParts.push(highlightCmdMatch(snippet, query));
+            
+            let icon = ICONS.notes;
+            let tag = 'recent';
+            let type = 'recent-search';
+            let id = item.id;
+            let view = null;
+            
+            if (item.type === 'kb-service') {
+              icon = ICONS.notes;
+              type = 'service';
+              id = item.id.replace('kb-service-', '');
+              tag = 'service';
+            } else if (item.type === 'kb-tactic') {
+              icon = ICONS.guides;
+              type = 'tactic';
+              id = item.id.replace('kb-tactic-', '');
+              tag = 'tactic';
+            } else if (item.type === 'kb-section') {
+              icon = folderDocIcon;
+              type = 'kbdoc';
+              id = item.id.replace('kb-section-', '');
+              view = `kb:${item.metadata?.folder || ''}`;
+              tag = 'kb';
+            } else if (item.type === 'note') {
+              icon = noteIcon;
+              type = 'note';
+              id = item.metadata?.noteId || item.id.replace('note-', '');
+              tag = 'note';
+            }
+            
+            cmdItems.push({ type, id, label: item.title, view, query });
+            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+              <span class="cmd-item-icon">${icon}</span>
+              <div class="cmd-item-main">
+                <div class="cmd-item-title">${esc(stripLeadingEmoji(item.title))}</div>
+                <div class="cmd-item-sub">${metaParts.join(' · ')}</div>
+              </div>
+              <span class="cmd-item-tag" style="opacity:0.6">${tag}</span>
+              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+            </div>`;
+          } else {
+            cmdItems.push({ type: 'recent-search', query, label: query });
+            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+              <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
+              <div class="cmd-item-main">
+                <div class="cmd-item-title">${esc(query)}</div>
+                <div class="cmd-item-sub" style="opacity:0.6">No longer in index</div>
+              </div>
+              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+            </div>`;
+          }
+        }
+      } else {
+        recent.forEach(query => {
+          cmdItems.push({ type: 'recent-search', query, label: query });
+          html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+            <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
+            <div class="cmd-item-main">
+              <div class="cmd-item-title">${esc(query)}</div>
+              <div class="cmd-item-sub">Recent search</div>
+            </div>
+            <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+          </div>`;
+        });
+      }
     } else {
       html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
         Type to search services, tactics, KB sections and notes…
