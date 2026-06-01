@@ -9,10 +9,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** If a template variable is empty or not set, render a clean fallback placeholder string (e.g., `[LHOST NOT SET]`) or completely suppress the artifacting strings.
   - **Resolution:** Modified `injectTargets()` in `public/app/content-panel.js` to detect unset sentinel values (`<IP>`, `<DOMAIN>`, `<LABEL>`, `<ATTACKER-IP>`) before regex replacement. Unset variables now render styled fallback badges (`[IP NOT SET]`, `[DOMAIN NOT SET]`, `[LABEL NOT SET]`, `[ATTACKER NOT SET]`) via `.ip-injected-unset` CSS class in `public/app/styles.css`.
 
-- [ ] **P1-02: Command Palette Icon Update**
+- [x] **P1-02: Command Palette Icon Update**
   - **Problem:** The current visual icon/symbol assigned to the Command Palette component needs to be modernized.
   - **Exploration Target:** Look for the Command Palette component layout or navbar menu files where UI icons are rendered.
   - **Expected Behavior:** Change the active icon or image symbol specifically to a terminal-style `>_` text symbol or equivalent code icon.
+  - **Resolution:** Replaced magnifying glass SVG with terminal `>_` prompt SVG (polyline chevron + underline cursor) in `views/partials/topbar.ejs` trigger button, `views/partials/overlays.ejs` input icon, and `public/app.html` static fallback (both trigger and overlay).
 
 - [ ] **P1-03: Remove/Improve Hover Visuals**
   - **Problem:** The hover animation on the Engagement Notes list items and the Search Command results feels "spongy" due to awkward border shifts or layout layout-jumps when triggered.
