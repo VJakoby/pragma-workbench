@@ -192,7 +192,7 @@ PRAGMA also includes a dedicated Evidence workflow for preserving proof directly
 This makes Evidence the primary workflow for preserving proof from notes, while Loot remains the specialized structured store for credentials, tokens, keys, and similar material.
 
 **Knowledge Base & Tactics**
-- Indexes local `.md` files from `knowledge_base/` with three distinct surfaces: `knowledge_base/services/` feeds the Services view, `knowledge_base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
+- Indexes local `.md` files from `knowledge-base/` with three distinct surfaces: `knowledge-base/services/` feeds the Services view, `knowledge-base/tactics/` feeds the Tactics view, and other top-level folders become standalone KB sections
 - The repository does not ship with a real KB corpus. Each user is expected to point PRAGMA at their own local knowledge base content
 - Editable in-UI with live disk write-back and auto re-index on change
 - Every code block and inline backtick span is click-to-copy with target IP injected

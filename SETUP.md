@@ -50,13 +50,13 @@ The preferred setup is:
 
 - ENGRAM running and reachable through `SEARCH_URL`
 - persistent host storage for `sessions/`
-- a curated host-backed `knowledge_base/`
+- a curated host-backed `knowledge-base/`
 
 Practical path advice:
 
 - keep the repo and runtime data in separate folders
 - keep `sessions/` on persistent storage
-- point `knowledge_base/` to the KB tree you actually maintain, not a temporary scratch folder
+- point `knowledge-base/` to the KB tree you actually maintain, not a temporary scratch folder
 
 ---
 
@@ -99,7 +99,7 @@ operator-workspace/
 │   └── ...repo...
 ├── pragma-data/
 │   ├── sessions/
-│   └── knowledge_base/
+│   └── knowledge-base/
 └── optional/
     ├── engram/
     └── matrix-toolbox/
@@ -114,7 +114,7 @@ pragma-data/
 │   ├── pragma.workbench.enc
 │   ├── attachments/
 │   └── backup/
-└── knowledge_base/
+└── knowledge-base/
     ├── services/            # Directory must exist
     ├── tactics/             # Directory must exist
     └── <other-sections>/    # Can be whatever
@@ -133,14 +133,14 @@ cleanly separated.
 
 PRAGMA expects:
 
-- `knowledge_base/services/` -> `Services`
-- `knowledge_base/tactics/` -> `Tactics`
+- `knowledge-base/services/` -> `Services`
+- `knowledge-base/tactics/` -> `Tactics`
 - other top-level folders -> separate KB sections
 
 Recommended shape:
 
 ```text
-knowledge_base/
+knowledge-base/
 ├── services/
 │   ├── smb.md
 │   ├── ssh.md
@@ -225,7 +225,7 @@ Short version:
 Best practical setup:
 
 - persistent `sessions/`
-- curated `knowledge_base/`
+- curated `knowledge-base/`
 - ENGRAM wired through `SEARCH_URL`
 
 If ENGRAM is absent:

@@ -558,7 +558,7 @@ function renderCards(view) {
       <div class="empty-state-title">No ${view} found</div>
       <div class="results-offline warn" style="margin:12px 0 0;padding:18px 18px;max-width:520px;">
         <div class="results-offline-text">KB path not configured</div>
-        <div class="results-offline-hint">Add <code>.md</code> files to the ${view==='tactics'?'knowledge_base/tactics/':view==='services'?'knowledge_base/services/':`knowledge_base/${view.slice(3)}/`} or set <code>PRAGMA_KB_PATH</code> in <code>.env</code> to point to your KB.</div>
+        <div class="results-offline-hint">Add <code>.md</code> files to the ${view==='tactics'?'knowledge-base/tactics/':view==='services'?'knowledge-base/services/':`knowledge-base/${view.slice(3)}/`} or set <code>PRAGMA_KB_PATH</code> in <code>.env</code> to point to your KB.</div>
       </div>
     </div>`;
     return;

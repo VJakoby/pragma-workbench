@@ -3,7 +3,7 @@
 const path = require('path');
 
 function createPaths(rootDir) {
-  const KB_DIR = process.env.KB_DIR || path.join(rootDir, 'knowledge_base');
+  const KB_DIR = process.env.KB_DIR || path.join(rootDir, 'knowledge-base');
   const toolboxUrls = String(process.env.TOOLBOX_URLS || process.env.MATRIX_URLS || '')
     .split(',')
     .map(value => value.trim())

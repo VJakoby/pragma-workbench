@@ -269,7 +269,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   function buildTacticsIndex() {
     if (!fs.existsSync(tacticsDir)) {
       tacticsIndex = [];
-      console.log('[PRAGMA] knowledge_base/tactics/ not found — skipping.');
+      console.log('[PRAGMA] knowledge-base/tactics/ not found — skipping.');
       return;
     }
     const entries = walkMdFiles(tacticsDir, tacticsDir);

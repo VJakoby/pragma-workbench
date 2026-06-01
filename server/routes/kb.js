@@ -236,7 +236,7 @@ function registerKbRoutes(app, deps) {
         id: svc.id,
         title: svc.name,
         page_name: svc.file,
-        source_name: `knowledge_base/${svc.file}`,
+        source_name: `knowledge-base/${svc.file}`,
         source_id: svc.id,
         url: `file://${svc.filepath}`,
         file_path: svc.filepath,
