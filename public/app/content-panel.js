@@ -550,6 +550,8 @@ function makeCollapsible(container) {
   if (!headings.length) return;
 
   headings.forEach(heading => {
+    if (heading.classList.contains('kb-heading-toggle')) return;
+
     const level = parseInt(heading.tagName[1]);
     const siblings = [];
     let node = heading.nextSibling;
@@ -593,13 +595,13 @@ function renderContent(html, icon, title, meta, query = '') {
       </div>`;
     const inner = document.getElementById('cpContentInner');
     inner.innerHTML = renderedHtml;
-    wrapCodeBlocks(inner);
-    wrapInlineCodes(inner);
+    try { wrapCodeBlocks(inner); } catch (_) {}
+    try { wrapInlineCodes(inner); } catch (_) {}
     makeCollapsible(inner);
   } else {
     el.innerHTML = renderedHtml;
-    wrapCodeBlocks(el);
-    wrapInlineCodes(el);
+    try { wrapCodeBlocks(el); } catch (_) {}
+    try { wrapInlineCodes(el); } catch (_) {}
     makeCollapsible(el);
   }
 

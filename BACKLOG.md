@@ -26,10 +26,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Exploration Target:** Locate the KB side-card component file and look at how the search input handles matching strings.
   - **Expected Behavior:** Inputting a text string should search the active file context, scroll to the match, and dynamically wrap matching characters in a green highlight background within both the editor or the preview panel.
 
-- [ ] **P1-05: Fix Header Minimization in Full Preview**
+- [x] **P1-05: Fix Header Minimization in Full Preview**
   - **Problem:** Collapsing/minimizing `###` markdown headers fails specifically when viewing the KB card in the full preview pane. Paradoxically, this feature works correctly when the Split View (editor + preview side-by-side) is active.
   - **Exploration Target:** Scan the UI toggle state code and markdown engine settings for the full preview view vs. split-pane view.
   - **Expected Behavior:** Header toggle click listeners should fire uniformly across all layout screens, enabling code-folding/header minimization on `###` structures in full preview mode.
+  - **Resolution:** Fixed incorrect `renderContent` call signature in `note-editor.js:434` that passed an object instead of individual parameters. Added defensive try/catch around `wrapCodeBlocks` and `wrapInlineCodes` in `content-panel.js` to ensure `makeCollapsible` is always called. Made `makeCollapsible` idempotent by skipping headings that already have the `kb-heading-toggle` class.
 
 - [ ] **P1-06: Direct Engagement Note Creation from Services/Ports**
   - **Problem:** There is currently friction when documenting an active port/service. There needs to be a rapid trigger to spin up notes.
