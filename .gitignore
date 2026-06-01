@@ -11,8 +11,8 @@ example-note-templates.json
 .env
 
 # Personal Knowledge-base dir or symlinks
-knowledge_base/*
-/knowledge_base
+knowledge-base/*
+/knowledge-base
 
 # Workbenches
 *.workbench
@@ -25,3 +25,9 @@ node_modules/*
 *.vscode
 *.code-workspacex
 example-note-templates.json
+
+#OpenCode specifics
+.opencode/
+opencode.local.json
+opencode.json
+.agent_cache/
