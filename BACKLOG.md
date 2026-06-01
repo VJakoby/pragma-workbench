@@ -38,11 +38,6 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Implement a direct function button (e.g., next to "53/domain"), beside the left side of the "Edit" button on each nmap row finding to immediately initializes a fresh Engagement Note tied to that exact target port context.
   - **Resolution:** Added `createNoteForService()` function in `public/app/quick-log.js` that creates a 'recon' type engagement note with service context header (port, protocol, service name, version, target IP/domain) followed by simplified `## Enumeration` and `## Exploitation` sections with proper spacing (2 blank lines after horizontal rule). Added document icon button to service rows in `renderQuickLogRowActions()` that appears before the Edit button. Widened actions column from 84px to 110px in `public/app/styles.css` to accommodate the third button. Notes are automatically opened for editing after creation and linked to the correct session and target. Added duplicate detection to prevent creating multiple notes for the same service (shows orange warning toast if note already exists). Extended `showToast()` in `public/app/timeline.js` to support 'warn' type with orange background color.
 
-- [ ] **P1-07: 'Convert Port to TODO' Fast Trigger**
-  - **Problem:** Need an efficient way to track actionable items directly from discovery logs.
-  - **Exploration Target:** Quick Log view and Ports summary component files.
-  - **Expected Behavior:** Introduce a clickable action item/button next to discovered ports that immediately translates that item into a structured "TODO item" inside the Quick Log/Ports tracker layout.
-
 - [x] **P1-08: Code block Preview Contrast Adjustment**
   - **Problem:** Code block formatting within the Markdown preview is difficult to distinguish.
   - **Exploration Target:** CSS style definitions or Markdown renderer component overrides for `<code>` or `<pre>` elements.
@@ -117,3 +112,8 @@ These are long-term performance items, layout experiments, and branch updates.
 - [ ] **P3-05: Clickable Checkboxes in KB Side-Views**
   - **Description:** Markdown checkboxes (e.g., `- [ ]`) inside the preview render layer are only interactive within Engagement Notes. They are completely static and locked when viewed within the KB sidebar panel.
   - **Expected Behavior:** Extend the interactive toggle handler logic to the KB sidebar views so checking/unchecking a checkbox updates the underlying markdown payload.
+
+- [ ] **P3-06: 'Convert Port to TODO' Fast Trigger**
+  - **Problem:** Need an efficient way to track actionable items directly from discovery logs.
+  - **Exploration Target:** Quick Log view and Ports summary component files.
+  - **Expected Behavior:** Introduce a clickable action item/button next to discovered ports that immediately translates that item into a structured "TODO item" inside the Quick Log/Ports tracker layout.
