@@ -17,6 +17,7 @@ function registerKbRoutes(app, deps) {
     normalizeKbFilename,
     safeCategoryPath,
     normalizeFolderName,
+    unifiedSearchIndex,
   } = deps;
 
   function getServiceCategoryRoots() {
@@ -128,6 +129,14 @@ function registerKbRoutes(app, deps) {
         }))
       ),
     ];
+    res.json({ total: items.length, items });
+  });
+
+  app.get('/api/unified-search-index', (req, res) => {
+    if (!unifiedSearchIndex) {
+      return res.status(503).json({ error: 'Unified search index not available' });
+    }
+    const items = unifiedSearchIndex.getIndexData();
     res.json({ total: items.length, items });
   });
 

@@ -54,9 +54,10 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Sanitize the text input before rendering to prevent identical consecutive emojis, or strip the hardcoded components if dynamic matching is running.
   - **Resolution:** Modified `extractTitle()` in `server/lib/kb-index.js` to strip leading emojis from extracted H1 headings using Unicode regex pattern. KB cards now render `${icon} ${cleanName}` without duplicates (e.g., `🔐 HTTPS Configuration` instead of `🔐 🔐 HTTPS Configuration`). Icon metadata in PORT_MAP/SLUG_MAP/TACTICS_ICONS preserved for use in engagement note creation.
 
-- [ ] **P1-10: Local Indexing & KB Deep-Search**
+- [x] **P1-10: Local Indexing & KB Deep-Search**
   - **Description:** The master Search Command window parses strings inside active Engagement Notes, but completely skips text hidden deeper inside local KB files.
   - **Expected Behavior:** Implement a lightweight background system indexer that triggers file-system reads upon code changes, allowing the search controller to look inside both note folders and KB files for global keyword hits.
+  - **Resolution:** Created `server/lib/unified-search-index.js` with chokidar file watcher that monitors KB directories and session storage, automatically rebuilding a unified Fuse.js index on file changes. Added `/api/unified-search-index` endpoint in `server/routes/kb.js`. Updated command palette in `public/app/app.js` to fetch and search the unified index, providing cross-domain search across KB services, tactics, root sections, and engagement notes with type badges and contextual snippets.
 
 ---
 
