@@ -48,10 +48,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Update style configurations to render inline code snippets or code blocks with an explicit red or blue subtle background tint to make them visually pop against standard text.
   - **Resolution:** Updated `.code-block-wrap pre` styles in `public/app/styles.css` to add subtle blue background tint (`rgba(96,165,250,0.08)` dark / `rgba(37,99,235,0.06)` light) and matching blue borders for improved visual distinction from surrounding markdown text.
 
-- [ ] **P1-09: Resolve Duplicate Emojis**
+- [x] **P1-09: Resolve Duplicate Emojis**
   - **Problem:** Document headers are displaying duplicate emojis. This is highly likely caused by a mix of emojis hard-coded into the files clashing with dynamic values appended by your rendering logic.
   - **Exploration Target:** Look over the document generation scripts and header renderer templates.
   - **Expected Behavior:** Sanitize the text input before rendering to prevent identical consecutive emojis, or strip the hardcoded components if dynamic matching is running.
+  - **Resolution:** Modified `extractTitle()` in `server/lib/kb-index.js` to strip leading emojis from extracted H1 headings using Unicode regex pattern. KB cards now render `${icon} ${cleanName}` without duplicates (e.g., `🔐 HTTPS Configuration` instead of `🔐 🔐 HTTPS Configuration`). Icon metadata in PORT_MAP/SLUG_MAP/TACTICS_ICONS preserved for use in engagement note creation.
 
 - [ ] **P1-10: Local Indexing & KB Deep-Search**
   - **Description:** The master Search Command window parses strings inside active Engagement Notes, but completely skips text hidden deeper inside local KB files.
