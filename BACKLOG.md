@@ -42,10 +42,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Exploration Target:** Quick Log view and Ports summary component files.
   - **Expected Behavior:** Introduce a clickable action item/button next to discovered ports that immediately translates that item into a structured "TODO item" inside the Quick Log/Ports tracker layout.
 
-- [ ] **P1-08: Code block Preview Contrast Adjustment**
+- [x] **P1-08: Code block Preview Contrast Adjustment**
   - **Problem:** Code block formatting within the Markdown preview is difficult to distinguish.
   - **Exploration Target:** CSS style definitions or Markdown renderer component overrides for `<code>` or `<pre>` elements.
   - **Expected Behavior:** Update style configurations to render inline code snippets or code blocks with an explicit red or blue subtle background tint to make them visually pop against standard text.
+  - **Resolution:** Updated `.code-block-wrap pre` styles in `public/app/styles.css` to add subtle blue background tint (`rgba(96,165,250,0.08)` dark / `rgba(37,99,235,0.06)` light) and matching blue borders for improved visual distinction from surrounding markdown text.
 
 - [ ] **P1-09: Resolve Duplicate Emojis**
   - **Problem:** Document headers are displaying duplicate emojis. This is highly likely caused by a mix of emojis hard-coded into the files clashing with dynamic values appended by your rendering logic.
