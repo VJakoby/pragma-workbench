@@ -68,23 +68,32 @@ These are secondary enhancements, integrations, and new functional additions.
   - **Description:** Implement custom syntax parsing for linking specific target notes within the active operational session context.
   - **Expected Syntax:** Passing `[en:target:note-header]` inside an entry should render as a live clickable link that navigates directly to the Engagement Note titled "Priv-Esc" matching the active target context.
 
-- [ ] **P2-03: Port Summary Dashboard Context Linking**
+- [ ] **P2-03: Sidebar Attachment Storage Manager**
+  - **Description:** Implement a dedicated "Storage / Attachments" menu section in the sidebar to monitor all uploaded files. The application must scan and categorize attachments into two states:
+    - **Used:** The attachment has at least one active reference or mention in any document.
+    - **Unused:** No document contains a reference to the attachment filename.
+  - **UI Requirements:**
+    - Each attachment item must display its file name on its own row.
+    - **Unused Rows:** Show a compact delete button alongside the name to permanently remove the orphan file from storage.
+    - **Used Rows:** Show a custom "jump to usage" arrow icon button, matching the existing `.svc-del-btn.ql-row-edit-btn` design style. Clicking this button must immediately trigger a view switch, loading the corresponding note directly into the main editor workspace.
+
+- [ ] **P2-04: Port Summary Dashboard Context Linking**
   - **Description:** Connect imported log data cleanly to your documentation vault.
   - **Expected Behavior:** When an operator parses raw NMAP results into the Quick Log screen, clicking a listed active asset line (like `22/ssh`) must instantly open the matching KB markdown profile in the sidecard pane, mapping directly to `knowledge-base/services/<service-name/port.md>`.
 
-- [ ] **P2-04: Target/Session Context Swapping Interface**
+- [ ] **P2-05: Target/Session Context Swapping Interface**
   - **Description:** The process for jumping between different infrastructure targets or global engagement sessions is clunky and requires too many actions.
   - **Expected Behavior:** Create a clean, streamlined navbar switcher or workspace menu layer to pivot seamlessly between global sessions and independent local targets with minimal clicks.
 
-- [ ] **P2-05: Port Summary Dashboard Component**
+- [ ] **P2-06: Port Summary Dashboard Component**
   - **Description:** Provide at-a-glance visibility over the structural footprint of a target box.
   - **Expected Behavior:** Add a dedicated, highly scannable Port Summary box/grid component into an open layout space on the primary user dashboard, dynamically mapping all discovered assets (e.g. from parsed NMAP inputs).
 
-- [ ] **P2-06: Welcome & Session Selector Modal**
+- [ ] **P2-07: Welcome & Session Selector Modal**
   - **Description:** The entry screen needs a guided modal on initialization to handle workspace routing.
   - **Expected Behavior:** Build a user onboarding modal popup on page boot titled *"Welcome to PRAGMA"*. Provide distinct dashboard navigation routes: create a fresh engagement directory, or select and mount an existing history log from an asset dropdown menu.
 
-- [ ] **P2-07: Markdown Engine Migration (Remark / Markdown-it)**
+- [ ] **P2-08: Markdown Engine Migration (Remark / Markdown-it)**
   - **Description:** The current standard markdown rendering package lacks flexibility and drops layout parameters.
   - **Expected Behavior:** Strip out the legacy package and replace it with a modern setup using either `remark` or `markdown-it` to support a richer set of extended markdown syntax attributes.
 
