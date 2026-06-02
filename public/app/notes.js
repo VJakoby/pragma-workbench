@@ -595,8 +595,6 @@ function closeNewNoteModal() {
   resetNewNoteModalState();
 }
 
-function closeNewNoteModalIfOutside(e) { if (e.target === document.getElementById('newNoteOverlay')) closeNewNoteModal(); }
-
 async function renderNewNotePreview(type) {
   const wrap = document.getElementById('newNotePreviewWrap');
   const content = document.getElementById('newNotePreviewContent');
@@ -1279,8 +1277,10 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', 
     const lootNoteEl = document.getElementById('evidenceFlagLootNote');
     const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
     if (titleEl) {
+      const suggestedTitle = deriveEvidenceTitleHint(command || details, type);
       titleEl.value = title;
-      titleEl.placeholder = `${deriveEvidenceTitleHint(command || details, type)}…`;
+      titleEl.placeholder = `${suggestedTitle}…`;
+      titleEl.dataset.defaultTitle = suggestedTitle;
     }
     if (typeEl) typeEl.value = type;
     if (detailsEl) detailsEl.value = details;
@@ -1313,12 +1313,13 @@ function cancelEvidenceFlagDialog() {
 }
 
 function confirmEvidenceFlagDialog() {
-  const title = (document.getElementById('evidenceFlagTitle')?.value || '').trim();
+  const titleEl = document.getElementById('evidenceFlagTitle');
+  const title = (titleEl?.value || '').trim() || (titleEl?.dataset.defaultTitle || '').trim();
   const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
   const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
   const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
   if (!title) {
-    document.getElementById('evidenceFlagTitle')?.focus();
+    titleEl?.focus();
     return;
   }
   let loot = null;

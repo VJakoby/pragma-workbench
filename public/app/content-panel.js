@@ -71,8 +71,15 @@ function updateContentPanelSearchCount() {
   const countEl = document.getElementById('cpSearchCount');
   const prevBtn = document.getElementById('cpSearchPrevBtn');
   const nextBtn = document.getElementById('cpSearchNextBtn');
-  const total = contentPanelSearchState.matches.length;
-  const active = total ? contentPanelSearchState.activeIndex + 1 : 0;
+  
+  let total;
+  if (isKbEditModeOpen() && kbEditor && typeof getKbEditorSearchCount === 'function') {
+    total = getKbEditorSearchCount();
+  } else {
+    total = contentPanelSearchState.matches.length;
+  }
+  
+  const active = total ? 1 : 0;
   if (countEl) countEl.textContent = total ? `${active} / ${total}` : '0';
   if (prevBtn) prevBtn.disabled = total === 0;
   if (nextBtn) nextBtn.disabled = total === 0;
@@ -137,6 +144,13 @@ function applyContentPanelSearch() {
     updateContentPanelSearchCount();
     return;
   }
+  
+  if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+    searchInKbEditor(query);
+    updateContentPanelSearchCount();
+    return;
+  }
+  
   contentPanelSearchState.matches = collectContentPanelSearchMatches(query);
   contentPanelSearchState.activeIndex = contentPanelSearchState.matches.length ? 0 : -1;
   scrollToActiveContentPanelSearchMatch();
@@ -152,6 +166,9 @@ function setContentPanelSearchVisible(visible) {
     contentPanelSearchState.matches = [];
     contentPanelSearchState.activeIndex = -1;
     clearContentPanelSearchMarks();
+    if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+      searchInKbEditor('');
+    }
   }
   updateContentPanelSearchCount();
 }
@@ -162,6 +179,15 @@ function updateContentPanelSearch() {
 }
 
 function stepContentPanelSearch(direction = 1) {
+  if (isKbEditModeOpen() && kbEditor && CM?.findNext && CM?.findPrevious) {
+    if (direction > 0) {
+      CM.findNext(kbEditor);
+    } else {
+      CM.findPrevious(kbEditor);
+    }
+    return;
+  }
+  
   const total = contentPanelSearchState.matches.length;
   if (!total) return;
   contentPanelSearchState.activeIndex = (contentPanelSearchState.activeIndex + direction + total) % total;
@@ -208,11 +234,20 @@ function goBackContentPanel() {
 }
 
 function injectTargets(rawHtml, opts = {}) {
-  const ip     = esc(getIP());
-  const domain = esc(getDomain());
-  const label  = esc(getTargetLabelValue());
-  const attacker = esc(getAttackerIP());
+  const rawIp = getIP();
+  const rawDomain = getDomain();
+  const rawLabel = getTargetLabelValue();
+  const rawAttacker = getAttackerIP();
+  const ipSet = rawIp !== '<IP>';
+  const domainSet = rawDomain !== '<DOMAIN>';
+  const labelSet = rawLabel !== '<LABEL>';
+  const attackerSet = rawAttacker !== '<ATTACKER-IP>';
+  const ip     = esc(rawIp);
+  const domain = esc(rawDomain);
+  const label  = esc(rawLabel);
+  const attacker = esc(rawAttacker);
   const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
+  const unsetBadge = (text) => `<span class="ip-injected ip-injected-unset">${text}</span>`;
   const matcherFactory = globalThis.PRAGMA_PLACEHOLDERS?.getPlaceholderMatchers;
   if (typeof matcherFactory !== 'function') return rawHtml;
   const {
@@ -225,17 +260,27 @@ function injectTargets(rawHtml, opts = {}) {
     includeBare: opts.includeBare === true,
   });
 
+  function combinePatterns(patterns) {
+    const source = patterns.map(p => '(?:' + p.source + ')').join('|');
+    return new RegExp(source, 'gi');
+  }
+
+  const ipCombined = combinePatterns(ipPatterns);
+  const domainCombined = combinePatterns(domainPatterns);
+  const labelCombined = combinePatterns(labelPatterns);
+  const attackerCombined = combinePatterns(attackerPatterns);
+
   let out = rawHtml;
-  for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
-  for (const p of domainPatterns) out = out.replace(p, span(domain, 'ip-injected ip-injected-domain'));
-  for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
-  for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
+  out = out.replace(ipCombined, ipSet ? span(ip, 'ip-injected ip-injected-ip') : unsetBadge('[IP NOT SET]'));
+  out = out.replace(domainCombined, domainSet ? span(domain, 'ip-injected ip-injected-domain') : unsetBadge('[DOMAIN NOT SET]'));
+  out = out.replace(labelCombined, labelSet ? span(label, 'ip-injected ip-injected-label') : unsetBadge('[LABEL NOT SET]'));
+  out = out.replace(attackerCombined, attackerSet ? span(attacker, 'ip-injected ip-injected-attacker') : unsetBadge('[ATTACKER NOT SET]'));
 
   return out;
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  return injectTargets(esc(rawLine), { includeBare: true });
+  return injectTargets(esc(rawLine));
 }
 
 function copyIconSvg() {
@@ -271,7 +316,7 @@ function wrapCodeBlocks(container) {
       codeEl.textContent = rawText;
       delete codeEl.dataset.hljsDone;
       highlightCodeBlock(codeEl);
-      codeEl.innerHTML = injectTargets(codeEl.innerHTML, { includeBare: true });
+      codeEl.innerHTML = injectTargets(codeEl.innerHTML);
 
       if (!copyBtn) {
         copyBtn = document.createElement('button');
@@ -334,7 +379,7 @@ function wrapInlineCodes(container) {
     if (el.dataset.inlineWrapped) return;
     el.dataset.inlineWrapped = '1';
 
-    el.innerHTML = injectTargets(el.innerHTML, { includeBare: true });
+    el.innerHTML = injectTargets(el.innerHTML);
     el.style.cursor = 'pointer';
     el.title = 'Click to copy';
 
@@ -531,6 +576,8 @@ function makeCollapsible(container) {
   if (!headings.length) return;
 
   headings.forEach(heading => {
+    if (heading.classList.contains('kb-heading-toggle')) return;
+
     const level = parseInt(heading.tagName[1]);
     const siblings = [];
     let node = heading.nextSibling;
@@ -574,13 +621,13 @@ function renderContent(html, icon, title, meta, query = '') {
       </div>`;
     const inner = document.getElementById('cpContentInner');
     inner.innerHTML = renderedHtml;
-    wrapCodeBlocks(inner);
-    wrapInlineCodes(inner);
+    try { wrapCodeBlocks(inner); } catch (_) {}
+    try { wrapInlineCodes(inner); } catch (_) {}
     makeCollapsible(inner);
   } else {
     el.innerHTML = renderedHtml;
-    wrapCodeBlocks(el);
-    wrapInlineCodes(el);
+    try { wrapCodeBlocks(el); } catch (_) {}
+    try { wrapInlineCodes(el); } catch (_) {}
     makeCollapsible(el);
   }
 

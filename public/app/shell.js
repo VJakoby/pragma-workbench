@@ -419,10 +419,16 @@ document.addEventListener('keydown', async e => {
   if (e.key === 'Escape') {
     if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
+    if (document.getElementById('pwOverlay')?.classList.contains('open')) { pwCancel(); return; }
+    if (document.getElementById('evidenceFlagOverlay')?.classList.contains('open')) { cancelEvidenceFlagDialog(); return; }
+    if (document.getElementById('targetEditOverlay')?.classList.contains('open')) { _targetEditCancel(); return; }
+    if (document.getElementById('sessionRenameOverlay')?.classList.contains('open')) { _sessionRenameCancel(); return; }
+    if (document.getElementById('kbCreateOverlay')?.classList.contains('open')) { closeKbCreateModal(); return; }
     const reassignDropdown = document.getElementById('noteReassignDropdown');
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
     const targetAssignDropdown = document.getElementById('noteTargetAssignDropdown');
     if (targetAssignDropdown?.classList.contains('open')) { targetAssignDropdown.classList.remove('open'); return; }
+    if (document.getElementById('evidencePopover')?.classList.contains('open')) { closeEvidencePopover(); return; }
     if (document.getElementById('todoPopover')?.classList.contains('open')) { closeTodoPopover(); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }

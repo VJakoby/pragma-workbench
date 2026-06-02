@@ -29,7 +29,12 @@ var CM = (() => {
     keymap: () => keymap,
     markdown: () => markdown,
     syntaxHighlighting: () => syntaxHighlighting,
-    tags: () => tags
+    tags: () => tags,
+    setSearchQuery: () => setSearchQuery,
+    findNext: () => findNext,
+    findPrevious: () => findPrevious,
+    SearchQuery: () => SearchQuery,
+    searchState: () => searchState
   });
 
   // node_modules/@marijn/find-cluster-break/src/index.js

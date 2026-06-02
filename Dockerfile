@@ -25,8 +25,8 @@ COPY --chown=node:node public ./public
 COPY --chown=node:node views ./views
 COPY --chown=node:node server.js ./server.js
 COPY --chown=node:node note-templates.json ./note-templates.json
-RUN mkdir -p /usr/src/app/knowledge_base /usr/src/app/sessions \
-    && chown node:node /usr/src/app/knowledge_base /usr/src/app/sessions
+RUN mkdir -p /usr/src/app/knowledge-base /usr/src/app/sessions \
+    && chown node:node /usr/src/app/knowledge-base /usr/src/app/sessions
 
 USER node
 EXPOSE 3000

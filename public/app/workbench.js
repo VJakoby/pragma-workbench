@@ -5,7 +5,7 @@ const TEMPLATES_PATH = '/api/templates';
 
 const BLANK_NOTE_META = {
   label: 'Blank',
-  icon: '📄',
+  icon: '📋',
   cssClass: 'note-type-scratch',
 };
 
@@ -633,7 +633,6 @@ function openSessionModal() {
 }
 
 function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
-function closeSessionModalIfOutside(e) { if (e.target === document.getElementById('sessionOverlay')) closeSessionModal(); }
 
 function renderSessionList() {
   const list = document.getElementById('sessionList');

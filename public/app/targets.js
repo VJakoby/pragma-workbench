@@ -107,10 +107,6 @@ function closeTargetsPanel() {
   document.getElementById('targetsOverlay').classList.remove('open');
 }
 
-function closeTargetsPanelIfOutside(e) {
-  if (e.target === document.getElementById('targetsOverlay')) closeTargetsPanel();
-}
-
 function renderTargetsList() {
   const list = document.getElementById('targetsList');
   const sess = activeSessionId && sessions[activeSessionId];

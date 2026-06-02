@@ -25,6 +25,7 @@ const { marked } = require('marked');
 const { createPaths } = require('./config/paths');
 const { sanitizeRenderedHtml } = require('./lib/html-sanitize');
 const { createKbIndex } = require('./lib/kb-index');
+const { createUnifiedSearchIndex } = require('./lib/unified-search-index');
 const { runStartupIntegrityCheck } = require('./lib/startup-check');
 const { createWorkbenchStorage } = require('./lib/workbench-storage');
 const { registerKbRoutes } = require('./routes/kb');
@@ -62,6 +63,13 @@ const normalizeKbFilename = kbIndex.normalizeKbFilename;
 const safeCategoryPath = kbIndex.safeCategoryPath;
 const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
+const unifiedSearchIndex = createUnifiedSearchIndex({
+  kbDir: KB_DIR,
+  servicesDir: SERVICES_DIR,
+  tacticsDir: TACTICS_DIR,
+  sessionsDir: SESSIONS_DIR,
+  storage,
+});
 
 marked.setOptions({ gfm: true, breaks: false });
 function preprocessImageResizeMarkdown(markdown) {
@@ -153,6 +161,7 @@ registerKbRoutes(app, {
   normalizeKbFilename,
   safeCategoryPath,
   normalizeFolderName,
+  unifiedSearchIndex,
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });

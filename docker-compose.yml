@@ -11,16 +11,23 @@ services:
       - "127.0.0.1:3000:3000"                               # App only accessible from local machine
     volumes:
       # Format: [Host Path]:[Container Path]
-      - ${PRAGMA_KB_PATH:-./knowledge_base}:/usr/src/app/knowledge_base   # Link local KB folder to the container's app path
+      - ./server:/usr/src/app/server                                 # Use checked-out backend code without rebuilding the image
+      - ./public:/usr/src/app/public                                 # Use checked-out frontend assets without rebuilding the image
+      - ./views:/usr/src/app/views                                   # Use checked-out EJS templates without rebuilding the image
+      - ./server.js:/usr/src/app/server.js                           # Keep the runtime entrypoint aligned with the current checkout
+      - ./note-templates.json:/usr/src/app/note-templates.json       # Keep checked-in templates aligned with the current checkout
+      - ${PRAGMA_KB_PATH:-./knowledge-base}:/usr/src/app/knowledge-base   # Link local KB folder to the container's app path
       - ${PRAGMA_SESSIONS_PATH:-./sessions}:/usr/src/app/sessions         # Keeps session data alive even if the container is deleted
     environment:
       # IMPORTANT: These must point to the 'Container Path' defined in the volumes above.
       - HOST=0.0.0.0                                         # Container must bind all interfaces so published port 127.0.0.1:3000 works from the host
-      - KB_DIR=/usr/src/app/knowledge_base                   # The root directory for your Knowledge Base
+      - KB_DIR=/usr/src/app/knowledge-base                   # The root directory for your Knowledge Base
       - SESSIONS_DIR=/usr/src/app/sessions                   # Where the app stores active/saved session state
-      - SEARCH_URL=http://engram:3002                        # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
-      - TOOLBOX_ENABLED=false                                # Enable the optional PRAGMA // Toolbox integration only when it is deployed for this PRAGMA instance
-      - TOOLBOX_URL=http://host.docker.internal:3003         # PRAGMA // Toolbox is expected to run outside this compose stack and be reachable from the PRAGMA container when TOOLBOX_ENABLED=true
+      - SEARCH_URL=${SEARCH_URL:-http://engram:3002}         # ENGRAM is external to this compose file and must already be reachable on pragma-net as 'engram:3002'
+      - ENGRAM_SEARCH_ENABLED=${ENGRAM_SEARCH_ENABLED:-true} # Toggle the ENGRAM search UI and proxy routes
+      - TOOLBOX_ENABLED=${TOOLBOX_ENABLED:-false}            # Enable the optional PRAGMA // Toolbox integration only when it is deployed for this PRAGMA instance
+      - TOOLBOX_URL=${TOOLBOX_URL:-http://host.docker.internal:3003} # PRAGMA // Toolbox is expected to run outside this compose stack and be reachable from the PRAGMA container when TOOLBOX_ENABLED=true
+      - TOOLBOX_URLS=${TOOLBOX_URLS:-http://host.docker.internal:3003} # Optional fallback Toolbox URLs tried in order
       - PDF_EXPORT_ENABLED=${PDF_EXPORT_ENABLED:-true}      # Runtime choice: false disables PDF export and should be paired with a rebuild to omit Chromium
     restart: unless-stopped
     networks:

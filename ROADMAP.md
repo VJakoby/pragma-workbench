@@ -1,5 +1,83 @@
 # Roadmap
 
+## Future Direction: Local AI Integration
+
+One plausible future direction for PRAGMA is optional integration with a local AI runtime such as Ollama, or another self-hosted model provider running on the operator's machine or local network.
+
+Local AI should be the preferred choice.
+
+PRAGMA is intended for close, local pentest workflow support. That makes it a poor fit for shipping operational context, notes, targets, or knowledge material to cloud-hosted AI services by default.
+
+The important constraint is that this should strengthen the local-first model of the application, not weaken it.
+
+If this is pursued, the design should follow a few hard rules:
+
+- AI features must be optional
+- local model providers should be the default and preferred choice
+- cloud-hosted AI integrations should be treated as secondary, explicit, and avoidable
+- notes, targets, sessions, and knowledge data should stay under operator control
+- the core workflow should remain usable with AI fully disabled
+- model access should be explicit, bounded, and easy to inspect
+
+The role of a local model in PRAGMA should be assistive rather than authoritative, with the primary focus on the local knowledge base.
+
+A strong future use-case would be a workflow where the operator asks a question in natural language, the local AI consults both the configured model and the operator's local knowledge base, and then suggests what to do next based on the available context and findings.
+
+Good uses would include:
+
+- querying the local knowledge base in natural language
+- combining retrieved KB context with model reasoning to suggest likely next steps
+- surfacing relevant prior notes, patterns, checklists, or techniques from local material
+- helping the operator decide what to verify next based on what is already documented
+
+The wrong direction would be turning PRAGMA into an "AI agent" that acts independently, creates or rewrites notes on its own, modifies important engagement data without review, or hides core logic behind opaque prompting.
+
+### Suggested Integration Shape
+
+If implemented, local AI support should likely be introduced as a thin provider layer with support for:
+
+- Ollama
+- OpenAI-compatible local servers
+- other self-hosted runtimes with a stable HTTP API
+
+That integration should be narrow and predictable:
+
+- configurable model endpoint per workspace or installation
+- explicit feature toggles for each AI-assisted workflow
+- prompt and context boundaries defined in code
+- retrieval grounded in the local knowledge base rather than free-form generation alone
+- clear visibility into which KB entries informed a suggestion
+- graceful fallback when no model is configured or available
+
+### Where It Fits
+
+Local AI makes sense when it helps the operator interpret and use information already stored in the knowledge base.
+
+It does not make sense as a replacement for:
+
+- note-taking
+- evidence review
+- target management
+- operator judgment
+
+The best version of this feature would reduce friction in searching local engagement material, connecting relevant internal knowledge, and suggesting sensible follow-up actions while preserving PRAGMA's core identity:
+
+- local-first
+- operator-controlled
+- transparent
+- workflow-focused
+
+### Implementation Readiness
+
+The first practical use-case for local AI in PRAGMA should be narrow and grounded in the local knowledge base.
+
+That workflow would look like this:
+
+- the user asks a question
+- PRAGMA retrieves relevant context from the local knowledge base and the knowledge that the local model have.
+- the local model uses that context to suggest sensible next steps
+- the operator reviews and decides what to do
+
 ## Explicit Non-Goals
 
 Not every useful feature belongs in PRAGMA.

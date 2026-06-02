@@ -5,15 +5,61 @@
 // ═══════════════════════════════════════════════
 let cmdKbIndex = null;
 let cmdKbIndexPromise = null;
+let cmdUnifiedIndex = null;
+let cmdUnifiedIndexPromise = null;
 let cmdBuildSeq = 0;
 
-function openCmd() {
+const CMD_RECENT_SEARCHES_KEY = 'pragma-cmd-recent-searches';
+const CMD_RECENT_SEARCHES_MAX = 5;
+
+function getRecentSearches() {
+  try {
+    const stored = localStorage.getItem(CMD_RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveRecentSearch(query) {
+  const q = String(query || '').trim();
+  if (!q || q.length < 2) return;
+  const recent = getRecentSearches().filter(s => s !== q);
+  recent.unshift(q);
+  try {
+    localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, CMD_RECENT_SEARCHES_MAX)));
+  } catch (_) {}
+}
+
+function clearRecentSearch(query) {
+  const recent = getRecentSearches().filter(s => s !== query);
+  try {
+    localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent));
+  } catch (_) {}
+  buildCmdResults('');
+}
+
+function clearAllRecentSearches() {
+  try {
+    localStorage.removeItem(CMD_RECENT_SEARCHES_KEY);
+  } catch (_) {}
+  buildCmdResults('');
+}
+
+async function openCmd() {
   const overlay = document.getElementById('cmdOverlay');
   const input = document.getElementById('cmdInput');
   overlay.classList.add('open');
   overlay.classList.remove('cmd-has-query');
   input.value = '';
   cmdSelected = -1;
+  
+  try {
+    await ensureUnifiedSearchIndex();
+  } catch (err) {
+    console.warn('[PRAGMA] unified search index unavailable:', err?.message || err);
+  }
+  
   buildCmdResults('');
   setTimeout(() => input.focus(), 30);
 }
@@ -88,6 +134,26 @@ async function ensureCommandPaletteKbIndex() {
   return cmdKbIndexPromise;
 }
 
+async function ensureUnifiedSearchIndex() {
+  if (Array.isArray(cmdUnifiedIndex)) return cmdUnifiedIndex;
+  if (!cmdUnifiedIndexPromise) {
+    cmdUnifiedIndexPromise = fetch('/api/unified-search-index')
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || 'Could not load unified search index');
+        }
+        cmdUnifiedIndex = Array.isArray(data?.items) ? data.items : [];
+        return cmdUnifiedIndex;
+      })
+      .catch(err => {
+        cmdUnifiedIndexPromise = null;
+        throw err;
+      });
+  }
+  return cmdUnifiedIndexPromise;
+}
+
 function buildCommandPaletteKbSnippet(entry, query) {
   const q = String(query || '').trim().toLowerCase();
   const body = String(entry?.content || '').replace(/\s+/g, ' ').trim();
@@ -129,10 +195,6 @@ function closeCmd() {
   const overlay = document.getElementById('cmdOverlay');
   overlay.classList.remove('open', 'cmd-has-query');
   cmdSelected = 0; cmdItems = [];
-}
-
-function closeCmdIfOutside(e) {
-  if (e.target === document.getElementById('cmdOverlay')) closeCmd();
 }
 
 const TOOLTIP_TARGET_SELECTOR = [
@@ -291,153 +353,393 @@ async function buildCmdResults(q) {
 
   if (ql.length >= 2) {
     try {
+      await ensureUnifiedSearchIndex();
+    } catch (err) {
+      console.warn('[PRAGMA] unified search index unavailable:', err?.message || err);
+    }
+    if (seq !== cmdBuildSeq) return;
+  }
+
+  if (ql.length >= 2 && Array.isArray(cmdUnifiedIndex)) {
+    const matches = cmdUnifiedIndex
+      .map(item => {
+        const title = String(item.title || '').toLowerCase();
+        const description = String(item.description || '').toLowerCase();
+        const content = String(item.content || '').toLowerCase();
+        const tags = Array.isArray(item.metadata?.tags) ? item.metadata.tags.join(' ').toLowerCase() : '';
+        const category = String(item.metadata?.category || '').toLowerCase();
+        
+        const titleIdx = title.indexOf(ql);
+        const descIdx = description.indexOf(ql);
+        const contentIdx = content.indexOf(ql);
+        const tagIdx = tags.indexOf(ql);
+        const catIdx = category.indexOf(ql);
+        
+        if (titleIdx === -1 && descIdx === -1 && contentIdx === -1 && tagIdx === -1 && catIdx === -1) {
+          return null;
+        }
+        
+        const score = 
+          (titleIdx === 0 ? 100 : titleIdx > -1 ? 70 : 0) +
+          (descIdx === 0 ? 60 : descIdx > -1 ? 40 : 0) +
+          (tagIdx > -1 ? 50 : 0) +
+          (catIdx > -1 ? 30 : 0) +
+          (contentIdx > -1 ? 20 : 0);
+        
+        return { item, score };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15);
+
+    const grouped = {
+      'kb-service': [],
+      'kb-tactic': [],
+      'kb-section': [],
+      'note': [],
+    };
+
+    matches.forEach(({ item }) => {
+      if (grouped[item.type]) {
+        grouped[item.type].push(item);
+      }
+    });
+
+    if (grouped['kb-service'].length) {
+      html += `<div class="cmd-group-hdr">Services</div>`;
+      grouped['kb-service'].forEach(item => {
+        const snippet = buildCommandPaletteKbSnippet({ content: item.content }, ql);
+        const metaParts = [esc(item.metadata?.category || 'Service')];
+        if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'service',
+          id: item.id.replace('kb-service-', ''),
+          label: item.title,
+          icon: ICONS.notes,
+          title: esc(stripLeadingEmoji(item.title)),
+          sub: metaParts.join(' · '),
+          tag: 'service',
+        });
+      });
+    }
+
+    if (grouped['kb-tactic'].length) {
+      html += `<div class="cmd-group-hdr">Tactics</div>`;
+      grouped['kb-tactic'].forEach(item => {
+        const snippet = buildCommandPaletteKbSnippet({ content: item.content }, ql);
+        const metaParts = [esc(item.metadata?.category || 'Tactic')];
+        if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'tactic',
+          id: item.id.replace('kb-tactic-', ''),
+          label: item.title,
+          icon: ICONS.guides,
+          title: esc(stripLeadingEmoji(item.title)),
+          sub: metaParts.join(' · '),
+          tag: 'tactic',
+        });
+      });
+    }
+
+    if (grouped['kb-section'].length) {
+      html += `<div class="cmd-group-hdr">KB Documents</div>`;
+      grouped['kb-section'].forEach(item => {
+        const snippet = buildCommandPaletteKbSnippet({ content: item.content }, ql);
+        const metaParts = [esc(item.metadata?.category || 'Knowledge')];
+        if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
+        if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'kbdoc',
+          id: item.id.replace('kb-section-', ''),
+          view: `kb:${item.metadata?.folder || ''}`,
+          label: item.title,
+          icon: folderDocIcon,
+          title: esc(stripLeadingEmoji(item.title)),
+          sub: metaParts.join(' · '),
+          tag: 'kb',
+        });
+      });
+    }
+
+    if (grouped['note'].length) {
+      html += `<div class="cmd-group-hdr">Engagement Notes</div>`;
+      grouped['note'].forEach(item => {
+        const sessionName = item.metadata?.session && sessions[item.metadata.session]?.codename
+          ? sessions[item.metadata.session].codename
+          : 'No session';
+        const snippet = buildNoteSearchSnippet({ body: item.content }, ql);
+        const subParts = [esc(sessionName)];
+        if (item.metadata?.tags?.length) subParts.push(`#${esc(item.metadata.tags[0])}`);
+        if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'note',
+          id: item.metadata?.noteId || item.id.replace('note-', ''),
+          label: item.title,
+          icon: noteIcon,
+          title: esc(item.title || 'Untitled'),
+          sub: subParts.join(' · '),
+          tag: 'note',
+        });
+      });
+    }
+  } else if (ql.length >= 2) {
+    try {
       await ensureCommandPaletteKbIndex();
     } catch (err) {
       console.warn('[PRAGMA] command palette KB index unavailable:', err?.message || err);
     }
     if (seq !== cmdBuildSeq) return;
-  }
 
-  const matchesService = (s) =>
-    !ql || s.name.toLowerCase().includes(ql) || (s.port || '').includes(ql) ||
-    (s.category || '').toLowerCase().includes(ql) || (s.folder || '').toLowerCase().includes(ql);
+    const matchesService = (s) =>
+      !ql || s.name.toLowerCase().includes(ql) || (s.port || '').includes(ql) ||
+      (s.category || '').toLowerCase().includes(ql) || (s.folder || '').toLowerCase().includes(ql);
 
-  // Services grouped by discovered KB folders first
-  const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
-  const knownFolders = new Set(folderCats.map(cat => cat.folder));
+    const folderCats = serviceCategoryMeta.filter(cat => cat.folder);
+    const knownFolders = new Set(folderCats.map(cat => cat.folder));
 
-  folderCats.forEach(cat => {
-    const matches = SERVICES
-      .filter(s => (s.folder || '') === cat.folder && matchesService(s))
-      .slice(0, 4);
-    html += `<div class="cmd-group-hdr">${esc(cat.label)}</div>`;
-    if (matches.length) {
-      matches.forEach(s => {
+    folderCats.forEach(cat => {
+      const matches = SERVICES
+        .filter(s => (s.folder || '') === cat.folder && matchesService(s))
+        .slice(0, 4);
+      html += `<div class="cmd-group-hdr">${esc(cat.label)}</div>`;
+      if (matches.length) {
+        matches.forEach(s => {
+          html += pushCmdItem({
+            type: 'service',
+            id: s.id,
+            label: s.name,
+            icon: s.icon || ICONS.notes,
+            title: esc(stripLeadingEmoji(s.name)),
+            sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || cat.label || '')}`,
+            tag: 'service',
+          });
+        });
+      } else {
+        html += renderCmdPlaceholder({
+          icon: folderDocIcon,
+          title: 'No matching documents',
+          sub: `Folder: ${esc(cat.label)}`,
+        });
+      }
+    });
+
+    const ungroupedServices = SERVICES
+      .filter(s => !knownFolders.has(s.folder || '') && matchesService(s))
+      .slice(0, 6);
+
+    if (ungroupedServices.length) {
+      html += `<div class="cmd-group-hdr">Services</div>`;
+      ungroupedServices.forEach(s => {
         html += pushCmdItem({
           type: 'service',
           id: s.id,
           label: s.name,
           icon: s.icon || ICONS.notes,
           title: esc(stripLeadingEmoji(s.name)),
-          sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || cat.label || '')}`,
+          sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || '')}`,
           tag: 'service',
         });
       });
-    } else {
-      html += renderCmdPlaceholder({
-        icon: folderDocIcon,
-        title: 'No matching documents',
-        sub: `Folder: ${esc(cat.label)}`,
+    }
+
+    const meths = TACTICS.filter(m =>
+      !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
+    ).slice(0, 5);
+
+    if (meths.length) {
+      html += `<div class="cmd-group-hdr">Tactics</div>`;
+      meths.forEach(m => {
+        html += pushCmdItem({
+          type: 'tactic',
+          id: m.id,
+          label: m.name,
+          icon: m.icon || ICONS.guides,
+          title: esc(stripLeadingEmoji(m.name)),
+          sub: esc(m.category || ''),
+          tag: 'tactic',
+        });
       });
     }
-  });
 
-  const ungroupedServices = SERVICES
-    .filter(s => !knownFolders.has(s.folder || '') && matchesService(s))
-    .slice(0, 6);
-
-  if (ungroupedServices.length) {
-    html += `<div class="cmd-group-hdr">Services</div>`;
-    ungroupedServices.forEach(s => {
-      html += pushCmdItem({
-        type: 'service',
-        id: s.id,
-        label: s.name,
-        icon: s.icon || ICONS.notes,
-        title: esc(stripLeadingEmoji(s.name)),
-        sub: `${esc(s.port || '')}${s.port ? ' · ' : ''}${esc(s.category || '')}`,
-        tag: 'service',
+    const kbDocHits = getCommandPaletteKbResults(ql)
+      .filter(({ entry }) => entry.type === 'knowledge');
+    if (kbDocHits.length) {
+      html += `<div class="cmd-group-hdr">KB Documents</div>`;
+      kbDocHits.forEach(({ entry, snippet }) => {
+        const scopeLabel = 'Knowledge';
+        const metaParts = [scopeLabel];
+        if (entry.category) metaParts.push(esc(entry.category));
+        if (entry.folder) metaParts.push(esc(entry.folder));
+        if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'kbdoc',
+          id: entry.id,
+          view: entry.view,
+          label: entry.name,
+          icon: entry.icon || folderDocIcon,
+          title: esc(stripLeadingEmoji(entry.name)),
+          sub: metaParts.join(' · '),
+          tag: entry.type === 'knowledge' ? 'kb' : entry.type,
+        });
       });
-    });
+    }
+
+    const noteList = ql
+      ? getCommandPaletteNoteResults(ql).slice(0, 5)
+      : [];
+
+    if (noteList.length) {
+      html += `<div class="cmd-group-hdr">Engagement Notes</div>`;
+      noteList.forEach(({ note: n, tagHit }) => {
+        const sessionName = n.session_id && sessions[n.session_id]?.codename
+          ? sessions[n.session_id].codename
+          : 'No session';
+        const snippet = buildNoteSearchSnippet(n, ql);
+        const subParts = [esc(sessionName)];
+        if (tagHit) subParts.push(`#${esc(tagHit)}`);
+        if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'note',
+          id: n.id,
+          label: n.title,
+          icon: noteIcon,
+          title: esc(n.title || 'Untitled'),
+          sub: subParts.join(' · '),
+          tag: 'note',
+        });
+      });
+    }
   }
 
-  // Tactics
-  const meths = TACTICS.filter(m =>
-    !ql || m.name.toLowerCase().includes(ql) || (m.category||'').toLowerCase().includes(ql)
-  ).slice(0, 5);
-
-  if (meths.length) {
-    html += `<div class="cmd-group-hdr">Tactics</div>`;
-    meths.forEach(m => {
-      html += pushCmdItem({
-        type: 'tactic',
-        id: m.id,
-        label: m.name,
-        icon: m.icon || ICONS.guides,
-        title: esc(stripLeadingEmoji(m.name)),
-        sub: esc(m.category || ''),
-        tag: 'tactic',
-      });
-    });
-  }
-
-  const kbDocHits = getCommandPaletteKbResults(ql)
-    .filter(({ entry }) => entry.type === 'knowledge');
-  if (kbDocHits.length) {
-    html += `<div class="cmd-group-hdr">KB Documents</div>`;
-    kbDocHits.forEach(({ entry, snippet }) => {
-      const scopeLabel = 'Knowledge';
-      const metaParts = [scopeLabel];
-      if (entry.category) metaParts.push(esc(entry.category));
-      if (entry.folder) metaParts.push(esc(entry.folder));
-      if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
-      html += pushCmdItem({
-        type: 'kbdoc',
-        id: entry.id,
-        view: entry.view,
-        label: entry.name,
-        icon: entry.icon || folderDocIcon,
-        title: esc(stripLeadingEmoji(entry.name)),
-        sub: metaParts.join(' · '),
-        tag: entry.type === 'knowledge' ? 'kb' : entry.type,
-      });
-    });
-  }
-
-  // Notes
-  const noteList = ql
-    ? getCommandPaletteNoteResults(ql).slice(0, 5)
-    : [];
-
-  if (noteList.length) {
-    html += `<div class="cmd-group-hdr">Engagement Notes</div>`;
-    noteList.forEach(({ note: n, tagHit }) => {
-      const sessionName = n.session_id && sessions[n.session_id]?.codename
-        ? sessions[n.session_id].codename
-        : 'No session';
-      const snippet = buildNoteSearchSnippet(n, ql);
-      const subParts = [esc(sessionName)];
-      if (tagHit) subParts.push(`#${esc(tagHit)}`);
-      if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
-      html += pushCmdItem({
-        type: 'note',
-        id: n.id,
-        label: n.title,
-        icon: noteIcon,
-        title: esc(n.title || 'Untitled'),
-        sub: subParts.join(' · '),
-        tag: 'note',
-      });
-    });
-  }
-
-  // Search action
   if (ql && window.PRAGMA_CONFIG?.engramSearchEnabled) {
     cmdItems.push({ type:'search', query:ql, label:`Search "${ql}"` });
-    html += `<div class="cmd-group-hdr">KB Search</div>
+    html += `<div class="cmd-group-hdr">Indexed Search</div>
     <div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <div class="cmd-item-main">
         <div class="cmd-item-title">Search for "<strong>${esc(ql)}</strong>"</div>
-        <div class="cmd-item-sub">Search across indexed knowledge bases and sources</div>
+        <div class="cmd-item-sub">Deep search via ENGRAM indexer across all knowledge bases</div>
       </div>
     </div>`;
   }
 
   if (!html) {
-    html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
-      Type to search services, tactics, KB sections and notes…
-    </div>`;
+    const recent = getRecentSearches();
+    if (recent.length > 0) {
+      html += `<div class="cmd-group-hdr" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Recent Searches</span>
+        <button onclick="event.stopPropagation();clearAllRecentSearches()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px" title="Clear all">Clear all</button>
+      </div>`;
+      
+      if (Array.isArray(cmdUnifiedIndex)) {
+        for (const query of recent) {
+          const ql = query.toLowerCase().trim();
+          const matches = cmdUnifiedIndex
+            .map(item => {
+              const title = String(item.title || '').toLowerCase();
+              const description = String(item.description || '').toLowerCase();
+              const content = String(item.content || '').toLowerCase();
+              const tags = Array.isArray(item.metadata?.tags) ? item.metadata.tags.join(' ').toLowerCase() : '';
+              const category = String(item.metadata?.category || '').toLowerCase();
+              
+              const titleIdx = title.indexOf(ql);
+              const descIdx = description.indexOf(ql);
+              const contentIdx = content.indexOf(ql);
+              const tagIdx = tags.indexOf(ql);
+              const catIdx = category.indexOf(ql);
+              
+              if (titleIdx === -1 && descIdx === -1 && contentIdx === -1 && tagIdx === -1 && catIdx === -1) {
+                return null;
+              }
+              
+              const score = 
+                (titleIdx === 0 ? 100 : titleIdx > -1 ? 70 : 0) +
+                (descIdx === 0 ? 60 : descIdx > -1 ? 40 : 0) +
+                (tagIdx > -1 ? 50 : 0) +
+                (catIdx > -1 ? 30 : 0) +
+                (contentIdx > -1 ? 20 : 0);
+              
+              return { item, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.score - a.score);
+          
+          if (matches.length > 0) {
+            const { item } = matches[0];
+            const snippet = buildCommandPaletteKbSnippet({ content: item.content }, query);
+            const metaParts = [esc(item.metadata?.category || item.type.replace('kb-', ''))];
+            if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
+            if (snippet) metaParts.push(highlightCmdMatch(snippet, query));
+            
+            let icon = ICONS.notes;
+            let tag = 'recent';
+            let type = 'recent-search';
+            let id = item.id;
+            let view = null;
+            
+            if (item.type === 'kb-service') {
+              icon = ICONS.notes;
+              type = 'service';
+              id = item.id.replace('kb-service-', '');
+              tag = 'service';
+            } else if (item.type === 'kb-tactic') {
+              icon = ICONS.guides;
+              type = 'tactic';
+              id = item.id.replace('kb-tactic-', '');
+              tag = 'tactic';
+            } else if (item.type === 'kb-section') {
+              icon = folderDocIcon;
+              type = 'kbdoc';
+              id = item.id.replace('kb-section-', '');
+              view = `kb:${item.metadata?.folder || ''}`;
+              tag = 'kb';
+            } else if (item.type === 'note') {
+              icon = noteIcon;
+              type = 'note';
+              id = item.metadata?.noteId || item.id.replace('note-', '');
+              tag = 'note';
+            }
+            
+            cmdItems.push({ type, id, label: item.title, view, query });
+            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+              <span class="cmd-item-icon">${icon}</span>
+              <div class="cmd-item-main">
+                <div class="cmd-item-title">${esc(stripLeadingEmoji(item.title))}</div>
+                <div class="cmd-item-sub">${metaParts.join(' · ')}</div>
+              </div>
+              <span class="cmd-item-tag" style="opacity:0.6">${tag}</span>
+              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+            </div>`;
+          } else {
+            cmdItems.push({ type: 'recent-search', query, label: query });
+            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+              <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
+              <div class="cmd-item-main">
+                <div class="cmd-item-title">${esc(query)}</div>
+                <div class="cmd-item-sub" style="opacity:0.6">No longer in index</div>
+              </div>
+              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+            </div>`;
+          }
+        }
+      } else {
+        recent.forEach(query => {
+          cmdItems.push({ type: 'recent-search', query, label: query });
+          html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+            <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
+            <div class="cmd-item-main">
+              <div class="cmd-item-title">${esc(query)}</div>
+              <div class="cmd-item-sub">Recent search</div>
+            </div>
+            <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+          </div>`;
+        });
+      }
+    } else {
+      html = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif">
+        Type to search services, tactics, KB sections and notes…
+      </div>`;
+    }
   }
 
   res.innerHTML = html;
@@ -492,6 +794,7 @@ function shouldOpenCmdItemInSidePanel() {
 
 async function commandPaletteItemExists(item) {
   if (!item) return false;
+  if (item.type === 'recent-search') return true;
   if (item.type === 'note') return !!notes[item.id];
   if (item.type === 'service' || item.type === 'tactic') {
     const view = item.type === 'service' ? 'services' : 'tactics';
@@ -519,6 +822,12 @@ async function commandPaletteItemExists(item) {
 async function execCmd(idx) {
   const item = cmdItems[idx];
   if (!item) return;
+  
+  const query = document.getElementById('cmdInput')?.value || '';
+  if (query.length >= 2) {
+    saveRecentSearch(query);
+  }
+  
   closeCmd();
   if (!(await commandPaletteItemExists(item))) {
     showToast(`⚠ This ${item.type === 'note' ? 'note' : 'KB entry'} no longer exists. Refresh the search and try again.`, 'err');
@@ -550,6 +859,16 @@ async function execCmd(idx) {
     switchView('search', document.getElementById('nav-search'));
     document.getElementById('searchInput').value = item.query;
     runSearch(item.query);
+  } else if (item.type === 'recent-search') {
+    const overlay = document.getElementById('cmdOverlay');
+    const input = document.getElementById('cmdInput');
+    overlay.classList.add('open');
+    overlay.classList.add('cmd-has-query');
+    input.value = item.query;
+    cmdSelected = -1;
+    buildCmdResults(item.query);
+    setTimeout(() => input.focus(), 30);
+    return;
   }
 }
 

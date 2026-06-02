@@ -431,7 +431,7 @@ async function refreshRenderedMarkdownSurfaces() {
     if (typeof updateKbPreview === 'function') await updateKbPreview();
   } catch (_) {}
   try {
-    if (typeof renderContent === 'function' && activeDoc) await renderContent(activeDoc);
+    if (typeof renderContent === 'function' && activeDoc) await renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
   } catch (_) {}
 }
 
