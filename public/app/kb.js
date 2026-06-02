@@ -66,6 +66,12 @@ function formatServiceCardTitle(name) {
     .trim();
 }
 
+function stripLeadingEmoji(text) {
+  return String(text || '')
+    .replace(/^\p{Extended_Pictographic}(?:\uFE0F)?\s*/u, '')
+    .trim();
+}
+
 function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
   const category = esc(item.category || '');
   const name = esc(item.name || '');
@@ -86,10 +92,10 @@ function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
   if (cardStyle === 'service') {
     const serviceMeta = item.port ? `<span class="card-service-port">${esc(item.port)}</span>` : '';
     const servicePreview = description || 'Open the service note to view commands, references, and workflow-specific content.';
-    const serviceTitle = esc(formatServiceCardTitle(item.name || ''));
+    const serviceTitle = esc(stripLeadingEmoji(formatServiceCardTitle(item.name || '')));
     return `
       <div class="card-service-head">
-        <span class="note-type-general card-service-type">${serviceTitle || name}</span>
+        <span class="note-type-general card-service-type">${item.icon || ICONS.notes} ${serviceTitle || name}</span>
       </div>
       <div class="card-service-footer">
         <div class="card-service-badges">
@@ -105,9 +111,10 @@ function renderKbCardMarkup(item, { cardStyle = 'default' } = {}) {
 
   const knowledgePreview = description || 'Open the note to view workflow details, commands, and reference material.';
   const knowledgeCategory = category || 'knowledge';
+  const knowledgeTitle = esc(stripLeadingEmoji(item.name || ''));
   return `
     <div class="card-knowledge-head">
-      <span class="card-knowledge-title">${item.icon || ICONS.notes} ${name}</span>
+      <span class="card-knowledge-title">${item.icon || ICONS.notes} ${knowledgeTitle || name}</span>
     </div>
     <div class="card-knowledge-meta">
       <span class="card-knowledge-tag">${esc(knowledgeCategory)}</span>
@@ -633,4 +640,3 @@ function updateToolbarCount(view, n, total = getKbCollection(view).length) {
   const el    = document.getElementById(view === 'tactics' ? 'meth-toolbar-count' : 'svc-toolbar-count');
   el.textContent = n === total ? `${n} total` : `${n} / ${total}`;
 }
-
