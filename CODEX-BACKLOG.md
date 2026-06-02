@@ -307,8 +307,38 @@ Service view rendering does not apply emoji layer consistently.
 ---
 
 ## B-5 — Unsafe Injection Inside Code Blocks
+
 CONTEXT:
-Template injection system incorrectly modifies code literals.
+The injection system is incorrectly matching non-placeholder strings such as CLI flags and code literals, causing duplicate and corrupted injections.
+
+PROBLEM:
+Strings like `dc-ip` and `-dc-ip` are being interpreted as injectable targets, resulting in multiple injection passes and malformed output.
+
+EXPECTED BEHAVIOR:
+
+### HARD RULE — NO EXCEPTIONS
+Injection MUST ONLY occur on explicitly defined placeholders:
+
+- `<DC>`
+- `<TARGET>`
+- `<IP>`
+- `<DOMAIN>`
+
+### ABSOLUTE EXCLUSION ZONES (never inject):
+- Any code block (``` ... ```)
+- Inline code (`...`)
+- CLI flags or arguments (e.g. `-dc-ip`, `--target`)
+- Any lowercase identifier or hyphenated token
+- Any string not wrapped in `< >`
+
+---
+
+### CORE RULE
+If it is NOT inside `< >`, it is NOT a variable.
+
+No exceptions.
+No pattern guessing.
+No keyword matching.
 
 ---
 
