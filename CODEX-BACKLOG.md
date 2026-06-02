@@ -284,6 +284,7 @@ quick log + ports system
 
 ## B-1 — KB Document Open Failure
 STATUS: DONE
+
 CONTEXT:
 Search returns valid entries but fails to open them.
 
@@ -291,24 +292,30 @@ Search returns valid entries but fails to open them.
 
 ## B-2 — Target Injection Duplication (x4)
 STATUS: DONE
+
 CONTEXT:
 IP injection logic runs multiple times per rendering cycle.
 
 ---
 
 ## B-3 — Full Preview Header Collapse Broken
+STATUS: POTENTIALL FIXED
+
 CONTEXT:
 Rendering pipeline differs between full preview and split view.
 
 ---
 
 ## B-4 — Missing Emojis in Service Titles
+STATUS: DONE
+
 CONTEXT:
 Service view rendering does not apply emoji layer consistently.
 
 ---
 
 ## B-5 — Unsafe Injection Inside Code Blocks
+STATUS: POTENTIALL FIXED
 
 CONTEXT:
 The injection system is incorrectly matching non-placeholder strings such as CLI flags and code literals, causing duplicate and corrupted injections.
