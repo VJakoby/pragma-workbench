@@ -208,9 +208,9 @@ async function saveEdit(opts = {}) {
         ? `${d2.port} · ${d2.category}`
         : `${d2.category} · ${d2.wordCount} words`;
       activeDoc.title = d2.name || activeDoc.title;
-      document.getElementById('cpContent').innerHTML = injectTargets(d2.html);
-      wrapCodeBlocks(document.getElementById('cpContent'));
-      wrapInlineCodes(document.getElementById('cpContent'));
+      if (typeof renderContent === 'function') {
+        renderContent(activeDoc.html, activeDoc.icon || ICONS.notes, activeDoc.title, activeDoc.meta);
+      }
       updateKbPreview();
     } catch (_) {}
 

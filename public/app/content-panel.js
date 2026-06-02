@@ -280,7 +280,7 @@ function injectTargets(rawHtml, opts = {}) {
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  return injectTargets(esc(rawLine), { includeBare: true });
+  return injectTargets(esc(rawLine));
 }
 
 function copyIconSvg() {
@@ -316,7 +316,7 @@ function wrapCodeBlocks(container) {
       codeEl.textContent = rawText;
       delete codeEl.dataset.hljsDone;
       highlightCodeBlock(codeEl);
-      codeEl.innerHTML = injectTargets(codeEl.innerHTML, { includeBare: true });
+      codeEl.innerHTML = injectTargets(codeEl.innerHTML);
 
       if (!copyBtn) {
         copyBtn = document.createElement('button');
@@ -379,7 +379,7 @@ function wrapInlineCodes(container) {
     if (el.dataset.inlineWrapped) return;
     el.dataset.inlineWrapped = '1';
 
-    el.innerHTML = injectTargets(el.innerHTML, { includeBare: true });
+    el.innerHTML = injectTargets(el.innerHTML);
     el.style.cursor = 'pointer';
     el.title = 'Click to copy';
 
