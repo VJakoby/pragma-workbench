@@ -51,6 +51,16 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
     return safe || null;
   }
 
+  function rootKbItemId(rootDir, filepath) {
+    return path.relative(rootDir, filepath)
+      .replace(/\\/g, '/')
+      .replace(/\.md$/i, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9/._-]+/g, '-')
+      .replace(/[/.]+/g, '__')
+      .replace(/-+/g, '-');
+  }
+
   function buildKbEntries() {
     const entries = [];
 
@@ -118,9 +128,9 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
             const content = fs.readFileSync(filepath, 'utf8');
             const title = extractTitle(content) || path.basename(filename, '.md');
             const description = extractDescription(content);
-            const base = path.basename(filename, '.md').toLowerCase();
+            const canonicalId = rootKbItemId(sectionRoot, filepath);
             entries.push({
-              id: `kb-section-${folder}-${base}`,
+              id: `kb-section-${canonicalId}`,
               type: 'kb-section',
               title,
               description,
