@@ -21,10 +21,11 @@ These are critical bugs, UI adjustments, or high-priority features that must be 
   - **Expected Behavior:** Smooth out or entirely remove the border alterations on hover. Use a clean, non-disruptive background color change or a subtle opacity shift instead of modifying border widths.
   - **Resolution:** Removed `transform:translateY(-1px)`, `border-color` shifts, and heavy `box-shadow` changes from `.note-item:hover`, `.notes-peek-item:hover`, and `.cmd-item:hover` in `public/app/styles.css`. Hover now uses a clean background color change only.
 
-- [ ] **P1-04: Fix 'Find in Document' for KB Side-Card**
+- [x] **P1-04: Fix 'Find in Document' for KB Side-Card**
   - **Problem:** The text-search feature inside the Knowledge Base (KB) side-card component is entirely broken. Searching for text doesn't highlight or navigate results.
   - **Exploration Target:** Locate the KB side-card component file and look at how the search input handles matching strings.
   - **Expected Behavior:** Inputting a text string should search the active file context, scroll to the match, and dynamically wrap matching characters in a green highlight background within both the editor or the preview panel.
+  - **Resolution:** Integrated CodeMirror's built-in search functionality for edit mode. Added search API exports to CodeMirror bundle (setSearchQuery, findNext, findPrevious, SearchQuery, searchState). Created helper functions in `kb-editor.js` (searchInKbEditor, getKbEditorSearchCount) to interface with CodeMirror search. Modified `content-panel.js` search functions to detect edit mode and dispatch search queries to CodeMirror when active. Search now works in both read mode (DOM-based highlighting) and edit mode (CodeMirror highlighting with match navigation).
 
 - [x] **P1-05: Fix Header Minimization in Full Preview**
   - **Problem:** Collapsing/minimizing `###` markdown headers fails specifically when viewing the KB card in the full preview pane. Paradoxically, this feature works correctly when the Split View (editor + preview side-by-side) is active.

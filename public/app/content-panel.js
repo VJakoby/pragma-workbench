@@ -71,8 +71,15 @@ function updateContentPanelSearchCount() {
   const countEl = document.getElementById('cpSearchCount');
   const prevBtn = document.getElementById('cpSearchPrevBtn');
   const nextBtn = document.getElementById('cpSearchNextBtn');
-  const total = contentPanelSearchState.matches.length;
-  const active = total ? contentPanelSearchState.activeIndex + 1 : 0;
+  
+  let total;
+  if (isKbEditModeOpen() && kbEditor && typeof getKbEditorSearchCount === 'function') {
+    total = getKbEditorSearchCount();
+  } else {
+    total = contentPanelSearchState.matches.length;
+  }
+  
+  const active = total ? 1 : 0;
   if (countEl) countEl.textContent = total ? `${active} / ${total}` : '0';
   if (prevBtn) prevBtn.disabled = total === 0;
   if (nextBtn) nextBtn.disabled = total === 0;
@@ -137,6 +144,13 @@ function applyContentPanelSearch() {
     updateContentPanelSearchCount();
     return;
   }
+  
+  if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+    searchInKbEditor(query);
+    updateContentPanelSearchCount();
+    return;
+  }
+  
   contentPanelSearchState.matches = collectContentPanelSearchMatches(query);
   contentPanelSearchState.activeIndex = contentPanelSearchState.matches.length ? 0 : -1;
   scrollToActiveContentPanelSearchMatch();
@@ -152,6 +166,9 @@ function setContentPanelSearchVisible(visible) {
     contentPanelSearchState.matches = [];
     contentPanelSearchState.activeIndex = -1;
     clearContentPanelSearchMarks();
+    if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+      searchInKbEditor('');
+    }
   }
   updateContentPanelSearchCount();
 }
@@ -162,6 +179,15 @@ function updateContentPanelSearch() {
 }
 
 function stepContentPanelSearch(direction = 1) {
+  if (isKbEditModeOpen() && kbEditor && CM?.findNext && CM?.findPrevious) {
+    if (direction > 0) {
+      CM.findNext(kbEditor);
+    } else {
+      CM.findPrevious(kbEditor);
+    }
+    return;
+  }
+  
   const total = contentPanelSearchState.matches.length;
   if (!total) return;
   contentPanelSearchState.activeIndex = (contentPanelSearchState.activeIndex + direction + total) % total;

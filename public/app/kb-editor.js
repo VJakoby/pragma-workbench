@@ -251,3 +251,36 @@ function cmInitKb(initialDoc) {
     parent: wrap,
   });
 }
+
+function searchInKbEditor(query) {
+  if (!kbEditor || !CM?.setSearchQuery || !CM?.SearchQuery) return;
+  const searchQuery = new CM.SearchQuery({
+    search: query,
+    caseSensitive: false,
+    regexp: false
+  });
+  kbEditor.dispatch({
+    effects: CM.setSearchQuery.of(searchQuery)
+  });
+}
+
+function getKbEditorSearchCount() {
+  if (!kbEditor || !CM?.searchState) return 0;
+  try {
+    const state = kbEditor.state;
+    const searchField = state.field(CM.searchState, false);
+    if (!searchField || !searchField.query || !searchField.query.spec.valid) return 0;
+    
+    const query = searchField.query;
+    const cursor = query.getCursor(state);
+    let count = 0;
+    let result = cursor.next();
+    while (!result.done) {
+      count++;
+      result = cursor.next();
+    }
+    return count;
+  } catch (e) {
+    return 0;
+  }
+}
