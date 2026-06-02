@@ -18,7 +18,10 @@
   --selection-text: #ffffff;
   --green:    #34d399;
   --green-rgb: 52, 211, 153;
-  --domain-blue: #60a5fa;
+  --domain-blue: #5eead4;
+  --inline-code: #93c5fd;
+  --inline-code-rgb: 96, 165, 250;
+  --inline-code-hover: #bfdbfe;
   --purple:   #a78bfa;
   --red:      #f87171;
   --orange:   #fb923c;
@@ -53,7 +56,10 @@
   --selection-text: #ffffff;
   --green:    #059669;
   --green-rgb: 5, 150, 105;
-  --domain-blue: #2563eb;
+  --domain-blue: #0f766e;
+  --inline-code: #1d4ed8;
+  --inline-code-rgb: 37, 99, 235;
+  --inline-code-hover: #1e40af;
   --purple:   #7c3aed;
   --red:      #dc2626;
   --orange:   #ea580c;
@@ -1648,18 +1654,18 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* Inline code */
 .md-content code:not(pre code){
   font-family:'JetBrains Mono',monospace;
-  background:rgba(var(--accent-rgb),0.12);
-  border:1px solid rgba(var(--accent-rgb),0.24);
+  background:rgba(var(--inline-code-rgb),0.12);
+  border:1px solid rgba(var(--inline-code-rgb),0.26);
   border-radius:4px;
   padding:1px 5px;
   font-size:0.88em;
-  color:#dcd2ff;
+  color:var(--inline-code);
   transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 .md-content code:not(pre code):hover {
-  background: rgba(var(--accent-rgb),0.18);
-  border-color: rgba(var(--accent-rgb),0.34);
-  color: #f3efff;
+  background: rgba(var(--inline-code-rgb),0.18);
+  border-color: rgba(var(--inline-code-rgb),0.34);
+  color: var(--inline-code-hover);
 }
 .md-content code:not(pre code).inline-code-copied {
   background: rgba(var(--green-rgb),0.14);
@@ -1668,14 +1674,14 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 
 [data-theme="light"] .md-content code:not(pre code){
-  background:rgba(var(--accent-rgb),0.08);
-  border-color:rgba(var(--accent-rgb),0.18);
-  color:#5b21b6;
+  background:rgba(var(--inline-code-rgb),0.08);
+  border-color:rgba(var(--inline-code-rgb),0.18);
+  color:var(--inline-code);
 }
 [data-theme="light"] .md-content code:not(pre code):hover{
-  background:rgba(var(--accent-rgb),0.12);
-  border-color:rgba(var(--accent-rgb),0.24);
-  color:#4c1d95;
+  background:rgba(var(--inline-code-rgb),0.12);
+  border-color:rgba(var(--inline-code-rgb),0.24);
+  color:var(--inline-code-hover);
 }
 [data-theme="light"] .md-content code:not(pre code).inline-code-copied{
   background:rgba(var(--green-rgb),0.12);
