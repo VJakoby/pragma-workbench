@@ -283,12 +283,14 @@ quick log + ports system
 # BUGS
 
 ## B-1 — KB Document Open Failure
+STATUS: DONE
 CONTEXT:
 Search returns valid entries but fails to open them.
 
 ---
 
 ## B-2 — Target Injection Duplication (x4)
+STATUS: DONE
 CONTEXT:
 IP injection logic runs multiple times per rendering cycle.
 
