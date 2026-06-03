@@ -144,6 +144,8 @@ Search must include both KB files and session notes in a unified index.
 # P2 — FEATURES
 
 ## P2-01 — KB Cross-Linking Syntax
+STATUS: DONE
+
 CONTEXT:
 Need internal navigation between KB documents.
 
@@ -156,6 +158,8 @@ SYNTAX:
 ---
 
 ## P2-02 — Engagement Note Linking
+STATUS: DONE
+
 CONTEXT:
 Need cross-navigation between operational notes.
 
@@ -168,6 +172,7 @@ SYNTAX:
 ---
 
 ## P2-03 — Attachment Storage Manager
+STATUS: DONE
 CONTEXT:
 Users need visibility into file usage across documents.
 
@@ -177,6 +182,8 @@ sidebar storage system
 ---
 
 ## P2-04 — Port → KB Context Linking
+STATUS: DONE
+
 CONTEXT:
 Service discovery should connect directly to documentation.
 
@@ -222,6 +229,13 @@ renderer system
 TARGET:
 remark OR markdown-it
 
+## P2-09 — Shared button for Encrypted Workbench and Backup Button
+
+CONTEXT:
+Current buttons for Encrypted Workbench and Backup takes unncessary vertical space.
+
+SCOPE:
+dashboard UI
 ---
 
 # P3 — EXPERIMENTAL
