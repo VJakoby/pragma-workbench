@@ -241,11 +241,42 @@ SCOPE:
 dashboard UI
 
 ## P2-10 — Session Wide Domain Tag 
+STATUS: DONE
+
 CONTEXT:
 Introduce a tag/field for Domain for sessions. At the moment there is a Domain for each target, but this is not suitable for, etc a Active Directory pentest with several hosts with 1 domain.
 
 SCOPE:
 workspace system sessions
+
+---
+
+## P2-11 — Context Switcher Quick Add
+CONTEXT:
+The target/session quick switcher currently only supports filtering and selecting existing entries. Operators should be able to type a new value and create a target or session directly from the switcher without dropping into the heavier management modals.
+
+SCOPE:
+context switcher UI
+
+EXPECTED BEHAVIOR:
+- Typing in the context switcher should dynamically offer quick-create actions when no exact existing match is selected
+- In `Targets` mode:
+  - IP-like input should offer `Create target`
+  - hostname/domain-like input should offer `Create target`
+- In `Sessions` mode:
+  - free-form codename input should offer `Create session`
+- Quick-create entries should render inside the existing switcher result list, not as separate floating controls
+- Quick-create entries must support keyboard navigation and `Enter`, just like normal switch targets/sessions entries
+- Creating a target should add it to the active session and switch to it immediately
+- Creating a session should create it and switch into it immediately
+
+RULES:
+- Do not replace the existing management modals
+- Do not infer `Create session` from every alphabetic string in `Targets` mode
+- Prefer tab-aware behavior:
+  - `Targets` tab biases toward target creation
+  - `Sessions` tab biases toward session creation
+- Avoid offering duplicate create actions when the typed value already matches an existing target/session sufficiently
 ---
 
 # P3 — EXPERIMENTAL
