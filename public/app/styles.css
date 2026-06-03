@@ -4219,7 +4219,16 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .cp-edit-textarea::placeholder { color: var(--muted); }
 /* Edit button active state */
-#cpEditBtn.editing { color: var(--accent); }
+#cpEditBtn.editing {
+  background: rgba(var(--accent-rgb),0.12);
+  border-color: rgba(var(--accent-rgb),0.38);
+  color: var(--accent);
+}
+#cpEditBtn.editing:hover{
+  background: rgba(var(--accent-rgb),0.14);
+  border-color: rgba(var(--accent-rgb),0.42);
+  color: var(--accent);
+}
 
 /* ── Note tags ── */
 .note-tags-row {
