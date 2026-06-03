@@ -101,10 +101,26 @@ function normalizeAlternateLinkSyntax(markdown) {
   return String(markdown || '')
     .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
 }
+function formatKbLinkLabel(target) {
+  const source = String(target || '').trim();
+  const parts = source.split(':');
+  if (parts.length < 3 || parts[0].toLowerCase() !== 'kb') return source;
+  const id = parts.slice(2).join(':')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `KB ${id || parts[1]}`.toUpperCase();
+}
+function normalizeKbLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\[(kb:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatKbLinkLabel(target)}](#${target})`);
+}
 const renderMarkdown = (markdown) => sanitizeRenderedHtml(
   marked.parse(
     preprocessImageResizeMarkdown(
-      normalizeAlternateLinkSyntax(markdown)
+      normalizeKbLinkSyntax(
+        normalizeAlternateLinkSyntax(markdown)
+      )
     )
   )
 );

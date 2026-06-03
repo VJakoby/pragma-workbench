@@ -30,8 +30,20 @@
       const stash = [];
       const normalizeAlternateLinkSyntax = (value) => String(value || '')
         .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
+      const formatKbLinkLabel = (target) => {
+        const source = String(target || '').trim();
+        const parts = source.split(':');
+        if (parts.length < 3 || parts[0].toLowerCase() !== 'kb') return source;
+        const id = parts.slice(2).join(':')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return (`KB ${id || parts[1]}`).toUpperCase();
+      };
+      const normalizeKbLinkSyntax = (value) => String(value || '')
+        .replace(/(?<!\!)\[(kb:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatKbLinkLabel(target)}](#${target})`);
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      src = normalizeAlternateLinkSyntax(src);
+      src = normalizeKbLinkSyntax(normalizeAlternateLinkSyntax(src));
 
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
         const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/, ''))}</code></pre>`;
@@ -201,6 +213,37 @@
       return window.marked ? window.marked.parse(source) : source.replace(/\n/g, '<br>');
     }
 
+    function parseKbLinkTarget(rawHref) {
+      const source = String(rawHref || '').trim().replace(/^#/, '');
+      if (!/^kb:/i.test(source)) return null;
+      const parts = source.split(':');
+      if (parts.length < 3) return null;
+      const [, scopeRaw, ...idParts] = parts;
+      const scope = String(scopeRaw || '').trim().toLowerCase();
+      const id = idParts.join(':').trim();
+      if (!scope || !id) return null;
+      const view = scope === 'service' || scope === 'services'
+        ? 'services'
+        : scope === 'tactic' || scope === 'tactics'
+          ? 'tactics'
+          : 'kb:' + scope;
+      return { view, id };
+    }
+
+    function enhanceKbLinks(root) {
+      if (!root) return;
+      root.querySelectorAll('a[href^="#kb:"], a[href^="#KB:"]').forEach((link) => {
+        const target = parseKbLinkTarget(link.getAttribute('href'));
+        if (!target) return;
+        link.removeAttribute('target');
+        link.removeAttribute('rel');
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          if (typeof openItem === 'function') openItem(target.view, target.id);
+        });
+      });
+    }
+
     function normalizeTaskLists(root) {
       const blockTags = new Set(['BLOCKQUOTE', 'DIV', 'OL', 'P', 'PRE', 'TABLE', 'UL']);
 
@@ -263,6 +306,7 @@
 
       el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
       if (typeof enhanceNoteWikiLinks === 'function') enhanceNoteWikiLinks(el);
+      enhanceKbLinks(el);
       normalizeTaskLists(el);
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
       if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
