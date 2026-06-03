@@ -239,6 +239,13 @@ Current buttons for Encrypted Workbench and Backup takes unncessary vertical spa
 
 SCOPE:
 dashboard UI
+
+## P2-10 — Session Wide Domain Tag 
+CONTEXT:
+Introduce a tag/field for Domain for sessions. At the moment there is a Domain for each target, but this is not suitable for, etc a Active Directory pentest with several hosts with 1 domain.
+
+SCOPE:
+workspace system sessions
 ---
 
 # P3 — EXPERIMENTAL
@@ -294,13 +301,6 @@ Need faster conversion of discovered ports into actionable tasks.
 
 SCOPE:
 quick log + ports system
-
-## P3-07 — Session Wide Domain Tag 
-CONTEXT:
-Introduce a tag/field for Domain for sessions. At the moment there is a Domain for each target, but this is not suitable for, etc a Active Directory pentest with several hosts with 1 domain.
-
-SCOPE:
-workspace system sessions
 
 ---
 
