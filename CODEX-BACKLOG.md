@@ -193,6 +193,7 @@ quick log + service view
 ---
 
 ## P2-05 — Session/Target Switcher UI
+STATUS: DONE
 CONTEXT:
 Switching between operational contexts is too slow.
 
@@ -211,6 +212,8 @@ dashboard UI
 ---
 
 ## P2-07 — Welcome / Session Selector Modal
+STATUS: DONE
+
 CONTEXT:
 Improve onboarding and workspace selection.
 
@@ -291,6 +294,13 @@ Need faster conversion of discovered ports into actionable tasks.
 
 SCOPE:
 quick log + ports system
+
+## P3-07 — Session Wide Domain Tag 
+CONTEXT:
+Introduce a tag/field for Domain for sessions. At the moment there is a Domain for each target, but this is not suitable for, etc a Active Directory pentest with several hosts with 1 domain.
+
+SCOPE:
+workspace system sessions
 
 ---
 
