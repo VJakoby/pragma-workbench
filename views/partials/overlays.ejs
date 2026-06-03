@@ -90,10 +90,15 @@
             <input id="welcomeSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">
           </div>
           <div class="session-field">
+            <label>Session domain (optional)</label>
+            <input id="welcomeSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+            <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
+          </div>
+          <div class="session-field">
             <label>Initial target (optional)</label>
             <div class="session-inline-field welcome-session-inline-field">
               <input id="welcomeSessionTargetIP" type="text" placeholder="IP / Host" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
-              <input id="welcomeSessionTargetDomain" type="text" placeholder="Domain" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+              <input id="welcomeSessionTargetDomain" type="text" placeholder="Target domain-name" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
               <input id="welcomeSessionTargetLabel" type="text" placeholder="Label" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
             </div>
             <div class="session-field-hint">Optional. If filled, the session opens with this target already added and selected.</div>
@@ -125,10 +130,15 @@
         <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
       </div>
       <div class="session-field">
+        <label>Session domain (optional)</label>
+        <input id="newSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+        <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
+      </div>
+      <div class="session-field">
         <label>Initial target (optional)</label>
         <div class="session-inline-field">
           <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <input id="newSessionTargetDomain" type="text" placeholder="Target domain-name, e.g. dc01.corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
           <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
         </div>
         <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>

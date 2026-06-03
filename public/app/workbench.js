@@ -603,7 +603,7 @@ function renderSessionSidebar() {
     name.textContent = sess.codename;
     name.title = sess.codename || '';
     if (card) card.title = sess.codename || 'Sessions';
-    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
+    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : (sess.domain || '— click to set');
     target.textContent = targetLabel;
     target.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
@@ -630,9 +630,11 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionDomain').value = '';
   document.getElementById('newSessionTargetIP').value = '';
   document.getElementById('newSessionTargetDomain').value = '';
   document.getElementById('newSessionTargetLabel').value = '';
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   syncSummaryExportPrefsUI();
   renderSessionList();
@@ -646,12 +648,14 @@ function getSessionFormRefs(source = 'session') {
   return source === 'welcome'
     ? {
         name: document.getElementById('welcomeSessionName'),
+        domain: document.getElementById('welcomeSessionDomain'),
         targetIp: document.getElementById('welcomeSessionTargetIP'),
         targetDomain: document.getElementById('welcomeSessionTargetDomain'),
         targetLabel: document.getElementById('welcomeSessionTargetLabel'),
       }
     : {
         name: document.getElementById('newSessionName'),
+        domain: document.getElementById('newSessionDomain'),
         targetIp: document.getElementById('newSessionTargetIP'),
         targetDomain: document.getElementById('newSessionTargetDomain'),
         targetLabel: document.getElementById('newSessionTargetLabel'),
@@ -662,6 +666,7 @@ function clearSessionForm(source = 'session') {
   const refs = getSessionFormRefs(source);
   if (!refs.name) return;
   refs.name.value = '';
+  if (refs.domain) refs.domain.value = '';
   refs.targetIp.value = '';
   refs.targetDomain.value = '';
   refs.targetLabel.value = '';
@@ -695,6 +700,7 @@ function renderWelcomeSessionList() {
           </div>
         </div>
         <div class="welcome-session-card-meta">${noteCount(session.id)} notes · ${targets.length} target${targets.length !== 1 ? 's' : ''} · ${new Date(session.created || Date.now()).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="welcome-session-card-target">Session domain: ${esc(session.domain || '—')}</div>
         <div class="welcome-session-card-target">Primary target: ${esc(targetLabel)}</div>
       </button>`;
   }).join('');
@@ -744,6 +750,7 @@ function renderSessionList() {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      const sessionDomain = s.domain ? ` · domain ${esc(s.domain)}` : '';
       const attacker = s.attacker_ip ? ` · attacker ${esc(s.attacker_ip)}` : '';
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
@@ -753,7 +760,7 @@ function renderSessionList() {
         </div>
         <div class="session-list-item-name">${esc(s.codename)}</div>
       </div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${sessionDomain}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-item-actions">
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
@@ -769,6 +776,7 @@ function renderSessionList() {
 function createSession(source = 'session') {
   const refs = getSessionFormRefs(source);
   const name = refs.name?.value.trim() || '';
+  const sessionDomain = refs.domain?.value.trim() || '';
   const targetIp = refs.targetIp?.value.trim() || '';
   const targetDomain = refs.targetDomain?.value.trim() || '';
   const targetLabel = refs.targetLabel?.value.trim() || '';
@@ -783,7 +791,7 @@ function createSession(source = 'session') {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
+  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], evidence: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -795,9 +803,24 @@ function createSession(source = 'session') {
   saveNotes();
   renderSessionList();
   renderWelcomeSessionList();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   clearSessionForm(source);
   if (source === 'welcome') closeWelcomeSessionModal(true);
+}
+
+function updateSessionDomainField() {
+  const wrap = document.getElementById('sessionDomainFieldWrap');
+  const input = document.getElementById('sessionDomainInput');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !input) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  input.value = sess.domain || '';
 }
 
 function updateSessionAttackerIpField() {
@@ -851,6 +874,22 @@ function syncSummaryExportPrefsUI() {
       };
     }
   }
+}
+
+function saveActiveSessionDomain() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const input = document.getElementById('sessionDomainInput');
+  if (!sess || !input) return;
+  const next = input.value.trim();
+  if ((sess.domain || '') === next) return;
+  sess.domain = next;
+  saveNotes();
+  renderSessionList();
+  renderWelcomeSessionList();
+  renderSessionSidebar();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  showToast(next ? `✓ Session domain set: ${next}` : '✓ Session domain cleared');
 }
 
 function saveActiveSessionAttackerIp() {
@@ -950,6 +989,7 @@ function switchSession(id) {
     if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   }
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
@@ -984,6 +1024,7 @@ async function deleteSession(id) {
   }
   saveNotes();
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
@@ -1118,6 +1159,7 @@ async function importSession(event) {
         return {
           codename: String(session.codename || 'Imported Session'),
           created: Number(session.created) || Date.now(),
+          domain: String(session.domain || ''),
           attacker_ip: String(session.attacker_ip || ''),
           status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
           imported_from: String(session.codename || ''),

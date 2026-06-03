@@ -57,7 +57,11 @@ function getActiveTarget() {
 }
 
 function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
-function getDomain() { const t = getActiveTarget(); return (t && t.domain) || '<DOMAIN>'; }
+function getDomain() {
+  const t = getActiveTarget();
+  const sess = activeSessionId && sessions[activeSessionId];
+  return (t && t.domain) || (sess && sess.domain) || '<DOMAIN>';
+}
 function getAttackerIP() {
   const sess = activeSessionId && sessions[activeSessionId];
   return (sess && sess.attacker_ip) || '<ATTACKER-IP>';
@@ -83,27 +87,29 @@ function updateTargetSelector() {
   if (selector) selector.classList.remove('status-active', 'status-paused', 'status-complete');
   if (selector) selector.classList.add(`status-${status === 'active' ? 'active' : status}`);
   dot.classList.remove('active', 'paused', 'complete');
+  const resolvedDomain = (t && t.domain) || (sess && sess.domain) || '';
   if (t) {
     dot.classList.add(status === 'active' ? 'active' : status);
     if (ipText) ipText.textContent = t.ip || '—';
-    if (domText) domText.textContent = t.domain || '—';
+    if (domText) domText.textContent = resolvedDomain || '—';
     lbl.textContent = t.label || t.ip || t.domain || 'target';
     if (cpyIpBtn) cpyIpBtn.disabled = !t.ip;
-    if (cpyDomBtn) cpyDomBtn.disabled = !t.domain;
+    if (cpyDomBtn) cpyDomBtn.disabled = !resolvedDomain;
   } else {
     dot.classList.add(status === 'active' ? 'active' : status);
     if (ipText) ipText.textContent = '—';
-    if (domText) domText.textContent = '—';
+    if (domText) domText.textContent = resolvedDomain || '—';
     lbl.textContent = activeSessionId ? 'No target' : 'No session';
     if (cpyIpBtn) cpyIpBtn.disabled = true;
-    if (cpyDomBtn) cpyDomBtn.disabled = true;
+    if (cpyDomBtn) cpyDomBtn.disabled = !resolvedDomain;
   }
 }
 
 function copyActiveTarget(kind = 'ip') {
   const t = getActiveTarget();
-  if (!t) return;
-  const text = kind === 'domain' ? (t.domain || '') : (t.ip || '');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!t && kind !== 'domain') return;
+  const text = kind === 'domain' ? ((t && t.domain) || (sess && sess.domain) || '') : (t.ip || '');
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
     showToast(`Copied: ${text}`);
