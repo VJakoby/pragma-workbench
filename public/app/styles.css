@@ -3150,7 +3150,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
     }
     .note-md-hint span {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px; color: var(--muted);
+      font-size: 11px; color: color-mix(in srgb, var(--text2) 74%, var(--muted));
       padding: 2px 8px; cursor: default;
       border-right: 1px solid var(--border);
       white-space: nowrap;

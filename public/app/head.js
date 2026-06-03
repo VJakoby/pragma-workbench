@@ -40,10 +40,27 @@
           .trim();
         return (`KB ${id || parts[1]}`).toUpperCase();
       };
+      const formatEngagementLinkLabel = (target) => {
+        const source = String(target || '').trim();
+        const parts = source.split(':');
+        if (parts.length < 3 || parts[0].toLowerCase() !== 'en') return source;
+        const targetLabel = String(parts[1] || '')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const noteLabel = parts.slice(2).join(':')
+          .replace(/[-_]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const segments = [targetLabel, noteLabel].filter(Boolean).map((part) => part.toUpperCase());
+        return segments.length ? (`EN ${segments.join(' / ')}`) : source.toUpperCase();
+      };
       const normalizeKbLinkSyntax = (value) => String(value || '')
         .replace(/(?<!\!)\[(kb:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatKbLinkLabel(target)}](#${target})`);
+      const normalizeEngagementLinkSyntax = (value) => String(value || '')
+        .replace(/(?<!\!)\[(en:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatEngagementLinkLabel(target)}](#${target})`);
       src = src.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      src = normalizeKbLinkSyntax(normalizeAlternateLinkSyntax(src));
+      src = normalizeEngagementLinkSyntax(normalizeKbLinkSyntax(normalizeAlternateLinkSyntax(src)));
 
       src = src.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
         const html = `<pre><code class="language-${esc(lang)}">${esc(code.replace(/^\n+/,'').replace(/\n+$/, ''))}</code></pre>`;
@@ -244,6 +261,51 @@
       });
     }
 
+
+    function parseEngagementLinkTarget(rawHref) {
+      const source = String(rawHref || '').trim().replace(/^#/, '');
+      if (!/^en:/i.test(source)) return null;
+      const parts = source.split(':');
+      if (parts.length < 3) return null;
+      const [, targetRaw, ...noteParts] = parts;
+      const target = String(targetRaw || '').trim();
+      const note = noteParts.join(':').trim();
+      if (!target || !note) return null;
+      return { target, note };
+    }
+
+    function enhanceEngagementLinks(root) {
+      if (!root) return;
+      root.querySelectorAll('a[href^="#en:"], a[href^="#EN:"]').forEach((link) => {
+        const target = parseEngagementLinkTarget(link.getAttribute('href'));
+        if (!target) return;
+        const noteId = typeof resolveEngagementNoteLink === 'function'
+          ? resolveEngagementNoteLink(target.target, target.note)
+          : null;
+        const label = String(link.textContent || '').trim() || (target.target + ' / ' + target.note);
+        const el = document.createElement('span');
+        el.className = 'note-wikilink' + (noteId ? '' : ' broken');
+        el.textContent = label;
+        el.title = noteId
+          ? ('Open note for ' + target.target + ': ' + target.note)
+          : ('No matching note for ' + target.target + ': ' + target.note);
+        if (noteId) {
+          el.tabIndex = 0;
+          el.setAttribute('role', 'link');
+          el.addEventListener('click', () => {
+            if (typeof openNote === 'function') openNote(noteId);
+          });
+          el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (typeof openNote === 'function') openNote(noteId);
+            }
+          });
+        }
+        link.replaceWith(el);
+      });
+    }
+
     function normalizeTaskLists(root) {
       const blockTags = new Set(['BLOCKQUOTE', 'DIV', 'OL', 'P', 'PRE', 'TABLE', 'UL']);
 
@@ -305,8 +367,8 @@
       if (!current || current.requestId !== requestId) return false;
 
       el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
-      if (typeof enhanceNoteWikiLinks === 'function') enhanceNoteWikiLinks(el);
       enhanceKbLinks(el);
+      enhanceEngagementLinks(el);
       normalizeTaskLists(el);
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
       if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);

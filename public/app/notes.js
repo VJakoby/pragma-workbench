@@ -791,97 +791,58 @@ function getNotesInSession(sessionId) {
   return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
 }
 
-function resolveNoteLink(rawTitle, sessionId = null) {
+function getTargetCandidates(target) {
+  return [
+    String(target?.ip || '').trim(),
+    String(target?.domain || '').trim(),
+    String(target?.label || '').trim(),
+  ].filter(Boolean);
+}
+
+function resolveTargetInSession(rawTarget, sessionId = null) {
+  const q = String(rawTarget || '').trim().toLowerCase();
+  if (!q || !sessionId || !sessions[sessionId]) return null;
+  const targets = sessions[sessionId].targets || [];
+  let exactHit = null;
+  let partialHit = null;
+  targets.forEach((target) => {
+    const candidates = getTargetCandidates(target).map((value) => value.toLowerCase());
+    if (!exactHit && candidates.includes(q)) {
+      exactHit = target;
+      return;
+    }
+    const partial = candidates.find((value) => value.includes(q));
+    if (!partial) return;
+    if (!partialHit || partial.length > partialHit.length) partialHit = { target, length: partial.length };
+  });
+  return exactHit || partialHit?.target || null;
+}
+
+function resolveNoteLink(rawTitle, sessionId = null, { targetId } = {}) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  const scopedNotes = getNotesInSession(sessionId);
+  let scopedNotes = getNotesInSession(sessionId);
+  if (targetId !== undefined) scopedNotes = scopedNotes.filter((note) => (note.target_id || null) === (targetId || null));
   let hit = scopedNotes.find(n => (n.title || '').toLowerCase() === q);
   if (!hit) hit = scopedNotes.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
-function parseWikiLink(raw) {
-  const source = String(raw || '').trim();
-  const pipeIdx = source.indexOf('|');
-  if (pipeIdx === -1) {
-    return { target: source, label: source };
-  }
-  const target = source.slice(0, pipeIdx).trim();
-  const label = source.slice(pipeIdx + 1).trim() || target;
-  return { target, label };
+function resolveEngagementNoteLinkInSession(rawTarget, rawTitle, sessionId = null) {
+  const target = resolveTargetInSession(rawTarget, sessionId);
+  if (!target) return null;
+  return resolveNoteLink(rawTitle, sessionId, { targetId: target.id });
 }
 
-function buildWikiLinkElement(raw) {
-  const { target, label } = parseWikiLink(raw);
-  const currentSessionId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].session_id || null) : null;
-  const targetId = resolveNoteLink(target, currentSessionId);
-  const el = document.createElement('span');
-  el.className = `note-wikilink${targetId ? '' : ' broken'}`;
-  el.textContent = label || target;
-  el.title = targetId
-    ? `Open note: ${target}`
-    : `No matching note for: ${target}`;
-
-  if (targetId) {
-    el.tabIndex = 0;
-    el.setAttribute('role', 'link');
-    el.addEventListener('click', () => {
-      if (typeof openNote === 'function') openNote(targetId);
-    });
-    el.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (typeof openNote === 'function') openNote(targetId);
-      }
-    });
-  }
-
-  return el;
+function resolveEngagementNoteLink(rawTarget, rawTitle, sessionId = null) {
+  const currentSessionId = sessionId || (activeNoteId && notes[activeNoteId]
+    ? (notes[activeNoteId].session_id || null)
+    : activeSessionId || null);
+  return resolveEngagementNoteLinkInSession(rawTarget, rawTitle, currentSessionId);
 }
 
-function enhanceNoteWikiLinks(root) {
-  if (!root || typeof document === 'undefined') return;
-  const textNodes = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!node?.nodeValue || !node.nodeValue.includes('[[')) return NodeFilter.FILTER_REJECT;
-      const parent = node.parentElement;
-      if (!parent) return NodeFilter.FILTER_REJECT;
-      if (parent.closest('a, code, pre, .note-wikilink')) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
-
-  let current;
-  while ((current = walker.nextNode())) textNodes.push(current);
-
-  textNodes.forEach((node) => {
-    const text = node.nodeValue;
-    const re = /\[\[([^\]]+)\]\]/g;
-    let lastIndex = 0;
-    let match;
-    let found = false;
-    const fragment = document.createDocumentFragment();
-
-    while ((match = re.exec(text)) !== null) {
-      found = true;
-      if (match.index > lastIndex) {
-        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
-      }
-      fragment.appendChild(buildWikiLinkElement(match[1]));
-      lastIndex = re.lastIndex;
-    }
-
-    if (!found) return;
-    if (lastIndex < text.length) {
-      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
-    }
-    node.parentNode?.replaceChild(fragment, node);
-  });
-}
-
-window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
+window.resolveEngagementNoteLink = resolveEngagementNoteLink;
 
 function getBacklinks(noteId) {
   const targetNote = notes[noteId];
@@ -890,10 +851,10 @@ function getBacklinks(noteId) {
     if (n.id === noteId) return false;
     if ((n.session_id || null) !== targetSessionId) return false;
     const body = n.body || '';
-    const re = /\[\[([^\]]+)\]\]/g;
-    let m;
-    while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1], n.session_id || null) === noteId) return true;
+    const engagementRe = new RegExp(String.raw`\[en:([^:\]\n]+):([^\]\n]+)\](?!\()`, 'gi');
+    let match;
+    while ((match = engagementRe.exec(body)) !== null) {
+      if (resolveEngagementNoteLinkInSession(match[1], match[2], n.session_id || null) === noteId) return true;
     }
     return false;
   });

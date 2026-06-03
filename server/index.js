@@ -111,15 +111,36 @@ function formatKbLinkLabel(target) {
     .trim();
   return `KB ${id || parts[1]}`.toUpperCase();
 }
+function formatEngagementLinkLabel(target) {
+  const source = String(target || '').trim();
+  const parts = source.split(':');
+  if (parts.length < 3 || parts[0].toLowerCase() !== 'en') return source;
+  const targetLabel = String(parts[1] || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const noteLabel = parts.slice(2).join(':')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const segments = [targetLabel, noteLabel].filter(Boolean).map((part) => part.toUpperCase());
+  return segments.length ? `EN ${segments.join(' / ')}` : source.toUpperCase();
+}
 function normalizeKbLinkSyntax(markdown) {
   return String(markdown || '')
     .replace(/(?<!\!)\[(kb:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatKbLinkLabel(target)}](#${target})`);
 }
+function normalizeEngagementLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\[(en:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatEngagementLinkLabel(target)}](#${target})`);
+}
 const renderMarkdown = (markdown) => sanitizeRenderedHtml(
   marked.parse(
     preprocessImageResizeMarkdown(
-      normalizeKbLinkSyntax(
-        normalizeAlternateLinkSyntax(markdown)
+      normalizeEngagementLinkSyntax(
+        normalizeKbLinkSyntax(
+          normalizeAlternateLinkSyntax(markdown)
+        )
       )
     )
   )
