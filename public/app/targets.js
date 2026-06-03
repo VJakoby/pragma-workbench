@@ -135,6 +135,106 @@ function editActiveTargetQuick() {
   setTimeout(() => document.getElementById('newTargetIP')?.focus(), 60);
 }
 
+
+function normalizeContextSwitcherValue(value) {
+  return String(value || '').trim();
+}
+
+function normalizeContextSwitcherMatch(value) {
+  return normalizeContextSwitcherValue(value).toLowerCase();
+}
+
+function isContextSwitcherIpValue(value) {
+  return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value);
+}
+
+function isContextSwitcherTargetLikeValue(value) {
+  if (!value || /\s/.test(value)) return false;
+  if (isContextSwitcherIpValue(value)) return true;
+  return /^[a-z0-9._-]+$/i.test(value) && /[a-z]/i.test(value);
+}
+
+function contextSwitcherTargetExists(value) {
+  const needle = normalizeContextSwitcherMatch(value);
+  const sess = activeSessionId && sessions[activeSessionId];
+  const targets = (sess && sess.targets) || [];
+  return targets.some((target) => [target.ip, target.domain, target.label].some((part) => normalizeContextSwitcherMatch(part) === needle));
+}
+
+function contextSwitcherSessionExists(value) {
+  const needle = normalizeContextSwitcherMatch(value);
+  return Object.values(sessions).some((session) => normalizeContextSwitcherMatch(session.codename) === needle);
+}
+
+function getContextSwitcherQuickCreateItems() {
+  const value = normalizeContextSwitcherValue(activeContextSwitcherQuery);
+  if (!value) return [];
+  if (activeContextSwitcherTab === 'targets') {
+    if (!activeSessionId || !isContextSwitcherTargetLikeValue(value) || contextSwitcherTargetExists(value)) return [];
+    return [{
+      kind: 'create-target',
+      id: 'create-target:' + value,
+      title: 'Create target',
+      meta: value,
+      active: false,
+      status: 'create',
+      value,
+    }];
+  }
+  if (contextSwitcherSessionExists(value)) return [];
+  return [{
+    kind: 'create-session',
+    id: 'create-session:' + value,
+    title: 'Create session',
+    meta: value,
+    active: false,
+    status: 'create',
+    value,
+  }];
+}
+
+function createTargetFromContextSwitcher(value) {
+  const next = normalizeContextSwitcherValue(value);
+  if (!next || !activeSessionId) return false;
+  const sess = sessions[activeSessionId];
+  if (!sess) return false;
+  if (!sess.targets) sess.targets = [];
+  const id = 'tgt_' + Date.now();
+  const isIp = isContextSwitcherIpValue(next);
+  sess.targets.push({
+    id,
+    ip: isIp ? next : '',
+    domain: isIp ? '' : next,
+    label: '',
+  });
+  activeTargetId = id;
+  localStorage.setItem('ops-active-target', id);
+  rememberActiveTargetForSession(activeSessionId, id);
+  saveNotes();
+  renderTargetsList();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  showToast('✓ Target created: ' + next);
+  return true;
+}
+
+function createSessionFromContextSwitcher(value) {
+  const next = normalizeContextSwitcherValue(value);
+  if (!next) return false;
+  const id = 'sess_' + Date.now();
+  const sess = { id, codename: next, created: Date.now(), domain: '', targets: [], attacker_ip: '', todos: [], evidence: [] };
+  sessions[id] = sess;
+  tlLog(id, { type: 'session_created', name: sess.codename });
+  switchSession(id);
+  saveNotes();
+  renderSessionList();
+  if (typeof renderWelcomeSessionList === 'function') renderWelcomeSessionList();
+  if (typeof updateSessionDomainField === 'function') updateSessionDomainField();
+  if (typeof updateSessionAttackerIpField === 'function') updateSessionAttackerIpField();
+  showToast('✓ Session created: ' + next);
+  return true;
+}
+
 function getContextSwitcherTargetItems() {
   const sess = activeSessionId && sessions[activeSessionId];
   const targets = (sess && sess.targets) || [];
@@ -177,9 +277,10 @@ function getContextSwitcherSessionItems() {
 }
 
 function getContextSwitcherItems() {
-  return activeContextSwitcherTab === 'sessions'
+  const baseItems = activeContextSwitcherTab === 'sessions'
     ? getContextSwitcherSessionItems()
     : getContextSwitcherTargetItems();
+  return [...getContextSwitcherQuickCreateItems(), ...baseItems];
 }
 
 function syncContextSwitcherTabButtons() {
@@ -210,8 +311,8 @@ function renderContextSwitcherList() {
   if (title) title.textContent = activeContextSwitcherTab === 'sessions' ? 'Switch Session' : 'Switch Target';
   if (helper) {
     helper.textContent = activeContextSwitcherTab === 'sessions'
-      ? 'Type to filter sessions. Enter switches session and restores its last active target.'
-      : 'Type to filter targets. Enter switches target and refreshes injected context.';
+      ? 'Type to filter sessions. Enter switches session and restores its last active target. New names offer quick session creation.'
+      : 'Type to filter targets. Enter switches target and refreshes injected context. IP or host-like input offers quick target creation.';
   }
   if (manageBtn) manageBtn.textContent = activeContextSwitcherTab === 'sessions' ? 'Manage Sessions' : 'Manage Targets';
 
@@ -228,14 +329,19 @@ function renderContextSwitcherList() {
   list.innerHTML = activeContextSwitcherItems.map((item, index) => {
     const statusDot = item.kind === 'session'
       ? `<span class="context-switcher-status-dot ${esc(item.status || 'active')}"></span>`
-      : `<span class="context-switcher-target-dot${item.active ? ' active' : ''}"></span>`;
-    return `<button type="button" class="context-switcher-item${item.active ? ' active' : ''}${index === activeContextSwitcherIndex ? ' selected' : ''}" data-index="${index}" onclick="selectContextSwitcherIndex(${index})" onmousemove="setContextSwitcherIndex(${index})">
+      : item.kind === 'create-target' || item.kind === 'create-session'
+        ? '<span class="context-switcher-create-dot">+</span>'
+        : `<span class="context-switcher-target-dot${item.active ? ' active' : ''}"></span>`;
+    const badge = item.kind === 'create-target' || item.kind === 'create-session'
+      ? '<span class="context-switcher-item-badge context-switcher-item-badge-create">Create</span>'
+      : item.active ? '<span class="context-switcher-item-badge">Current</span>' : '';
+    return `<button type="button" class="context-switcher-item${item.active ? ' active' : ''}${index === activeContextSwitcherIndex ? ' selected' : ''}${item.kind === 'create-target' || item.kind === 'create-session' ? ' context-switcher-item-create' : ''}" data-index="${index}" onclick="selectContextSwitcherIndex(${index})" onmousemove="setContextSwitcherIndex(${index})">
       <span class="context-switcher-item-indicator">${statusDot}</span>
       <span class="context-switcher-item-body">
         <span class="context-switcher-item-title">${esc(item.title || '')}</span>
         <span class="context-switcher-item-meta">${esc(item.meta || '')}</span>
       </span>
-      ${item.active ? '<span class="context-switcher-item-badge">Current</span>' : ''}
+      ${badge}
     </button>`;
   }).join('');
   scrollContextSwitcherSelectionIntoView();
@@ -257,6 +363,14 @@ function scrollContextSwitcherSelectionIntoView() {
 function activateContextSwitcherSelection() {
   const item = activeContextSwitcherItems[activeContextSwitcherIndex];
   if (!item) return;
+  if (item.kind === 'create-session') {
+    if (createSessionFromContextSwitcher(item.value)) closeContextSwitcher();
+    return;
+  }
+  if (item.kind === 'create-target') {
+    if (createTargetFromContextSwitcher(item.value)) closeContextSwitcher();
+    return;
+  }
   if (item.kind === 'session') {
     switchSession(item.id);
   } else {
