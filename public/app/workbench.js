@@ -693,6 +693,7 @@ function createSession() {
   if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   }
   switchSession(id);
   saveNotes();
@@ -835,14 +836,21 @@ function switchSession(id) {
     b.classList.toggle('active', b.dataset.scope === 'session'));
   const sess = sessions[id];
   const targets = (sess && sess.targets) || [];
+  const rememberedTarget = typeof getRememberedTargetForSession === 'function' ? getRememberedTargetForSession(id) : '';
   const savedTarget = localStorage.getItem('ops-active-target');
-  if (savedTarget && targets.find(t => t.id === savedTarget)) {
+  if (rememberedTarget && targets.find((t) => t.id === rememberedTarget)) {
+    activeTargetId = rememberedTarget;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  } else if (savedTarget && targets.find((t) => t.id === savedTarget)) {
     activeTargetId = savedTarget;
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else {
     activeTargetId = null;
+    if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   }
   renderSessionSidebar();
   updateSessionAttackerIpField();
@@ -870,6 +878,7 @@ async function deleteSession(id) {
   });
 
   delete sessions[id];
+  if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   if (activeSessionId === id) {
     activeSessionId = Object.keys(sessions)[0] || null;
     if (activeSessionId) localStorage.setItem('ops-active-session', activeSessionId);

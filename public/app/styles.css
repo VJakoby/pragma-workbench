@@ -4283,6 +4283,174 @@ body.is-resizing *{cursor:col-resize!important}
   display: block;
 }
 
+.context-switcher-box {
+  max-width: 640px;
+}
+.context-switcher-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 0;
+}
+.context-switcher-tab {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.12s;
+}
+.context-switcher-tab:hover {
+  border-color: var(--border2);
+  color: var(--text);
+}
+.context-switcher-tab.active {
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb),0.34);
+  background: rgba(var(--accent-rgb),0.14);
+}
+.context-switcher-helper-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+}
+.context-switcher-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.context-switcher-helper {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.context-switcher-list {
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow-y: auto;
+  min-height: 180px;
+  max-height: min(52vh, 460px);
+}
+.context-switcher-empty {
+  padding: 14px 6px;
+  color: var(--muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.context-switcher-item {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+}
+.context-switcher-item:hover {
+  border-color: var(--border2);
+}
+.context-switcher-item.active {
+  border-color: rgba(var(--green-rgb),0.3);
+  background: rgba(var(--green-rgb),0.06);
+}
+.context-switcher-item.selected {
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),0.26);
+  border-color: rgba(var(--accent-rgb),0.36);
+}
+.context-switcher-item-indicator {
+  width: 16px;
+  display: inline-flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.context-switcher-target-dot,
+.context-switcher-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.context-switcher-target-dot.active,
+.context-switcher-status-dot.active {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+.context-switcher-status-dot.paused {
+  background: var(--yellow);
+  box-shadow: 0 0 6px rgba(251,191,36,0.42);
+}
+.context-switcher-status-dot.complete {
+  background: var(--text2);
+  box-shadow: 0 0 6px rgba(150,171,190,0.28);
+}
+.context-switcher-item-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.context-switcher-item-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.context-switcher-item-meta {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.context-switcher-item-badge {
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  background: rgba(var(--green-rgb),0.12);
+  border: 1px solid rgba(var(--green-rgb),0.24);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.context-switcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+}
+.context-switcher-footer-btn {
+  padding-inline: 14px;
+}
+.context-switcher-footer-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* Targets list items */
 .target-item {
   display: flex; align-items: center; gap: 8px;

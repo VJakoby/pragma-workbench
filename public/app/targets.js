@@ -1,6 +1,48 @@
 // ═══════════════════════════════════════════════
 // TARGET
 // ═══════════════════════════════════════════════
+let activeContextSwitcherTab = 'targets';
+let activeContextSwitcherQuery = '';
+let activeContextSwitcherIndex = 0;
+let activeContextSwitcherItems = [];
+
+function readStoredActiveTargetsBySession() {
+  try {
+    const raw = localStorage.getItem('ops-active-targets-by-session');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeStoredActiveTargetsBySession(map) {
+  localStorage.setItem('ops-active-targets-by-session', JSON.stringify(map || {}));
+}
+
+function rememberActiveTargetForSession(sessionId, targetId) {
+  if (!sessionId) return;
+  const map = readStoredActiveTargetsBySession();
+  if (targetId) map[sessionId] = targetId;
+  else delete map[sessionId];
+  writeStoredActiveTargetsBySession(map);
+}
+
+function getRememberedTargetForSession(sessionId) {
+  if (!sessionId) return '';
+  const map = readStoredActiveTargetsBySession();
+  return String(map[sessionId] || '');
+}
+
+function clearRememberedTargetForSession(sessionId, targetId = '') {
+  if (!sessionId) return;
+  const map = readStoredActiveTargetsBySession();
+  if (!targetId || map[sessionId] === targetId) {
+    delete map[sessionId];
+    writeStoredActiveTargetsBySession(map);
+  }
+}
+
 function initTarget() {
   activeTargetId = localStorage.getItem('ops-active-target') || null;
   updateTargetSelector();
@@ -11,7 +53,7 @@ function getActiveTarget() {
   const sess = sessions[activeSessionId];
   const targets = sess.targets || [];
   if (!targets.length) return null;
-  return targets.find(t => t.id === activeTargetId) || targets[0];
+  return targets.find((t) => t.id === activeTargetId) || targets[0];
 }
 
 function getIP()     { const t = getActiveTarget(); return (t && t.ip)     || '<IP>'; }
@@ -28,10 +70,10 @@ function getTargetLabelValue() {
 function updateTargetDots() { updateTargetSelector(); }
 
 function updateTargetSelector() {
-  const t      = getActiveTarget();
+  const t = getActiveTarget();
   const selector = document.getElementById('targetSelector');
-  const dot    = document.getElementById('targetSelDot');
-  const lbl    = document.getElementById('targetSelLabel');
+  const dot = document.getElementById('targetSelDot');
+  const lbl = document.getElementById('targetSelLabel');
   const cpyIpBtn = document.getElementById('targetSelectorCopy');
   const cpyDomBtn = document.getElementById('targetSelectorCopyDomain');
   const ipText = document.getElementById('targetCopyIpText');
@@ -50,7 +92,7 @@ function updateTargetSelector() {
     if (cpyDomBtn) cpyDomBtn.disabled = !t.domain;
   } else {
     dot.classList.add(status === 'active' ? 'active' : status);
-    if (ipText) ipText.textContent = activeSessionId ? '—' : '—';
+    if (ipText) ipText.textContent = '—';
     if (domText) domText.textContent = '—';
     lbl.textContent = activeSessionId ? 'No target' : 'No session';
     if (cpyIpBtn) cpyIpBtn.disabled = true;
@@ -87,13 +129,211 @@ function editActiveTargetQuick() {
   setTimeout(() => document.getElementById('newTargetIP')?.focus(), 60);
 }
 
+function getContextSwitcherTargetItems() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const targets = (sess && sess.targets) || [];
+  const q = activeContextSwitcherQuery.trim().toLowerCase();
+  return targets
+    .map((target) => {
+      const title = target.label || target.ip || target.domain || 'target';
+      const metaParts = [target.ip, target.domain].filter(Boolean);
+      return {
+        kind: 'target',
+        id: target.id,
+        title,
+        meta: metaParts.join(' · '),
+        active: target.id === getActiveTarget()?.id,
+        search: [title, target.ip, target.domain, target.label].filter(Boolean).join(' ').toLowerCase(),
+      };
+    })
+    .filter((item) => !q || item.search.includes(q));
+}
+
+function getContextSwitcherSessionItems() {
+  const q = activeContextSwitcherQuery.trim().toLowerCase();
+  return Object.values(sessions)
+    .sort((a, b) => (b.created || 0) - (a.created || 0))
+    .map((session) => {
+      const targetCount = (session.targets || []).length;
+      const noteCount = Object.values(notes).filter((note) => note.session_id === session.id).length;
+      const meta = `${targetCount} target${targetCount === 1 ? '' : 's'} · ${noteCount} note${noteCount === 1 ? '' : 's'}`;
+      return {
+        kind: 'session',
+        id: session.id,
+        title: session.codename || 'Untitled session',
+        meta,
+        status: session.status || 'active',
+        active: session.id === activeSessionId,
+        search: `${session.codename || ''} ${meta}`.toLowerCase(),
+      };
+    })
+    .filter((item) => !q || item.search.includes(q));
+}
+
+function getContextSwitcherItems() {
+  return activeContextSwitcherTab === 'sessions'
+    ? getContextSwitcherSessionItems()
+    : getContextSwitcherTargetItems();
+}
+
+function syncContextSwitcherTabButtons() {
+  document.querySelectorAll('.context-switcher-tab').forEach((button) => {
+    button.classList.toggle('active', button.dataset.tab === activeContextSwitcherTab);
+  });
+}
+
+function primeContextSwitcherSelection() {
+  const items = getContextSwitcherItems();
+  const preferredIndex = items.findIndex((item) => item.active);
+  activeContextSwitcherIndex = preferredIndex >= 0 ? preferredIndex : 0;
+}
+
+function renderContextSwitcherList() {
+  const list = document.getElementById('contextSwitcherList');
+  const title = document.getElementById('contextSwitcherTitle');
+  const helper = document.getElementById('contextSwitcherHelper');
+  const manageBtn = document.getElementById('contextSwitcherManageBtn');
+  if (!list) return;
+
+  syncContextSwitcherTabButtons();
+  activeContextSwitcherItems = getContextSwitcherItems();
+  if (activeContextSwitcherIndex >= activeContextSwitcherItems.length) {
+    activeContextSwitcherIndex = activeContextSwitcherItems.length ? activeContextSwitcherItems.length - 1 : 0;
+  }
+
+  if (title) title.textContent = activeContextSwitcherTab === 'sessions' ? 'Switch Session' : 'Switch Target';
+  if (helper) {
+    helper.textContent = activeContextSwitcherTab === 'sessions'
+      ? 'Type to filter sessions. Enter switches session and restores its last active target.'
+      : 'Type to filter targets. Enter switches target and refreshes injected context.';
+  }
+  if (manageBtn) manageBtn.textContent = activeContextSwitcherTab === 'sessions' ? 'Manage Sessions' : 'Manage Targets';
+
+  if (!activeContextSwitcherItems.length) {
+    const empty = activeContextSwitcherTab === 'sessions'
+      ? 'No sessions match the current filter.'
+      : activeSessionId
+        ? 'No targets match the current filter.'
+        : 'Select or create a session before switching targets.';
+    list.innerHTML = `<div class="context-switcher-empty">${empty}</div>`;
+    return;
+  }
+
+  list.innerHTML = activeContextSwitcherItems.map((item, index) => {
+    const statusDot = item.kind === 'session'
+      ? `<span class="context-switcher-status-dot ${esc(item.status || 'active')}"></span>`
+      : `<span class="context-switcher-target-dot${item.active ? ' active' : ''}"></span>`;
+    return `<button type="button" class="context-switcher-item${item.active ? ' active' : ''}${index === activeContextSwitcherIndex ? ' selected' : ''}" data-index="${index}" onclick="selectContextSwitcherIndex(${index})" onmousemove="setContextSwitcherIndex(${index})">
+      <span class="context-switcher-item-indicator">${statusDot}</span>
+      <span class="context-switcher-item-body">
+        <span class="context-switcher-item-title">${esc(item.title || '')}</span>
+        <span class="context-switcher-item-meta">${esc(item.meta || '')}</span>
+      </span>
+      ${item.active ? '<span class="context-switcher-item-badge">Current</span>' : ''}
+    </button>`;
+  }).join('');
+  scrollContextSwitcherSelectionIntoView();
+}
+
+function setContextSwitcherIndex(index) {
+  if (!activeContextSwitcherItems.length) return;
+  const bounded = Math.max(0, Math.min(index, activeContextSwitcherItems.length - 1));
+  if (bounded === activeContextSwitcherIndex) return;
+  activeContextSwitcherIndex = bounded;
+  renderContextSwitcherList();
+}
+
+function scrollContextSwitcherSelectionIntoView() {
+  const selected = document.querySelector('.context-switcher-item.selected');
+  selected?.scrollIntoView({ block: 'nearest' });
+}
+
+function activateContextSwitcherSelection() {
+  const item = activeContextSwitcherItems[activeContextSwitcherIndex];
+  if (!item) return;
+  if (item.kind === 'session') {
+    switchSession(item.id);
+  } else {
+    setActiveTarget(item.id, { closeOverlay: true });
+  }
+  closeContextSwitcher();
+}
+
+function onContextSwitcherInput(value) {
+  activeContextSwitcherQuery = String(value || '');
+  activeContextSwitcherIndex = 0;
+  renderContextSwitcherList();
+}
+
+function onContextSwitcherKey(event) {
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (!activeContextSwitcherItems.length) return;
+    activeContextSwitcherIndex = (activeContextSwitcherIndex + 1) % activeContextSwitcherItems.length;
+    renderContextSwitcherList();
+    return;
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (!activeContextSwitcherItems.length) return;
+    activeContextSwitcherIndex = (activeContextSwitcherIndex - 1 + activeContextSwitcherItems.length) % activeContextSwitcherItems.length;
+    renderContextSwitcherList();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    activateContextSwitcherSelection();
+    return;
+  }
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    setContextSwitcherTab(activeContextSwitcherTab === 'targets' ? 'sessions' : 'targets');
+  }
+}
+
+function setContextSwitcherTab(tab) {
+  activeContextSwitcherTab = tab === 'sessions' ? 'sessions' : 'targets';
+  activeContextSwitcherQuery = '';
+  const input = document.getElementById('contextSwitcherInput');
+  if (input) input.value = '';
+  primeContextSwitcherSelection();
+  renderContextSwitcherList();
+  input?.focus();
+}
+
+function openContextSwitcher() {
+  activeContextSwitcherTab = 'targets';
+  activeContextSwitcherQuery = '';
+  const input = document.getElementById('contextSwitcherInput');
+  const overlay = document.getElementById('contextSwitcherOverlay');
+  if (input) input.value = '';
+  primeContextSwitcherSelection();
+  renderContextSwitcherList();
+  overlay?.classList.add('open');
+  setTimeout(() => input?.focus(), 40);
+}
+
+function closeContextSwitcher() {
+  document.getElementById('contextSwitcherOverlay')?.classList.remove('open');
+}
+
+function openContextSwitcherManage() {
+  closeContextSwitcher();
+  if (activeContextSwitcherTab === 'sessions') openSessionModal();
+  else openTargetsPanel();
+}
+
+function selectContextSwitcherIndex(index) {
+  setContextSwitcherIndex(index);
+  activateContextSwitcherSelection();
+}
+
 function openTargetsPanel() {
   const sess = activeSessionId && sessions[activeSessionId];
-  document.getElementById('targetsPanelTitle').textContent =
-    sess ? `Targets — ${sess.codename}` : 'Targets';
-  document.getElementById('newTargetIP').value     = '';
+  document.getElementById('targetsPanelTitle').textContent = sess ? `Targets — ${sess.codename}` : 'Targets';
+  document.getElementById('newTargetIP').value = '';
   document.getElementById('newTargetDomain').value = '';
-  document.getElementById('newTargetLabel').value  = '';
+  document.getElementById('newTargetLabel').value = '';
   renderTargetsList();
   renderSvcLogTable();
   renderPathTable();
@@ -116,7 +356,7 @@ function renderTargetsList() {
     return;
   }
   const curId = getActiveTarget()?.id;
-  list.innerHTML = targets.map(t => `
+  list.innerHTML = targets.map((t) => `
     <div class="target-item${t.id === curId ? ' active-target' : ''}" onclick="setActiveTarget('${t.id}')">
       <div class="target-item-dot"></div>
       <div class="target-item-ip">${esc(t.ip || '—')}</div>
@@ -130,9 +370,9 @@ function renderTargetsList() {
 }
 
 function addTarget() {
-  const ip     = document.getElementById('newTargetIP').value.trim();
+  const ip = document.getElementById('newTargetIP').value.trim();
   const domain = document.getElementById('newTargetDomain').value.trim();
-  const label  = document.getElementById('newTargetLabel').value.trim();
+  const label = document.getElementById('newTargetLabel').value.trim();
   if (!ip && !domain) { document.getElementById('newTargetIP').focus(); return; }
   if (!activeSessionId) return;
 
@@ -144,36 +384,43 @@ function addTarget() {
   if (sess.targets.length === 1) {
     activeTargetId = id;
     localStorage.setItem('ops-active-target', id);
+    rememberActiveTargetForSession(activeSessionId, id);
   }
 
-  document.getElementById('newTargetIP').value     = '';
+  document.getElementById('newTargetIP').value = '';
   document.getElementById('newTargetDomain').value = '';
-  document.getElementById('newTargetLabel').value  = '';
+  document.getElementById('newTargetLabel').value = '';
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
 }
 
-function setActiveTarget(id) {
+function setActiveTarget(id, opts = {}) {
   activeTargetId = id;
   localStorage.setItem('ops-active-target', id);
+  rememberActiveTargetForSession(activeSessionId, id);
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
-  closeTargetsPanel();
+  if (opts.closeOverlay !== false) closeTargetsPanel();
 }
 
 function deleteTarget(id) {
   if (!activeSessionId) return;
   const sess = sessions[activeSessionId];
-  sess.targets = (sess.targets || []).filter(t => t.id !== id);
+  sess.targets = (sess.targets || []).filter((t) => t.id !== id);
+  clearRememberedTargetForSession(activeSessionId, id);
   if (activeTargetId === id) {
     activeTargetId = sess.targets[0]?.id || null;
-    if (activeTargetId) localStorage.setItem('ops-active-target', activeTargetId);
-    else localStorage.removeItem('ops-active-target');
+    if (activeTargetId) {
+      localStorage.setItem('ops-active-target', activeTargetId);
+      rememberActiveTargetForSession(activeSessionId, activeTargetId);
+    } else {
+      localStorage.removeItem('ops-active-target');
+    }
   }
-  Object.values(notes).forEach(n => { if (n.target_id === id) n.target_id = null; });
+  Object.values(notes).forEach((n) => { if (n.target_id === id) n.target_id = null; });
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
@@ -181,26 +428,26 @@ function deleteTarget(id) {
 }
 
 let _targetEditResolve = null;
-let _targetEditReject  = null;
+let _targetEditReject = null;
 
 function showTargetEditModal(t) {
   return new Promise((resolve, reject) => {
     _targetEditResolve = resolve;
-    _targetEditReject  = reject;
+    _targetEditReject = reject;
     document.getElementById('targetEditTitle').textContent = t.label || t.ip || t.domain || 'Edit Target';
     const tei = document.getElementById('targetEditIcon'); if (tei) tei.innerHTML = ICONS.target;
-    document.getElementById('targetEditIP').value     = t.ip     || '';
+    document.getElementById('targetEditIP').value = t.ip || '';
     document.getElementById('targetEditDomain').value = t.domain || '';
-    document.getElementById('targetEditLabel').value  = t.label  || '';
+    document.getElementById('targetEditLabel').value = t.label || '';
     document.getElementById('targetEditOverlay').classList.add('open');
     setTimeout(() => document.getElementById('targetEditIP').focus(), 40);
   });
 }
 
 function _targetEditSave() {
-  const ip     = document.getElementById('targetEditIP').value.trim();
+  const ip = document.getElementById('targetEditIP').value.trim();
   const domain = document.getElementById('targetEditDomain').value.trim();
-  const label  = document.getElementById('targetEditLabel').value.trim();
+  const label = document.getElementById('targetEditLabel').value.trim();
   if (!ip && !domain) {
     document.getElementById('targetEditIP').classList.add('error');
     document.getElementById('targetEditIP').focus();
@@ -226,15 +473,16 @@ function _targetEditKey(e) {
 async function renameTarget(id) {
   if (!activeSessionId) return;
   const sess = sessions[activeSessionId];
-  const t = (sess.targets || []).find(t => t.id === id);
+  const t = (sess.targets || []).find((target) => target.id === id);
   if (!t) return;
   let result;
   try { result = await showTargetEditModal(t); } catch { return; }
-  t.ip     = result.ip;
+  t.ip = result.ip;
   t.domain = result.domain;
-  t.label  = result.label;
+  t.label = result.label;
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
   renderSessionSidebar();
+  if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) renderContextSwitcherList();
 }
