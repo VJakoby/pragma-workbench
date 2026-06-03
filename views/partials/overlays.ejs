@@ -64,6 +64,52 @@
     </div>
   </div>
 </div>
+<!-- -- WELCOME / SESSION SELECTOR -- -->
+<div class="cmd-overlay" id="welcomeSessionOverlay">
+  <div class="cmd-box welcome-session-box">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 12l7-4"/><path d="M12 12V3"/><path d="M12 12l-7-4"/></svg></span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Welcome</span>
+      <span class="cmd-esc" id="welcomeSessionEsc" onclick="closeWelcomeSessionModal()" style="cursor:pointer;display:none">ESC</span>
+    </div>
+    <div class="welcome-session-body">
+      <div class="welcome-session-intro">
+        <div class="welcome-session-kicker">PRAGMA <span>// Workbench</span></div>
+        <div class="welcome-session-title">Choose a session to continue</div>
+        <div class="welcome-session-copy">Resume an existing workspace or create a new session before you start working.</div>
+      </div>
+      <div class="welcome-session-layout">
+        <div class="welcome-session-panel">
+          <div class="welcome-session-panel-hdr">Existing Sessions</div>
+          <div class="welcome-session-list" id="welcomeSessionList"></div>
+        </div>
+        <div class="welcome-session-panel welcome-session-create-panel">
+          <div class="welcome-session-panel-hdr">Create Session</div>
+          <div class="session-field">
+            <label>Session codename</label>
+            <input id="welcomeSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">
+          </div>
+          <div class="session-field">
+            <label>Initial target (optional)</label>
+            <div class="session-inline-field welcome-session-inline-field">
+              <input id="welcomeSessionTargetIP" type="text" placeholder="IP / Host" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+              <input id="welcomeSessionTargetDomain" type="text" placeholder="Domain" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+              <input id="welcomeSessionTargetLabel" type="text" placeholder="Label" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+            </div>
+            <div class="session-field-hint">Optional. If filled, the session opens with this target already added and selected.</div>
+          </div>
+          <div class="welcome-session-actions">
+            <button class="session-btn primary" type="button" onclick="createSession('welcome')">+ Create Session</button>
+            <button class="session-btn secondary" type="button" onclick="document.getElementById('welcomeImportSessionFile').click()">&#11014; Import .session</button>
+            <input type="file" id="welcomeImportSessionFile" accept=".session" data-source="welcome" data-feedback-id="welcomeImportFeedback" style="display:none" onchange="importSession(event)">
+          </div>
+          <div class="session-field-hint">You can manage session exports, attacker IPs, and summary settings after entering the workspace.</div>
+          <div id="welcomeImportFeedback" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- -- SESSION MODAL -- -->
 <div class="cmd-overlay" id="sessionOverlay">
   <div class="cmd-box" style="max-width:540px">

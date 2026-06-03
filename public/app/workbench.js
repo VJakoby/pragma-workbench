@@ -37,6 +37,7 @@ const NOTE_TEMPLATES_FALLBACK = {
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
+let shouldPromptForSessionOnStartup = false;
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -507,8 +508,13 @@ async function initNotes() {
   }
 
   const savedSid = localStorage.getItem('ops-active-session');
-  if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
-  else if (Object.keys(sessions).length) activeSessionId = Object.keys(sessions)[0];
+  if (savedSid && sessions[savedSid]) {
+    activeSessionId = savedSid;
+    shouldPromptForSessionOnStartup = false;
+  } else {
+    activeSessionId = null;
+    shouldPromptForSessionOnStartup = true;
+  }
 
   renderSessionSidebar();
   renderNotesList();
@@ -522,6 +528,8 @@ async function initNotes() {
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+  } else {
+    activeTargetId = null;
   }
   if (sess && (!sess.targets || !sess.targets.length) && (sess.target_ip || sess.target_domain)) {
     const id = 'tgt_migrate_' + sess.id;
@@ -634,6 +642,93 @@ function openSessionModal() {
 
 function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
 
+function getSessionFormRefs(source = 'session') {
+  return source === 'welcome'
+    ? {
+        name: document.getElementById('welcomeSessionName'),
+        targetIp: document.getElementById('welcomeSessionTargetIP'),
+        targetDomain: document.getElementById('welcomeSessionTargetDomain'),
+        targetLabel: document.getElementById('welcomeSessionTargetLabel'),
+      }
+    : {
+        name: document.getElementById('newSessionName'),
+        targetIp: document.getElementById('newSessionTargetIP'),
+        targetDomain: document.getElementById('newSessionTargetDomain'),
+        targetLabel: document.getElementById('newSessionTargetLabel'),
+      };
+}
+
+function clearSessionForm(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  if (!refs.name) return;
+  refs.name.value = '';
+  refs.targetIp.value = '';
+  refs.targetDomain.value = '';
+  refs.targetLabel.value = '';
+}
+
+function renderWelcomeSessionList() {
+  const list = document.getElementById('welcomeSessionList');
+  if (!list) return;
+  const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!entries.length) {
+    list.innerHTML = `
+      <div class="welcome-session-empty">
+        <div class="welcome-session-empty-title">No sessions yet</div>
+        <div class="welcome-session-empty-copy">Create your first session or import an existing <code>.session</code> file to begin.</div>
+      </div>`;
+    return;
+  }
+  const noteCount = (id) => Object.values(notes).filter((n) => n.session_id === id).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
+  list.innerHTML = entries.map((session) => {
+    const targets = Array.isArray(session.targets) ? session.targets : [];
+    const targetLabel = targets[0]
+      ? (targets[0].label || targets[0].ip || targets[0].domain || 'target')
+      : 'No targets yet';
+    return `
+      <button class="welcome-session-card${session.id === activeSessionId ? ' active' : ''}" type="button" onclick="selectWelcomeSession('${session.id}')">
+        <div class="welcome-session-card-top">
+          <div class="welcome-session-card-title">${esc(session.codename || 'Untitled Session')}</div>
+          <div class="session-status-pill ${session.status || 'active'}">
+            <span class="status-dot ${session.status || 'active'}"></span>${statusLabel[session.status || 'active'] || 'Active'}
+          </div>
+        </div>
+        <div class="welcome-session-card-meta">${noteCount(session.id)} notes · ${targets.length} target${targets.length !== 1 ? 's' : ''} · ${new Date(session.created || Date.now()).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="welcome-session-card-target">Primary target: ${esc(targetLabel)}</div>
+      </button>`;
+  }).join('');
+}
+
+function openWelcomeSessionModal() {
+  renderWelcomeSessionList();
+  clearSessionForm('welcome');
+  const feedback = document.getElementById('welcomeImportFeedback');
+  if (feedback) feedback.style.display = 'none';
+  const overlay = document.getElementById('welcomeSessionOverlay');
+  const esc = document.getElementById('welcomeSessionEsc');
+  if (esc) esc.style.display = activeSessionId ? '' : 'none';
+  overlay?.classList.add('open');
+  setTimeout(() => document.getElementById('welcomeSessionName')?.focus(), 60);
+}
+
+function closeWelcomeSessionModal(force = false) {
+  if (!force && !activeSessionId) return;
+  document.getElementById('welcomeSessionOverlay')?.classList.remove('open');
+}
+
+function shouldOpenWelcomeSessionModalOnStartup() {
+  if (!shouldPromptForSessionOnStartup) return false;
+  openWelcomeSessionModal();
+  return true;
+}
+
+function selectWelcomeSession(id) {
+  if (!sessions[id]) return;
+  switchSession(id);
+  closeWelcomeSessionModal(true);
+}
+
 function renderSessionList() {
   const list = document.getElementById('sessionList');
   const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
@@ -671,12 +766,13 @@ function renderSessionList() {
     }).join('');
 }
 
-function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
-  const targetIp = document.getElementById('newSessionTargetIP').value.trim();
-  const targetDomain = document.getElementById('newSessionTargetDomain').value.trim();
-  const targetLabel = document.getElementById('newSessionTargetLabel').value.trim();
-  if (!name) { document.getElementById('newSessionName').focus(); return; }
+function createSession(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  const name = refs.name?.value.trim() || '';
+  const targetIp = refs.targetIp?.value.trim() || '';
+  const targetDomain = refs.targetDomain?.value.trim() || '';
+  const targetLabel = refs.targetLabel?.value.trim() || '';
+  if (!name) { refs.name?.focus(); return; }
   const id = 'sess_' + Date.now();
   const targets = [];
   if (targetIp || targetDomain || targetLabel) {
@@ -698,11 +794,10 @@ function createSession() {
   switchSession(id);
   saveNotes();
   renderSessionList();
+  renderWelcomeSessionList();
   updateSessionAttackerIpField();
-  document.getElementById('newSessionName').value = '';
-  document.getElementById('newSessionTargetIP').value = '';
-  document.getElementById('newSessionTargetDomain').value = '';
-  document.getElementById('newSessionTargetLabel').value = '';
+  clearSessionForm(source);
+  if (source === 'welcome') closeWelcomeSessionModal(true);
 }
 
 function updateSessionAttackerIpField() {
@@ -825,6 +920,8 @@ function setSessionStatus(e, sessId, status) {
 }
 
 function switchSession(id) {
+  if (!sessions[id]) return;
+  shouldPromptForSessionOnStartup = false;
   activeSessionId = id;
   localStorage.setItem('ops-active-session', id);
   activeNoteScope = 'session';
@@ -862,6 +959,7 @@ function switchSession(id) {
   renderTodoList();
   if (typeof renderEvidenceList === 'function') renderEvidenceList();
   if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  closeWelcomeSessionModal(true);
 }
 
 async function deleteSession(id) {
@@ -950,7 +1048,8 @@ async function renameSession(id) {
 async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const fb = document.getElementById('importFeedback');
+  const source = event.target.dataset.source || 'session';
+  const fb = document.getElementById(event.target.dataset.feedbackId || 'importFeedback');
   fb.style.display = 'block';
   fb.className = 'import-feedback';
   fb.textContent = '⏳ Importing…';
@@ -1076,9 +1175,11 @@ async function importSession(event) {
       saveNotes();
       switchSession(newSessId);
       renderSessionList();
+      renderWelcomeSessionList();
 
       fb.className = 'import-feedback ok';
       fb.textContent = '✓ Imported "' + importedSess.codename + '" — ' + noteCount + ' note' + (noteCount !== 1 ? 's' : '');
+      if (source === 'welcome') closeWelcomeSessionModal(true);
       setTimeout(() => { fb.style.display = 'none'; }, 4000);
     } catch (err) {
       fb.className = 'import-feedback err';
