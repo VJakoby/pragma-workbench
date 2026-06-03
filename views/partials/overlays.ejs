@@ -260,6 +260,20 @@
   </div>
 </div>
 
+<div class="pw-overlay" id="attachmentStorageOverlay" onclick="if(event.target===this)closeAttachmentStorageModal()">
+  <div class="pw-box attachment-storage-modal-box">
+    <div class="pw-header">
+      <span class="pw-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"/></svg></span>
+      <span class="pw-header-title">Attachment Storage</span>
+      <button class="pw-header-close" onclick="closeAttachmentStorageModal()">&times;</button>
+    </div>
+    <div class="pw-body attachment-storage-modal-body">
+      <div class="pw-description attachment-storage-modal-summary" id="attachmentStorageModalSummary">Loading attachment usage…</div>
+      <div class="attachment-storage-modal-list" id="attachmentStorageModalList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="pw-overlay" id="sessionRenameOverlay">
   <div class="pw-box" style="width:320px">
     <div class="pw-header">

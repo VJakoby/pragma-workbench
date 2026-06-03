@@ -68,6 +68,116 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
       });
   }
 
+  function noteDisplayTitle(note) {
+    const title = String(note?.title || '').trim();
+    if (title) return title;
+    const id = String(note?.id || '').trim();
+    return id || 'Untitled';
+  }
+
+  function buildAttachmentUsagePayload(source) {
+    const notesMap = source?.notes && typeof source.notes === 'object' ? source.notes : {};
+    const sessionsMap = source?.sessions && typeof source.sessions === 'object' ? source.sessions : {};
+    const inspection = inspectAttachmentStore(sessionsDir, notesMap);
+    const referencedByKey = new Map(inspection.referenced.map((item) => [`${item.noteId}:${item.filename}`, item]));
+    const attachments = new Map();
+
+    Object.values(notesMap).forEach((note) => {
+      const noteTitle = noteDisplayTitle(note);
+      extractAttachmentRefsFromMarkdown(note?.body || '').forEach((ref) => {
+        const key = `${ref.noteId}:${ref.filename}`;
+        if (!attachments.has(key)) {
+          const stored = referencedByKey.get(key);
+          const ownerNote = notesMap[ref.noteId] || null;
+          let sizeBytes = 0;
+          if (stored?.storedPath && fs.existsSync(stored.storedPath)) {
+            try {
+              sizeBytes = fs.statSync(stored.storedPath).size || 0;
+            } catch (_) {}
+          }
+          attachments.set(key, {
+            key,
+            note_id: ref.noteId,
+            filename: ref.filename,
+            url: ref.url,
+            owner_note_id: ownerNote?.id || '',
+            owner_note_title: ownerNote ? noteDisplayTitle(ownerNote) : '',
+            owner_session_name: ownerNote?.session_id && sessionsMap[ownerNote.session_id]
+              ? String(sessionsMap[ownerNote.session_id].codename || '').trim()
+              : '',
+            exists: !!stored?.exists,
+            missing: !stored?.exists,
+            orphaned: false,
+            mode: stored?.mode || null,
+            size_bytes: sizeBytes,
+            references: [],
+            reference_count: 0,
+          });
+        }
+        const entry = attachments.get(key);
+        if (entry.references.some((item) => item.id === note.id)) return;
+        entry.references.push({
+          id: note.id,
+          title: noteTitle,
+          session_id: note.session_id || null,
+        });
+        entry.reference_count = entry.references.length;
+      });
+    });
+
+    inspection.orphaned.forEach((item) => {
+      const filename = String(item.filename || '').endsWith('.enc')
+        ? String(item.filename).slice(0, -4)
+        : String(item.filename || '');
+      const key = `${item.noteId}:${filename}`;
+      if (attachments.has(key)) return;
+      let sizeBytes = 0;
+      if (item.path && fs.existsSync(item.path)) {
+        try {
+          sizeBytes = fs.statSync(item.path).size || 0;
+        } catch (_) {}
+      }
+      attachments.set(key, {
+        key,
+        note_id: item.noteId,
+        filename,
+        url: '',
+        owner_note_id: notesMap[item.noteId]?.id || '',
+        owner_note_title: notesMap[item.noteId] ? noteDisplayTitle(notesMap[item.noteId]) : '',
+        owner_session_name: notesMap[item.noteId]?.session_id && sessionsMap[notesMap[item.noteId].session_id]
+          ? String(sessionsMap[notesMap[item.noteId].session_id].codename || '').trim()
+          : '',
+        exists: true,
+        missing: false,
+        orphaned: true,
+        mode: String(item.filename || '').endsWith('.enc') ? 'encrypted' : 'raw',
+        size_bytes: sizeBytes,
+        references: [],
+        reference_count: 0,
+      });
+    });
+
+    const rows = Array.from(attachments.values()).sort((a, b) => {
+      const score = (item) => (item.orphaned ? 0 : item.missing ? 1 : 2);
+      const delta = score(a) - score(b);
+      if (delta !== 0) return delta;
+      return String(a.filename || '').localeCompare(String(b.filename || ''));
+    });
+
+    return {
+      ok: true,
+      summary: {
+        tracked_count: rows.length,
+        referenced_count: rows.filter((item) => !item.orphaned).length,
+        referenced_note_count: rows.reduce((sum, item) => sum + Number(item.reference_count || 0), 0),
+        orphaned_count: rows.filter((item) => item.orphaned).length,
+        missing_count: rows.filter((item) => item.missing).length,
+        total_bytes: rows.reduce((sum, item) => sum + Number(item.size_bytes || 0), 0),
+      },
+      attachments: rows,
+    };
+  }
+
   function inlineAttachmentImages(html, outDir) {
     return String(html || '').replace(/<img([^>]*?)src="([^"]+)"([^>]*)>/gi, (match, pre, src, post) => {
       const cleanSrc = String(src || '').trim();
@@ -217,6 +327,18 @@ ${htmlBody}
         return res.json(payload);
       }
       return res.status(404).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/notes/attachments/usage', (req, res) => {
+    try {
+      const source = resolveNotesSourceFromRequest(req);
+      if (!source) {
+        return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes.' });
+      }
+      res.json(buildAttachmentUsagePayload(source));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
