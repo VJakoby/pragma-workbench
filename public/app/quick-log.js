@@ -2211,7 +2211,7 @@ function renderSvcLogTable() {
           <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
         </tr>` : `
         <tr>
-          <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(s.proto)}</span>` : ''}</td>
+          <td>${renderQuickLogKbServiceLink(s) || (esc(s.port) + (s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:500;font-size:11px">/${esc(s.proto)}</span>` : ''))}</td>
           <td>${esc(s.service || '—')}</td>
           <td style="color:var(--text2)">${esc(s.version || '')}</td>
           <td>${esc(s.notes || '')}</td>
@@ -2220,6 +2220,50 @@ function renderSvcLogTable() {
       </tbody>
     </table>`;
   if (_editingQuickLog?.kind === 'service') focusQuickLogEditInput(`svcEditPort_${_editingQuickLog.id}`);
+}
+
+function normalizeKbServiceLookupValue(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function findKbServiceForQuickLogEntry(entry) {
+  if (!entry || typeof getKbCollection !== 'function') return null;
+  const items = getKbCollection('services') || [];
+  if (!items.length) return null;
+
+  const portValue = String(entry.port || '').trim();
+  const serviceValue = normalizeKbServiceLookupValue(entry.service || '');
+  const serviceSlug = serviceValue.replace(/\s+/g, '_');
+
+  let hit = null;
+  if (portValue) {
+    hit = items.find((item) => String(item.id || '').trim() === portValue)
+      || items.find((item) => String(item.port || '').split('/')[0].trim() === portValue);
+  }
+  if (!hit && serviceSlug) {
+    hit = items.find((item) => String(item.id || '').trim().toLowerCase() === serviceSlug)
+      || items.find((item) => normalizeKbServiceLookupValue(item.name || '') === serviceValue);
+  }
+  return hit || null;
+}
+
+function openQuickLogKbService(id) {
+  if (!id) return;
+  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
+  if (typeof openItem === 'function') openItem('services', id);
+}
+
+function renderQuickLogKbServiceLink(entry) {
+  const kbItem = findKbServiceForQuickLogEntry(entry);
+  if (!kbItem) return '';
+  const portValue = esc(String(entry?.port || ''));
+  const protoValue = entry?.proto && entry.proto !== 'tcp'
+    ? '<span style="color:var(--muted);font-weight:500;font-size:11px">/' + esc(String(entry.proto || '')) + '</span>'
+    : '';
+  return '<button class="tb-btn tb-btn-sm" type="button" onclick="openQuickLogKbService(\'' + esc(String(kbItem.id || '')) + '\')" title="Open matching KB service" style="font-size:14px;font-weight:700;letter-spacing:0.01em;padding:3px 8px">' + portValue + protoValue + '</button>';
 }
 
 function setLootType(btn, type) {
