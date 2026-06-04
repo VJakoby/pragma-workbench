@@ -2268,7 +2268,7 @@ function renderQuickLogKbServiceLink(entry) {
   const protoValue = entry?.proto && entry.proto !== 'tcp'
     ? '<span style="color:var(--muted);font-weight:500;font-size:11px">/' + esc(String(entry.proto || '')) + '</span>'
     : '';
-  return '<button class="tb-btn tb-btn-sm" type="button" onclick="openQuickLogKbService(\'' + esc(String(kbItem.id || '')) + '\')" title="Open matching KB service" style="font-size:14px;font-weight:700;letter-spacing:0.01em;padding:3px 8px">' + portValue + protoValue + '</button>';
+  return '<button class="ql-kb-port-btn" type="button" onclick="openQuickLogKbService(\'' + esc(String(kbItem.id || '')) + '\')" title="Open matching KB service">' + portValue + protoValue + '</button>';
 }
 
 function setLootType(btn, type) {
