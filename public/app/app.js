@@ -46,6 +46,11 @@ function clearAllRecentSearches() {
   buildCmdResults('');
 }
 
+function invalidateUnifiedSearchIndexCache() {
+  cmdUnifiedIndex = null;
+  cmdUnifiedIndexPromise = null;
+}
+
 async function openCmd() {
   const overlay = document.getElementById('cmdOverlay');
   const input = document.getElementById('cmdInput');
@@ -53,6 +58,7 @@ async function openCmd() {
   overlay.classList.remove('cmd-has-query');
   input.value = '';
   cmdSelected = -1;
+  invalidateUnifiedSearchIndexCache();
   
   try {
     await ensureUnifiedSearchIndex();
