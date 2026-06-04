@@ -252,6 +252,8 @@ workspace system sessions
 ---
 
 ## P2-11 — Context Switcher Quick Add
+STATUS: DONE
+
 CONTEXT:
 The target/session quick switcher currently only supports filtering and selecting existing entries. Operators should be able to type a new value and create a target or session directly from the switcher without dropping into the heavier management modals.
 
@@ -277,6 +279,38 @@ RULES:
   - `Targets` tab biases toward target creation
   - `Sessions` tab biases toward session creation
 - Avoid offering duplicate create actions when the typed value already matches an existing target/session sufficiently
+
+---
+
+## P2-12 — Recent Search Action Hover States
+STATUS: DONE
+
+CONTEXT:
+Recent search controls in the search UI do not provide clear hover/pressed feedback, making the actions look non-interactive and visually inconsistent with the rest of the app.
+
+SCOPE:
+recent search UI
+
+EXPECTED BEHAVIOR:
+- The `Clear all` button must have clear hover and active/pressed visual states
+- The per-card remove `X` action must have matching hover and active/pressed visual states
+- Interaction styling should match the rest of the app's button language
+- Hover/active states must not cause layout shift
+
+---
+
+## P2-13 — Search Index Refresh for New Documents
+CONTEXT:
+Newly created documents do not appear in search results until the server is restarted, which means the live search/index state falls behind the actual document set.
+
+SCOPE:
+search indexing system
+
+EXPECTED BEHAVIOR:
+- Newly created documents must become searchable without requiring a server restart
+- Search results must reflect current document contents after create/save operations
+- Index refresh behavior should stay consistent for both session documents and KB/local documents covered by the existing search system
+
 ---
 
 # P3 — EXPERIMENTAL
