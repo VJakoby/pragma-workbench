@@ -230,6 +230,13 @@ function renderKnowledgeFolderNav() {
     : '');
   const folderIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
 
+  const hasEntries = folderCats.length || rootKbSections.length;
+  if (!hasEntries) {
+    list.innerHTML = '';
+    if (subhdr) subhdr.style.display = 'none';
+    return;
+  }
+
   list.innerHTML = `
     ${folderCats.map(cat => `
       <div class="nav-item nav-item-kb-folder${isKnowledgeActive && currentFolder === cat.folder ? ' active' : ''}" onclick="openKnowledgeCategory('${encodeURIComponent(cat.label)}', '${encodeURIComponent(cat.folder || '')}', this)" title="${esc(cat.label)}">
@@ -244,7 +251,7 @@ function renderKnowledgeFolderNav() {
         <span class="nav-item-count">${section.count || '—'}</span>
       </div>`).join('')}
   `;
-  if (subhdr) subhdr.style.display = (folderCats.length || rootKbSections.length) ? '' : 'none';
+  if (subhdr) subhdr.style.display = '';
 }
 
 async function openRootKbSection(folder, label, navEl) {
@@ -330,8 +337,8 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   if (!items.length) {
     body.innerHTML = `<div class="empty-state" style="padding:28px 18px">
       <div class="empty-state-icon">${view === 'tactics' ? ICONS.guides : ICONS.notes}</div>
-      <div class="empty-state-title">No documents found</div>
       <div class="empty-state-hint">${folder ? `No entries in ${esc(label)}` : `No ${view} available`}</div>
+      ${renderKbSetupHint(view, { panel: true })}
     </div>`;
     return;
   }
@@ -499,6 +506,50 @@ async function submitKbCreate() {
   }
 }
 
+
+function getKbStructureExampleText() {
+  return [
+    '└── knowledge-base/               // optional — mount your own via KB_DIR env var',
+    '    ├── services/                 // each .md file becomes a card in the Services tab',
+    '    │   ├── ssh.md',
+    '    │   └── smb.md',
+    '    ├── attacks/                  // top-level KB section, separate from Services and Tactics',
+    '    │   └── lfi.md',
+    '    └── tactics/                  // reserved for the Tactics tab',
+    '        ├── active-directory.md',
+    '        └── pivoting.md',
+  ].join('\n');
+}
+
+function renderKbStructureGuide() {
+  return `
+    <div class="results-offline-hint kb-structure-guide-copy">Suggested layout:</div>
+    <pre class="kb-structure-guide">${esc(getKbStructureExampleText())}</pre>
+  `;
+}
+
+function renderKbSetupHint(view, opts = {}) {
+  const wrapperClass = opts.sidebar ? 'results-offline warn kb-sidebar-empty-state' : 'results-offline warn';
+  const title = opts.sidebar ? 'Knowledge base not configured' : 'KB path not configured';
+  const locationHint = view === 'tactics'
+    ? 'knowledge-base/tactics/'
+    : view === 'services'
+      ? 'knowledge-base/services/'
+      : `knowledge-base/${String(view || '').replace(/^kb:/, '')}/`;
+  const inlineStyle = opts.sidebar
+    ? 'margin:10px 0 0;padding:14px 14px;text-align:left;'
+    : opts.panel
+      ? 'margin:14px auto 0;padding:18px 18px;max-width:560px;text-align:left;'
+      : 'margin:12px 0 0;padding:18px 18px;max-width:520px;';
+  return `
+    <div class="${wrapperClass}" style="${inlineStyle}">
+      <div class="results-offline-text">${title}</div>
+      <div class="results-offline-hint">Add <code>.md</code> files to <code>${esc(locationHint)}</code> or mount your KB with the <code>KB_DIR</code> environment variable.</div>
+      ${renderKbStructureGuide()}
+    </div>
+  `;
+}
+
 function buildSidebar(view) {
   const items = getKbCollection(view);
   const scopedItems = view === 'services' && activeCatFolder
@@ -563,10 +614,7 @@ function renderCards(view) {
     grid.innerHTML = `<div class="empty-state">
       <div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
       <div class="empty-state-title">No ${view} found</div>
-      <div class="results-offline warn" style="margin:12px 0 0;padding:18px 18px;max-width:520px;">
-        <div class="results-offline-text">KB path not configured</div>
-        <div class="results-offline-hint">Add <code>.md</code> files to the ${view==='tactics'?'knowledge-base/tactics/':view==='services'?'knowledge-base/services/':`knowledge-base/${view.slice(3)}/`} or set <code>PRAGMA_KB_PATH</code> in <code>.env</code> to point to your KB.</div>
-      </div>
+      ${renderKbSetupHint(view)}
     </div>`;
     return;
   }

@@ -2857,6 +2857,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .results-offline.warn .results-offline-icon{opacity:1;color:var(--orange)}
 .results-offline.warn .results-offline-text{color:var(--orange);font-weight:600}
 .results-offline.warn .results-offline-hint{color:var(--text2)}
+.kb-structure-guide-copy{margin-top:12px;align-self:stretch;text-align:left;color:var(--text2)}
+.kb-structure-guide{margin:8px 0 0;align-self:stretch;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text2);font:11px/1.55 'JetBrains Mono', monospace;text-align:left;white-space:pre-wrap;overflow:auto}
+.kb-sidebar-empty-state{max-width:none;width:100%;box-sizing:border-box}
+.kb-sidebar-empty-state .results-offline-text{font-size:12px}
+.kb-sidebar-empty-state .results-offline-hint{font-size:10.5px}
 
 /* ── COMMAND PALETTE ── */
 .cmd-overlay{
