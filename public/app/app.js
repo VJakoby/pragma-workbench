@@ -628,7 +628,7 @@ async function buildCmdResults(q) {
     if (recent.length > 0) {
       html += `<div class="cmd-group-hdr" style="display:flex;justify-content:space-between;align-items:center">
         <span>Recent Searches</span>
-        <button onclick="event.stopPropagation();clearAllRecentSearches()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px" title="Clear all">Clear all</button>
+        <button class="cmd-recent-action cmd-recent-action-clear" onclick="event.stopPropagation();clearAllRecentSearches()" title="Clear all">Clear all</button>
       </div>`;
       
       if (Array.isArray(cmdUnifiedIndex)) {
@@ -708,7 +708,7 @@ async function buildCmdResults(q) {
                 <div class="cmd-item-sub">${metaParts.join(' · ')}</div>
               </div>
               <span class="cmd-item-tag" style="opacity:0.6">${tag}</span>
-              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+              <button class="cmd-recent-action cmd-recent-action-remove" onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" title="Remove from history" aria-label="Remove from history">×</button>
             </div>`;
           } else {
             cmdItems.push({ type: 'recent-search', query, label: query });
@@ -718,7 +718,7 @@ async function buildCmdResults(q) {
                 <div class="cmd-item-title">${esc(query)}</div>
                 <div class="cmd-item-sub" style="opacity:0.6">No longer in index</div>
               </div>
-              <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+              <button class="cmd-recent-action cmd-recent-action-remove" onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" title="Remove from history" aria-label="Remove from history">×</button>
             </div>`;
           }
         }
@@ -731,7 +731,7 @@ async function buildCmdResults(q) {
               <div class="cmd-item-title">${esc(query)}</div>
               <div class="cmd-item-sub">Recent search</div>
             </div>
-            <button onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:16px" title="Remove from history">×</button>
+            <button class="cmd-recent-action cmd-recent-action-remove" onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" title="Remove from history" aria-label="Remove from history">×</button>
           </div>`;
         });
       }
