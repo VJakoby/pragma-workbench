@@ -28,10 +28,20 @@
       </div>
 
       <div class="svc-topbar-wrap" id="svcTopbarWrap">
-        <button class="svc-topbar-btn utility-topbar-segment utility-topbar-segment-middle" id="svcTopbarBtn" onclick="toggleSvcPopover()" title="Port/Service Quick-Log (Ctrl+L)">
-          <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Log</span>
-          <span class="svc-topbar-btn-count" id="svcTopbarCount"></span>
-        </button>
+        <div class="svc-topbar-split-group utility-topbar-segment utility-topbar-segment-middle" id="svcTopbarGroup">
+          <button class="svc-topbar-btn svc-topbar-split-btn" id="svcTopbarPortsBtn" onclick="toggleSvcPopover('ports','svcTopbarPortsBtn')" title="Quick Log: Ports (Ctrl+L)">
+            <span>Ports</span>
+            <span class="svc-topbar-split-count" id="svcTopbarCountPorts"></span>
+          </button>
+          <button class="svc-topbar-btn svc-topbar-split-btn" id="svcTopbarPathsBtn" onclick="toggleSvcPopover('paths','svcTopbarPathsBtn')" title="Quick Log: Paths">
+            <span>Paths</span>
+            <span class="svc-topbar-split-count" id="svcTopbarCountPaths"></span>
+          </button>
+          <button class="svc-topbar-btn svc-topbar-split-btn" id="svcTopbarLootBtn" onclick="toggleSvcPopover('loot','svcTopbarLootBtn')" title="Quick Log: Loot">
+            <span>Loot</span>
+            <span class="svc-topbar-split-count" id="svcTopbarCountLoot"></span>
+          </button>
+        </div>
         <div class="svc-popover" id="svcPopover">
           <div class="svc-popover-hdr">
             <span class="svc-popover-title">&#9889; Quick Log</span>

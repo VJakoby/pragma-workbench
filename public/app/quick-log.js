@@ -10,6 +10,7 @@ let _editingTodoId = null;
 let _editingQuickLog = null;
 let _evidenceFilterType = '';
 let _evidenceFilterTarget = '';
+let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
 
 function ensureActiveSession(actionLabel = 'this action') {
   if (!activeSessionId || !sessions[activeSessionId]) {
@@ -157,12 +158,16 @@ function updateSvcTabCounts() {
   if (ch) ch.textContent = paths || '';
   if (cl) cl.textContent = loot || '';
 
-  const btn = document.getElementById('svcTopbarCount');
-  if (btn) {
-    const total = ports + paths + loot;
-    btn.textContent = total || '';
-    btn.classList.toggle('has-entries', total > 0);
-  }
+  [
+    ['svcTopbarCountPorts', ports],
+    ['svcTopbarCountPaths', paths],
+    ['svcTopbarCountLoot', loot],
+  ].forEach(([id, value]) => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = value || '';
+    badge.classList.toggle('has-entries', value > 0);
+  });
   renderSvcClearAction();
   updateTodoCount();
 }
@@ -2252,7 +2257,7 @@ function findKbServiceForQuickLogEntry(entry) {
 
 function openQuickLogKbService(id) {
   if (!id) return;
-  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
+  closeSvcPopover();
   if (typeof openItem === 'function') openItem('services', id);
 }
 
@@ -2768,14 +2773,24 @@ function buildLootMarkdown(sessionId) {
   return md;
 }
 
-function toggleSvcPopover() {
+function setActiveSvcTopbarButton(buttonId) {
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.toggle('open', id === buttonId);
+  });
+  _activeSvcTopbarButtonId = buttonId || 'svcTopbarPortsBtn';
+}
+
+function openSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  _activeSvcTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  setActiveSvcTopbarButton(buttonId);
   if (document.getElementById('svcPopover')?.classList.contains('open')) {
-    closeSvcPopover();
+    updateUtilitySessionLabel('svcSessionLabel');
+    switchSvcTab(_activeSvcTab);
     return;
   }
   openUtilityPopover({
     popoverId: 'svcPopover',
-    buttonId: 'svcTopbarBtn',
+    buttonId,
     labelId: 'svcSessionLabel',
     closeOthers: [closeTodoPopover, closeEvidencePopover],
     outsideHandler: _svcOutsideClose,
@@ -2786,25 +2801,31 @@ function toggleSvcPopover() {
       renderLootTable();
       updateSvcTabCounts();
       renderSvcClearAction();
-      setTimeout(() => {
-        const hi = document.getElementById('lootHostInput');
-        if (hi && !hi.value) {
-          const ip = getIP();
-          if (ip !== '<IP>') hi.value = ip;
-        }
-        const inputId = _activeSvcTab === 'ports'
-          ? 'svcQuickInput'
-          : _activeSvcTab === 'loot'
-            ? 'lootCredInput'
-            : 'pathQuickInput';
-        document.getElementById(inputId)?.focus();
-      }, 40);
+      switchSvcTab(_activeSvcTab);
     },
   });
 }
 
+function toggleSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  const popover = document.getElementById('svcPopover');
+  const nextTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  if (popover?.classList.contains('open')) {
+    if (_activeSvcTab === nextTab && _activeSvcTopbarButtonId === buttonId) {
+      closeSvcPopover();
+      return;
+    }
+    openSvcPopover(nextTab, buttonId);
+    return;
+  }
+  openSvcPopover(nextTab, buttonId);
+}
+
 function closeSvcPopover() {
-  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
+  document.getElementById('svcPopover')?.classList.remove('open');
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.remove('open');
+  });
+  updateSvcPopoverLayout();
 }
 
 function _svcOutsideClose(e) {
