@@ -7,6 +7,7 @@ let noteUnifiedPreview = localStorage.getItem('pragma-preview-unified') === '1';
 let notePreviewTimer = null;
 let noteUnifiedRenderTimer = null;
 let noteUnifiedSyncing = false;
+let noteUnifiedEditor = null;
 let lastNotePreviewMarkdown = null;
 const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
 const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
@@ -506,8 +507,7 @@ async function renderNoteUnifiedSurface() {
   body.innerHTML = `
     <section class="note-unified-whole">
       <div class="note-unified-whole-col note-unified-whole-editor-col">
-        
-        <textarea class="note-unified-editor note-unified-editor-whole" id="noteUnifiedWholeEditor" spellcheck="false"></textarea>
+        <div class="note-unified-editor-host" id="noteUnifiedWholeEditorHost"></div>
       </div>
       <div class="note-unified-whole-col note-unified-whole-preview-col">
         <div class="note-unified-live-label">Note Preview</div>
@@ -515,35 +515,17 @@ async function renderNoteUnifiedSurface() {
       </div>
     </section>`;
 
-  const editorEl = document.getElementById('noteUnifiedWholeEditor');
+  const editorHost = document.getElementById('noteUnifiedWholeEditorHost');
   const previewEl = document.getElementById('noteUnifiedWholePreview');
-  if (!editorEl || !previewEl) return;
-  editorEl.value = markdown;
+  if (!editorHost || !previewEl) return;
 
-  const sync = async () => {
-    syncUnifiedWholeToEditor(editorEl.value);
-    await renderUnifiedWholePreview(previewEl, editorEl.value);
-    editorEl.style.height = 'auto';
-    editorEl.style.height = `${Math.max(260, editorEl.scrollHeight)}px`;
-  };
-
-  editorEl.addEventListener('input', () => { void sync(); });
-  editorEl.addEventListener('keydown', (event) => {
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      const startPos = editorEl.selectionStart;
-      const endPos = editorEl.selectionEnd;
-      editorEl.value = `${editorEl.value.slice(0, startPos)}  ${editorEl.value.slice(endPos)}`;
-      editorEl.selectionStart = editorEl.selectionEnd = startPos + 2;
-      void sync();
-    }
+  createUnifiedNoteEditor(editorHost, markdown, (nextMarkdown) => {
+    void renderUnifiedWholePreview(previewEl, nextMarkdown);
   });
 
   await renderUnifiedWholePreview(previewEl, markdown);
   requestAnimationFrame(() => {
-    editorEl.focus();
-    editorEl.style.height = 'auto';
-    editorEl.style.height = `${Math.max(260, editorEl.scrollHeight)}px`;
+    noteUnifiedEditor?.focus();
   });
 }
 
@@ -611,6 +593,7 @@ function applyNotePreviewState() {
     return;
   }
 
+  destroyUnifiedNoteEditor();
   split.style.display = 'flex';
   if (unifiedSurface) unifiedSurface.style.display = 'none';
 
@@ -669,12 +652,16 @@ function initPreviewDragHandle() {
   });
 }
 
-function cmInitNote(initialDoc) {
-  const wrap = document.getElementById('noteBodyWrap');
-  if (!wrap || !CM) return;
-  if (noteEditor) noteEditor.destroy();
 
-  const extensions = [
+function destroyUnifiedNoteEditor() {
+  if (noteUnifiedEditor) {
+    noteUnifiedEditor.destroy();
+    noteUnifiedEditor = null;
+  }
+}
+
+function buildNoteEditorExtensions({ onDocChange } = {}) {
+  return [
     CM.basicSetup,
     ...buildCmTheme(),
     CM.EditorView.domEventHandlers({
@@ -713,6 +700,10 @@ function cmInitNote(initialDoc) {
         autoSaveActiveConfig();
         return;
       }
+      if (typeof onDocChange === 'function') {
+        onDocChange(update);
+        return;
+      }
       if (activeNoteId) {
         autoSaveNote();
         if (noteUnifiedPreview) {
@@ -726,7 +717,40 @@ function cmInitNote(initialDoc) {
     CM.indentUnit.of('  '),
     CM.keymap.of([CM.indentWithTab]),
   ];
+}
 
+function createUnifiedNoteEditor(parent, initialDoc, onPreviewSync) {
+  if (!parent || !CM) return null;
+  destroyUnifiedNoteEditor();
+  const extensions = buildNoteEditorExtensions({
+    onDocChange() {
+      if (!activeNoteId) return;
+      autoSaveNote();
+      const nextMarkdown = cmGetValue(noteUnifiedEditor);
+      noteUnifiedSyncing = true;
+      try {
+        if (noteEditor && cmGetValue(noteEditor) !== nextMarkdown) cmSetValue(noteEditor, nextMarkdown);
+      } finally {
+        noteUnifiedSyncing = false;
+      }
+      if (typeof onPreviewSync === 'function') onPreviewSync(nextMarkdown);
+    }
+  });
+  if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
+  noteUnifiedEditor = new CM.EditorView({
+    doc: initialDoc ?? '',
+    extensions,
+    parent,
+  });
+  return noteUnifiedEditor;
+}
+
+function cmInitNote(initialDoc) {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) noteEditor.destroy();
+
+  const extensions = buildNoteEditorExtensions();
   if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
 
   noteEditor = new CM.EditorView({

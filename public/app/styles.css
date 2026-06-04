@@ -2378,23 +2378,19 @@ svg { vertical-align: middle; flex-shrink: 0; }
   text-transform:uppercase;
   color:var(--muted);
 }
-.note-unified-editor{
-  width:100%;
-  resize:vertical;
-  border:none;
-  outline:none;
-  background:color-mix(in srgb, var(--bg) 82%, transparent);
-  color:var(--text);
-  font-family:'JetBrains Mono', monospace;
-  font-size:13px;
-  line-height:1.68;
-  padding:12px 14px;
-  box-sizing:border-box;
-  border-radius:8px;
-}
-.note-unified-editor-whole{
+.note-unified-editor-host{
   min-height:320px;
-  max-height:none;
+  border-radius:8px;
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  overflow:hidden;
+}
+.note-unified-editor-host .cm-editor{
+  height:100%;
+  min-height:320px;
+  background:transparent;
+}
+.note-unified-editor-host .cm-scroller{
+  min-height:320px;
 }
 .note-unified-live-preview{
   background:transparent;
