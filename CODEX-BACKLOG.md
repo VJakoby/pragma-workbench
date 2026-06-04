@@ -232,13 +232,27 @@ renderer system
 TARGET:
 remark OR markdown-it
 
-## P2-09 — Shared button for Encrypted Workbench and Backup Button
+## P2-09 — Direct Quick Log Access in Topbar
+STATUS: DONE
 
 CONTEXT:
-Current buttons for Encrypted Workbench and Backup takes unncessary vertical space.
+The current `Log` button adds unnecessary friction because operators must open the Quick Log modal before choosing `Ports`, `Paths`, or `Loot`.
 
 SCOPE:
-dashboard UI
+topbar UI + quick log modal state
+
+EXPECTED BEHAVIOR:
+- Replace the single `Log` topbar entry with a compact grouped control for `Ports`, `Paths`, and `Loot`
+- Clicking `Ports`, `Paths`, or `Loot` must open the existing Quick Log modal directly on the selected section
+- Keep `Todo` and `Evidence` as separate topbar actions
+- Preserve the existing Quick Log modal and its current functionality
+- The grouped control must remain compact and visually consistent with the existing topbar
+- The layout must still work cleanly at smaller topbar widths without feeling cluttered
+
+RULES:
+- Do not create separate pages or standalone panels for `Ports`, `Paths`, or `Loot`
+- Do not duplicate Quick Log functionality outside the modal
+- Keep the change focused on reducing clicks and improving access speed
 
 ## P2-10 — Session Wide Domain Tag 
 STATUS: DONE
@@ -300,6 +314,8 @@ EXPECTED BEHAVIOR:
 ---
 
 ## P2-13 — Search Index Refresh for New Documents
+STATUS: DONE
+
 CONTEXT:
 Newly created documents do not appear in search results until the server is restarted, which means the live search/index state falls behind the actual document set.
 
@@ -312,6 +328,36 @@ EXPECTED BEHAVIOR:
 - Index refresh behavior should stay consistent for both session documents and KB/local documents covered by the existing search system
 
 ---
+## P2-14 — Empty KB Structure Guidance
+STATUS: DONE
+
+CONTEXT:
+When no knowledge base content exists, the app only shows a minimal `KB path not configured` message in some main-panel views. It does not clearly explain the expected directory structure, and the guidance is missing from the KB sidebar.
+
+SCOPE:
+KB empty-state UI
+
+EXPECTED BEHAVIOR:
+- When the knowledge base is empty or unavailable, the empty-state info panel must show a small example KB directory structure
+- The structure example must appear in:
+  - the main content view for `Services`
+  - the main content view for `Tactics`
+  - the KB sidebar / sideview area
+- The guidance should make clear:
+  - `knowledge-base/` is optional and can be mounted via `KB_DIR`
+  - `services/` files populate the `Services` tab
+  - `tactics/` files populate the `Tactics` tab
+  - other top-level folders become separate KB sections
+- The example should render in a readable monospace / preformatted layout matching the app style
+
+RULES:
+- Do not change KB indexing behavior
+- Do not auto-create folders or files
+- Keep this as an informational empty-state improvement only
+- Reuse the same guidance content in both main-view and sidebar empty states where possible
+
+---
+
 
 # P3 — EXPERIMENTAL
 
