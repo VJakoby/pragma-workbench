@@ -3,7 +3,10 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+let noteUnifiedPreview = localStorage.getItem('pragma-preview-unified') === '1';
 let notePreviewTimer = null;
+let noteUnifiedRenderTimer = null;
+let noteUnifiedSyncing = false;
 let lastNotePreviewMarkdown = null;
 const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
 const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
@@ -456,10 +459,113 @@ async function refreshRenderedMarkdownSurfaces() {
   } catch (_) {}
 }
 
+function scheduleNoteUnifiedRender() {
+  if (noteUnifiedRenderTimer) clearTimeout(noteUnifiedRenderTimer);
+  noteUnifiedRenderTimer = setTimeout(() => {
+    noteUnifiedRenderTimer = null;
+    void renderNoteUnifiedSurface();
+  }, 80);
+}
+
+async function renderUnifiedWholePreview(el, markdown) {
+  if (!el) return;
+  const md = String(markdown || '').trim();
+  if (!md) {
+    el.innerHTML = '<div class="note-unified-empty">Empty note</div>';
+    return;
+  }
+  let rendered = false;
+  if (window.markdownPreview?.renderInto) {
+    rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+  }
+  if (rendered && String(el.innerHTML || '').trim()) return;
+  const html = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
+  if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible === 'function') makeCollapsible(el);
+  el.querySelectorAll('.copy-btn').forEach((b) => { b.style.display = 'none'; });
+}
+
+function syncUnifiedWholeToEditor(markdown) {
+  if (!noteEditor) return;
+  noteUnifiedSyncing = true;
+  try {
+    if (cmGetValue(noteEditor) !== markdown) cmSetValue(noteEditor, markdown);
+  } finally {
+    noteUnifiedSyncing = false;
+  }
+}
+
+async function renderNoteUnifiedSurface() {
+  const surface = document.getElementById('noteUnifiedSurface');
+  const body = document.getElementById('noteUnifiedBody');
+  if (!surface || !body || !noteUnifiedPreview || activeConfigDoc || !noteEditor) return;
+
+  const markdown = cmGetValue(noteEditor);
+  body.innerHTML = `
+    <section class="note-unified-whole">
+      <div class="note-unified-whole-col note-unified-whole-editor-col">
+        
+        <textarea class="note-unified-editor note-unified-editor-whole" id="noteUnifiedWholeEditor" spellcheck="false"></textarea>
+      </div>
+      <div class="note-unified-whole-col note-unified-whole-preview-col">
+        <div class="note-unified-live-label">Note Preview</div>
+        <div class="md-content note-unified-live-preview note-unified-live-preview-whole" id="noteUnifiedWholePreview"></div>
+      </div>
+    </section>`;
+
+  const editorEl = document.getElementById('noteUnifiedWholeEditor');
+  const previewEl = document.getElementById('noteUnifiedWholePreview');
+  if (!editorEl || !previewEl) return;
+  editorEl.value = markdown;
+
+  const sync = async () => {
+    syncUnifiedWholeToEditor(editorEl.value);
+    await renderUnifiedWholePreview(previewEl, editorEl.value);
+    editorEl.style.height = 'auto';
+    editorEl.style.height = `${Math.max(260, editorEl.scrollHeight)}px`;
+  };
+
+  editorEl.addEventListener('input', () => { void sync(); });
+  editorEl.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      const startPos = editorEl.selectionStart;
+      const endPos = editorEl.selectionEnd;
+      editorEl.value = `${editorEl.value.slice(0, startPos)}  ${editorEl.value.slice(endPos)}`;
+      editorEl.selectionStart = editorEl.selectionEnd = startPos + 2;
+      void sync();
+    }
+  });
+
+  await renderUnifiedWholePreview(previewEl, markdown);
+  requestAnimationFrame(() => {
+    editorEl.focus();
+    editorEl.style.height = 'auto';
+    editorEl.style.height = `${Math.max(260, editorEl.scrollHeight)}px`;
+  });
+}
+
 function toggleNotePreview() {
   if (activeConfigDoc) return;
+  if (noteUnifiedPreview) {
+    noteUnifiedPreview = false;
+    localStorage.setItem('pragma-preview-unified', '0');
+    notePreviewOpen = true;
+    localStorage.setItem('pragma-preview-open', '1');
+    applyNotePreviewState();
+    return;
+  }
   notePreviewOpen = !notePreviewOpen;
   localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function toggleNoteUnifiedPreview() {
+  if (activeConfigDoc) return;
+  noteUnifiedPreview = !noteUnifiedPreview;
+  localStorage.setItem('pragma-preview-unified', noteUnifiedPreview ? '1' : '0');
   applyNotePreviewState();
 }
 
@@ -491,7 +597,22 @@ function applyNotePreviewState() {
   const handle = document.getElementById('notePreviewHandle');
   const pane   = document.getElementById('notePreviewPane');
   const btn    = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
   if (!split || !handle || !pane || !btn) return;
+
+  if (unifiedBtn) unifiedBtn.classList.toggle('active', noteUnifiedPreview);
+  if (noteUnifiedPreview) {
+    split.style.display = 'none';
+    if (unifiedSurface) unifiedSurface.style.display = 'flex';
+    btn.classList.remove('active');
+    btn.title = 'Toggle markdown preview';
+    renderNoteUnifiedSurface();
+    return;
+  }
+
+  split.style.display = 'flex';
+  if (unifiedSurface) unifiedSurface.style.display = 'none';
 
   const open = notePreviewOpen;
   split.classList.toggle('preview-open', open);
@@ -508,7 +629,7 @@ function applyNotePreviewState() {
     if (saved) split.style.setProperty('--note-editor-h', saved);
     applyPreviewLayout();
     scheduleNotePreviewUpdate({ immediate: true });
-    initPreviewDragHandle();
+    if (!noteUnifiedPreview) initPreviewDragHandle();
   } else {
     split.classList.remove('split-side');
     split.style.removeProperty('--note-editor-w');
@@ -594,7 +715,11 @@ function cmInitNote(initialDoc) {
       }
       if (activeNoteId) {
         autoSaveNote();
-        scheduleNotePreviewUpdate();
+        if (noteUnifiedPreview) {
+          if (!noteUnifiedSyncing) scheduleNoteUnifiedRender();
+        } else {
+          scheduleNotePreviewUpdate();
+        }
       }
     }),
     CM.EditorView.lineWrapping,

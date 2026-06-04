@@ -91,6 +91,7 @@ function setNoteEditorMode(mode) {
   const reassign = document.getElementById('noteReassignWrap');
   const target = document.getElementById('noteTargetAssignWrap');
   const previewBtn = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
   const evidenceBtn = document.getElementById('noteFlagEvidenceBtn');
   const hint = document.querySelector('.note-md-hint');
   const timestamps = document.getElementById('noteTimestamps');
@@ -106,6 +107,7 @@ function setNoteEditorMode(mode) {
   const previewHandle = document.getElementById('notePreviewHandle');
   const layoutToggle = document.getElementById('previewLayoutToggle');
   const split = document.getElementById('noteEditorSplit');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
 
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
@@ -122,6 +124,7 @@ function setNoteEditorMode(mode) {
   if (reassign) reassign.style.display = isConfig ? 'none' : '';
   if (target) target.style.display = isConfig ? 'none' : '';
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
+  if (unifiedBtn) unifiedBtn.style.display = isConfig ? 'none' : '';
   if (evidenceBtn) evidenceBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
@@ -135,13 +138,14 @@ function setNoteEditorMode(mode) {
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
-      split.classList.remove('preview-open', 'split-side');
+      split.classList.remove('preview-open', 'split-side', 'preview-unified');
       split.style.removeProperty('--note-editor-w');
       split.style.removeProperty('--note-editor-h');
     } else {
       applyNotePreviewState();
     }
   }
+  if (unifiedSurface && isConfig) unifiedSurface.style.display = 'none';
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
@@ -961,6 +965,7 @@ async function openNote(id) {
   document.getElementById('noteTitleInput').oninput = () => autoSaveNote();
   applyNotePreviewState();
 }
+
 
 function togglePinNote() {
   if (!activeNoteId || !notes[activeNoteId]) return;
