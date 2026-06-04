@@ -1632,7 +1632,9 @@ async function persistActiveNote(opts = {}) {
   const moEl = document.getElementById('noteModifiedAt');
   if (moEl && activeNoteId === noteId) moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  if (activeNoteId === noteId) updateNotePreview();
+  if (activeNoteId === noteId && typeof invalidateNotePreviewCache === 'function') {
+    invalidateNotePreviewCache();
+  }
   return ok;
 }
 
