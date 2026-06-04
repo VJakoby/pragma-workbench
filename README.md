@@ -88,6 +88,7 @@ Open `http://localhost:3000`.
 - [Setup Guide](docs/SETUP.md)
 - [Docker Guide](docs/DOCKER.md)
 - [Feature Spec 001](docs/SPEC-01.md)
+- [Usage Guide](docs/USAGE.md)
 
 ---
 

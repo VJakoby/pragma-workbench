@@ -510,7 +510,6 @@ async function renderNoteUnifiedSurface() {
         <div class="note-unified-editor-host" id="noteUnifiedWholeEditorHost"></div>
       </div>
       <div class="note-unified-whole-col note-unified-whole-preview-col">
-        <div class="note-unified-live-label">Note Preview</div>
         <div class="md-content note-unified-live-preview note-unified-live-preview-whole" id="noteUnifiedWholePreview"></div>
       </div>
     </section>`;
