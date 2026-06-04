@@ -12,7 +12,7 @@ At its core: it is a focused Markdown editor organized around sessions and targe
 
 ---
 
-## ⚠️ Notice
+## Notice
 
 PRAGMA is a documentation and workflow tool for security testing.
 
@@ -22,15 +22,21 @@ You are responsible for ensuring your work complies with applicable laws and rul
 
 ---
 
-## 🚩 The problem it solves
+## What It Solves
 
-Pentest work demands focus, but the tools don't support it. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process.
+Pentest work demands focus, but the tools do not support it well. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process.
 
 PRAGMA keeps everything in the same view — structured enough to be useful, local enough to be trusted.
 
 ---
 
-## ❌ What it is NOT
+## What It Is
+
+- A local web application
+- A workflow workbench
+- A knowledge-integrated interface
+
+## What It Is Not
 
 - Not a reporting tool
 - Not a team platform
@@ -39,29 +45,7 @@ PRAGMA keeps everything in the same view — structured enough to be useful, loc
 
 ---
 
-## ✅ What it IS
-
-- A local web application
-- A workflow workbench
-- A knowledge-integrated interface
-
----
-
-## 👤 Who This Is For
-
-Built for operators who want a focused local-first workflow tool.
-
----
-
-## 🎯 Focus Model
-
-- Engagement notes are primary workspace
-- KB and tactics support the workflow
-- Stay in operational flow
-
----
-
-## 🧱 Tech Stack
+## Tech Stack
 
 - Node.js
 - Express
@@ -76,39 +60,53 @@ Built for operators who want a focused local-first workflow tool.
 
 ---
 
-## 🏷️ Features
+## Quick Start
 
-Sessions, Notes, Quick Log, Evidence, Loot, TODO, KB, Encryption, Templates, Search, Targets
-* 📝Note Templates
-  * Supports structured markdown templates with variants.
-* 🔐 Security
-  * Local-first, encrypted workbench storage, localhost-bound.
-* 🎯 Target Injection
-  * Automatic placeholder injection for active targets in notes and KB.
+### Docker
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Open `http://localhost:3000`.
+
+### Direct Node.js
+
+```bash
+cp .env.example .env
+npm install
+npm start
+```
+
+Open `http://localhost:3000`.
+
+---
+
+## Setup Guides
+
+- [Setup Guide](docs/SETUP.md)
+- [Docker Guide](docs/DOCKER.md)
+- [Feature Spec 001](docs/SPEC-01.md)
+
+---
 
 ## Optional Modules
 
-ENGRAM — https://github.com/VJakoby/engram  
-Toolbox — https://github.com/VJakoby/matrix-toolbox  
+- ENGRAM — <https://github.com/VJakoby/engram>
+- Toolbox — <https://github.com/VJakoby/matrix-toolbox>
+
+These are optional. PRAGMA runs without them.
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
-Node.js 20+, optional Docker
+- Node.js 20+
+- Docker / Docker Compose optional
 
 ---
 
-## 🚀 Quick Start
-
-```
-cp .env.example .env
-docker compose up -d --build
-http://localhost:3000
-```
----
-
-## License & Notices
+## License
 
 AGPL-3.0-or-later
-"""

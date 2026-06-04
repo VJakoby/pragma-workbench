@@ -76,6 +76,16 @@
       </div>
       <div class="sidebar-divider"></div>
       <% } %>
+      <div class="sidebar-section" id="attachmentStorageSection">
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section-hdr">Attachment Storage</div>
+        <button class="nav-item attachment-storage-trigger" type="button" id="attachmentStorageTrigger" onclick="openAttachmentStorageModal()" title="Attachment Storage">
+          <span class="nav-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"/></svg></span>
+          <span class="nav-item-label">Attachments</span>
+          <span class="nav-item-count" id="attachmentStorageCount">&mdash;</span>
+        </button>
+        <div class="attachment-storage-summary" id="attachmentStorageSummary">Loading…</div>
+      </div>
       <div class="sidebar-section">
         <div class="sidebar-section-hdr">Configuration</div>
         <div class="nav-item" onclick="openTemplatesConfig(this)" id="nav-config-templates" title="Note Templates">

@@ -144,6 +144,8 @@ Search must include both KB files and session notes in a unified index.
 # P2 — FEATURES
 
 ## P2-01 — KB Cross-Linking Syntax
+STATUS: DONE
+
 CONTEXT:
 Need internal navigation between KB documents.
 
@@ -156,6 +158,8 @@ SYNTAX:
 ---
 
 ## P2-02 — Engagement Note Linking
+STATUS: DONE
+
 CONTEXT:
 Need cross-navigation between operational notes.
 
@@ -168,6 +172,7 @@ SYNTAX:
 ---
 
 ## P2-03 — Attachment Storage Manager
+STATUS: DONE
 CONTEXT:
 Users need visibility into file usage across documents.
 
@@ -177,6 +182,8 @@ sidebar storage system
 ---
 
 ## P2-04 — Port → KB Context Linking
+STATUS: DONE
+
 CONTEXT:
 Service discovery should connect directly to documentation.
 
@@ -186,6 +193,7 @@ quick log + service view
 ---
 
 ## P2-05 — Session/Target Switcher UI
+STATUS: DONE
 CONTEXT:
 Switching between operational contexts is too slow.
 
@@ -204,6 +212,8 @@ dashboard UI
 ---
 
 ## P2-07 — Welcome / Session Selector Modal
+STATUS: DONE
+
 CONTEXT:
 Improve onboarding and workspace selection.
 
@@ -222,7 +232,205 @@ renderer system
 TARGET:
 remark OR markdown-it
 
+## P2-09 — Direct Quick Log Access in Topbar
+STATUS: DONE
+
+CONTEXT:
+The current `Log` button adds unnecessary friction because operators must open the Quick Log modal before choosing `Ports`, `Paths`, or `Loot`.
+
+SCOPE:
+topbar UI + quick log modal state
+
+EXPECTED BEHAVIOR:
+- Replace the single `Log` topbar entry with a compact grouped control for `Ports`, `Paths`, and `Loot`
+- Clicking `Ports`, `Paths`, or `Loot` must open the existing Quick Log modal directly on the selected section
+- Keep `Todo` and `Evidence` as separate topbar actions
+- Preserve the existing Quick Log modal and its current functionality
+- The grouped control must remain compact and visually consistent with the existing topbar
+- The layout must still work cleanly at smaller topbar widths without feeling cluttered
+
+RULES:
+- Do not create separate pages or standalone panels for `Ports`, `Paths`, or `Loot`
+- Do not duplicate Quick Log functionality outside the modal
+- Keep the change focused on reducing clicks and improving access speed
+
+## P2-10 — Session Wide Domain Tag 
+STATUS: DONE
+
+CONTEXT:
+Introduce a tag/field for Domain for sessions. At the moment there is a Domain for each target, but this is not suitable for, etc a Active Directory pentest with several hosts with 1 domain.
+
+SCOPE:
+workspace system sessions
+
 ---
+
+## P2-11 — Context Switcher Quick Add
+STATUS: DONE
+
+CONTEXT:
+The target/session quick switcher currently only supports filtering and selecting existing entries. Operators should be able to type a new value and create a target or session directly from the switcher without dropping into the heavier management modals.
+
+SCOPE:
+context switcher UI
+
+EXPECTED BEHAVIOR:
+- Typing in the context switcher should dynamically offer quick-create actions when no exact existing match is selected
+- In `Targets` mode:
+  - IP-like input should offer `Create target`
+  - hostname/domain-like input should offer `Create target`
+- In `Sessions` mode:
+  - free-form codename input should offer `Create session`
+- Quick-create entries should render inside the existing switcher result list, not as separate floating controls
+- Quick-create entries must support keyboard navigation and `Enter`, just like normal switch targets/sessions entries
+- Creating a target should add it to the active session and switch to it immediately
+- Creating a session should create it and switch into it immediately
+
+RULES:
+- Do not replace the existing management modals
+- Do not infer `Create session` from every alphabetic string in `Targets` mode
+- Prefer tab-aware behavior:
+  - `Targets` tab biases toward target creation
+  - `Sessions` tab biases toward session creation
+- Avoid offering duplicate create actions when the typed value already matches an existing target/session sufficiently
+
+---
+
+## P2-12 — Recent Search Action Hover States
+STATUS: DONE
+
+CONTEXT:
+Recent search controls in the search UI do not provide clear hover/pressed feedback, making the actions look non-interactive and visually inconsistent with the rest of the app.
+
+SCOPE:
+recent search UI
+
+EXPECTED BEHAVIOR:
+- The `Clear all` button must have clear hover and active/pressed visual states
+- The per-card remove `X` action must have matching hover and active/pressed visual states
+- Interaction styling should match the rest of the app's button language
+- Hover/active states must not cause layout shift
+
+---
+
+## P2-13 — Search Index Refresh for New Documents
+STATUS: DONE
+
+CONTEXT:
+Newly created documents do not appear in search results until the server is restarted, which means the live search/index state falls behind the actual document set.
+
+SCOPE:
+search indexing system
+
+EXPECTED BEHAVIOR:
+- Newly created documents must become searchable without requiring a server restart
+- Search results must reflect current document contents after create/save operations
+- Index refresh behavior should stay consistent for both session documents and KB/local documents covered by the existing search system
+
+---
+## P2-14 — Empty KB Structure Guidance
+STATUS: DONE
+
+CONTEXT:
+When no knowledge base content exists, the app only shows a minimal `KB path not configured` message in some main-panel views. It does not clearly explain the expected directory structure, and the guidance is missing from the KB sidebar.
+
+SCOPE:
+KB empty-state UI
+
+EXPECTED BEHAVIOR:
+- When the knowledge base is empty or unavailable, the empty-state info panel must show a small example KB directory structure
+- The structure example must appear in:
+  - the main content view for `Services`
+  - the main content view for `Tactics`
+  - the KB sidebar / sideview area
+- The guidance should make clear:
+  - `knowledge-base/` is optional and can be mounted via `KB_DIR`
+  - `services/` files populate the `Services` tab
+  - `tactics/` files populate the `Tactics` tab
+  - other top-level folders become separate KB sections
+- The example should render in a readable monospace / preformatted layout matching the app style
+
+RULES:
+- Do not change KB indexing behavior
+- Do not auto-create folders or files
+- Keep this as an informational empty-state improvement only
+- Reuse the same guidance content in both main-view and sidebar empty states where possible
+
+---
+
+## P2-15 — Quick Log Split Button Badge Spacing
+STATUS: DONE
+
+CONTEXT:
+When count badges appear on the topbar `Ports | Paths | Loot` control, the label and badge sit too close to the button edges, making the grouped control feel cramped.
+
+SCOPE:
+topbar quick-log styling
+
+EXPECTED BEHAVIOR:
+- The `Ports`, `Paths`, and `Loot` buttons must have enough horizontal padding when count badges are visible
+- Count badges must have clear breathing room from the left and right button edges
+- The grouped control must keep its current behavior and overall layout
+- The spacing adjustment must work in both dark and light mode
+
+RULES:
+- Do not change quick-log behavior
+- Do not change badge values or visibility logic
+- Keep this as a styling-only adjustment
+
+---
+
+## P2-16 — Quick Log KB Port Badge Styling
+STATUS: DONE
+
+CONTEXT:
+The clickable KB-linked port buttons in Quick Log work, but their shape does not match the rounded badge/button language used elsewhere in the UI.
+
+SCOPE:
+quick log styling
+
+EXPECTED BEHAVIOR:
+- KB-linked port buttons in the Quick Log `Ports` table should use a rounder badge-like shape
+- Current font sizing and weight may remain unchanged
+- Styling should stay consistent in both light and dark mode
+- Behavior and linking logic must not change
+
+RULES:
+- Styling only
+- Do not change matching logic or click behavior
+
+---
+
+## P2-17 — First-Run Setup Simplification
+STATUS: DONE
+
+CONTEXT:
+The current setup is functional but not clean for first-time users. The documented bootstrap flow references a missing `.env.example`, mixes required and optional configuration, and does not clearly separate Docker setup from direct Node setup.
+
+SCOPE:
+README.md, docs/, .env.example
+
+EXPECTED BEHAVIOR:
+- Provide a real `.env.example` for first-run bootstrap
+- Keep `README.md` as the root entry point and move detailed setup guidance into `docs/`
+- Clearly separate:
+  - minimum required setup
+  - optional modules
+  - Docker workflow
+  - direct Node workflow
+- Document what storage paths are expected or optional:
+  - `knowledge-base/`
+  - `sessions/`
+- Make ENGRAM and Toolbox clearly optional and non-blocking
+- Keep setup local-first and simple without adding a heavy installer
+
+RULES:
+- Documentation/bootstrap only
+- Do not change unrelated runtime behavior
+- Prefer clarity and low-friction setup over automation complexity
+
+---
+
 
 # P3 — EXPERIMENTAL
 
@@ -245,6 +453,8 @@ git branch: operational-context
 ---
 
 ## P3-03 — Editor Performance Profiling
+STATUS: DONE
+
 CONTEXT:
 UI lag occurs during intensive editing sessions.
 
@@ -255,28 +465,59 @@ browser editor runtime
 
 ## P3-04 — Unified Live Preview Editor
 CONTEXT:
-Need real-time markdown rendering in a single view.
+The current markdown workflow relies on a split editor/preview layout. It works, but it creates visual separation and friction when writing, reviewing formatting, and navigating rendered content. A unified editing surface may improve flow, but it must not regress markdown behavior, autosave, or internal linking.
 
 SCOPE:
 markdown editor system
 
----
+GOAL:
+Prototype an experimental unified markdown editing mode where raw markdown and rendered understanding coexist in a single surface, while preserving the current split-preview editor as a safe fallback.
 
-## P3-05 — Interactive Checkboxes in KB Sidebar
-CONTEXT:
-Checkboxes are not interactive in sidebar preview mode.
+EXPECTED BEHAVIOR:
+- Add an experimental unified editor mode for notes and KB documents
+- The unified mode must reuse the existing server-backed markdown render pipeline
+- Raw markdown must remain the source of truth and stay directly editable
+- The user should be able to read and write in one surface without depending on a separate preview pane
+- Existing markdown-related features must continue to work:
+  - headings
+  - tables
+  - checklists
+  - code blocks
+  - internal KB links
+  - engagement links
+  - collapsible headings
+  - attachment images
+- Autosave behavior must remain unchanged
+- Users must be able to leave unified mode and return to the current split editor without losing content or state
+- The current split-preview mode must remain available during the experiment
 
-SCOPE:
-sidebar renderer
+NON-GOALS:
+- Do not replace the markdown engine as part of this task
+- Do not build a full WYSIWYG rich-text editor
+- Do not remove the current note editor or KB editor flows
+- Do not change the saved document format away from markdown
 
----
+IMPLEMENTATION RULES:
+- Reuse `/api/markdown/render` for rendering
+- Keep markdown as the source of truth
+- Prefer a mode toggle or experimental flag over a hard replacement
+- Minimize DOM-editing complexity in the first pass
+- Preserve current keyboard editing behavior in CodeMirror where possible
+- Maintain feature parity before optimizing aesthetics
 
-## P3-06 — Port → TODO Conversion
-CONTEXT:
-Need faster conversion of discovered ports into actionable tasks.
+SUCCESS CRITERIA:
+- Users can write in unified mode without visible workflow breakage
+- Rendered understanding stays in sync during editing
+- No regressions in autosave, preview correctness, or note switching
+- Internal links and task checkboxes still behave correctly
+- Large notes remain usable enough for real sessions
 
-SCOPE:
-quick log + ports system
+RISKS TO WATCH:
+- cursor/focus behavior when mixing editing and rendered interpretation
+- scroll sync and viewport jumpiness
+- performance on large notes
+- accidental divergence between unified mode and split-preview mode
+- interaction conflicts for checkboxes, links, and collapsible headers
 
 ---
 

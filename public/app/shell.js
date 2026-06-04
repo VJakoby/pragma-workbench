@@ -191,7 +191,10 @@ async function init() {
   await loadNoteTemplates();
   renderNoteTypeGrid();
   renderNotesList();
-  if (activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
+  const showWelcomeSessionModal = typeof shouldOpenWelcomeSessionModalOnStartup === 'function'
+    ? shouldOpenWelcomeSessionModalOnStartup()
+    : false;
+  if (!showWelcomeSessionModal && activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
 
   document.getElementById('svc-count').textContent = SERVICES.length;
   document.getElementById('tactics-count').textContent = TACTICS.length;
@@ -207,8 +210,9 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
-  await restoreLastLocation();
+  if (!showWelcomeSessionModal) await restoreLastLocation();
 }
+
 
 async function restoreLastLocation() {
   const saved = readLastLocation();
@@ -340,13 +344,15 @@ document.addEventListener('keydown', async e => {
       clearTimeout(noteSaveTimer);
       setNoteSaveIndicator('saving', '...saving');
       await persistTemplatesConfig({ reason: 'config-manual-save' });
-    } else if (activeNoteId) {
+      return;
+    }
+    if (activeNoteId) {
       e.preventDefault();
       clearTimeout(noteSaveTimer);
       setNoteSaveIndicator('saving', '...saving');
       await persistActiveNote({ reason: 'note-manual-save', immediate: true });
+      return;
     }
-    return;
   }
 
   if (ctrl && key === 'f' && ENGRAM_SEARCH_ENABLED) {
@@ -414,7 +420,7 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
-  if (ctrl && code === 'Period') { e.preventDefault(); openTargetsPanel(); return; }
+  if (ctrl && code === 'Period') { e.preventDefault(); openContextSwitcher(); return; }
 
   if (e.key === 'Escape') {
     if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
@@ -431,6 +437,8 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('evidencePopover')?.classList.contains('open')) { closeEvidencePopover(); return; }
     if (document.getElementById('todoPopover')?.classList.contains('open')) { closeTodoPopover(); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
+    if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) { closeContextSwitcher(); return; }
+    if (document.getElementById('welcomeSessionOverlay')?.classList.contains('open')) { closeWelcomeSessionModal(); return; }
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
     if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }

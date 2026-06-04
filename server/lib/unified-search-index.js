@@ -150,13 +150,48 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
     return entries;
   }
 
+  function listPlainWorkbenchNames() {
+    let entries;
+    try {
+      entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
+    } catch (_) {
+      return [];
+    }
+    const names = new Set();
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const match = entry.name.match(/^(.+)\.workbench$/);
+      if (match) names.add(match[1]);
+    }
+    return [...names];
+  }
+
+  function loadWorkbenchNotes(name) {
+    if (!name) return {};
+    const basePath = typeof storage?.workbenchFile === 'function'
+      ? storage.workbenchFile(name)
+      : path.join(sessionsDir, `${name}.workbench`);
+    try {
+      const result = typeof storage?.loadWithFallback === 'function'
+        ? storage.loadWithFallback(basePath)
+        : null;
+      if (!result || !result.data) return {};
+      const raw = result.data;
+      if (!raw.sessions && !raw.notes) return raw || {};
+      return raw.notes || {};
+    } catch (err) {
+      console.warn(`[UnifiedSearch] Failed to read workbench ${name}:`, err.message);
+      return {};
+    }
+  }
+
   function buildNoteEntries() {
     const entries = [];
     try {
-      const workbenches = storage.listWorkbenches();
-      for (const wb of workbenches) {
+      const workbenches = listPlainWorkbenchNames();
+      for (const name of workbenches) {
         try {
-          const notes = storage.loadNotes(wb.name);
+          const notes = loadWorkbenchNotes(name);
           for (const note of Object.values(notes)) {
             if (!note || !note.id) continue;
             const title = note.title || 'Untitled';
@@ -177,7 +212,7 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
             });
           }
         } catch (err) {
-          console.warn(`[UnifiedSearch] Failed to load notes from workbench ${wb.name}:`, err.message);
+          console.warn(`[UnifiedSearch] Failed to load notes from workbench ${name}:`, err.message);
         }
       }
     } catch (err) {
@@ -227,7 +262,10 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
 
     const watchPaths = [];
     if (fs.existsSync(kbDir)) watchPaths.push(path.join(kbDir, '**/*.md'));
-    if (fs.existsSync(sessionsDir)) watchPaths.push(path.join(sessionsDir, '**/*.json'));
+    if (fs.existsSync(sessionsDir)) {
+      watchPaths.push(path.join(sessionsDir, '**/*.workbench'));
+      watchPaths.push(path.join(sessionsDir, '**/*.workbench.enc'));
+    }
 
     if (watchPaths.length === 0) {
       console.warn('[UnifiedSearch] No paths to watch');
@@ -281,8 +319,8 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
     }));
   }
 
-  function getIndexData() {
-    if (!unifiedIndex) {
+  function getIndexData(options = {}) {
+    if (!unifiedIndex || options.fresh) {
       rebuildIndex();
     }
     return indexData;

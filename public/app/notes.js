@@ -13,6 +13,11 @@ let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
 let _evidenceSelectionPromptState = null;
+let attachmentStorageSidebarTimer = null;
+let attachmentStorageSidebarSeq = 0;
+let attachmentStorageSidebarStateKey = '';
+let attachmentStorageSidebarLoaded = false;
+let attachmentStoragePayload = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
 const EVIDENCE_TYPE_OPTIONS = [
   { value: 'enumeration', label: 'Enumeration' },
@@ -243,6 +248,186 @@ function closeConfigEditor() {
   renderNotesList();
 }
 
+function formatAttachmentStorageBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (!Number.isFinite(value) || value <= 0) return '0 B';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(value >= 10240 ? 0 : 1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+function buildAttachmentStorageSidebarStateKey() {
+  return Object.keys(notes || {})
+    .sort()
+    .map((id) => {
+      const note = notes[id] || {};
+      const body = String(note.body || '');
+      const attachmentCount = (body.match(/\/api\/notes\/attachments\//g) || []).length;
+      return `${id}:${note.updated || 0}:${attachmentCount}`;
+    })
+    .join('|');
+}
+
+function buildAttachmentStorageSummaryText(summary = {}) {
+  const tracked = Number(summary.tracked_count || 0);
+  const orphaned = Number(summary.orphaned_count || 0);
+  const missing = Number(summary.missing_count || 0);
+  const sizeLabel = formatAttachmentStorageBytes(summary.total_bytes || 0);
+  if (!tracked) {
+    if (orphaned) return `${orphaned} orphaned file${orphaned === 1 ? "" : "s"} · ${sizeLabel} total`;
+    return 'No attachment usage yet';
+  }
+  const parts = [`${tracked} file${tracked === 1 ? "" : "s"}`, sizeLabel + ' total'];
+  if (orphaned) parts.push(`${orphaned} orphaned`);
+  if (missing) parts.push(`${missing} missing`);
+  return parts.join(' · ');
+}
+
+function buildAttachmentStorageModalSummaryText(summary = {}) {
+  const tracked = Number(summary.tracked_count || 0);
+  const refs = Number(summary.referenced_note_count || 0);
+  const orphaned = Number(summary.orphaned_count || 0);
+  const missing = Number(summary.missing_count || 0);
+  const sizeLabel = formatAttachmentStorageBytes(summary.total_bytes || 0);
+  const parts = [`${tracked} tracked file${tracked === 1 ? "" : "s"}`, `${refs} note link${refs === 1 ? "" : "s"}`, sizeLabel + ' total'];
+  if (orphaned) parts.push(`${orphaned} orphaned`);
+  if (missing) parts.push(`${missing} missing`);
+  return 'Workbench-wide attachment usage: ' + parts.join(' · ');
+}
+
+function closeAttachmentStorageModal() {
+  document.getElementById('attachmentStorageOverlay')?.classList.remove('open');
+}
+
+function openAttachmentStorageModal() {
+  document.getElementById('attachmentStorageOverlay')?.classList.add('open');
+  if (!attachmentStoragePayload) scheduleAttachmentStorageSidebarRefresh(true);
+}
+
+function openAttachmentStorageNote(noteId) {
+  closeAttachmentStorageModal();
+  if (noteId) openNote(noteId);
+}
+
+function renderAttachmentStorageModal(payload) {
+  const summaryEl = document.getElementById('attachmentStorageModalSummary');
+  const listEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !listEl) return;
+
+  const summary = payload?.summary || {};
+  const items = Array.isArray(payload?.attachments) ? payload.attachments : [];
+  summaryEl.textContent = buildAttachmentStorageModalSummaryText(summary);
+
+  if (!items.length) {
+    listEl.innerHTML = '<div class="attachment-storage-empty modal-empty">Attach images in notes to track them across the workbench.</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map((item) => {
+    const refsLabel = `${item.reference_count || 0} linked note${Number(item.reference_count || 0) === 1 ? "" : "s"}`;
+    const statusLabel = item.orphaned ? 'orphaned' : item.missing ? 'missing' : (item.mode === 'encrypted' ? 'encrypted' : item.mode === 'raw' ? 'stored' : 'unresolved');
+    const ownerButton = item.owner_note_id
+      ? `<button type="button" class="attachment-storage-owner-link" onclick="openAttachmentStorageNote('${item.owner_note_id}')">${esc(item.owner_note_title || "Owner Note")}</button>`
+      : '';
+    const ownerSession = item.owner_session_name
+      ? `<span class="attachment-storage-owner-session">${esc(item.owner_session_name)}</span>`
+      : '';
+    const ownerContext = ownerButton
+      ? `<div class="attachment-storage-owner-row">${ownerButton}</div>`
+      : '';
+    const sessionBadge = ownerSession
+      ? `<div class="attachment-storage-session-row">${ownerSession}</div>`
+      : '';
+    const noteRefs = (Array.isArray(item.references) ? item.references : []).filter((ref) => ref.id !== item.owner_note_id);
+    const refsHtml = noteRefs.slice(0, 5).map((ref) =>
+      `<button type="button" class="attachment-storage-note-link" onclick="openAttachmentStorageNote('${ref.id}')" title="${esc(ref.title || "Untitled")}">${esc(ref.title || "Untitled")}</button>`
+    ).join('');
+    const extraCount = Math.max(0, noteRefs.length - 5);
+    const moreHtml = extraCount ? `<span class="attachment-storage-pill">+${extraCount} more</span>` : '';
+    return `<div class="attachment-storage-item modal-item${item.orphaned ? " orphaned" : item.missing ? " missing" : ""}">
+      <div class="attachment-storage-head modal-head">
+        <div class="attachment-storage-head-main">
+          ${sessionBadge}
+          <div class="attachment-storage-name modal-name" title="${esc(item.filename || "")}">${esc(item.filename || "attachment")}</div>
+        </div>
+        <div class="attachment-storage-size modal-size">${formatAttachmentStorageBytes(item.size_bytes || 0)}</div>
+      </div>
+      <div class="attachment-storage-meta modal-meta">
+        <span class="attachment-storage-pill${item.orphaned ? " status-orphaned" : item.missing ? " status-missing" : ""}">${statusLabel}</span>
+        <span class="attachment-storage-pill">${refsLabel}</span>
+      </div>
+      ${ownerContext}
+      <div class="attachment-storage-notes modal-notes">${refsHtml || '<span class="attachment-storage-pill">No linked notes</span>'}${moreHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAttachmentStorageSidebar(payload) {
+  const summaryEl = document.getElementById('attachmentStorageSummary');
+  const countEl = document.getElementById('attachmentStorageCount');
+  const modalSummaryEl = document.getElementById('attachmentStorageModalSummary');
+  const modalListEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !countEl) return;
+
+  attachmentStoragePayload = payload || null;
+  const summary = payload?.summary || {};
+  const tracked = Number(summary.tracked_count || 0);
+  summaryEl.textContent = buildAttachmentStorageSummaryText(summary);
+  countEl.textContent = tracked || '—';
+  renderAttachmentStorageModal(payload);
+
+  if (!tracked && modalSummaryEl && modalListEl) {
+    modalSummaryEl.textContent = buildAttachmentStorageModalSummaryText(summary);
+  }
+}
+
+async function refreshAttachmentStorageSidebar(force = false, precomputedKey = '') {
+  const summaryEl = document.getElementById('attachmentStorageSummary');
+  const countEl = document.getElementById('attachmentStorageCount');
+  const modalSummaryEl = document.getElementById('attachmentStorageModalSummary');
+  const modalListEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !countEl) return;
+
+  const stateKey = precomputedKey || buildAttachmentStorageSidebarStateKey();
+  if (!force && attachmentStorageSidebarLoaded && stateKey === attachmentStorageSidebarStateKey) return;
+  attachmentStorageSidebarStateKey = stateKey;
+  const seq = ++attachmentStorageSidebarSeq;
+  summaryEl.textContent = 'Loading…';
+  countEl.textContent = '—';
+  if (modalSummaryEl) modalSummaryEl.textContent = 'Loading attachment usage…';
+  if (modalListEl && !attachmentStorageSidebarLoaded) modalListEl.innerHTML = '<div class="attachment-storage-empty modal-empty">Loading attachment usage…</div>';
+
+  try {
+    const res = await fetch('/api/notes/attachments/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions, notes }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (seq !== attachmentStorageSidebarSeq) return;
+    if (!res.ok || data.ok !== true) throw new Error(data.error || 'Failed to load attachment usage');
+    attachmentStorageSidebarLoaded = true;
+    renderAttachmentStorageSidebar(data);
+  } catch (err) {
+    if (seq !== attachmentStorageSidebarSeq) return;
+    attachmentStorageSidebarLoaded = false;
+    attachmentStoragePayload = null;
+    summaryEl.textContent = 'Attachment usage unavailable';
+    countEl.textContent = '—';
+    if (modalSummaryEl) modalSummaryEl.textContent = 'Attachment usage unavailable';
+    if (modalListEl) modalListEl.innerHTML = `<div class="attachment-storage-empty modal-empty">${esc(err.message || "Attachment usage unavailable")}</div>`;
+  }
+}
+
+function scheduleAttachmentStorageSidebarRefresh(force = false) {
+  const nextKey = buildAttachmentStorageSidebarStateKey();
+  if (!force && attachmentStorageSidebarLoaded && nextKey === attachmentStorageSidebarStateKey) return;
+  clearTimeout(attachmentStorageSidebarTimer);
+  attachmentStorageSidebarTimer = setTimeout(() => {
+    refreshAttachmentStorageSidebar(force, nextKey);
+  }, force ? 0 : 80);
+}
+
 function renderNoteFilterBar() {
   const bar = document.getElementById('notesTypeFilter');
   if (!bar) return;
@@ -324,6 +509,7 @@ function renderNotesList() {
       ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
     renderNotesPeekList();
+    scheduleAttachmentStorageSidebarRefresh();
     return;
   }
 
@@ -357,6 +543,7 @@ function renderNotesList() {
   updateNotesCountBadges();
   renderTargetFilterBar();
   renderNotesPeekList();
+  scheduleAttachmentStorageSidebarRefresh();
 }
 
 function getVisibleNotes(opts = {}) {
@@ -481,6 +668,7 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  scheduleAttachmentStorageSidebarRefresh(true);
   const peekBtn = document.getElementById('notesListPeekBtn');
   const peekFlyout = document.getElementById('notesPeekFlyout');
   if (peekBtn) {
@@ -791,97 +979,58 @@ function getNotesInSession(sessionId) {
   return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
 }
 
-function resolveNoteLink(rawTitle, sessionId = null) {
+function getTargetCandidates(target) {
+  return [
+    String(target?.ip || '').trim(),
+    String(target?.domain || '').trim(),
+    String(target?.label || '').trim(),
+  ].filter(Boolean);
+}
+
+function resolveTargetInSession(rawTarget, sessionId = null) {
+  const q = String(rawTarget || '').trim().toLowerCase();
+  if (!q || !sessionId || !sessions[sessionId]) return null;
+  const targets = sessions[sessionId].targets || [];
+  let exactHit = null;
+  let partialHit = null;
+  targets.forEach((target) => {
+    const candidates = getTargetCandidates(target).map((value) => value.toLowerCase());
+    if (!exactHit && candidates.includes(q)) {
+      exactHit = target;
+      return;
+    }
+    const partial = candidates.find((value) => value.includes(q));
+    if (!partial) return;
+    if (!partialHit || partial.length > partialHit.length) partialHit = { target, length: partial.length };
+  });
+  return exactHit || partialHit?.target || null;
+}
+
+function resolveNoteLink(rawTitle, sessionId = null, { targetId } = {}) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  const scopedNotes = getNotesInSession(sessionId);
+  let scopedNotes = getNotesInSession(sessionId);
+  if (targetId !== undefined) scopedNotes = scopedNotes.filter((note) => (note.target_id || null) === (targetId || null));
   let hit = scopedNotes.find(n => (n.title || '').toLowerCase() === q);
   if (!hit) hit = scopedNotes.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
-function parseWikiLink(raw) {
-  const source = String(raw || '').trim();
-  const pipeIdx = source.indexOf('|');
-  if (pipeIdx === -1) {
-    return { target: source, label: source };
-  }
-  const target = source.slice(0, pipeIdx).trim();
-  const label = source.slice(pipeIdx + 1).trim() || target;
-  return { target, label };
+function resolveEngagementNoteLinkInSession(rawTarget, rawTitle, sessionId = null) {
+  const target = resolveTargetInSession(rawTarget, sessionId);
+  if (!target) return null;
+  return resolveNoteLink(rawTitle, sessionId, { targetId: target.id });
 }
 
-function buildWikiLinkElement(raw) {
-  const { target, label } = parseWikiLink(raw);
-  const currentSessionId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].session_id || null) : null;
-  const targetId = resolveNoteLink(target, currentSessionId);
-  const el = document.createElement('span');
-  el.className = `note-wikilink${targetId ? '' : ' broken'}`;
-  el.textContent = label || target;
-  el.title = targetId
-    ? `Open note: ${target}`
-    : `No matching note for: ${target}`;
-
-  if (targetId) {
-    el.tabIndex = 0;
-    el.setAttribute('role', 'link');
-    el.addEventListener('click', () => {
-      if (typeof openNote === 'function') openNote(targetId);
-    });
-    el.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (typeof openNote === 'function') openNote(targetId);
-      }
-    });
-  }
-
-  return el;
+function resolveEngagementNoteLink(rawTarget, rawTitle, sessionId = null) {
+  const currentSessionId = sessionId || (activeNoteId && notes[activeNoteId]
+    ? (notes[activeNoteId].session_id || null)
+    : activeSessionId || null);
+  return resolveEngagementNoteLinkInSession(rawTarget, rawTitle, currentSessionId);
 }
 
-function enhanceNoteWikiLinks(root) {
-  if (!root || typeof document === 'undefined') return;
-  const textNodes = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!node?.nodeValue || !node.nodeValue.includes('[[')) return NodeFilter.FILTER_REJECT;
-      const parent = node.parentElement;
-      if (!parent) return NodeFilter.FILTER_REJECT;
-      if (parent.closest('a, code, pre, .note-wikilink')) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
-
-  let current;
-  while ((current = walker.nextNode())) textNodes.push(current);
-
-  textNodes.forEach((node) => {
-    const text = node.nodeValue;
-    const re = /\[\[([^\]]+)\]\]/g;
-    let lastIndex = 0;
-    let match;
-    let found = false;
-    const fragment = document.createDocumentFragment();
-
-    while ((match = re.exec(text)) !== null) {
-      found = true;
-      if (match.index > lastIndex) {
-        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
-      }
-      fragment.appendChild(buildWikiLinkElement(match[1]));
-      lastIndex = re.lastIndex;
-    }
-
-    if (!found) return;
-    if (lastIndex < text.length) {
-      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
-    }
-    node.parentNode?.replaceChild(fragment, node);
-  });
-}
-
-window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
+window.resolveEngagementNoteLink = resolveEngagementNoteLink;
 
 function getBacklinks(noteId) {
   const targetNote = notes[noteId];
@@ -890,10 +1039,10 @@ function getBacklinks(noteId) {
     if (n.id === noteId) return false;
     if ((n.session_id || null) !== targetSessionId) return false;
     const body = n.body || '';
-    const re = /\[\[([^\]]+)\]\]/g;
-    let m;
-    while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1], n.session_id || null) === noteId) return true;
+    const engagementRe = new RegExp(String.raw`\[en:([^:\]\n]+):([^\]\n]+)\](?!\()`, 'gi');
+    let match;
+    while ((match = engagementRe.exec(body)) !== null) {
+      if (resolveEngagementNoteLinkInSession(match[1], match[2], n.session_id || null) === noteId) return true;
     }
     return false;
   });
@@ -1483,7 +1632,9 @@ async function persistActiveNote(opts = {}) {
   const moEl = document.getElementById('noteModifiedAt');
   if (moEl && activeNoteId === noteId) moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  if (activeNoteId === noteId) updateNotePreview();
+  if (activeNoteId === noteId && typeof invalidateNotePreviewCache === 'function') {
+    invalidateNotePreviewCache();
+  }
   return ok;
 }
 
@@ -1899,6 +2050,7 @@ async function cleanupOrphanedAttachments() {
     const removed = Number(data.removed_count || 0);
     const missing = Number(data.missing_count || 0);
     const refs = Number(data.referenced_count || 0);
+    scheduleAttachmentStorageSidebarRefresh(true);
     showToast(`✓ Attachment cleanup complete: removed ${removed} orphaned file(s), ${refs} referenced, ${missing} missing reference(s)`);
   } catch (err) {
     showToast(`⚠ ${err.message || 'Attachment cleanup failed'}`, 'err');

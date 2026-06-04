@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+let notePreviewTimer = null;
+let lastNotePreviewMarkdown = null;
 const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
 const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
 const NOTE_ATTACHMENT_URL_RE = /\/api\/notes\/attachments\/([^/\s)]+)\/([^)\s?#]+)/g;
@@ -404,6 +406,22 @@ function continueOrderedListFallback(view) {
   return true;
 }
 
+function invalidateNotePreviewCache() {
+  lastNotePreviewMarkdown = null;
+}
+
+function scheduleNotePreviewUpdate({ immediate = false } = {}) {
+  if (notePreviewTimer) clearTimeout(notePreviewTimer);
+  if (immediate) {
+    void updateNotePreview();
+    return;
+  }
+  notePreviewTimer = setTimeout(() => {
+    notePreviewTimer = null;
+    void updateNotePreview();
+  }, 100);
+}
+
 async function updateNotePreview() {
   if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
@@ -411,8 +429,10 @@ async function updateNotePreview() {
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
+  if (md === lastNotePreviewMarkdown) return;
   if (window.markdownPreview?.renderInto) {
-    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    const rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    if (rendered) lastNotePreviewMarkdown = md;
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
@@ -421,6 +441,7 @@ async function updateNotePreview() {
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+  lastNotePreviewMarkdown = md;
 }
 
 async function refreshRenderedMarkdownSurfaces() {
@@ -486,7 +507,7 @@ function applyNotePreviewState() {
     const saved = localStorage.getItem('pragma-preview-split');
     if (saved) split.style.setProperty('--note-editor-h', saved);
     applyPreviewLayout();
-    updateNotePreview();
+    scheduleNotePreviewUpdate({ immediate: true });
     initPreviewDragHandle();
   } else {
     split.classList.remove('split-side');
@@ -573,7 +594,7 @@ function cmInitNote(initialDoc) {
       }
       if (activeNoteId) {
         autoSaveNote();
-        updateNotePreview();
+        scheduleNotePreviewUpdate();
       }
     }),
     CM.EditorView.lineWrapping,

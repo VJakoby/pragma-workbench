@@ -216,9 +216,9 @@ function buildTypeBuckets(notes, templateMeta) {
 
 function buildSessionExportModel({ session, notes, storage, templateMeta, author = '' }) {
   const exportedAt = Date.now();
-  const sessionContext = { attacker_ip: session.attacker_ip || '' };
+  const sessionContext = { attacker_ip: session.attacker_ip || '', domain: session.domain || '' };
   const targets = Array.isArray(session.targets)
-    ? session.targets.map((target) => ({ ...target, attacker_ip: session.attacker_ip || '' }))
+    ? session.targets.map((target) => ({ ...target, attacker_ip: session.attacker_ip || '', session_domain: session.domain || '' }))
     : [];
   const targetById = Object.fromEntries(targets.map((target) => [target.id, target]));
 
@@ -296,10 +296,11 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
 }
 
 function renderTargetNoteFile({ note, session, target, typeMeta, storage, attachmentUrlMap = null }) {
-  const title = injectTargetPlaceholders(noteTitle(note, storage), target);
+  const placeholderContext = { attacker_ip: session.attacker_ip || '', domain: session.domain || '', ...target };
+  const title = injectTargetPlaceholders(noteTitle(note, storage), placeholderContext);
   const label = targetLabel(target);
   const body = rewriteAttachmentUrls(
-    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', target)),
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
     attachmentUrlMap
   );
   return [
@@ -317,9 +318,10 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage, attach
 }
 
 function renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrlMap = null }) {
-  const title = injectTargetPlaceholders(noteTitle(note, storage), { attacker_ip: session.attacker_ip || '' });
+  const placeholderContext = { attacker_ip: session.attacker_ip || '', domain: session.domain || '' };
+  const title = injectTargetPlaceholders(noteTitle(note, storage), placeholderContext);
   const body = rewriteAttachmentUrls(
-    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', { attacker_ip: session.attacker_ip || '' })),
+    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
     attachmentUrlMap
   );
   return [
@@ -375,7 +377,8 @@ function renderTimelineSummary(model) {
           const typeMeta = resolveNoteType(note.type, model.templateMeta);
           const target = note.target_id ? model.targetById[note.target_id] : null;
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
-          const title = injectTargetPlaceholders(noteTitle(note, model.storage), target || model.sessionContext);
+          const placeholderContext = target ? { ...model.sessionContext, ...target } : model.sessionContext;
+          const title = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
           const preview = stripEvidenceMarkers(note.body || '')
             .split('\n')
             .map((line) => line.trim())
@@ -467,7 +470,7 @@ function renderNoteEntries(bucket, model, includeTarget) {
   const lines = [`### ${bucket.label}`, ''];
   bucket.notes.forEach((note) => {
     const target = note.target_id ? model.targetById[note.target_id] : null;
-    const placeholderContext = target || model.sessionContext;
+    const placeholderContext = target ? { ...model.sessionContext, ...target } : model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
     const resolvedBody = rewriteAttachmentUrls(
       stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),

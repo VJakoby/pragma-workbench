@@ -5,14 +5,34 @@ let cpEditSaveTimer = null;
 let cpEditSaving = false;
 let kbPreviewOpen = localStorage.getItem('pragma-kb-preview-open') === '1';
 let kbEditorSyncing = false;
+let kbPreviewTimer = null;
+let lastKbPreviewMarkdown = null;
+
+function invalidateKbPreviewCache() {
+  lastKbPreviewMarkdown = null;
+}
+
+function scheduleKbPreviewUpdate({ immediate = false } = {}) {
+  if (kbPreviewTimer) clearTimeout(kbPreviewTimer);
+  if (immediate) {
+    void updateKbPreview();
+    return;
+  }
+  kbPreviewTimer = setTimeout(() => {
+    kbPreviewTimer = null;
+    void updateKbPreview();
+  }, 100);
+}
 
 async function updateKbPreview() {
   const pane = document.getElementById('kbPreviewPane');
   const el = document.getElementById('kbPreviewContent');
   if (!pane || !el || pane.style.display === 'none') return;
   const md = kbEditor ? cmGetValue(kbEditor) : (activeDoc?.raw || '');
+  if (md === lastKbPreviewMarkdown) return;
   if (window.markdownPreview?.renderInto) {
-    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    const rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    if (rendered) lastKbPreviewMarkdown = md;
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
@@ -21,6 +41,7 @@ async function updateKbPreview() {
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+  lastKbPreviewMarkdown = md;
 }
 
 function applyKbPreviewState() {
@@ -37,7 +58,7 @@ function applyKbPreviewState() {
   if (kbPreviewOpen) {
     const saved = localStorage.getItem('pragma-kb-preview-split');
     if (saved) split.style.setProperty('--kb-editor-h', saved);
-    updateKbPreview();
+    scheduleKbPreviewUpdate({ immediate: true });
     initKbPreviewDragHandle();
   }
 }
@@ -241,7 +262,7 @@ function cmInitKb(initialDoc) {
             setCpEditStatus('unsaved', '● unsaved');
           }
           scheduleKbAutoSave();
-          updateKbPreview();
+          scheduleKbPreviewUpdate();
         }
       }),
       CM.EditorView.lineWrapping,

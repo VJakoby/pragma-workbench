@@ -10,6 +10,7 @@ let _editingTodoId = null;
 let _editingQuickLog = null;
 let _evidenceFilterType = '';
 let _evidenceFilterTarget = '';
+let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
 
 function ensureActiveSession(actionLabel = 'this action') {
   if (!activeSessionId || !sessions[activeSessionId]) {
@@ -157,12 +158,16 @@ function updateSvcTabCounts() {
   if (ch) ch.textContent = paths || '';
   if (cl) cl.textContent = loot || '';
 
-  const btn = document.getElementById('svcTopbarCount');
-  if (btn) {
-    const total = ports + paths + loot;
-    btn.textContent = total || '';
-    btn.classList.toggle('has-entries', total > 0);
-  }
+  [
+    ['svcTopbarCountPorts', ports],
+    ['svcTopbarCountPaths', paths],
+    ['svcTopbarCountLoot', loot],
+  ].forEach(([id, value]) => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = value || '';
+    badge.classList.toggle('has-entries', value > 0);
+  });
   renderSvcClearAction();
   updateTodoCount();
 }
@@ -2211,7 +2216,7 @@ function renderSvcLogTable() {
           <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
         </tr>` : `
         <tr>
-          <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(s.proto)}</span>` : ''}</td>
+          <td>${renderQuickLogKbServiceLink(s) || (esc(s.port) + (s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:500;font-size:11px">/${esc(s.proto)}</span>` : ''))}</td>
           <td>${esc(s.service || '—')}</td>
           <td style="color:var(--text2)">${esc(s.version || '')}</td>
           <td>${esc(s.notes || '')}</td>
@@ -2220,6 +2225,50 @@ function renderSvcLogTable() {
       </tbody>
     </table>`;
   if (_editingQuickLog?.kind === 'service') focusQuickLogEditInput(`svcEditPort_${_editingQuickLog.id}`);
+}
+
+function normalizeKbServiceLookupValue(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function findKbServiceForQuickLogEntry(entry) {
+  if (!entry || typeof getKbCollection !== 'function') return null;
+  const items = getKbCollection('services') || [];
+  if (!items.length) return null;
+
+  const portValue = String(entry.port || '').trim();
+  const serviceValue = normalizeKbServiceLookupValue(entry.service || '');
+  const serviceSlug = serviceValue.replace(/\s+/g, '_');
+
+  let hit = null;
+  if (portValue) {
+    hit = items.find((item) => String(item.id || '').trim() === portValue)
+      || items.find((item) => String(item.port || '').split('/')[0].trim() === portValue);
+  }
+  if (!hit && serviceSlug) {
+    hit = items.find((item) => String(item.id || '').trim().toLowerCase() === serviceSlug)
+      || items.find((item) => normalizeKbServiceLookupValue(item.name || '') === serviceValue);
+  }
+  return hit || null;
+}
+
+function openQuickLogKbService(id) {
+  if (!id) return;
+  closeSvcPopover();
+  if (typeof openItem === 'function') openItem('services', id);
+}
+
+function renderQuickLogKbServiceLink(entry) {
+  const kbItem = findKbServiceForQuickLogEntry(entry);
+  if (!kbItem) return '';
+  const portValue = esc(String(entry?.port || ''));
+  const protoValue = entry?.proto && entry.proto !== 'tcp'
+    ? '<span style="color:var(--muted);font-weight:500;font-size:11px">/' + esc(String(entry.proto || '')) + '</span>'
+    : '';
+  return '<button class="ql-kb-port-btn" type="button" onclick="openQuickLogKbService(\'' + esc(String(kbItem.id || '')) + '\')" title="Open matching KB service">' + portValue + protoValue + '</button>';
 }
 
 function setLootType(btn, type) {
@@ -2724,14 +2773,24 @@ function buildLootMarkdown(sessionId) {
   return md;
 }
 
-function toggleSvcPopover() {
+function setActiveSvcTopbarButton(buttonId) {
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.toggle('open', id === buttonId);
+  });
+  _activeSvcTopbarButtonId = buttonId || 'svcTopbarPortsBtn';
+}
+
+function openSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  _activeSvcTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  setActiveSvcTopbarButton(buttonId);
   if (document.getElementById('svcPopover')?.classList.contains('open')) {
-    closeSvcPopover();
+    updateUtilitySessionLabel('svcSessionLabel');
+    switchSvcTab(_activeSvcTab);
     return;
   }
   openUtilityPopover({
     popoverId: 'svcPopover',
-    buttonId: 'svcTopbarBtn',
+    buttonId,
     labelId: 'svcSessionLabel',
     closeOthers: [closeTodoPopover, closeEvidencePopover],
     outsideHandler: _svcOutsideClose,
@@ -2742,25 +2801,31 @@ function toggleSvcPopover() {
       renderLootTable();
       updateSvcTabCounts();
       renderSvcClearAction();
-      setTimeout(() => {
-        const hi = document.getElementById('lootHostInput');
-        if (hi && !hi.value) {
-          const ip = getIP();
-          if (ip !== '<IP>') hi.value = ip;
-        }
-        const inputId = _activeSvcTab === 'ports'
-          ? 'svcQuickInput'
-          : _activeSvcTab === 'loot'
-            ? 'lootCredInput'
-            : 'pathQuickInput';
-        document.getElementById(inputId)?.focus();
-      }, 40);
+      switchSvcTab(_activeSvcTab);
     },
   });
 }
 
+function toggleSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  const popover = document.getElementById('svcPopover');
+  const nextTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  if (popover?.classList.contains('open')) {
+    if (_activeSvcTab === nextTab && _activeSvcTopbarButtonId === buttonId) {
+      closeSvcPopover();
+      return;
+    }
+    openSvcPopover(nextTab, buttonId);
+    return;
+  }
+  openSvcPopover(nextTab, buttonId);
+}
+
 function closeSvcPopover() {
-  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
+  document.getElementById('svcPopover')?.classList.remove('open');
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.remove('open');
+  });
+  updateSvcPopoverLayout();
 }
 
 function _svcOutsideClose(e) {

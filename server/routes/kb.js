@@ -136,7 +136,7 @@ function registerKbRoutes(app, deps) {
     if (!unifiedSearchIndex) {
       return res.status(503).json({ error: 'Unified search index not available' });
     }
-    const items = unifiedSearchIndex.getIndexData();
+    const items = unifiedSearchIndex.getIndexData({ fresh: true });
     res.json({ total: items.length, items });
   });
 
