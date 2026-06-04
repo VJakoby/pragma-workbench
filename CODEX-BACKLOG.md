@@ -358,6 +358,79 @@ RULES:
 
 ---
 
+## P2-15 — Quick Log Split Button Badge Spacing
+STATUS: DONE
+
+CONTEXT:
+When count badges appear on the topbar `Ports | Paths | Loot` control, the label and badge sit too close to the button edges, making the grouped control feel cramped.
+
+SCOPE:
+topbar quick-log styling
+
+EXPECTED BEHAVIOR:
+- The `Ports`, `Paths`, and `Loot` buttons must have enough horizontal padding when count badges are visible
+- Count badges must have clear breathing room from the left and right button edges
+- The grouped control must keep its current behavior and overall layout
+- The spacing adjustment must work in both dark and light mode
+
+RULES:
+- Do not change quick-log behavior
+- Do not change badge values or visibility logic
+- Keep this as a styling-only adjustment
+
+---
+
+## P2-16 — Quick Log KB Port Badge Styling
+STATUS: DONE
+
+CONTEXT:
+The clickable KB-linked port buttons in Quick Log work, but their shape does not match the rounded badge/button language used elsewhere in the UI.
+
+SCOPE:
+quick log styling
+
+EXPECTED BEHAVIOR:
+- KB-linked port buttons in the Quick Log `Ports` table should use a rounder badge-like shape
+- Current font sizing and weight may remain unchanged
+- Styling should stay consistent in both light and dark mode
+- Behavior and linking logic must not change
+
+RULES:
+- Styling only
+- Do not change matching logic or click behavior
+
+---
+
+## P2-17 — First-Run Setup Simplification
+STATUS: DONE
+
+CONTEXT:
+The current setup is functional but not clean for first-time users. The documented bootstrap flow references a missing `.env.example`, mixes required and optional configuration, and does not clearly separate Docker setup from direct Node setup.
+
+SCOPE:
+README.md, docs/, .env.example
+
+EXPECTED BEHAVIOR:
+- Provide a real `.env.example` for first-run bootstrap
+- Keep `README.md` as the root entry point and move detailed setup guidance into `docs/`
+- Clearly separate:
+  - minimum required setup
+  - optional modules
+  - Docker workflow
+  - direct Node workflow
+- Document what storage paths are expected or optional:
+  - `knowledge-base/`
+  - `sessions/`
+- Make ENGRAM and Toolbox clearly optional and non-blocking
+- Keep setup local-first and simple without adding a heavy installer
+
+RULES:
+- Documentation/bootstrap only
+- Do not change unrelated runtime behavior
+- Prefer clarity and low-friction setup over automation complexity
+
+---
+
 
 # P3 — EXPERIMENTAL
 
@@ -380,6 +453,8 @@ git branch: operational-context
 ---
 
 ## P3-03 — Editor Performance Profiling
+STATUS: DONE
+
 CONTEXT:
 UI lag occurs during intensive editing sessions.
 
@@ -390,28 +465,59 @@ browser editor runtime
 
 ## P3-04 — Unified Live Preview Editor
 CONTEXT:
-Need real-time markdown rendering in a single view.
+The current markdown workflow relies on a split editor/preview layout. It works, but it creates visual separation and friction when writing, reviewing formatting, and navigating rendered content. A unified editing surface may improve flow, but it must not regress markdown behavior, autosave, or internal linking.
 
 SCOPE:
 markdown editor system
 
----
+GOAL:
+Prototype an experimental unified markdown editing mode where raw markdown and rendered understanding coexist in a single surface, while preserving the current split-preview editor as a safe fallback.
 
-## P3-05 — Interactive Checkboxes in KB Sidebar
-CONTEXT:
-Checkboxes are not interactive in sidebar preview mode.
+EXPECTED BEHAVIOR:
+- Add an experimental unified editor mode for notes and KB documents
+- The unified mode must reuse the existing server-backed markdown render pipeline
+- Raw markdown must remain the source of truth and stay directly editable
+- The user should be able to read and write in one surface without depending on a separate preview pane
+- Existing markdown-related features must continue to work:
+  - headings
+  - tables
+  - checklists
+  - code blocks
+  - internal KB links
+  - engagement links
+  - collapsible headings
+  - attachment images
+- Autosave behavior must remain unchanged
+- Users must be able to leave unified mode and return to the current split editor without losing content or state
+- The current split-preview mode must remain available during the experiment
 
-SCOPE:
-sidebar renderer
+NON-GOALS:
+- Do not replace the markdown engine as part of this task
+- Do not build a full WYSIWYG rich-text editor
+- Do not remove the current note editor or KB editor flows
+- Do not change the saved document format away from markdown
 
----
+IMPLEMENTATION RULES:
+- Reuse `/api/markdown/render` for rendering
+- Keep markdown as the source of truth
+- Prefer a mode toggle or experimental flag over a hard replacement
+- Minimize DOM-editing complexity in the first pass
+- Preserve current keyboard editing behavior in CodeMirror where possible
+- Maintain feature parity before optimizing aesthetics
 
-## P3-06 — Port → TODO Conversion
-CONTEXT:
-Need faster conversion of discovered ports into actionable tasks.
+SUCCESS CRITERIA:
+- Users can write in unified mode without visible workflow breakage
+- Rendered understanding stays in sync during editing
+- No regressions in autosave, preview correctness, or note switching
+- Internal links and task checkboxes still behave correctly
+- Large notes remain usable enough for real sessions
 
-SCOPE:
-quick log + ports system
+RISKS TO WATCH:
+- cursor/focus behavior when mixing editing and rendered interpretation
+- scroll sync and viewport jumpiness
+- performance on large notes
+- accidental divergence between unified mode and split-preview mode
+- interaction conflicts for checkboxes, links, and collapsible headers
 
 ---
 
