@@ -47,6 +47,35 @@ function normalizeCssClass(type) {
   return BUILTIN_NOTE_TYPE_META[type]?.cssClass || 'note-type-general';
 }
 
+
+function normalizeGuidanceList(value) {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+}
+
+function normalizeTemplateGuidance(guidance) {
+  return {
+    objective: String(guidance?.objective || '').trim(),
+    checklist: normalizeGuidanceList(guidance?.checklist),
+    operator_prompts: normalizeGuidanceList(guidance?.operator_prompts),
+    suggested_commands: normalizeGuidanceList(guidance?.suggested_commands),
+    evidence_prompts: normalizeGuidanceList(guidance?.evidence_prompts),
+  };
+}
+
+function mergeTemplateGuidance(baseGuidance, variantGuidance) {
+  const base = normalizeTemplateGuidance(baseGuidance);
+  const variant = normalizeTemplateGuidance(variantGuidance);
+  return {
+    objective: variant.objective || base.objective,
+    checklist: variant.checklist.length ? variant.checklist : base.checklist,
+    operator_prompts: variant.operator_prompts.length ? variant.operator_prompts : base.operator_prompts,
+    suggested_commands: variant.suggested_commands.length ? variant.suggested_commands : base.suggested_commands,
+    evidence_prompts: variant.evidence_prompts.length ? variant.evidence_prompts : base.evidence_prompts,
+  };
+}
+
 function normalizeTemplateVariant(variant) {
   if (!variant || typeof variant !== 'object') return null;
   const id = String(variant.id || '').trim();
@@ -57,6 +86,7 @@ function normalizeTemplateVariant(variant) {
     title: String(variant.title || '').trim(),
     body: String(variant.body || ''),
     default_tags: Array.isArray(variant.default_tags) ? [...variant.default_tags] : null,
+    guidance: normalizeTemplateGuidance(variant.guidance),
   };
 }
 
@@ -68,6 +98,7 @@ function normalizeTemplateDefinition(tmpl, fromFile = false) {
     label: tmpl?.label,
     required: !!tmpl?.required,
     default_tags: Array.isArray(tmpl?.default_tags) ? [...tmpl.default_tags] : [],
+    guidance: normalizeTemplateGuidance(tmpl?.guidance),
     variants: Array.isArray(tmpl?.variants) ? tmpl.variants.map(normalizeTemplateVariant).filter(Boolean) : [],
     fromFile,
   };
@@ -89,6 +120,7 @@ function resolveTemplateForCreation(type, variantId = null) {
     title: variant?.title || tmpl.title || '',
     body: variant?.body || tmpl.body || '',
     default_tags: Array.isArray(variant?.default_tags) ? [...variant.default_tags] : [...(tmpl.default_tags || [])],
+    guidance: mergeTemplateGuidance(tmpl?.guidance, variant?.guidance),
     variant_id: variant?.id || null,
     variant_label: variant?.label || null,
   };
@@ -174,12 +206,14 @@ async function loadNoteTemplates() {
         icon:         t.icon,
         label:        t.label,
         default_tags: t.default_tags || [],
+        guidance:     t.guidance || null,
         variants:     Array.isArray(t.variants) ? t.variants.map((variant) => ({
           id: variant?.id,
           label: variant?.label,
           title: variant?.title_prefix || '',
           body: variant?.body || '',
           default_tags: variant?.default_tags || null,
+          guidance: variant?.guidance || null,
         })) : [],
         fromFile:     true,
       };

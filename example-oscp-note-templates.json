@@ -15,7 +15,23 @@
         "",
         "## References",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Capture the purpose of this note, the current state, and any next actions worth preserving.",
+        "checklist": [
+          "Summarize the current objective",
+          "Record important observations",
+          "List the next operator actions"
+        ],
+        "operator_prompts": [
+          "What needs to be remembered later?",
+          "What should the next operator do first?"
+        ],
+        "suggested_commands": [],
+        "evidence_prompts": [
+          "Flag any proof that should survive beyond scratch notes"
+        ]
+      }
     },
     {
       "id": "oscp",
@@ -179,7 +195,28 @@
             "### Mitigation",
             "- Patch:",
             "- Configuration fix:"
-          ]
+          ],
+          "guidance": {
+            "objective": "Work the exam target methodically while preserving timings, proofs, and a concise attack-chain summary.",
+            "checklist": [
+              "Confirm all exposed services",
+              "Validate initial access path",
+              "Document privilege escalation proof"
+            ],
+            "operator_prompts": [
+              "What service deserves manual validation before moving on?",
+              "If stuck, what needs re-enumeration first?"
+            ],
+            "suggested_commands": [
+              "nmap -p- --min-rate 1000 <IP>",
+              "nmap -sC -sV -oA enum/initial <IP>",
+              "searchsploit <service-or-version>"
+            ],
+            "evidence_prompts": [
+              "Capture local.txt and proof.txt proof",
+              "Save the key command output used in the successful path"
+            ]
+          }
         },
         {
           "id": "practice",
@@ -278,7 +315,27 @@
             "",
             "### 🔁 What will I do differently next time?",
             ""
-          ]
+          ],
+          "guidance": {
+            "objective": "Use the machine to reinforce methodology rather than speed, and identify what you would improve next time.",
+            "checklist": [
+              "Touch every exposed service",
+              "Attempt credential reuse broadly",
+              "Write down at least one lesson learned"
+            ],
+            "operator_prompts": [
+              "What did I almost skip here?",
+              "Which step depended too much on tools instead of reasoning?"
+            ],
+            "suggested_commands": [
+              "nmap -sV -Pn <IP>",
+              "ffuf -u http://<IP>/FUZZ -w /path/to/wordlist",
+              "linpeas.sh"
+            ],
+            "evidence_prompts": [
+              "Keep proof of the exploitation path and the lesson learned from it"
+            ]
+          }
         },
         {
           "id": "ad-workflow",
@@ -376,7 +433,27 @@
             "- Key findings:",
             "- Weak points in domain:",
             "- Lessons learned:"
-          ]
+          ],
+          "guidance": {
+            "objective": "Document an AD-focused workflow from enumeration through privilege escalation and lateral movement opportunities.",
+            "checklist": [
+              "Identify domain context",
+              "Record valid identities and access",
+              "Track escalation and pivot opportunities"
+            ],
+            "operator_prompts": [
+              "What trust, delegation, or ACL angle is available?",
+              "Which identity should be tested across more services?"
+            ],
+            "suggested_commands": [
+              "crackmapexec smb <IP> -u <USER> -p <PASS>",
+              "ldapsearch -x -H ldap://<IP>",
+              "bloodhound-python -d <DOMAIN> -u <USER> -p <PASS> -c All"
+            ],
+            "evidence_prompts": [
+              "Capture proof of domain access, group membership, and escalation path"
+            ]
+          }
         }
       ],
       "body_lines": [
@@ -437,7 +514,24 @@
         "",
         "## 📝 Final Summary for Report",
         "*Quick summary of the attack path for the final write-up.*"
-      ]
+      ],
+      "guidance": {
+        "objective": "Track an OSCP-style target from first enumeration through foothold, privilege escalation, and report-ready evidence.",
+        "checklist": [
+          "Establish target baseline",
+          "Record access path",
+          "Capture report-quality proof"
+        ],
+        "operator_prompts": [
+          "What is the shortest likely path to user?",
+          "What should be preserved for the final report?"
+        ],
+        "suggested_commands": [],
+        "evidence_prompts": [
+          "Capture proof of foothold and privilege escalation",
+          "Record commands that justify the attack path"
+        ]
+      }
     },
     {
       "id": "credentials",
@@ -467,7 +561,21 @@
             "",
             "## Valid Sessions / Tokens",
             ""
-          ]
+          ],
+          "guidance": {
+            "objective": "Track broad credential findings and reuse attempts across the engagement.",
+            "checklist": [
+              "Record each credential cleanly",
+              "Mark validation status",
+              "Capture reuse results"
+            ],
+            "operator_prompts": [],
+            "suggested_commands": [
+              "crackmapexec smb <IP> -u <USER> -p <PASS>",
+              "netexec winrm <IP> -u <USER> -p <PASS>"
+            ],
+            "evidence_prompts": []
+          }
         },
         {
           "id": "web",
@@ -494,7 +602,24 @@
             "",
             "## Notes",
             ""
-          ]
+          ],
+          "guidance": {
+            "objective": "Track credentials discovered through web assessment and preserve the app context they belong to.",
+            "checklist": [
+              "Record login location",
+              "Preserve role/authorization level",
+              "Test reuse outside the app"
+            ],
+            "operator_prompts": [
+              "Is this credential app-only or broader?",
+              "Does the role imply hidden functionality worth checking?"
+            ],
+            "suggested_commands": [
+              "curl -i -X POST http://<HOST>/login",
+              "ffuf -u http://<HOST>/FUZZ -w /path/to/wordlist -b <SESSION>"
+            ],
+            "evidence_prompts": []
+          }
         }
       ],
       "body_lines": [
@@ -511,7 +636,23 @@
         "",
         "## Valid Sessions / Tokens",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Store credentials in a reusable way and make it obvious where they should be tried next.",
+        "checklist": [
+          "Normalize credential format",
+          "Record source and scope",
+          "Try reuse across exposed services"
+        ],
+        "operator_prompts": [
+          "Where else could this credential work?",
+          "Is this credential tied to a user, host, or application role?"
+        ],
+        "suggested_commands": [],
+        "evidence_prompts": [
+          "Flag any credential source proof that supports the entry"
+        ]
+      }
     },
     {
       "id": "privesc",
@@ -558,7 +699,27 @@
         "## Escalation Path",
         "",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Turn local enumeration into a clear privilege-escalation decision tree with proof of what was tried and what worked.",
+        "checklist": [
+          "Capture baseline system context",
+          "Enumerate common privilege-escalation vectors",
+          "Record the successful path or dead ends"
+        ],
+        "operator_prompts": [
+          "What is writable, over-privileged, or misconfigured?",
+          "What existing credential or token can be reused locally?"
+        ],
+        "suggested_commands": [
+          "sudo -l",
+          "find / -perm -4000 -type f 2>/dev/null",
+          "linpeas.sh"
+        ],
+        "evidence_prompts": [
+          "Capture before/after identity proof and the command that produced escalation"
+        ]
+      }
     },
     {
       "id": "network-enumeration",
@@ -624,7 +785,17 @@
             "## Notes",
             "",
             ""
-          ]
+          ],
+          "guidance": {
+            "objective": "Keep only the essential service inventory for quick engagement movement.",
+            "checklist": [
+              "Record core ports",
+              "Track the next action for each important service"
+            ],
+            "operator_prompts": [],
+            "suggested_commands": [],
+            "evidence_prompts": []
+          }
         }
       ],
       "body_lines": [
@@ -653,7 +824,26 @@
         "## Notes",
         "",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Maintain a clean target-centric list of ports, services, and follow-up actions that can feed exploitation and reporting.",
+        "checklist": [
+          "Record all confirmed services",
+          "Note the most promising follow-up action per service",
+          "Link discoveries to target context"
+        ],
+        "operator_prompts": [
+          "Which service gives the best next step?",
+          "What has not been validated manually yet?"
+        ],
+        "suggested_commands": [
+          "nmap -sC -sV <IP>",
+          "nmap --script vuln <IP>"
+        ],
+        "evidence_prompts": [
+          "Capture proof of particularly important services or banners"
+        ]
+      }
     },
     {
       "id": "loot",
@@ -683,7 +873,23 @@
         "## Notes",
         "",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Track sensitive data, secrets, and extracted artifacts with enough context to reuse them safely later.",
+        "checklist": [
+          "Classify the loot type",
+          "Record where it came from",
+          "Note where it should be reused"
+        ],
+        "operator_prompts": [
+          "Is this credential, token, or file reusable elsewhere?",
+          "Does this loot change the next attack path?"
+        ],
+        "suggested_commands": [],
+        "evidence_prompts": [
+          "Flag the command output or file content that proves the loot source"
+        ]
+      }
     },
     {
       "id": "exploit",
@@ -706,7 +912,26 @@
         "## Cleanup / Artifacts to Remove",
         "",
         ""
-      ]
+      ],
+      "guidance": {
+        "objective": "Document the exploit path so it is repeatable, defensible, and easy to turn into reporting evidence.",
+        "checklist": [
+          "Identify vulnerable component",
+          "Record exploit prerequisites",
+          "Capture exact execution path and outcome"
+        ],
+        "operator_prompts": [
+          "Why does this target appear exploitable?",
+          "What defensive control failed here?"
+        ],
+        "suggested_commands": [
+          "searchsploit <product>",
+          "python3 exploit.py <IP>"
+        ],
+        "evidence_prompts": [
+          "Capture the vulnerable response and the successful exploit output"
+        ]
+      }
     },
     {
       "id": "ctf-machine",
@@ -747,7 +972,26 @@
         "",
         "",
         "## 5. Clean up & Notes"
-      ]
+      ],
+      "guidance": {
+        "objective": "Keep CTF-style work organized while still preserving the methodology that would matter in a real engagement.",
+        "checklist": [
+          "Track enumeration",
+          "Track exploitation path",
+          "Record flags and lessons learned"
+        ],
+        "operator_prompts": [
+          "What would this look like in a real engagement?",
+          "What step was luck versus methodology?"
+        ],
+        "suggested_commands": [
+          "nmap -sV -Pn <IP>",
+          "gobuster dir -u http://<IP> -w /path/to/wordlist"
+        ],
+        "evidence_prompts": [
+          "Capture flag proof and the core attack-chain commands"
+        ]
+      }
     }
   ]
 }

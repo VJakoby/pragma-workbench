@@ -856,12 +856,36 @@ function createSelectedNewNote() {
   newNote(activeNewNoteType, NOTE_TEMPLATE_VARIANT_SELECTIONS[activeNewNoteType] || null);
 }
 
+
+function buildGuidanceMarkdown(tmpl) {
+  const guidance = tmpl?.guidance || {};
+  const sections = [];
+  if (guidance.objective) {
+    sections.push(`> Objective: ${guidance.objective}`);
+  }
+  if (Array.isArray(guidance.checklist) && guidance.checklist.length) {
+    sections.push(`## Operator Checklist\n${guidance.checklist.map((item) => `- [ ] ${item}`).join('\n')}`);
+  }
+  if (Array.isArray(guidance.operator_prompts) && guidance.operator_prompts.length) {
+    sections.push(`## Operator Prompts\n${guidance.operator_prompts.map((item) => `- ${item}`).join('\n')}`);
+  }
+  if (Array.isArray(guidance.suggested_commands) && guidance.suggested_commands.length) {
+    sections.push(`## Suggested Commands\n\n\`\`\`bash\n${guidance.suggested_commands.join('\n')}\n\`\`\``);
+  }
+  if (Array.isArray(guidance.evidence_prompts) && guidance.evidence_prompts.length) {
+    sections.push(`## Evidence Prompts\n${guidance.evidence_prompts.map((item) => `- ${item}`).join('\n')}`);
+  }
+  return sections.filter(Boolean).join('\n\n');
+}
 function buildNoteBodyFromTemplate(tmpl) {
-  const body = tmpl?.body || '';
+  const body = String(tmpl?.body || '').trim();
+  const guidance = buildGuidanceMarkdown(tmpl);
   const title = (tmpl?.title || '').trim();
-  if (!title) return body;
-  if (/^\s*#\s+/.test(body)) return body;
-  return `# ${title}\n\n${body}`;
+  const sections = [];
+  if (title && !/^\s*#\s+/.test(body)) sections.push(`# ${title}`);
+  if (guidance) sections.push(guidance);
+  if (body) sections.push(body);
+  return sections.join('\n\n').trim();
 }
 
 function newNote(type = 'scratch', variantId = null) {
