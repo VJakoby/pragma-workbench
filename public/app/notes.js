@@ -214,6 +214,7 @@ async function openTemplatesConfig(navEl) {
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
   area.style.display = 'flex';
+  renderSessionNoteTabs();
 
   const badge = ensureNoteTypeBadge();
   badge.textContent = '⚙ Note Templates';
@@ -246,6 +247,7 @@ function closeConfigEditor() {
   document.getElementById('noteEditArea').style.display = 'none';
   document.getElementById('nav-config-templates')?.classList.remove('active');
   renderNotesList();
+  renderSessionNoteTabs();
 }
 
 function formatAttachmentStorageBytes(bytes) {
@@ -494,6 +496,7 @@ function updateNotesCountBadges() {
 function renderNotesList() {
   updateNoteSearchPlaceholder();
   updateNotesCountBadges();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
     updateNotesCountBadges();
@@ -572,6 +575,49 @@ function getVisibleNotes(opts = {}) {
   }
 
   return items;
+}
+
+
+function getSessionNoteTabsItems() {
+  if (!activeSessionId || !sessions[activeSessionId] || activeConfigDoc) return [];
+  return getNotesInSession(activeSessionId).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated || 0) - (a.updated || 0);
+  });
+}
+
+function closeNoteFromTab(noteId, event) {
+  event?.stopPropagation();
+  if (!noteId || noteId !== activeNoteId) return;
+  closeCurrentNote();
+}
+
+function renderSessionNoteTabs() {
+  const strip = document.getElementById('sessionNoteTabs');
+  if (!strip) return;
+  const items = getSessionNoteTabsItems();
+  strip.classList.toggle('has-tabs', items.length > 0);
+  if (!items.length) {
+    strip.innerHTML = '';
+    return;
+  }
+
+  strip.innerHTML = items.map((note) => {
+    const meta = getNoteTypeMeta(note.type);
+    const active = note.id === activeNoteId;
+    const closeBtn = active
+      ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab('${note.id}', event)" title="Close note" aria-label="Close note">×</button>`
+      : '';
+    return `<div class="session-note-tab ${active ? 'active' : ''}" data-id="${note.id}" title="${esc(note.title || 'Untitled')}">
+      <button class="session-note-tab-open" type="button" onclick="openNote('${note.id}')">
+        <span class="session-note-tab-accent ${meta.cssClass || ''}" aria-hidden="true"></span>
+        <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
+        <span class="session-note-tab-title">${note.pinned ? ICONS.pin + ' ' : ''}${esc(note.title || 'Untitled')}</span>
+      </button>
+      ${closeBtn}
+    </div>`;
+  }).join('');
 }
 
 function renderNotesPeekList() {
@@ -1659,6 +1705,7 @@ async function deleteCurrentNote() {
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  renderSessionNoteTabs();
 }
 
 async function closeCurrentNote() {
@@ -1682,6 +1729,7 @@ async function closeCurrentNote() {
   document.getElementById('noteReassignDropdown')?.classList.remove('open');
   document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
   renderNotesList();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
 }
 
