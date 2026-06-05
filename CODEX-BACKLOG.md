@@ -506,6 +506,26 @@ RULES:
 - Prefer a lightweight VS Code-style tab row rather than a second full navigation panel
 
 ---
+
+## B-08 — First-Run Session Persistence And False Notes Badge
+
+CONTEXT:
+On a fresh browser with no existing active session, creating the first session from the welcome flow can leave the Notes UI in an inconsistent first-run state. The Notes badge may show a note when none exists, and refreshing immediately after session creation can reopen the welcome modal and lose the newly created active session context.
+
+SCOPE:
+startup state bootstrap / welcome session creation
+
+EXPECTED BEHAVIOR:
+- Creating the first session from the welcome flow must not cause any Notes badge to imply that a real note exists when none has been created
+- Refreshing immediately after creating the first session must preserve the new session and must not reopen the welcome modal unnecessarily
+- Existing session loading and note loading behavior must remain compatible with previously saved workbench data
+
+RULES:
+- Keep the fix limited to first-run session bootstrap and persistence paths
+- Do not change note creation behavior
+- Do not broaden scope into welcome UI redesign
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

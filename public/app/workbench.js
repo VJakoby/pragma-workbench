@@ -39,6 +39,44 @@ const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
 let shouldPromptForSessionOnStartup = false;
 
+function normalizeLoadedWorkbenchState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { notes: {}, sessions: {} };
+  }
+  const hasCompositeShape = Object.prototype.hasOwnProperty.call(raw, 'notes')
+    || Object.prototype.hasOwnProperty.call(raw, 'sessions');
+  const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
+    ? raw.sessions
+    : {};
+  const rawNotesState = hasCompositeShape
+    ? (raw.notes && typeof raw.notes === 'object' && !Array.isArray(raw.notes) ? raw.notes : {})
+    : raw;
+  const sessionIds = new Set(Object.keys(sessionsState));
+  const hasSessions = sessionIds.size > 0;
+  const notesState = hasSessions
+    ? Object.fromEntries(Object.entries(rawNotesState || {}).filter(([, note]) => {
+        if (!note || typeof note !== 'object' || Array.isArray(note)) return false;
+        const sessionId = note.session_id == null ? null : String(note.session_id || '').trim();
+        return !!sessionId && sessionIds.has(sessionId);
+      }))
+    : {};
+  return {
+    notes: notesState,
+    sessions: sessionsState,
+  };
+}
+
+function hasMeaningfulWorkbenchState(state) {
+  if (!state || typeof state !== 'object') return false;
+  return Object.keys(state.notes || {}).length > 0 || Object.keys(state.sessions || {}).length > 0;
+}
+
+function preferNonEmptyWorkbenchState(primary, fallback) {
+  if (hasMeaningfulWorkbenchState(primary)) return primary;
+  if (hasMeaningfulWorkbenchState(fallback)) return fallback;
+  return primary;
+}
+
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
 }
@@ -417,6 +455,7 @@ async function toggleEncryptedStorage(e) {
 }
 
 async function initNotes() {
+  const cachedLocalState = normalizeLoadedWorkbenchState(JSON.parse(localStorage.getItem('ops-notes-v2') || '{}'));
   try {
     const r = await fetch('/api/notes');
     const d = await r.json();
@@ -445,13 +484,11 @@ async function initNotes() {
       encryptedStorageHint     = encObj.hint || '';
       updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
-      notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-      sessions = parsed.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
       setEncryptedCache(encObj);
       localStorage.removeItem('ops-notes-v2');
     } else {
-      notes    = (d.notes !== undefined ? d.notes : d) || {};
-      sessions = d.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(d), cachedLocalState));
       localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
       clearEncryptedCache();
       encryptedStorageEnabled  = false;
@@ -488,15 +525,13 @@ async function initNotes() {
           encryptedStorageHint     = encObj.hint || '';
           updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
-          notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-          sessions = parsed.sessions || {};
+          ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
           setEncryptedCache(encObj);
         }
       }
       if (!encryptedStorageEnabled) {
         const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
-        notes    = cached.notes || {};
-        sessions = cached.sessions || {};
+        ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(cached), cachedLocalState));
       }
     } catch (innerErr) {
       if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
@@ -773,7 +808,7 @@ function renderSessionList() {
     }).join('');
 }
 
-function createSession(source = 'session') {
+async function createSession(source = 'session') {
   const refs = getSessionFormRefs(source);
   const name = refs.name?.value.trim() || '';
   const sessionDomain = refs.domain?.value.trim() || '';
@@ -800,7 +835,7 @@ function createSession(source = 'session') {
     if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   }
   switchSession(id);
-  saveNotes();
+  await saveNotes({ reason: 'session-create', immediate: true });
   renderSessionList();
   renderWelcomeSessionList();
   updateSessionDomainField();
