@@ -49,31 +49,55 @@ function normalizeCssClass(type) {
 
 
 function normalizeGuidanceList(value) {
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
   return Array.isArray(value)
     ? value.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
 }
 
+function hasTemplateGuidanceContent(guidance) {
+  return !!(
+    guidance?.objective ||
+    guidance?.checklist?.length ||
+    guidance?.operator_prompts?.length ||
+    guidance?.suggested_commands?.length ||
+    guidance?.evidence_prompts?.length
+  );
+}
+
 function normalizeTemplateGuidance(guidance) {
-  return {
+  if (!guidance || typeof guidance !== 'object' || Array.isArray(guidance)) return null;
+  const normalized = {
     objective: String(guidance?.objective || '').trim(),
     checklist: normalizeGuidanceList(guidance?.checklist),
     operator_prompts: normalizeGuidanceList(guidance?.operator_prompts),
     suggested_commands: normalizeGuidanceList(guidance?.suggested_commands),
     evidence_prompts: normalizeGuidanceList(guidance?.evidence_prompts),
   };
+  return hasTemplateGuidanceContent(normalized) ? normalized : null;
 }
 
 function mergeTemplateGuidance(baseGuidance, variantGuidance) {
-  const base = normalizeTemplateGuidance(baseGuidance);
-  const variant = normalizeTemplateGuidance(variantGuidance);
-  return {
-    objective: variant.objective || base.objective,
-    checklist: variant.checklist.length ? variant.checklist : base.checklist,
-    operator_prompts: variant.operator_prompts.length ? variant.operator_prompts : base.operator_prompts,
-    suggested_commands: variant.suggested_commands.length ? variant.suggested_commands : base.suggested_commands,
-    evidence_prompts: variant.evidence_prompts.length ? variant.evidence_prompts : base.evidence_prompts,
+  const base = normalizeTemplateGuidance(baseGuidance) || null;
+  const variant = normalizeTemplateGuidance(variantGuidance) || null;
+  if (!base && !variant) return null;
+  const merged = {
+    objective: variant?.objective || base?.objective || '',
+    checklist: variant?.checklist?.length ? variant.checklist : (base?.checklist || []),
+    operator_prompts: variant?.operator_prompts?.length ? variant.operator_prompts : (base?.operator_prompts || []),
+    suggested_commands: variant?.suggested_commands?.length ? variant.suggested_commands : (base?.suggested_commands || []),
+    evidence_prompts: variant?.evidence_prompts?.length ? variant.evidence_prompts : (base?.evidence_prompts || []),
   };
+  return hasTemplateGuidanceContent(merged) ? merged : null;
+}
+
+function resolveTemplateTitle(value) {
+  return String(value?.title || value?.title_prefix || '').trim();
+}
+
+function resolveTemplateBody(value) {
+  if (Array.isArray(value?.body_lines)) return value.body_lines.map((line) => String(line || '')).join('\n');
+  return String(value?.body || '');
 }
 
 function normalizeTemplateVariant(variant) {
@@ -83,8 +107,8 @@ function normalizeTemplateVariant(variant) {
   return {
     id,
     label: String(variant.label || id).trim() || id,
-    title: String(variant.title || '').trim(),
-    body: String(variant.body || ''),
+    title: resolveTemplateTitle(variant),
+    body: resolveTemplateBody(variant),
     default_tags: Array.isArray(variant.default_tags) ? [...variant.default_tags] : null,
     guidance: normalizeTemplateGuidance(variant.guidance),
   };
@@ -92,8 +116,8 @@ function normalizeTemplateVariant(variant) {
 
 function normalizeTemplateDefinition(tmpl, fromFile = false) {
   return {
-    title: String(tmpl?.title || '').trim(),
-    body: String(tmpl?.body || ''),
+    title: resolveTemplateTitle(tmpl),
+    body: resolveTemplateBody(tmpl),
     icon: tmpl?.icon,
     label: tmpl?.label,
     required: !!tmpl?.required,
@@ -201,8 +225,8 @@ async function loadNoteTemplates() {
     for (const t of d.templates) {
       if (!t.id) continue;
       loaded[t.id] = {
-        title:        t.title_prefix || '',
-        body:         t.body || '',
+        title:        resolveTemplateTitle(t),
+        body:         resolveTemplateBody(t),
         icon:         t.icon,
         label:        t.label,
         default_tags: t.default_tags || [],
@@ -210,8 +234,8 @@ async function loadNoteTemplates() {
         variants:     Array.isArray(t.variants) ? t.variants.map((variant) => ({
           id: variant?.id,
           label: variant?.label,
-          title: variant?.title_prefix || '',
-          body: variant?.body || '',
+          title: resolveTemplateTitle(variant),
+          body: resolveTemplateBody(variant),
           default_tags: variant?.default_tags || null,
           guidance: variant?.guidance || null,
         })) : [],

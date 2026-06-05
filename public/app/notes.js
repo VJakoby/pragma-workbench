@@ -166,11 +166,28 @@ async function fetchTemplatesConfigDoc() {
   return String(d.content || '');
 }
 
+function validateTemplatesConfigContent(content) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(content || ''));
+  } catch (err) {
+    throw new Error(`Invalid JSON: ${err.message}`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Root JSON value must be an object.');
+  }
+  if (!Array.isArray(parsed.templates)) {
+    throw new Error('Expected a top-level "templates" array.');
+  }
+  return parsed;
+}
+
 async function persistTemplatesConfig(opts = {}) {
   if (activeConfigDoc !== 'templates') return false;
   const content = cmGetValue(noteEditor);
   const seq = beginAppSave(opts.statusText || '...saving');
   try {
+    validateTemplatesConfigContent(content);
     const res = await fetch(CONFIG_TEMPLATES_PATH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -182,8 +199,15 @@ async function persistTemplatesConfig(opts = {}) {
     finishAppSaveSuccess(seq, 'saved');
     return true;
   } catch (err) {
-    finishAppSaveError(seq, err, 'invalid json');
-    if (opts.toast !== false) showToast(`⚠ ${err.message}`, 'err');
+    const message = String(err?.message || 'Save failed');
+    const isValidationError = /invalid json|top-level "templates" array|root json value must be an object/i.test(message);
+    if (opts.validationOnly && isValidationError) {
+      finishAppSaveSuccess(seq, 'editing…');
+      return false;
+    }
+    const status = isValidationError ? 'invalid json' : 'save failed';
+    finishAppSaveError(seq, err, status);
+    if (opts.toast !== false) showToast(`⚠ ${message}`, 'err');
     return false;
   }
 }
@@ -192,7 +216,7 @@ function autoSaveTemplatesConfig() {
   if (activeConfigDoc !== 'templates') return;
   setNoteSaveIndicator('saving', '...saving');
   clearTimeout(noteSaveTimer);
-  noteSaveTimer = setTimeout(() => { persistTemplatesConfig({ reason: 'config-autosave', toast: false }); }, 600);
+  noteSaveTimer = setTimeout(() => { persistTemplatesConfig({ reason: 'config-autosave', toast: false, validationOnly: true }); }, 600);
 }
 
 function autoSaveActiveConfig() {
@@ -832,9 +856,13 @@ function selectNewNoteType(type) {
   document.querySelectorAll('#newNoteTypeGrid .new-note-type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
   const variants = Array.isArray(NOTE_TEMPLATES[type]?.variants) ? NOTE_TEMPLATES[type].variants : [];
   if (!variants.length) {
+    const variantWrap = document.getElementById('newNoteVariantWrap');
+    const variantBar = document.getElementById('newNoteVariantBar');
     renderNewNotePreview(type);
     const createBtn = document.getElementById('newNoteCreateBtn');
     const createHint = document.getElementById('newNoteCreateHint');
+    if (variantWrap) variantWrap.style.display = 'none';
+    if (variantBar) variantBar.innerHTML = '';
     if (createBtn) createBtn.style.display = 'block';
     if (createHint) createHint.style.display = '';
     return;
@@ -858,7 +886,8 @@ function createSelectedNewNote() {
 
 
 function buildGuidanceMarkdown(tmpl) {
-  const guidance = tmpl?.guidance || {};
+  const guidance = tmpl?.guidance || null;
+  if (!guidance) return '';
   const sections = [];
   if (guidance.objective) {
     sections.push(`> Objective: ${guidance.objective}`);
@@ -884,6 +913,7 @@ function buildNoteBodyFromTemplate(tmpl) {
   const sections = [];
   if (title && !/^\s*#\s+/.test(body)) sections.push(`# ${title}`);
   if (guidance) sections.push(guidance);
+  if (guidance && body) sections.push('---');
   if (body) sections.push(body);
   return sections.join('\n\n').trim();
 }
