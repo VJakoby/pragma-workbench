@@ -202,12 +202,35 @@ navbar / workspace system
 
 ---
 
-## P2-06 — Port Summary Dashboard
+## P2-06 — Engagement Summary Dashboard
 CONTEXT:
-Need overview of discovered infrastructure assets.
+Operators need a neutral overview of early- and mid-engagement findings when no note is open, without relying on recent activity or subjective prioritization.
 
 SCOPE:
-dashboard UI
+notes empty-state / dashboard UI
+
+EXPECTED BEHAVIOR:
+- Show a dashboard only when no note is currently open
+- Use summary cards for:
+  - `Ports`
+  - `Paths`
+  - `Loot`
+- Each card must show statistics only, such as:
+  - total count
+  - category breakdowns where available
+  - simple coverage/inventory information
+- The dashboard must not depend on:
+  - recent activity ordering
+  - “top” or “most relevant” judgments
+  - subjective prioritization logic
+- Each card may include one direct action to open the corresponding detailed surface
+- The dashboard must disappear as soon as a note is opened
+
+RULES:
+- Do not duplicate the full management/detail UI of Quick Log or Notes
+- Keep this as a summary/dashboard layer only
+- Keep the data session-scoped unless an existing workspace-wide source is already required by the underlying feature
+- Avoid introducing ranking or scoring logic
 
 ---
 
@@ -221,16 +244,6 @@ SCOPE:
 app initialization
 
 ---
-
-## P2-08 — Markdown Engine Migration
-CONTEXT:
-Current markdown engine lacks extensibility for advanced syntax.
-
-SCOPE:
-renderer system
-
-TARGET:
-remark OR markdown-it
 
 ## P2-09 — Direct Quick Log Access in Topbar
 STATUS: DONE
@@ -458,6 +471,91 @@ RULES:
 ---
 
 
+
+## P2-21 — Setup and Usage Documentation Refinement
+
+CONTEXT:
+The current `SETUP.md` and `USAGE.md` are accurate but too terse in the practical areas that matter during first-run setup and day-to-day operator use.
+
+SCOPE:
+SETUP.md
+USAGE.md
+
+EXPECTED BEHAVIOR:
+- `SETUP.md` should explain a practical local-first setup path, not just ecosystem roles
+- `SETUP.md` should clearly cover:
+  - required vs optional components
+  - runtime paths
+  - environment/bootstrap expectations
+  - first-run validation steps
+  - common setup patterns
+- `USAGE.md` should explain the intended workflow in more operational terms
+- `USAGE.md` should clearly cover:
+  - sessions and targets
+  - note-centric workflow
+  - Quick Log usage
+  - target-scoped Ports / Paths / Loot behavior
+  - Evidence and summary flow
+- Keep the docs concise and practical rather than marketing-style
+
+RULES:
+- Documentation only
+- Do not change runtime behavior
+- Do not broaden scope into README cleanup or environment file changes
+
+---
+
+
+## P2-22 — Hidden Notes List Session Tab Strip
+
+CONTEXT:
+When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
+
+SCOPE:
+notes editor header / notes navigation UI
+
+EXPECTED BEHAVIOR:
+- When the notes list sidebar is hidden, show a horizontal note tab strip above the editor area
+- The tab strip should reflect notes in the current session only
+- Each tab should allow fast open/switch behavior similar to an editor tab row
+- The active note must be visually distinct
+- Closing the active note from the tab strip context must still behave correctly with the existing note close flow
+- When the notes list sidebar is visible again, the tab strip may hide to avoid duplicate navigation chrome
+- The tab strip must work in both normal note-edit mode and no-note-selected state where applicable
+- The layout should remain usable on narrower widths, including horizontal overflow handling if needed
+
+RULES:
+- Do not replace the existing notes list
+- Do not turn this into multi-note simultaneous editing
+- Keep current note open/close behavior intact
+- Keep the scope limited to session note navigation while the notes list is collapsed
+- Prefer a lightweight VS Code-style tab row rather than a second full navigation panel
+
+---
+
+## P2-24 — Target-Grouped Hidden Note Tabs
+STATUS: DONE
+
+CONTEXT:
+The hidden-notes session tab strip now exposes note switching and note creation, but it does not show which notes belong to which target within the current session. This makes multi-target engagements harder to scan once several notes are open in the same session.
+
+SCOPE:
+notes editor header / hidden-notes tab strip grouping
+
+EXPECTED BEHAVIOR:
+- When the notes list sidebar is hidden, session note tabs should be visually grouped by target association
+- Each target group should show a small shared label such as the target IP, domain, label, or `Unassigned` when no target is attached
+- Target groups should use a subtle shared frame or background treatment so it is clear that multiple tabs belong to the same target
+- Existing note switching, active-tab state, close behavior, and horizontal scrolling must remain intact
+- The tab-strip create control should remain available and should not be merged into any target group
+
+RULES:
+- Use the existing note `target_id` relationship as the grouping source of truth
+- Do not add per-tab target labels
+- Do not redesign the broader notes editor layout
+- Keep the grouping treatment lightweight and readable on narrower widths
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

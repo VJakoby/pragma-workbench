@@ -96,6 +96,21 @@ function highlightCmdMatch(text, query) {
   return `${before}<span class="cmd-item-match">${match}</span>${after}`;
 }
 
+function getUnifiedSearchNoteId(item) {
+  if (!item || typeof item !== 'object') return '';
+  return String(item.metadata?.noteId || item.id || '').replace(/^note-/, '').trim();
+}
+
+function getMissingLocalNoteResults(query, unifiedNoteItems = []) {
+  const seen = new Set((Array.isArray(unifiedNoteItems) ? unifiedNoteItems : [])
+    .map(item => getUnifiedSearchNoteId(item))
+    .filter(Boolean));
+  return getCommandPaletteNoteResults(query).filter(({ note }) => {
+    const noteId = String(note?.id || '').trim();
+    return noteId && !seen.has(noteId);
+  });
+}
+
 function getCommandPaletteNoteResults(query) {
   const q = String(query || '').trim().toLowerCase();
   return Object.values(notes)
@@ -467,7 +482,8 @@ async function buildCmdResults(q) {
       });
     }
 
-    if (grouped['note'].length) {
+    const localNoteMatches = getMissingLocalNoteResults(ql, grouped['note']);
+    if (grouped['note'].length || localNoteMatches.length) {
       html += `<div class="cmd-group-hdr">Engagement Notes</div>`;
       grouped['note'].forEach(item => {
         const sessionName = item.metadata?.session && sessions[item.metadata.session]?.codename
@@ -479,10 +495,28 @@ async function buildCmdResults(q) {
         if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
         html += pushCmdItem({
           type: 'note',
-          id: item.metadata?.noteId || item.id.replace('note-', ''),
+          id: getUnifiedSearchNoteId(item),
           label: item.title,
           icon: noteIcon,
           title: esc(item.title || 'Untitled'),
+          sub: subParts.join(' · '),
+          tag: 'note',
+        });
+      });
+      localNoteMatches.slice(0, 5).forEach(({ note: n, tagHit }) => {
+        const sessionName = n.session_id && sessions[n.session_id]?.codename
+          ? sessions[n.session_id].codename
+          : 'No session';
+        const snippet = buildNoteSearchSnippet(n, ql);
+        const subParts = [esc(sessionName)];
+        if (tagHit) subParts.push(`#${esc(tagHit)}`);
+        if (snippet) subParts.push(highlightCmdMatch(snippet, ql));
+        html += pushCmdItem({
+          type: 'note',
+          id: n.id,
+          label: n.title,
+          icon: noteIcon,
+          title: esc(n.title || 'Untitled'),
           sub: subParts.join(' · '),
           tag: 'note',
         });

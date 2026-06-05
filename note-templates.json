@@ -132,7 +132,10 @@
       "label": "OWASP",
       "icon": "🛡️",
       "title_prefix": "OWASP",
-      "default_tags": ["web", "owasp"],
+      "default_tags": [
+        "web",
+        "owasp"
+      ],
       "variants": [
         {
           "id": "top-ten-web",
