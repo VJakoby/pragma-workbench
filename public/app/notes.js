@@ -594,30 +594,40 @@ function closeNoteFromTab(noteId, event) {
 }
 
 function renderSessionNoteTabs() {
-  const strip = document.getElementById('sessionNoteTabs');
+  const strip = document.getElementById("sessionNoteTabs");
   if (!strip) return;
   const items = getSessionNoteTabsItems();
-  strip.classList.toggle('has-tabs', items.length > 0);
-  if (!items.length) {
-    strip.innerHTML = '';
+  const canCreate = !!activeSessionId && !activeConfigDoc;
+  strip.classList.toggle("has-tabs", canCreate || items.length > 0);
+  if (!canCreate && !items.length) {
+    strip.innerHTML = "";
     return;
   }
 
-  strip.innerHTML = items.map((note) => {
+  const createTab = canCreate
+    ? `<div class="session-note-tab session-note-tab-create" title="Create new note">
+      <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
+        <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
+        <span class="session-note-tab-title">New</span>
+      </button>
+    </div>`
+    : "";
+
+  strip.innerHTML = createTab + items.map((note) => {
     const meta = getNoteTypeMeta(note.type);
     const active = note.id === activeNoteId;
     const closeBtn = active
-      ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab('${note.id}', event)" title="Close note" aria-label="Close note">×</button>`
-      : '';
-    return `<div class="session-note-tab ${active ? 'active' : ''}" data-id="${note.id}" title="${esc(note.title || 'Untitled')}">
-      <button class="session-note-tab-open" type="button" onclick="openNote('${note.id}')">
-        <span class="session-note-tab-accent ${meta.cssClass || ''}" aria-hidden="true"></span>
+      ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
+      : "";
+    return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+      <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
+        <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
         <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
-        <span class="session-note-tab-title">${note.pinned ? ICONS.pin + ' ' : ''}${esc(note.title || 'Untitled')}</span>
+        <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
       </button>
       ${closeBtn}
     </div>`;
-  }).join('');
+  }).join("");
 }
 
 function renderNotesPeekList() {
