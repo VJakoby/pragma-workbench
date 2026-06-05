@@ -445,6 +445,67 @@ RULES:
 ---
 
 
+
+## P2-21 — Setup and Usage Documentation Refinement
+
+CONTEXT:
+The current `SETUP.md` and `USAGE.md` are accurate but too terse in the practical areas that matter during first-run setup and day-to-day operator use.
+
+SCOPE:
+SETUP.md
+USAGE.md
+
+EXPECTED BEHAVIOR:
+- `SETUP.md` should explain a practical local-first setup path, not just ecosystem roles
+- `SETUP.md` should clearly cover:
+  - required vs optional components
+  - runtime paths
+  - environment/bootstrap expectations
+  - first-run validation steps
+  - common setup patterns
+- `USAGE.md` should explain the intended workflow in more operational terms
+- `USAGE.md` should clearly cover:
+  - sessions and targets
+  - note-centric workflow
+  - Quick Log usage
+  - target-scoped Ports / Paths / Loot behavior
+  - Evidence and summary flow
+- Keep the docs concise and practical rather than marketing-style
+
+RULES:
+- Documentation only
+- Do not change runtime behavior
+- Do not broaden scope into README cleanup or environment file changes
+
+---
+
+
+## P2-22 — Hidden Notes List Session Tab Strip
+
+CONTEXT:
+When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
+
+SCOPE:
+notes editor header / notes navigation UI
+
+EXPECTED BEHAVIOR:
+- When the notes list sidebar is hidden, show a horizontal note tab strip above the editor area
+- The tab strip should reflect notes in the current session only
+- Each tab should allow fast open/switch behavior similar to an editor tab row
+- The active note must be visually distinct
+- Closing the active note from the tab strip context must still behave correctly with the existing note close flow
+- When the notes list sidebar is visible again, the tab strip may hide to avoid duplicate navigation chrome
+- The tab strip must work in both normal note-edit mode and no-note-selected state where applicable
+- The layout should remain usable on narrower widths, including horizontal overflow handling if needed
+
+RULES:
+- Do not replace the existing notes list
+- Do not turn this into multi-note simultaneous editing
+- Keep current note open/close behavior intact
+- Keep the scope limited to session note navigation while the notes list is collapsed
+- Prefer a lightweight VS Code-style tab row rather than a second full navigation panel
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

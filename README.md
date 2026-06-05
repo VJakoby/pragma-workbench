@@ -26,13 +26,14 @@ You are responsible for ensuring your work complies with applicable laws and rul
 
 Pentest work demands focus, but the tools do not support it well. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process.
 
-PRAGMA keeps everything in the same view — structured enough to be useful, local enough to be trusted.
+My idea for PRAGMA keeps everything in the same view — structured enough to be useful, without breaking the flow.
 
 ---
 
 ## What It Is
 
 - A local web application
+- A markdown editor
 - A workflow workbench
 - A knowledge-integrated interface
 
@@ -65,7 +66,7 @@ PRAGMA keeps everything in the same view — structured enough to be useful, loc
 ### Docker
 
 ```bash
-cp .env.example .env
+cp .example.env .env
 docker compose up -d --build
 ```
 
@@ -74,7 +75,7 @@ Open `http://localhost:3000`.
 ### Direct Node.js
 
 ```bash
-cp .env.example .env
+cp .example.env .env
 npm install
 npm start
 ```
@@ -96,7 +97,7 @@ Open `http://localhost:3000`.
 - ENGRAM — <https://github.com/VJakoby/engram>
 - Toolbox — <https://github.com/VJakoby/matrix-toolbox>
 
-These are optional. PRAGMA runs without them.
+These are optional. PRAGMA runs totally fine without them.
 
 ---
 
