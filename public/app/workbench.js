@@ -1166,7 +1166,7 @@ async function importSession(event) {
           targets: cleanTargets,
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
-          loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
           evidence: cloneList(session.evidence, [['id'], ['target_id'], ['note_id'], ['type'], ['title'], ['details'], ['impact'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))

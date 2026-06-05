@@ -1581,6 +1581,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
       host: confirmed.loot.host,
       note: confirmed.loot.note,
       syncToCredentials: !!confirmed.loot.sync_to_credentials,
+      targetId: notes[activeNoteId]?.target_id || activeTargetId || null,
     });
     syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
     lootDuplicate = !!lootResult?.duplicate;
