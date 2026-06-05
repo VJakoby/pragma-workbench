@@ -2,13 +2,30 @@
   <tr>
     <td valign="middle">
       <img src="public/Top-bar-logo.png" alt="PRAGMA Logo" width="500">
+      <div align="center">
+        [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
+        ![Docker](https://img.shields.io/badge/docker-ready-blue)
+      </div>
     </td>
   </tr>
 </table>
 
-**PRAGMA** is an operational workbench app built for pentest engagements and CTF — integrating local + online KB with active engagement note taking, running completely local.
+---
 
-At its core: it is a focused Markdown editor organized around sessions and targets, with a right-side context panel that surfaces your KB, tactics, and search results without pulling you out of the flow. Evidence and loot capture is first-class, not bolted on.
+**PRAGMA // Workbench** is a self-hosted, completely local operational workbench designed for pentest engagements and CTFs. 
+It blends localized knowledge-base building with active, fast-paced engagement note-taking—keeping your *notes*, *evidence*, *loot*, and *tactics* all in the same place.
+
+## Key Features
+* 🏠 **Local & Self-Hosted:** Complete data privacy. Your notes, findings, and intelligence stay on your machine.
+
+* 🎯**Context-Aware Interface:** A focused Markdown editor paired with a dynamic right-side panel that surfaces your KB, tactics, and search results without breaking your flow.
+
+* 🗂️ **Target-Centric Architecture:** Effortlessly organize your workspace around specific sessions and targets.
+
+* 💰 **First-Class Loot Capture:** Built-in workflows designed to capture, log, and organize evidence and loot on the fly.
+
+* 🔒 **Zero-Knowledge Engagement Encryption:** 
+Protect sensitive operation notes and attachments with robust, client-side encryption. Your data is encrypted before it ever leaves the browser—ensuring complete privacy for high-stakes engagements.
 
 ---
 
@@ -29,13 +46,6 @@ Pentest work demands focus, but the tools do not support it well. Notes end up i
 My idea for PRAGMA keeps everything in the same view — structured enough to be useful, without breaking the flow.
 
 ---
-
-## What It Is
-
-- A local web application
-- A markdown editor
-- A workflow workbench
-- A knowledge-integrated interface
 
 ## What It Is Not
 
@@ -61,16 +71,24 @@ My idea for PRAGMA keeps everything in the same view — structured enough to be
 
 ---
 
+## Requirements
+
+- Node.js 20+
+- Docker / Docker Compose optional
+
+---
+
 ## Quick Start
 
-### Docker
+### Docker (Highly recommended)
+
 
 ```bash
 cp .example.env .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000` and start with your engagement/CTF.
 
 ### Direct Node.js
 
@@ -84,7 +102,7 @@ Open `http://localhost:3000`.
 
 ---
 
-## Setup Guides
+## Full Setup Guides
 
 - [Setup Guide](docs/SETUP.md)
 - [Docker Guide](docs/DOCKER.md)
@@ -98,13 +116,6 @@ Open `http://localhost:3000`.
 - Toolbox — <https://github.com/VJakoby/matrix-toolbox>
 
 These are optional. PRAGMA runs totally fine without them.
-
----
-
-## Requirements
-
-- Node.js 20+
-- Docker / Docker Compose optional
 
 ---
 
