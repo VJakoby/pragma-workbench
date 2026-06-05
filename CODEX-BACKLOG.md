@@ -506,6 +506,30 @@ RULES:
 - Prefer a lightweight VS Code-style tab row rather than a second full navigation panel
 
 ---
+
+## P2-24 — Target-Grouped Hidden Note Tabs
+STATUS: DONE
+
+CONTEXT:
+The hidden-notes session tab strip now exposes note switching and note creation, but it does not show which notes belong to which target within the current session. This makes multi-target engagements harder to scan once several notes are open in the same session.
+
+SCOPE:
+notes editor header / hidden-notes tab strip grouping
+
+EXPECTED BEHAVIOR:
+- When the notes list sidebar is hidden, session note tabs should be visually grouped by target association
+- Each target group should show a small shared label such as the target IP, domain, label, or `Unassigned` when no target is attached
+- Target groups should use a subtle shared frame or background treatment so it is clear that multiple tabs belong to the same target
+- Existing note switching, active-tab state, close behavior, and horizontal scrolling must remain intact
+- The tab-strip create control should remain available and should not be merged into any target group
+
+RULES:
+- Use the existing note `target_id` relationship as the grouping source of truth
+- Do not add per-tab target labels
+- Do not redesign the broader notes editor layout
+- Keep the grouping treatment lightweight and readable on narrower widths
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
