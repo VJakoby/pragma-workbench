@@ -445,6 +445,33 @@ RULES:
 ---
 
 
+## P2-20 — Target-Scoped Quick Log Filtering
+STATUS: DONE
+
+CONTEXT:
+Quick Log data supports target association, but entries are still surfaced too broadly across the session. This causes Ports, Paths, and Loot from one target to appear in contexts where another target is active.
+
+SCOPE:
+quick log + session/target context filtering
+
+EXPECTED BEHAVIOR:
+- `Ports` must show only entries for the active target when a target is selected
+- `Paths` must show only entries for the active target when a target is selected
+- `Loot` must support both:
+  - target-bound entries
+  - session-wide entries
+- Session-wide loot must remain visible regardless of active target
+- If no target is selected, session data may show across the full session
+- Duplicate prevention for imported/logged entries must respect `target_id`
+
+RULES:
+- Do not duplicate data per target
+- Preserve session-wide storage where appropriate
+- Use `target_id` as the source of truth for target-bound entries
+- Keep unassigned/session-wide entries visible only where that is logically correct
+
+---
+
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
