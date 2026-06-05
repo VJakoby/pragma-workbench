@@ -9,6 +9,8 @@ let activeNoteSearch = '';
 let notesPeekSearch = '';
 let notesPeekOpen = false;
 let notesPeekCloseTimer = null;
+let notesPeekHoldOpenUntil = 0;
+let notesPeekIgnoreDocumentCloseUntil = 0;
 let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
@@ -91,6 +93,7 @@ function setNoteEditorMode(mode) {
   const reassign = document.getElementById('noteReassignWrap');
   const target = document.getElementById('noteTargetAssignWrap');
   const previewBtn = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
   const evidenceBtn = document.getElementById('noteFlagEvidenceBtn');
   const hint = document.querySelector('.note-md-hint');
   const timestamps = document.getElementById('noteTimestamps');
@@ -106,6 +109,7 @@ function setNoteEditorMode(mode) {
   const previewHandle = document.getElementById('notePreviewHandle');
   const layoutToggle = document.getElementById('previewLayoutToggle');
   const split = document.getElementById('noteEditorSplit');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
 
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
@@ -122,6 +126,7 @@ function setNoteEditorMode(mode) {
   if (reassign) reassign.style.display = isConfig ? 'none' : '';
   if (target) target.style.display = isConfig ? 'none' : '';
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
+  if (unifiedBtn) unifiedBtn.style.display = isConfig ? 'none' : '';
   if (evidenceBtn) evidenceBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
@@ -135,13 +140,14 @@ function setNoteEditorMode(mode) {
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
-      split.classList.remove('preview-open', 'split-side');
+      split.classList.remove('preview-open', 'split-side', 'preview-unified');
       split.style.removeProperty('--note-editor-w');
       split.style.removeProperty('--note-editor-h');
     } else {
       applyNotePreviewState();
     }
   }
+  if (unifiedSurface && isConfig) unifiedSurface.style.display = 'none';
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
@@ -723,10 +729,19 @@ function toggleNotesPeek(event) {
 
 function scheduleNotesPeekClose() {
   clearTimeout(notesPeekCloseTimer);
-  notesPeekCloseTimer = setTimeout(() => {
+  const attemptClose = () => {
     if (!notesPeekOpen) return;
+    const holdRemaining = notesPeekHoldOpenUntil - Date.now();
+    if (holdRemaining > 0) {
+      notesPeekCloseTimer = setTimeout(attemptClose, holdRemaining + 10);
+      return;
+    }
+    const flyout = document.getElementById('notesPeekFlyout');
+    const peekBtn = document.getElementById('notesListPeekBtn');
+    if (flyout?.matches(':hover') || peekBtn?.matches(':hover')) return;
     closeNotesPeek();
-  }, 120);
+  };
+  notesPeekCloseTimer = setTimeout(attemptClose, 120);
 }
 
 function syncNotesPeekScopeButtons() {
@@ -734,11 +749,19 @@ function syncNotesPeekScopeButtons() {
 }
 
 function setNotesPeekScope(scope, button) {
+  notesPeekHoldOpenUntil = Date.now() + 800;
+  notesPeekIgnoreDocumentCloseUntil = Date.now() + 800;
+  clearTimeout(notesPeekCloseTimer);
   activeNoteScope = scope;
   activeTargetFilter = null;
   syncNotesPeekScopeButtons();
   updateNoteSearchPlaceholder();
   renderNotesList();
+  requestAnimationFrame(() => {
+    document.querySelector('.notes-layout')?.classList.add('notes-peek-open');
+    notesPeekOpen = true;
+    document.getElementById('notesPeekSearchInput')?.focus({ preventScroll: true });
+  });
   if (button) button.blur();
 }
 
@@ -754,6 +777,7 @@ function openNoteFromPeek(id) {
 
 document.addEventListener('click', (event) => {
   if (!notesPeekOpen) return;
+  if (Date.now() < notesPeekIgnoreDocumentCloseUntil) return;
   if (event.target.closest('#notesPeekFlyout') || event.target.closest('#notesListPeekBtn')) return;
   closeNotesPeek();
 });
@@ -1053,6 +1077,7 @@ async function openNote(id) {
   applyNotePreviewState();
 }
 
+
 function togglePinNote() {
   if (!activeNoteId || !notes[activeNoteId]) return;
   notes[activeNoteId].pinned = !notes[activeNoteId].pinned;
@@ -1174,6 +1199,13 @@ function stripInlineEvidenceMarkers(text) {
     .trim();
 }
 
+function getActiveEvidenceEditor() {
+  if (typeof noteUnifiedPreview !== 'undefined' && noteUnifiedPreview && typeof noteUnifiedEditor !== 'undefined' && noteUnifiedEditor) {
+    return noteUnifiedEditor;
+  }
+  return noteEditor || null;
+}
+
 function stripEvidenceMarkersForExport(text) {
   return String(text || '')
     .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
@@ -1182,11 +1214,12 @@ function stripEvidenceMarkersForExport(text) {
 }
 
 function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
-  if (!noteEditor) return null;
-  const main = noteEditor.state.selection?.main;
+  const editor = getActiveEvidenceEditor();
+  if (!editor) return null;
+  const main = editor.state.selection?.main;
   if (!main) return null;
   if (requireSelection && main.empty) return null;
-  const doc = noteEditor.state.doc;
+  const doc = editor.state.doc;
   let blockFrom = main.from;
   let blockTo = main.to;
 
@@ -1387,7 +1420,7 @@ function getEvidenceFlagDefaultLootHost() {
 }
 
 function getCurrentEvidenceSelectionSignature() {
-  const main = noteEditor?.state?.selection?.main;
+  const main = getActiveEvidenceEditor()?.state?.selection?.main;
   if (!main || main.empty) return '';
   return `${main.from}:${main.to}`;
 }
@@ -1407,16 +1440,18 @@ function hideEvidenceSelectionPrompt() {
 }
 
 function isEvidenceBlockAlreadyFlagged(block) {
-  if (!block || !noteEditor) return false;
-  const doc = noteEditor.state.doc;
+  const editor = getActiveEvidenceEditor();
+  if (!block || !editor) return false;
+  const doc = editor.state.doc;
   const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
   const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
   return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
 }
 
 function positionEvidenceSelectionPrompt(prompt) {
-  if (!prompt || !noteEditor || !_evidenceSelectionPromptState?.block) return;
-  const coords = noteEditor.coordsAtPos(_evidenceSelectionPromptState.block.to) || noteEditor.dom.getBoundingClientRect();
+  const editor = getActiveEvidenceEditor();
+  if (!prompt || !editor || !_evidenceSelectionPromptState?.block) return;
+  const coords = editor.coordsAtPos(_evidenceSelectionPromptState.block.to) || editor.dom.getBoundingClientRect();
   const margin = 12;
   const promptRect = prompt.getBoundingClientRect();
   let left = coords.left;
@@ -1431,7 +1466,7 @@ function positionEvidenceSelectionPrompt(prompt) {
 
 function showEvidenceSelectionPrompt(block) {
   const prompt = document.getElementById('evidenceSelectionPrompt');
-  if (!prompt || !noteEditor || !block || !block.text.trim()) return;
+  if (!prompt || !getActiveEvidenceEditor() || !block || !block.text.trim()) return;
   _evidenceSelectionPromptState = {
     block,
     signature: getCurrentEvidenceSelectionSignature(),
@@ -1452,7 +1487,7 @@ function syncEvidenceSelectionPrompt(update) {
   if (!update.selectionSet) return;
 
   const main = update.state.selection?.main;
-  if (!main || main.empty || !noteEditor?.hasFocus) {
+  if (!main || main.empty || !update.view?.hasFocus) {
     hideEvidenceSelectionPrompt();
     return;
   }
@@ -1599,7 +1634,8 @@ function handleEvidenceFlagKey(event) {
 
 async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   if (activeConfigDoc) return;
-  if (!activeNoteId || !notes[activeNoteId] || !noteEditor) return;
+  const activeEditor = getActiveEvidenceEditor();
+  if (!activeNoteId || !notes[activeNoteId] || !activeEditor) return;
   if (!activeSessionId || !sessions[activeSessionId]) {
     showToast('⚠ Open a session first', 'err');
     return;
@@ -1655,7 +1691,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   };
 
   const wrapped = `<!-- ${marker}:start -->\n${block.text}\n<!-- ${marker}:end -->`;
-  noteEditor.dispatch({
+  activeEditor.dispatch({
     changes: { from: block.from, to: block.to, insert: wrapped },
     selection: { anchor: block.from + `<!-- ${marker}:start -->\n`.length, head: block.from + `<!-- ${marker}:start -->\n`.length + block.text.length },
     scrollIntoView: true,

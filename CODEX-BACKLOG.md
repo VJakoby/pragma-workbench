@@ -445,6 +445,32 @@ RULES:
 ---
 
 
+## P2-19 — Topbar Search and Quick Log Emphasis
+STATUS: DONE
+
+CONTEXT:
+The topbar utility strip should prioritize direct access to search while keeping the operational utility buttons stable and readable. Quick Log count badges should also communicate that useful entries exist.
+
+SCOPE:
+views/partials/topbar.ejs
+views/partials/topbar-utility-panels.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Move the `Unified search` trigger into the position currently occupied by the utility strip
+- Move the `TODO`, `Ports`, `Paths`, `Loot`, and `Evidence` controls into the current search-trigger position
+- Keep the utility buttons at their current visual size; they must not compress to absorb narrower widths
+- Preserve the existing dynamic width behavior on the `Unified search` trigger so it is the element that shrinks first on narrower windows
+- `Ports`, `Paths`, and `Loot` count badges must use a slightly green-tinted emphasis to indicate useful findings are present
+
+RULES:
+- Do not change utility button behavior
+- Do not change search behavior
+- Keep the change limited to topbar layout and visual styling
+
+---
+
+
 
 ## P2-21 — Setup and Usage Documentation Refinement
 
@@ -687,6 +713,21 @@ If it is NOT inside `< >`, it is NOT a variable.
 No exceptions.
 No pattern guessing.
 No keyword matching.
+
+---
+
+## B-6 — Quick Note Switcher Unassigned Scope Closes Flyout
+
+CONTEXT:
+In the collapsed quick note switcher, selecting the `Unassigned` scope can immediately close the flyout, which breaks fast note navigation.
+
+SCOPE:
+public/app/notes.js
+
+EXPECTED BEHAVIOR:
+- Selecting `Current Session`, `Unassigned`, or `All Sessions` inside the quick note switcher must keep the flyout open
+- Scope changes inside the quick switcher must refresh the list without dismissing the flyout
+- Normal outside-click and intentional mouse-leave close behavior must remain intact
 
 ---
 

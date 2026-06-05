@@ -379,12 +379,15 @@
                 </div>
                 <div class="notes-editor-hdr-row2">
                   <button class="tb-btn" id="noteCloseBtn" onclick="closeCurrentNote()" title="Close note"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Close</span></button>
-                  <button class="tb-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span></button>
-                  <div class="syntax-theme-picker" title="Editor syntax theme" style="margin-left:2px">
-                    <span class="syntax-dot" data-theme="quietlight" style="--dot-color:#007acc" onclick="setSyntaxTheme('quietlight')">Quiet Light</span>
-                    <span class="syntax-dot" data-theme="monokai" style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')">Monokai</span>
-                    <span class="syntax-dot" data-theme="nord" style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')">Nord</span>
-                    <span class="syntax-dot" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')">Solarized</span>
+                  <div class="note-preview-mode-group" role="group" aria-label="Preview mode">
+                    <button class="tb-btn note-preview-mode-btn" id="notePreviewBtn" onclick="toggleNotePreview()" title="Toggle markdown preview"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span></button>
+                    <button class="tb-btn note-preview-mode-btn note-preview-mode-icon" id="noteUnifiedBtn" onclick="toggleNoteUnifiedPreview()" title="Toggle unified live view" aria-label="Unified live view"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></button>
+                  </div>
+                  <div class="syntax-theme-picker" style="margin-left:2px" aria-label="Editor syntax theme">
+                    <button class="syntax-dot" type="button" data-theme="quietlight" style="--dot-color:#007acc" onclick="setSyntaxTheme('quietlight')" title="Quiet Light" aria-label="Quiet Light"></button>
+                    <button class="syntax-dot" type="button" data-theme="monokai" style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')" title="Monokai" aria-label="Monokai"></button>
+                    <button class="syntax-dot" type="button" data-theme="nord" style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')" title="Nord" aria-label="Nord"></button>
+                    <button class="syntax-dot" type="button" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')" title="Solarized" aria-label="Solarized"></button>
                   </div>
                   <div class="editor-font-controls" title="Editor font controls">
                     <div class="editor-font-family-group" role="group" aria-label="Editor font family">
@@ -435,6 +438,9 @@
                   </div>
                   <div class="md-content note-preview-content" id="notePreviewContent"></div>
                 </div>
+              </div>
+              <div class="note-unified-surface" id="noteUnifiedSurface" style="display:none">
+                <div class="note-unified-body" id="noteUnifiedBody"></div>
               </div>
               <div class="note-backlinks" id="noteBacklinks" style="display:none">
                 <div class="note-backlinks-hdr"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Linked from</div>

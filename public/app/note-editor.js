@@ -3,7 +3,11 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+let noteUnifiedPreview = localStorage.getItem('pragma-preview-unified') === '1';
 let notePreviewTimer = null;
+let noteUnifiedRenderTimer = null;
+let noteUnifiedSyncing = false;
+let noteUnifiedEditor = null;
 let lastNotePreviewMarkdown = null;
 const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
 const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
@@ -456,10 +460,93 @@ async function refreshRenderedMarkdownSurfaces() {
   } catch (_) {}
 }
 
+function scheduleNoteUnifiedRender() {
+  if (noteUnifiedRenderTimer) clearTimeout(noteUnifiedRenderTimer);
+  noteUnifiedRenderTimer = setTimeout(() => {
+    noteUnifiedRenderTimer = null;
+    void renderNoteUnifiedSurface();
+  }, 80);
+}
+
+async function renderUnifiedWholePreview(el, markdown) {
+  if (!el) return;
+  const md = String(markdown || '').trim();
+  if (!md) {
+    el.innerHTML = '<div class="note-unified-empty">Empty note</div>';
+    return;
+  }
+  let rendered = false;
+  if (window.markdownPreview?.renderInto) {
+    rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+  }
+  if (rendered && String(el.innerHTML || '').trim()) return;
+  const html = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
+  if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible === 'function') makeCollapsible(el);
+  el.querySelectorAll('.copy-btn').forEach((b) => { b.style.display = 'none'; });
+}
+
+function syncUnifiedWholeToEditor(markdown) {
+  if (!noteEditor) return;
+  noteUnifiedSyncing = true;
+  try {
+    if (cmGetValue(noteEditor) !== markdown) cmSetValue(noteEditor, markdown);
+  } finally {
+    noteUnifiedSyncing = false;
+  }
+}
+
+async function renderNoteUnifiedSurface() {
+  const surface = document.getElementById('noteUnifiedSurface');
+  const body = document.getElementById('noteUnifiedBody');
+  if (!surface || !body || !noteUnifiedPreview || activeConfigDoc || !noteEditor) return;
+
+  const markdown = cmGetValue(noteEditor);
+  body.innerHTML = `
+    <section class="note-unified-whole">
+      <div class="note-unified-whole-col note-unified-whole-editor-col">
+        <div class="note-unified-editor-host" id="noteUnifiedWholeEditorHost"></div>
+      </div>
+      <div class="note-unified-whole-col note-unified-whole-preview-col">
+        <div class="md-content note-unified-live-preview note-unified-live-preview-whole" id="noteUnifiedWholePreview"></div>
+      </div>
+    </section>`;
+
+  const editorHost = document.getElementById('noteUnifiedWholeEditorHost');
+  const previewEl = document.getElementById('noteUnifiedWholePreview');
+  if (!editorHost || !previewEl) return;
+
+  createUnifiedNoteEditor(editorHost, markdown, (nextMarkdown) => {
+    void renderUnifiedWholePreview(previewEl, nextMarkdown);
+  });
+
+  await renderUnifiedWholePreview(previewEl, markdown);
+  requestAnimationFrame(() => {
+    noteUnifiedEditor?.focus();
+  });
+}
+
 function toggleNotePreview() {
   if (activeConfigDoc) return;
+  if (noteUnifiedPreview) {
+    noteUnifiedPreview = false;
+    localStorage.setItem('pragma-preview-unified', '0');
+    notePreviewOpen = true;
+    localStorage.setItem('pragma-preview-open', '1');
+    applyNotePreviewState();
+    return;
+  }
   notePreviewOpen = !notePreviewOpen;
   localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function toggleNoteUnifiedPreview() {
+  if (activeConfigDoc) return;
+  noteUnifiedPreview = !noteUnifiedPreview;
+  localStorage.setItem('pragma-preview-unified', noteUnifiedPreview ? '1' : '0');
   applyNotePreviewState();
 }
 
@@ -491,7 +578,23 @@ function applyNotePreviewState() {
   const handle = document.getElementById('notePreviewHandle');
   const pane   = document.getElementById('notePreviewPane');
   const btn    = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
   if (!split || !handle || !pane || !btn) return;
+
+  if (unifiedBtn) unifiedBtn.classList.toggle('active', noteUnifiedPreview);
+  if (noteUnifiedPreview) {
+    split.style.display = 'none';
+    if (unifiedSurface) unifiedSurface.style.display = 'flex';
+    btn.classList.remove('active');
+    btn.title = 'Toggle markdown preview';
+    renderNoteUnifiedSurface();
+    return;
+  }
+
+  destroyUnifiedNoteEditor();
+  split.style.display = 'flex';
+  if (unifiedSurface) unifiedSurface.style.display = 'none';
 
   const open = notePreviewOpen;
   split.classList.toggle('preview-open', open);
@@ -508,7 +611,7 @@ function applyNotePreviewState() {
     if (saved) split.style.setProperty('--note-editor-h', saved);
     applyPreviewLayout();
     scheduleNotePreviewUpdate({ immediate: true });
-    initPreviewDragHandle();
+    if (!noteUnifiedPreview) initPreviewDragHandle();
   } else {
     split.classList.remove('split-side');
     split.style.removeProperty('--note-editor-w');
@@ -548,12 +651,16 @@ function initPreviewDragHandle() {
   });
 }
 
-function cmInitNote(initialDoc) {
-  const wrap = document.getElementById('noteBodyWrap');
-  if (!wrap || !CM) return;
-  if (noteEditor) noteEditor.destroy();
 
-  const extensions = [
+function destroyUnifiedNoteEditor() {
+  if (noteUnifiedEditor) {
+    noteUnifiedEditor.destroy();
+    noteUnifiedEditor = null;
+  }
+}
+
+function buildNoteEditorExtensions({ onDocChange } = {}) {
+  return [
     CM.basicSetup,
     ...buildCmTheme(),
     CM.EditorView.domEventHandlers({
@@ -592,16 +699,57 @@ function cmInitNote(initialDoc) {
         autoSaveActiveConfig();
         return;
       }
+      if (typeof onDocChange === 'function') {
+        onDocChange(update);
+        return;
+      }
       if (activeNoteId) {
         autoSaveNote();
-        scheduleNotePreviewUpdate();
+        if (noteUnifiedPreview) {
+          if (!noteUnifiedSyncing) scheduleNoteUnifiedRender();
+        } else {
+          scheduleNotePreviewUpdate();
+        }
       }
     }),
     CM.EditorView.lineWrapping,
     CM.indentUnit.of('  '),
     CM.keymap.of([CM.indentWithTab]),
   ];
+}
 
+function createUnifiedNoteEditor(parent, initialDoc, onPreviewSync) {
+  if (!parent || !CM) return null;
+  destroyUnifiedNoteEditor();
+  const extensions = buildNoteEditorExtensions({
+    onDocChange() {
+      if (!activeNoteId) return;
+      autoSaveNote();
+      const nextMarkdown = cmGetValue(noteUnifiedEditor);
+      noteUnifiedSyncing = true;
+      try {
+        if (noteEditor && cmGetValue(noteEditor) !== nextMarkdown) cmSetValue(noteEditor, nextMarkdown);
+      } finally {
+        noteUnifiedSyncing = false;
+      }
+      if (typeof onPreviewSync === 'function') onPreviewSync(nextMarkdown);
+    }
+  });
+  if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
+  noteUnifiedEditor = new CM.EditorView({
+    doc: initialDoc ?? '',
+    extensions,
+    parent,
+  });
+  return noteUnifiedEditor;
+}
+
+function cmInitNote(initialDoc) {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) noteEditor.destroy();
+
+  const extensions = buildNoteEditorExtensions();
   if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
 
   noteEditor = new CM.EditorView({
