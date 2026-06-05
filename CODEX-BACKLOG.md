@@ -530,6 +530,8 @@ RULES:
 ---
 
 ## B-10 — Unified Search Must Still Find Local Notes With Empty KB
+STATUS: DONE
+
 
 CONTEXT:
 When no service or tactic documents exist yet, the unified search/command palette can fall back into a state where local engagement notes are not surfaced even though note content exists in the current workbench.
