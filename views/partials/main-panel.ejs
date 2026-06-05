@@ -308,9 +308,6 @@
             <button class="notes-list-edge-btn notes-list-peek-btn" id="notesListPeekBtn" onclick="toggleNotesPeek(event)" title="Quick note switcher" aria-label="Quick note switcher">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
-            <button class="notes-list-edge-btn notes-list-create-btn" id="notesListCreateBtn" onclick="openNewNoteModal()" title="New note" aria-label="Create new note">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
           </div>
           <div class="notes-peek-flyout" id="notesPeekFlyout" aria-label="Quick note switcher">
             <div class="notes-peek-hdr">Current Notes</div>
@@ -360,6 +357,7 @@
             <div class="drag-handle drag-handle-right" id="notesListHandle"></div>
           </div>
           <div class="notes-editor" id="notesEditor">
+            <div class="session-note-tabs" id="sessionNoteTabs" aria-label="Session notes"></div>
             <div class="notes-empty" id="notesEmpty">
               <div class="notes-empty-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
               <div class="notes-empty-text">No note selected</div>

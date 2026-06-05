@@ -603,6 +603,7 @@ async function renameTarget(id) {
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
+  if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
   renderSessionSidebar();
   if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) renderContextSwitcherList();
 }

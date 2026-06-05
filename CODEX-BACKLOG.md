@@ -507,47 +507,27 @@ RULES:
 
 ---
 
-## B-08 — First-Run Session Persistence And False Notes Badge
+## P2-24 — Target-Grouped Hidden Note Tabs
 STATUS: DONE
 
-
 CONTEXT:
-On a fresh browser with no existing active session, creating the first session from the welcome flow can leave the Notes UI in an inconsistent first-run state. The Notes badge may show a note when none exists, and refreshing immediately after session creation can reopen the welcome modal and lose the newly created active session context.
+The hidden-notes session tab strip now exposes note switching and note creation, but it does not show which notes belong to which target within the current session. This makes multi-target engagements harder to scan once several notes are open in the same session.
 
 SCOPE:
-startup state bootstrap / welcome session creation
+notes editor header / hidden-notes tab strip grouping
 
 EXPECTED BEHAVIOR:
-- Creating the first session from the welcome flow must not cause any Notes badge to imply that a real note exists when none has been created
-- Refreshing immediately after creating the first session must preserve the new session and must not reopen the welcome modal unnecessarily
-- Existing session loading and note loading behavior must remain compatible with previously saved workbench data
+- When the notes list sidebar is hidden, session note tabs should be visually grouped by target association
+- Each target group should show a small shared label such as the target IP, domain, label, or `Unassigned` when no target is attached
+- Target groups should use a subtle shared frame or background treatment so it is clear that multiple tabs belong to the same target
+- Existing note switching, active-tab state, close behavior, and horizontal scrolling must remain intact
+- The tab-strip create control should remain available and should not be merged into any target group
 
 RULES:
-- Keep the fix limited to first-run session bootstrap and persistence paths
-- Do not change note creation behavior
-- Do not broaden scope into welcome UI redesign
-
----
-
-## B-10 — Unified Search Must Still Find Local Notes With Empty KB
-STATUS: DONE
-
-
-CONTEXT:
-When no service or tactic documents exist yet, the unified search/command palette can fall back into a state where local engagement notes are not surfaced even though note content exists in the current workbench.
-
-SCOPE:
-public/app/app.js
-
-EXPECTED BEHAVIOR:
-- Unified search must still return engagement note results even when there are no `services/` or `tactics/` documents
-- Current local note state must remain searchable from the command palette
-- Existing unified KB result behavior must remain intact when KB content does exist
-
-RULES:
-- Keep the fix limited to unified search result assembly
-- Do not redesign the command palette UI
-- Do not broaden scope into server-side KB indexing unless strictly required
+- Use the existing note `target_id` relationship as the grouping source of truth
+- Do not add per-tab target labels
+- Do not redesign the broader notes editor layout
+- Keep the grouping treatment lightweight and readable on narrower widths
 
 ---
 # P3 — EXPERIMENTAL

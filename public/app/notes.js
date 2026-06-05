@@ -214,6 +214,7 @@ async function openTemplatesConfig(navEl) {
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
   area.style.display = 'flex';
+  renderSessionNoteTabs();
 
   const badge = ensureNoteTypeBadge();
   badge.textContent = '⚙ Note Templates';
@@ -246,6 +247,7 @@ function closeConfigEditor() {
   document.getElementById('noteEditArea').style.display = 'none';
   document.getElementById('nav-config-templates')?.classList.remove('active');
   renderNotesList();
+  renderSessionNoteTabs();
 }
 
 function formatAttachmentStorageBytes(bytes) {
@@ -494,6 +496,7 @@ function updateNotesCountBadges() {
 function renderNotesList() {
   updateNoteSearchPlaceholder();
   updateNotesCountBadges();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
     updateNotesCountBadges();
@@ -572,6 +575,94 @@ function getVisibleNotes(opts = {}) {
   }
 
   return items;
+}
+
+
+function getSessionNoteTabsItems() {
+  if (!activeSessionId || !sessions[activeSessionId] || activeConfigDoc) return [];
+  return getNotesInSession(activeSessionId).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated || 0) - (a.updated || 0);
+  });
+}
+
+function closeNoteFromTab(noteId, event) {
+  event?.stopPropagation();
+  if (!noteId || noteId !== activeNoteId) return;
+  closeCurrentNote();
+}
+
+function renderSessionNoteTabs() {
+  const strip = document.getElementById("sessionNoteTabs");
+  if (!strip) return;
+  const items = getSessionNoteTabsItems();
+  const canCreate = !!activeSessionId && !activeConfigDoc;
+  const groups = [];
+  const groupMap = new Map();
+
+  items.forEach((note) => {
+    const target = note.target_id && activeSessionId && sessions[activeSessionId]
+      ? (sessions[activeSessionId].targets || []).find((t) => t.id === note.target_id)
+      : null;
+    const groupKey = target?.id || "__unassigned__";
+    let group = groupMap.get(groupKey);
+    if (!group) {
+      const targetPrimary = target ? (target.ip || target.domain || "") : "";
+      const targetSecondary = target ? String(target.label || "").trim() : "";
+      const combinedLabel = target
+        ? [targetPrimary, targetSecondary].filter((value, index, arr) => value && arr.indexOf(value) === index).join(" // ") || "target"
+        : "Unassigned";
+      group = {
+        key: groupKey,
+        label: combinedLabel,
+        targeted: !!target,
+        notes: [],
+      };
+      groupMap.set(groupKey, group);
+      groups.push(group);
+    }
+    group.notes.push(note);
+  });
+
+  strip.classList.toggle("has-tabs", canCreate || groups.length > 0);
+  if (!canCreate && !groups.length) {
+    strip.innerHTML = "";
+    return;
+  }
+
+  const createTab = canCreate
+    ? `<div class="session-note-tab session-note-tab-create" title="Create new note">
+      <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
+        <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
+        <span class="session-note-tab-title">New</span>
+      </button>
+    </div>`
+    : "";
+
+  const groupsHtml = groups.map((group) => {
+    const tabsHtml = group.notes.map((note) => {
+      const meta = getNoteTypeMeta(note.type);
+      const active = note.id === activeNoteId;
+      const closeBtn = active
+        ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
+        : "";
+      return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+        <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
+          <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
+          <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
+          <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
+        </button>
+        ${closeBtn}
+      </div>`;
+    }).join("");
+    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
+      <div class="session-note-tab-group-label" title="${esc(group.label)}">${esc(group.label)}</div>
+      <div class="session-note-tab-group-tabs">${tabsHtml}</div>
+    </div>`;
+  }).join("");
+
+  strip.innerHTML = createTab + groupsHtml;
 }
 
 function renderNotesPeekList() {
@@ -1659,6 +1750,7 @@ async function deleteCurrentNote() {
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  renderSessionNoteTabs();
 }
 
 async function closeCurrentNote() {
@@ -1682,6 +1774,7 @@ async function closeCurrentNote() {
   document.getElementById('noteReassignDropdown')?.classList.remove('open');
   document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
   renderNotesList();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
 }
 
