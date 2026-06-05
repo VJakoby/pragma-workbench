@@ -528,6 +528,26 @@ RULES:
 - Do not broaden scope into welcome UI redesign
 
 ---
+
+## B-10 — Unified Search Must Still Find Local Notes With Empty KB
+
+CONTEXT:
+When no service or tactic documents exist yet, the unified search/command palette can fall back into a state where local engagement notes are not surfaced even though note content exists in the current workbench.
+
+SCOPE:
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- Unified search must still return engagement note results even when there are no `services/` or `tactics/` documents
+- Current local note state must remain searchable from the command palette
+- Existing unified KB result behavior must remain intact when KB content does exist
+
+RULES:
+- Keep the fix limited to unified search result assembly
+- Do not redesign the command palette UI
+- Do not broaden scope into server-side KB indexing unless strictly required
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
