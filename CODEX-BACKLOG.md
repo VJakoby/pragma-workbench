@@ -508,6 +508,8 @@ RULES:
 ---
 
 ## B-08 — First-Run Session Persistence And False Notes Badge
+STATUS: DONE
+
 
 CONTEXT:
 On a fresh browser with no existing active session, creating the first session from the welcome flow can leave the Notes UI in an inconsistent first-run state. The Notes badge may show a note when none exists, and refreshing immediately after session creation can reopen the welcome modal and lose the newly created active session context.
