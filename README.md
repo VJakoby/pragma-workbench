@@ -1,14 +1,11 @@
-<table>
-  <tr>
-    <td valign="middle">
-      <img src="public/Top-bar-logo.png" alt="PRAGMA Logo" width="500">
-      <div align="center">
-        [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
-        ![Docker](https://img.shields.io/badge/docker-ready-blue)
-      </div>
-    </td>
-  </tr>
-</table>
+<div align="center">
+  <img src="public/Top-bar-logo.png" alt="PRAGMA Logo" width="400">
+  
+  [![License](https://img.shields.io/github/license/VJakoby/pragma-workbench?style=flat&color=red)](LICENSE)
+![dock](https://img.shields.io/badge/environment-local%20%7C%20self--hosted-darkoctober?style=flat)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
+![](https://img.shields.io/badge/node.js-v20+-green?style=fat&logo=node.js&logoColor=white)
+</div>
 
 ---
 
@@ -27,7 +24,6 @@ It blends localized knowledge-base building with active, fast-paced engagement n
 * 🔒 **Zero-Knowledge Engagement Encryption:** 
 Protect sensitive operation notes and attachments with robust, client-side encryption. Your data is encrypted before it ever leaves the browser—ensuring complete privacy for high-stakes engagements.
 
----
 
 ## Notice
 
@@ -37,15 +33,11 @@ It does not interact with targets directly, but is intended for use in authorize
 
 You are responsible for ensuring your work complies with applicable laws and rules of engagement.
 
----
-
 ## What It Solves
 
 Pentest work demands focus, but the tools do not support it well. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process.
 
 My idea for PRAGMA keeps everything in the same view — structured enough to be useful, without breaking the flow.
-
----
 
 ## What It Is Not
 
@@ -53,8 +45,6 @@ My idea for PRAGMA keeps everything in the same view — structured enough to be
 - Not a team platform
 - Not an exploit framework
 - Not cloud-dependent
-
----
 
 ## Tech Stack
 
@@ -69,7 +59,6 @@ My idea for PRAGMA keeps everything in the same view — structured enough to be
 - File-backed storage
 - Docker / Docker Compose
 
----
 
 ## Requirements
 
@@ -100,15 +89,11 @@ npm start
 
 Open `http://localhost:3000`.
 
----
-
 ## Full Setup Guides
 
 - [Setup Guide](docs/SETUP.md)
 - [Docker Guide](docs/DOCKER.md)
 - [Feature Spec 001](docs/SPEC-01.md)
-
----
 
 ## Optional Modules
 
