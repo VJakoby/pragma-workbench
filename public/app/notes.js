@@ -598,8 +598,35 @@ function renderSessionNoteTabs() {
   if (!strip) return;
   const items = getSessionNoteTabsItems();
   const canCreate = !!activeSessionId && !activeConfigDoc;
-  strip.classList.toggle("has-tabs", canCreate || items.length > 0);
-  if (!canCreate && !items.length) {
+  const groups = [];
+  const groupMap = new Map();
+
+  items.forEach((note) => {
+    const target = note.target_id && activeSessionId && sessions[activeSessionId]
+      ? (sessions[activeSessionId].targets || []).find((t) => t.id === note.target_id)
+      : null;
+    const groupKey = target?.id || "__unassigned__";
+    let group = groupMap.get(groupKey);
+    if (!group) {
+      const targetPrimary = target ? (target.ip || target.domain || "") : "";
+      const targetSecondary = target ? String(target.label || "").trim() : "";
+      const combinedLabel = target
+        ? [targetPrimary, targetSecondary].filter((value, index, arr) => value && arr.indexOf(value) === index).join(" // ") || "target"
+        : "Unassigned";
+      group = {
+        key: groupKey,
+        label: combinedLabel,
+        targeted: !!target,
+        notes: [],
+      };
+      groupMap.set(groupKey, group);
+      groups.push(group);
+    }
+    group.notes.push(note);
+  });
+
+  strip.classList.toggle("has-tabs", canCreate || groups.length > 0);
+  if (!canCreate && !groups.length) {
     strip.innerHTML = "";
     return;
   }
@@ -613,21 +640,29 @@ function renderSessionNoteTabs() {
     </div>`
     : "";
 
-  strip.innerHTML = createTab + items.map((note) => {
-    const meta = getNoteTypeMeta(note.type);
-    const active = note.id === activeNoteId;
-    const closeBtn = active
-      ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
-      : "";
-    return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
-      <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
-        <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
-        <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
-        <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
-      </button>
-      ${closeBtn}
+  const groupsHtml = groups.map((group) => {
+    const tabsHtml = group.notes.map((note) => {
+      const meta = getNoteTypeMeta(note.type);
+      const active = note.id === activeNoteId;
+      const closeBtn = active
+        ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
+        : "";
+      return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+        <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
+          <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
+          <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
+          <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
+        </button>
+        ${closeBtn}
+      </div>`;
+    }).join("");
+    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
+      <div class="session-note-tab-group-label" title="${esc(group.label)}">${esc(group.label)}</div>
+      <div class="session-note-tab-group-tabs">${tabsHtml}</div>
     </div>`;
   }).join("");
+
+  strip.innerHTML = createTab + groupsHtml;
 }
 
 function renderNotesPeekList() {
