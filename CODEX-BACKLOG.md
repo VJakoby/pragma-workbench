@@ -202,12 +202,35 @@ navbar / workspace system
 
 ---
 
-## P2-06 — Port Summary Dashboard
+## P2-06 — Engagement Summary Dashboard
 CONTEXT:
-Need overview of discovered infrastructure assets.
+Operators need a neutral overview of early- and mid-engagement findings when no note is open, without relying on recent activity or subjective prioritization.
 
 SCOPE:
-dashboard UI
+notes empty-state / dashboard UI
+
+EXPECTED BEHAVIOR:
+- Show a dashboard only when no note is currently open
+- Use summary cards for:
+  - `Ports`
+  - `Paths`
+  - `Loot`
+- Each card must show statistics only, such as:
+  - total count
+  - category breakdowns where available
+  - simple coverage/inventory information
+- The dashboard must not depend on:
+  - recent activity ordering
+  - “top” or “most relevant” judgments
+  - subjective prioritization logic
+- Each card may include one direct action to open the corresponding detailed surface
+- The dashboard must disappear as soon as a note is opened
+
+RULES:
+- Do not duplicate the full management/detail UI of Quick Log or Notes
+- Keep this as a summary/dashboard layer only
+- Keep the data session-scoped unless an existing workspace-wide source is already required by the underlying feature
+- Avoid introducing ranking or scoring logic
 
 ---
 
@@ -221,16 +244,6 @@ SCOPE:
 app initialization
 
 ---
-
-## P2-08 — Markdown Engine Migration
-CONTEXT:
-Current markdown engine lacks extensibility for advanced syntax.
-
-SCOPE:
-renderer system
-
-TARGET:
-remark OR markdown-it
 
 ## P2-09 — Direct Quick Log Access in Topbar
 STATUS: DONE
