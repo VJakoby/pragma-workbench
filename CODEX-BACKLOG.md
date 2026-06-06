@@ -558,6 +558,8 @@ RULES:
 ---
 
 ## B-11 — Quick Log Topbar Count Badge Right Padding
+STATUS: DONE
+
 
 CONTEXT:
 The small count badges shown on the `Ports`, `Paths`, and `Loot` topbar buttons feel cramped against the right edge, which makes the pill look visually off-balance.
