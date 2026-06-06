@@ -148,17 +148,32 @@ function isContextSwitcherIpValue(value) {
   return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value);
 }
 
+function parseContextSwitcherTargetInput(value) {
+  const next = normalizeContextSwitcherValue(value);
+  const [primaryValue = '', ...labelParts] = next.split(/\s+/);
+  return {
+    raw: next,
+    targetValue: primaryValue.trim(),
+    targetLabel: labelParts.join(' ').trim(),
+  };
+}
+
 function isContextSwitcherTargetLikeValue(value) {
-  if (!value || /\s/.test(value)) return false;
-  if (isContextSwitcherIpValue(value)) return true;
-  return /^[a-z0-9._-]+$/i.test(value) && /[a-z]/i.test(value);
+  const { targetValue } = parseContextSwitcherTargetInput(value);
+  if (!targetValue) return false;
+  if (isContextSwitcherIpValue(targetValue)) return true;
+  return /^[a-z0-9._-]+$/i.test(targetValue) && /[a-z]/i.test(targetValue);
 }
 
 function contextSwitcherTargetExists(value) {
-  const needle = normalizeContextSwitcherMatch(value);
+  const { targetValue, targetLabel } = parseContextSwitcherTargetInput(value);
+  const needles = [targetValue, targetLabel]
+    .map((part) => normalizeContextSwitcherMatch(part))
+    .filter(Boolean);
+  if (!needles.length) return false;
   const sess = activeSessionId && sessions[activeSessionId];
   const targets = (sess && sess.targets) || [];
-  return targets.some((target) => [target.ip, target.domain, target.label].some((part) => normalizeContextSwitcherMatch(part) === needle));
+  return targets.some((target) => [target.ip, target.domain, target.label].some((part) => needles.includes(normalizeContextSwitcherMatch(part))));
 }
 
 function contextSwitcherSessionExists(value) {
@@ -206,13 +221,15 @@ function createTargetFromContextSwitcher(value) {
   const sess = sessions[activeSessionId];
   if (!sess) return false;
   if (!sess.targets) sess.targets = [];
+  const { targetValue, targetLabel } = parseContextSwitcherTargetInput(next);
+  if (!targetValue) return false;
   const id = 'tgt_' + Date.now();
-  const isIp = isContextSwitcherIpValue(next);
+  const isIp = isContextSwitcherIpValue(targetValue);
   sess.targets.push({
     id,
-    ip: isIp ? next : '',
-    domain: isIp ? '' : next,
-    label: '',
+    ip: isIp ? targetValue : '',
+    domain: isIp ? '' : targetValue,
+    label: targetLabel,
   });
   activeTargetId = id;
   localStorage.setItem('ops-active-target', id);
@@ -614,6 +631,7 @@ async function renameTarget(id) {
   saveNotes();
   renderTargetsList();
   updateTargetSelector();
+  if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
   renderSessionSidebar();
   if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) renderContextSwitcherList();
 }
