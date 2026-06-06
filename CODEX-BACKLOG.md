@@ -671,6 +671,28 @@ RULES:
 - Do not alter unrelated note editor or topbar tab styles
 
 ---
+
+## B-16 — Sidebar Lower Section Must Scroll On Short Heights
+
+CONTEXT:
+When the browser window becomes short in height, the lower part of the left sidebar can extend beyond the visible viewport and become unreachable. This makes lower sidebar actions and navigation items impossible to click.
+
+SCOPE:
+views/partials/sidebar.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The left sidebar must remain usable on shorter window heights
+- The portion of the sidebar below the divider above `Engagement` must become vertically scrollable when needed
+- The active session block at the top may remain fixed while the lower navigation/content section scrolls independently
+- Existing sidebar content, spacing, and interaction behavior must otherwise remain intact
+
+RULES:
+- Keep the fix limited to sidebar vertical overflow behavior
+- Do not redesign the sidebar structure beyond what is required for the scrollable region
+- Do not alter unrelated notes list or content panel scrolling behavior
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

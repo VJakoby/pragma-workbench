@@ -272,6 +272,7 @@ body{
   box-shadow: inset -1px 0 0 rgba(255,255,255,0.02);
   display:flex;flex-direction:column;
   flex-shrink:0;overflow:hidden;
+  min-height:0;
   position:relative;
   transition:border-color 0.12s ease,box-shadow 0.12s ease;
 }
@@ -349,6 +350,20 @@ body{
   font-size:10px;font-weight:700;
   letter-spacing:0.08em;text-transform:uppercase;
   color:var(--text2);
+}
+.sidebar-scroll-region{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-bottom:8px;
+}
+.sidebar-scroll-region::-webkit-scrollbar{
+  width:3px;
+}
+.sidebar-scroll-region::-webkit-scrollbar-thumb{
+  background:color-mix(in srgb, var(--border2) 76%, var(--text2) 24%);
+  border-radius:999px;
 }
 .sidebar-subsection-hdr{
   padding:8px 13px 4px 22px;
@@ -3657,6 +3672,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .sidebar { transition: width 0.16s ease, border-color 0.12s ease, box-shadow 0.12s ease; }
 .sidebar.sidebar-icon-only {
   width: 48px !important; min-width: 48px;
+}
+.sidebar.sidebar-icon-only .sidebar-scroll-region{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-bottom:0;
 }
 .sidebar.sidebar-icon-only .sidebar-section-hdr,
 .sidebar.sidebar-icon-only .sidebar-subsection-hdr,
