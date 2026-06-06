@@ -580,6 +580,8 @@ RULES:
 ---
 
 ## B-12 — Unified Search Result Hover Border Too Weak
+STATUS: DONE
+
 
 CONTEXT:
 The hover treatment around unified search / command palette results is too subtle. The border does not stand out enough when scanning and hovering multiple results.
@@ -600,6 +602,8 @@ RULES:
 ---
 
 ## B-13 — Context Switcher Target Creation Should Parse Inline Label
+STATUS: DONE
+
 
 CONTEXT:
 When creating a new target from the context switcher, entering both an IP/domain and a label in one string currently loses the label information. Example input such as `1.1.1.1 Websrv01` should create the target with the IP preserved and the trailing text used as the target label.
@@ -617,6 +621,30 @@ RULES:
 - Keep the fix limited to context-switcher target creation parsing
 - Do not redesign the context switcher UI
 - Do not alter existing target switching behavior outside the create-target path
+
+---
+
+## B-14 — Unified Preview Must Respond To Container Width
+
+CONTEXT:
+Unified preview mode already supports an automatic stacked layout, but the trigger does not respond correctly to the actual available width of the unified note surface. When adjacent panels such as the KB sideview reduce the editor area, the preview may stay on the right even though the unified surface has become too narrow.
+
+SCOPE:
+public/app/styles.css
+public/app/note-editor.js
+
+EXPECTED BEHAVIOR:
+- In Unified preview mode, wider layouts may continue using the current side-by-side 50/50 editor and preview arrangement
+- When the actual available width of the unified note surface becomes too small, the layout must automatically switch so the preview moves below the editor instead of remaining on the right
+- The trigger must respond to container/editor-area width, not only overall browser viewport width
+- Opening adjacent panels such as the KB sideview must be able to cause the stacked layout when they reduce the unified surface width enough
+- The transition must be responsive and automatic, without requiring a manual toggle
+- The stacked layout must still preserve normal editing, preview updates, and scrolling behavior
+
+RULES:
+- Keep the fix limited to Unified preview layout behavior and its responsiveness trigger
+- Do not redesign the broader note editor toolbar or mode-switching behavior
+- Do not change classic split preview mode as part of this task
 
 ---
 # P3 — EXPERIMENTAL
