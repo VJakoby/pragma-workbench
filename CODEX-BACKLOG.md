@@ -625,6 +625,8 @@ RULES:
 ---
 
 ## B-14 — Unified Preview Must Respond To Container Width
+STATUS: DONE
+
 
 CONTEXT:
 Unified preview mode already supports an automatic stacked layout, but the trigger does not respond correctly to the actual available width of the unified note surface. When adjacent panels such as the KB sideview reduce the editor area, the preview may stay on the right even though the unified surface has become too narrow.
@@ -645,6 +647,26 @@ RULES:
 - Keep the fix limited to Unified preview layout behavior and its responsiveness trigger
 - Do not redesign the broader note editor toolbar or mode-switching behavior
 - Do not change classic split preview mode as part of this task
+
+---
+
+## B-15 — Increase KB Side-View Tab Font Size
+
+CONTEXT:
+The tabs shown in the KB side-view content panel are slightly too small, which makes section switching feel less readable than the rest of the side-panel UI.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The KB side-view tabs in `content-panel-tabs` must use a slightly larger font size
+- The tabs must remain visually consistent with the existing side-panel design
+- Spacing, active state, and overflow behavior must remain intact
+
+RULES:
+- Keep the change limited to KB side-view tab typography
+- Do not redesign the content panel tab layout
+- Do not alter unrelated note editor or topbar tab styles
 
 ---
 # P3 — EXPERIMENTAL
