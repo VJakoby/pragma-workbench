@@ -556,6 +556,67 @@ RULES:
 - Keep the grouping treatment lightweight and readable on narrower widths
 
 ---
+
+## B-11 — Quick Log Topbar Count Badge Right Padding
+
+CONTEXT:
+The small count badges shown on the `Ports`, `Paths`, and `Loot` topbar buttons feel cramped against the right edge, which makes the pill look visually off-balance.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The `Ports`, `Paths`, and `Loot` count badges must have slightly more right-side padding
+- The badges must keep their current overall style, color, and placement
+- Left-side spacing and alignment must remain visually consistent with the surrounding topbar controls
+
+RULES:
+- Keep the change limited to badge spacing only
+- Do not redesign the Quick Log topbar buttons
+- Do not alter badge color or typography unless strictly required by the spacing fix
+
+---
+
+## B-12 — Unified Search Result Hover Border Too Weak
+
+CONTEXT:
+The hover treatment around unified search / command palette results is too subtle. The border does not stand out enough when scanning and hovering multiple results.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Hovering a unified search result must show a more prominent border/frame
+- The result should remain visually consistent with the current command palette design
+- The stronger hover border must apply to both hovered and keyboard-selected result rows where appropriate
+
+RULES:
+- Keep the change limited to command palette result hover/selected styling
+- Do not redesign the command palette layout
+- Do not broaden scope into result grouping or search logic
+
+---
+
+## B-13 — Context Switcher Target Creation Should Parse Inline Label
+
+CONTEXT:
+When creating a new target from the context switcher, entering both an IP/domain and a label in one string currently loses the label information. Example input such as `1.1.1.1 Websrv01` should create the target with the IP preserved and the trailing text used as the target label.
+
+SCOPE:
+public/app/targets.js
+
+EXPECTED BEHAVIOR:
+- Creating a target from the context switcher must support a value in the form `<ip-or-domain> <label>`
+- The first token should be used as the IP or domain value
+- The remaining text after the first space should be stored as the target label
+- Existing single-value target creation behavior must remain unchanged
+
+RULES:
+- Keep the fix limited to context-switcher target creation parsing
+- Do not redesign the context switcher UI
+- Do not alter existing target switching behavior outside the create-target path
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
