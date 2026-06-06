@@ -700,6 +700,7 @@ RULES:
 ---
 
 ## B-16 — Sidebar Lower Section Must Scroll On Short Heights
+STATUS: DONE
 
 CONTEXT:
 When the browser window becomes short in height, the lower part of the left sidebar can extend beyond the visible viewport and become unreachable. This makes lower sidebar actions and navigation items impossible to click.
@@ -722,6 +723,7 @@ RULES:
 ---
 
 ## B-17 — Ports Badge Number Is Squeezed Against Right Edge
+STATUS: DONE
 
 CONTEXT:
 The number inside the `Ports` badge in the topbar Quick Log group sits too close to the right edge of the badge. This makes the count look visually squeezed compared to the other badge treatments in the interface.
@@ -738,6 +740,29 @@ RULES:
 - Keep the fix limited to the `Ports` badge spacing/padding treatment
 - Do not redesign the Quick Log topbar group
 - Do not alter unrelated badge colors, counts, or behavior
+
+---
+
+## B-18 — Move Topbar Help Button Beside Theme Switcher
+
+CONTEXT:
+The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
+
+SCOPE:
+views/partials/topbar.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The `(?)` help button must move to the far-right side of the topbar
+- It must sit directly beside the Light/Dark mode switcher
+- Existing help-button behavior must remain unchanged
+- Existing theme switcher behavior must remain unchanged
+- The surrounding topbar layout should continue to behave correctly across narrower widths
+
+RULES:
+- Keep the change limited to topbar control placement and spacing
+- Do not redesign unrelated topbar controls
+- Do not alter the help modal or theme-switch logic
 
 ---
 # P3 — EXPERIMENTAL
