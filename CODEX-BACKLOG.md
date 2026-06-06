@@ -720,6 +720,26 @@ RULES:
 - Do not alter unrelated notes list or content panel scrolling behavior
 
 ---
+
+## B-17 — Ports Badge Number Is Squeezed Against Right Edge
+
+CONTEXT:
+The number inside the `Ports` badge in the topbar Quick Log group sits too close to the right edge of the badge. This makes the count look visually squeezed compared to the other badge treatments in the interface.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The number inside the `Ports` badge must have enough right-side breathing room
+- The badge should look visually balanced rather than pressed against the right edge
+- The overall Quick Log topbar style and placement must remain unchanged
+
+RULES:
+- Keep the fix limited to the `Ports` badge spacing/padding treatment
+- Do not redesign the Quick Log topbar group
+- Do not alter unrelated badge colors, counts, or behavior
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

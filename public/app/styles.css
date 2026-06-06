@@ -5899,6 +5899,7 @@ body.enc-active-body .content-panel {
 .svc-topbar-split-count {
   background: rgba(var(--green-rgb),0.24); color: var(--green);
   font-size: 11px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
   border: 1px solid rgba(var(--green-rgb),0.34);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(var(--green-rgb),0.08);
   border-radius: 999px; padding: 1px 11px 1px 7px; min-width: 22px; margin-inline: 2px; text-align: center;
@@ -5907,6 +5908,10 @@ body.enc-active-body .content-panel {
 }
 .svc-topbar-btn-count.has-entries,
 .svc-topbar-split-count.has-entries { display: inline-block; }
+#svcTopbarCountPorts{
+  padding-left:8px;
+  padding-right:10px;
+}
 .todo-topbar-btn-count {
   background: rgba(var(--accent-rgb),0.16); color: var(--accent);
   font-size: 11px; font-weight: 700;
