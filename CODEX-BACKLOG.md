@@ -651,6 +651,8 @@ RULES:
 ---
 
 ## B-15 — Increase KB Side-View Tab Font Size
+STATUS: DONE
+
 
 CONTEXT:
 The tabs shown in the KB side-view content panel are slightly too small, which makes section switching feel less readable than the rest of the side-panel UI.
