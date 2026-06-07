@@ -809,6 +809,26 @@ RULES:
 - Do not alter unrelated KB navigation behavior
 
 ---
+
+## B-21 — Unified Search Tooltip Should Match Control Label
+
+CONTEXT:
+The topbar control is labeled `Unified search`, but its hover tooltip still says `Quick open (Cmd+K)`. This creates inconsistent wording for the same control.
+
+SCOPE:
+views/partials/topbar.ejs
+
+EXPECTED BEHAVIOR:
+- The unified search trigger tooltip must use wording consistent with the visible control label
+- The tooltip should read `Unified search (Cmd+K)`
+- Existing shortcut behavior and button layout must remain unchanged
+
+RULES:
+- Keep the change limited to unified search trigger wording
+- Do not redesign the topbar or search behavior
+- Do not alter unrelated tooltips
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
