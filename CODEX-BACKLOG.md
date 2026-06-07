@@ -787,6 +787,28 @@ RULES:
 - Do not alter unrelated note editor, sidebar, or topbar layout behavior
 
 ---
+
+## B-20 — Some Port Service Links Do Not Resolve To Existing KB Docs
+
+CONTEXT:
+Certain services shown in the `Ports` Quick Log view do not link to their matching Knowledge Base documents even though the corresponding markdown file exists and the service is already represented in the KB indexing layer. One example is `RPC`, where `rpc.md` exists but the link resolution still fails.
+
+SCOPE:
+public/app/quick-log.js
+server/lib/kb-index.js
+
+EXPECTED BEHAVIOR:
+- Services shown in the `Ports` view must open the correct KB service document when a matching service document exists
+- Existing service mappings and known aliases must be respected consistently
+- File-backed service docs such as `rpc.md`, `msrpc.md`, `netbios.md`, `ldaps.md`, `postgresql.md`, and similar known variants should resolve reliably
+- Known working service links must remain unchanged
+
+RULES:
+- Keep the fix limited to Quick Log port-to-service KB link resolution and supporting KB service slug normalization
+- Do not redesign the Quick Log UI
+- Do not alter unrelated KB navigation behavior
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

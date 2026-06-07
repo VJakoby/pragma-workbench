@@ -2278,6 +2278,47 @@ function normalizeKbServiceLookupValue(value) {
     .trim();
 }
 
+function normalizeKbServiceFileStem(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\.md$/i, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function getQuickLogServiceLookupAliases(entry) {
+  const aliases = new Set();
+  const serviceValue = normalizeKbServiceLookupValue(entry?.service || '');
+  const serviceSlug = normalizeKbServiceFileStem(serviceValue);
+  if (serviceSlug) aliases.add(serviceSlug);
+
+  const portValue = String(entry?.port || '').trim();
+  if (portValue === '111') {
+    aliases.add('rpc');
+    aliases.add('rpcbind');
+  }
+  if (portValue === '135') aliases.add('msrpc');
+  if (portValue === '139') aliases.add('netbios');
+  if (portValue === '636') aliases.add('ldaps');
+  if (portValue === '5432') aliases.add('postgresql');
+  if (portValue === '1521') {
+    aliases.add('oracle_db');
+    aliases.add('oracledb');
+  }
+
+  if (serviceValue.includes('rpc')) aliases.add('rpc');
+  if (serviceValue.includes('msrpc') || serviceValue.includes('microsoft rpc')) aliases.add('msrpc');
+  if (serviceValue.includes('netbios')) aliases.add('netbios');
+  if (serviceValue.includes('ldaps')) aliases.add('ldaps');
+  if (serviceValue.includes('postgres')) aliases.add('postgresql');
+  if (serviceValue.includes('oracle')) {
+    aliases.add('oracle_db');
+    aliases.add('oracledb');
+  }
+
+  return Array.from(aliases);
+}
+
 function findKbServiceForQuickLogEntry(entry) {
   if (!entry || typeof getKbCollection !== 'function') return null;
   const items = getKbCollection('services') || [];
@@ -2285,15 +2326,16 @@ function findKbServiceForQuickLogEntry(entry) {
 
   const portValue = String(entry.port || '').trim();
   const serviceValue = normalizeKbServiceLookupValue(entry.service || '');
-  const serviceSlug = serviceValue.replace(/\s+/g, '_');
+  const lookupAliases = getQuickLogServiceLookupAliases(entry);
 
   let hit = null;
   if (portValue) {
     hit = items.find((item) => String(item.id || '').trim() === portValue)
       || items.find((item) => String(item.port || '').split('/')[0].trim() === portValue);
   }
-  if (!hit && serviceSlug) {
-    hit = items.find((item) => String(item.id || '').trim().toLowerCase() === serviceSlug)
+  if (!hit && lookupAliases.length) {
+    hit = items.find((item) => lookupAliases.includes(String(item.id || '').trim().toLowerCase()))
+      || items.find((item) => lookupAliases.includes(normalizeKbServiceFileStem(item.file || '')))
       || items.find((item) => normalizeKbServiceLookupValue(item.name || '') === serviceValue);
   }
   return hit || null;
