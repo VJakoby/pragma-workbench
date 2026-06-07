@@ -74,14 +74,15 @@ My idea for PRAGMA keeps everything in the same view — structured enough to be
 ```bash
 cp .example.env .env
 
-# Point towards your local KB directory
-PRAGMA_KB_PATH=/path/to/your/local/kb-dir
-# or
-# Document it from scratch and start fresh
+# Optional:
+# Set PRAGMA_KB_PATH to use an existing knowledge base.
+# Leave it unset to start with a fresh, empty KB.
+
 docker compose up -d --build
-...
-Open `http://localhost:3000` and start with your engagement/CTF.
 ```
+
+Open `http://localhost:3000` and start working.
+
 
 ### Direct Node.js
 
@@ -89,9 +90,9 @@ Open `http://localhost:3000` and start with your engagement/CTF.
 cp .example.env .env
 npm install
 npm start
-...
-Open http://localhost:3000
+
 ```
+Open http://localhost:3000
 
 ## Full Setup Guides
 
