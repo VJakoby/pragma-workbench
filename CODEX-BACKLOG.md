@@ -765,6 +765,28 @@ RULES:
 - Do not alter the help modal or theme-switch logic
 
 ---
+
+## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
+
+CONTEXT:
+The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
+
+SCOPE:
+public/app/styles.css
+views/partials/main-panel.ejs
+
+EXPECTED BEHAVIOR:
+- The hidden-notes session tab row must have a small visual gap above the editor area below it
+- A spacing of roughly `5px` between the tab row and editor surface is expected
+- The `New` tab container and target-grouped tab containers should use the same current radius on all four corners, not only the top corners
+- Existing tab grouping, scrolling, and active-state behavior must remain intact
+
+RULES:
+- Keep the change limited to hidden note-tab strip spacing and corner treatment
+- Do not redesign the tab grouping logic or note editor structure beyond what is required for this spacing fix
+- Do not alter unrelated note editor, sidebar, or topbar layout behavior
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
