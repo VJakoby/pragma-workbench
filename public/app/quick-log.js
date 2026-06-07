@@ -1044,7 +1044,7 @@ async function clearActiveQuickLog() {
     loot: { title: 'Clear Loot', key: 'loot', noun: 'loot entries' },
   };
   const config = labels[_activeSvcTab] || labels.ports;
-  const entries = Array.isArray(sess[config.key]) ? sess[config.key] : [];
+  const entries = getActiveQuickLogEntries();
   if (!entries.length) return;
 
   try {
@@ -1052,7 +1052,7 @@ async function clearActiveQuickLog() {
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
       title: config.title,
       bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
-      description: `Remove all ${entries.length} ${config.noun} from this session?`,
+      description: `Remove all ${entries.length} visible ${config.noun}?`,
       confirmLabel: 'Clear All',
       danger: true,
     });
@@ -1060,7 +1060,8 @@ async function clearActiveQuickLog() {
     return;
   }
 
-  sess[config.key] = [];
+  const removeIds = new Set(entries.map((entry) => entry.id));
+  sess[config.key] = (Array.isArray(sess[config.key]) ? sess[config.key] : []).filter((entry) => !removeIds.has(entry?.id));
   const syncedNetworkNotes = config.key === 'services'
     ? [...new Set(entries.map(entry => entry?.target_id).filter(Boolean))]
         .map(targetId => syncSessionServicesToNetworkEnumerationNote(targetId, false))
@@ -1239,14 +1240,15 @@ function parseAndPreviewPorts() {
     commitBtn.style.display = 'none';
     return;
   }
-  const existing = new Set(getSessionServices().map(s => `${s.port}/${s.proto}`));
-  const fresh = _portParsed.filter(r => !existing.has(`${r.port}/${r.proto}`));
+  const previewTargetId = resolveQuickLogTargetId();
+  const existing = new Set(getSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id || previewTargetId)));
+  const fresh = _portParsed.filter(r => !existing.has(buildScopedServiceKey(r.port, r.proto, previewTargetId)));
   const dupes = _portParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_portParsed.length}</span> port${_portParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += '</div><table class="svc-table svc-table-ports" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
   html += _portParsed.map(r => {
-    const isDupe = existing.has(`${r.port}/${r.proto}`);
+    const isDupe = existing.has(buildScopedServiceKey(r.port, r.proto, previewTargetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(r.port)}${r.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(r.proto)}</span>` : ''}</td><td>${esc(r.service || '—')}</td><td style="color:var(--text2)">${esc(r.version || '')}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -1264,11 +1266,13 @@ function commitPortParse() {
   if (!_portParsed.length) return;
   if (!ensureActiveSession('add ports')) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
   const targetId = resolveQuickLogTargetId();
+  const existing = new Set(getAllSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id)));
   let added = 0;
   for (const r of _portParsed) {
-    if (existing.has(`${r.port}/${r.proto}`)) continue;
+    const key = buildScopedServiceKey(r.port, r.proto, targetId);
+    if (existing.has(key)) continue;
+    existing.add(key);
     const entry = { id: `svc_${Date.now()}_${added}`, target_id: targetId, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
     sessions[activeSessionId].services.push(entry);
     added++;
@@ -1464,14 +1468,15 @@ function parseAndPreviewPaths() {
     commitBtn.style.display = 'none';
     return;
   }
-  const existing = new Set(getSessionPaths().map(p => p.path));
-  const fresh = _pathParsed.filter(r => !existing.has(r.path));
+  const previewTargetId = resolveQuickLogTargetId();
+  const existing = new Set(getSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id || previewTargetId)));
+  const fresh = _pathParsed.filter(r => !existing.has(buildScopedPathKey(r.path, previewTargetId)));
   const dupes = _pathParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_pathParsed.length}</span> path${_pathParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += '</div><table class="path-table" style="margin-bottom:4px"><thead><tr><th>Status</th><th>Path</th><th>Size</th></tr></thead><tbody>';
   html += _pathParsed.map(r => {
-    const isDupe = existing.has(r.path);
+    const isDupe = existing.has(buildScopedPathKey(r.path, previewTargetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td><span class="path-status ${statusClass(r.status)}">${esc(r.status || '—')}</span></td><td style="color:var(--text);word-break:break-all">${esc(r.path)}</td><td style="color:var(--muted)">${esc(r.size)}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -1489,11 +1494,13 @@ function commitPathParse() {
   if (!_pathParsed.length) return;
   if (!ensureActiveSession('add paths')) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const existing = new Set(sessions[activeSessionId].paths.map(p => p.path));
   const targetId = resolveQuickLogTargetId();
+  const existing = new Set(getAllSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id)));
   let added = 0;
   for (const r of _pathParsed) {
-    if (existing.has(r.path)) continue;
+    const key = buildScopedPathKey(r.path, targetId);
+    if (existing.has(key)) continue;
+    existing.add(key);
     sessions[activeSessionId].paths.push({ id: `path_${Date.now()}_${added}`, target_id: targetId, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
     added++;
   }
@@ -1575,9 +1582,43 @@ function commitPathEdit(pathId) {
   applySyncedNoteUpdate(syncedNetworkNote);
 }
 
-function getSessionPaths() {
+function getQuickLogScopeTargetId() {
+  return resolveQuickLogTargetId();
+}
+
+function getAllSessionServices() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].services || [];
+}
+
+function getAllSessionPaths() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
   return sessions[activeSessionId].paths || [];
+}
+
+function getAllSessionLoot() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return sessions[activeSessionId].loot || [];
+}
+
+function buildScopedServiceKey(port, proto = 'tcp', targetId = null) {
+  return `${targetId || ''}::${String(port || '').trim()}/${String(proto || 'tcp').trim().toLowerCase() || 'tcp'}`;
+}
+
+function buildScopedPathKey(path, targetId = null) {
+  return `${targetId || ''}::${String(path || '').trim()}`;
+}
+
+function buildScopedLootKey(type, credential, host = '', targetId = null) {
+  return `${targetId || ''}::${String(type || '').trim()}::${String(credential || '').trim()}::${String(host || '').trim()}`;
+}
+
+function getSessionPaths(options = {}) {
+  const entries = getAllSessionPaths();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  return entries.filter((entry) => (entry?.target_id || null) === targetId);
 }
 
 function renderPathTable() {
@@ -1628,9 +1669,12 @@ function parseSvcInput(raw) {
   return { port, proto, service, version, notes };
 }
 
-function getSessionServices() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].services || [];
+function getSessionServices(options = {}) {
+  const entries = getAllSessionServices();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  return entries.filter((entry) => (entry?.target_id || null) === targetId);
 }
 
 function escapeMarkdownTableCell(value) {
@@ -1849,7 +1893,7 @@ function syncServiceEntryToNetworkEnumerationNote(entry) {
 function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getSessionServices()
+  const rows = getAllSessionServices()
     .filter(entry => entry?.target_id === targetId)
     .map(parseServiceForNetworkRow)
     .filter(Boolean);
@@ -1875,7 +1919,7 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getSessionPaths()
+  const rows = getAllSessionPaths()
     .filter(entry => entry?.target_id === targetId)
     .map(parsePathForWebRow)
     .filter(Boolean);
@@ -2102,7 +2146,7 @@ function createNoteForService(svcId) {
     return;
   }
 
-  const svcs = getSessionServices();
+  const svcs = getAllSessionServices();
   const svc = svcs.find(s => s.id === svcId);
   if (!svc) {
     showToast('Service not found', 'err');
@@ -2277,9 +2321,17 @@ function setLootType(btn, type) {
   btn.classList.add('active');
 }
 
-function getSessionLoot() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].loot || [];
+function getSessionLoot(options = {}) {
+  const entries = getAllSessionLoot();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  const includeSessionWide = options.includeSessionWide !== false;
+  return entries.filter((entry) => {
+    const entryTargetId = entry?.target_id || null;
+    if (!entryTargetId) return includeSessionWide;
+    return entryTargetId === targetId;
+  });
 }
 
 function escapeCredentialsCell(value) {
@@ -2356,15 +2408,16 @@ function parseAndPreviewLoot() {
 
   const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
   const type = _activeLootType;
-  const existing = new Set(getSessionLoot().map(l => `${l.type}::${l.credential}::${l.host || ''}`));
-  const fresh = _lootParsed.filter(entry => !existing.has(`${type}::${entry.credential}::${host}`));
+  const targetId = resolveQuickLogTargetId();
+  const existing = new Set(getSessionLoot().map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id || targetId)));
+  const fresh = _lootParsed.filter(entry => !existing.has(buildScopedLootKey(type, entry.credential, host, targetId)));
   const dupes = _lootParsed.length - fresh.length;
 
   let html = `<div class="nmap-preview-hdr"><span>${_lootParsed.length}</span> entr${_lootParsed.length === 1 ? 'y' : 'ies'} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += `</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Type</th><th>Credential</th><th>Detected</th></tr></thead><tbody>`;
   html += _lootParsed.map(entry => {
-    const isDupe = existing.has(`${type}::${entry.credential}::${host}`);
+    const isDupe = existing.has(buildScopedLootKey(type, entry.credential, host, targetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(type)}</td><td>${esc(entry.credential)}</td><td style="color:var(--text2)">${entry.hasSecret ? 'username:secret' : 'username only'}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -2387,15 +2440,17 @@ function commitLootParse() {
   const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
   const note = (document.getElementById('lootNoteInput')?.value || '').trim();
   const type = _activeLootType;
-  const existing = new Set(sessions[activeSessionId].loot.map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  const targetId = resolveQuickLogTargetId();
+  const existing = new Set(getAllSessionLoot().map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   let added = 0;
 
   _lootParsed.forEach((item, idx) => {
-    const key = `${type}::${item.credential}::${host}`;
+    const key = buildScopedLootKey(type, item.credential, host, targetId);
     if (existing.has(key)) return;
     existing.add(key);
     const entry = {
       id: `loot_${Date.now()}_${idx}`,
+      target_id: targetId,
       type,
       credential: item.credential,
       host,
@@ -2485,7 +2540,7 @@ function findSessionCredentialsNote() {
 }
 
 function sessionHasCredentialSyncLootEntries() {
-  return getSessionLoot().some(lootEntryShouldSyncToCredentials);
+  return getAllSessionLoot().some(lootEntryShouldSyncToCredentials);
 }
 
 function ensureSessionCredentialsNote() {
@@ -2526,7 +2581,7 @@ function buildCredentialsBody() {
 function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
-  const rows = getSessionLoot()
+  const rows = getAllSessionLoot()
     .map(parseLootForCredentialsRow)
     .filter(Boolean);
   const shouldEnsureNote = !!createIfMissing || rows.length > 0 || sessionHasCredentialSyncLootEntries();
@@ -2547,7 +2602,7 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   return note;
 }
 
-function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
+function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false, targetId = resolveQuickLogTargetId() } = {}) {
   if (!ensureActiveSession('add loot')) return { entry: null, syncedCredentialsNote: false, duplicate: false };
   const cleanCredential = String(credential || '').trim();
   if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
@@ -2556,12 +2611,14 @@ function addLootEntryFromData({ type = 'other', credential = '', host = '', note
   const cleanType = String(type || 'other').trim() || 'other';
   const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
   const cleanNote = String(note || '').trim();
-  const dupeKey = `${cleanType}::${cleanCredential}::${cleanHost}`;
-  const existing = new Set(sessions[activeSessionId].loot.map((l) => `${l.type}::${l.credential}::${l.host || ''}`));
+  const cleanTargetId = String(targetId || '').trim() || null;
+  const dupeKey = buildScopedLootKey(cleanType, cleanCredential, cleanHost, cleanTargetId);
+  const existing = new Set(getAllSessionLoot().map((l) => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
 
   const entry = {
     id: `loot_${Date.now()}`,
+    target_id: cleanTargetId,
     type: cleanType,
     credential: cleanCredential,
     host: cleanHost,

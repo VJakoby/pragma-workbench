@@ -208,6 +208,13 @@ function getContextSwitcherQuickCreateItems() {
   }];
 }
 
+function refreshTargetScopedQuickLogUi() {
+  if (typeof renderSvcLogTable === 'function') renderSvcLogTable();
+  if (typeof renderPathTable === 'function') renderPathTable();
+  if (typeof renderLootTable === 'function') renderLootTable();
+  if (typeof updateSvcTabCounts === 'function') updateSvcTabCounts();
+}
+
 function createTargetFromContextSwitcher(value) {
   const next = normalizeContextSwitcherValue(value);
   if (!next || !activeSessionId) return false;
@@ -231,6 +238,7 @@ function createTargetFromContextSwitcher(value) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  refreshTargetScopedQuickLogUi();
   showToast('✓ Target created: ' + next);
   return true;
 }
@@ -531,6 +539,7 @@ function addTarget() {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  refreshTargetScopedQuickLogUi();
 }
 
 function setActiveTarget(id, opts = {}) {
@@ -540,6 +549,7 @@ function setActiveTarget(id, opts = {}) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  refreshTargetScopedQuickLogUi();
   if (opts.closeOverlay !== false) closeTargetsPanel();
 }
 
@@ -562,6 +572,7 @@ function deleteTarget(id) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  refreshTargetScopedQuickLogUi();
 }
 
 let _targetEditResolve = null;

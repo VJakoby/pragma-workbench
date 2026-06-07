@@ -445,6 +445,33 @@ RULES:
 ---
 
 
+## P2-20 — Target-Scoped Quick Log Filtering
+STATUS: DONE
+
+CONTEXT:
+Quick Log data supports target association, but entries are still surfaced too broadly across the session. This causes Ports, Paths, and Loot from one target to appear in contexts where another target is active.
+
+SCOPE:
+quick log + session/target context filtering
+
+EXPECTED BEHAVIOR:
+- `Ports` must show only entries for the active target when a target is selected
+- `Paths` must show only entries for the active target when a target is selected
+- `Loot` must support both:
+  - target-bound entries
+  - session-wide entries
+- Session-wide loot must remain visible regardless of active target
+- If no target is selected, session data may show across the full session
+- Duplicate prevention for imported/logged entries must respect `target_id`
+
+RULES:
+- Do not duplicate data per target
+- Preserve session-wide storage where appropriate
+- Use `target_id` as the source of truth for target-bound entries
+- Keep unassigned/session-wide entries visible only where that is logically correct
+
+---
+
 ## P2-19 — Topbar Search and Quick Log Emphasis
 STATUS: DONE
 
@@ -673,6 +700,7 @@ RULES:
 ---
 
 ## B-16 — Sidebar Lower Section Must Scroll On Short Heights
+STATUS: DONE
 
 CONTEXT:
 When the browser window becomes short in height, the lower part of the left sidebar can extend beyond the visible viewport and become unreachable. This makes lower sidebar actions and navigation items impossible to click.
@@ -691,6 +719,72 @@ RULES:
 - Keep the fix limited to sidebar vertical overflow behavior
 - Do not redesign the sidebar structure beyond what is required for the scrollable region
 - Do not alter unrelated notes list or content panel scrolling behavior
+
+---
+
+## B-17 — Ports Badge Number Is Squeezed Against Right Edge
+STATUS: DONE
+
+CONTEXT:
+The number inside the `Ports` badge in the topbar Quick Log group sits too close to the right edge of the badge. This makes the count look visually squeezed compared to the other badge treatments in the interface.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The number inside the `Ports` badge must have enough right-side breathing room
+- The badge should look visually balanced rather than pressed against the right edge
+- The overall Quick Log topbar style and placement must remain unchanged
+
+RULES:
+- Keep the fix limited to the `Ports` badge spacing/padding treatment
+- Do not redesign the Quick Log topbar group
+- Do not alter unrelated badge colors, counts, or behavior
+
+---
+
+## B-18 — Move Topbar Help Button Beside Theme Switcher
+
+CONTEXT:
+The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
+
+SCOPE:
+views/partials/topbar.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The `(?)` help button must move to the far-right side of the topbar
+- It must sit directly beside the Light/Dark mode switcher
+- Existing help-button behavior must remain unchanged
+- Existing theme switcher behavior must remain unchanged
+- The surrounding topbar layout should continue to behave correctly across narrower widths
+
+RULES:
+- Keep the change limited to topbar control placement and spacing
+- Do not redesign unrelated topbar controls
+- Do not alter the help modal or theme-switch logic
+
+---
+
+## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
+
+CONTEXT:
+The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
+
+SCOPE:
+public/app/styles.css
+views/partials/main-panel.ejs
+
+EXPECTED BEHAVIOR:
+- The hidden-notes session tab row must have a small visual gap above the editor area below it
+- A spacing of roughly `5px` between the tab row and editor surface is expected
+- The `New` tab container and target-grouped tab containers should use the same current radius on all four corners, not only the top corners
+- Existing tab grouping, scrolling, and active-state behavior must remain intact
+
+RULES:
+- Keep the change limited to hidden note-tab strip spacing and corner treatment
+- Do not redesign the tab grouping logic or note editor structure beyond what is required for this spacing fix
+- Do not alter unrelated note editor, sidebar, or topbar layout behavior
 
 ---
 # P3 — EXPERIMENTAL
