@@ -17,7 +17,7 @@ It blends localized knowledge-base building with active, fast-paced engagement n
 <img src="screenshots/pragma-workbench-main.png" width="700"></img>
 </div>
 
-## Key Features
+## 🏷️ Key Features
 * 🏠 **Local & Self-Hosted:** Complete data privacy. Your notes, findings, and intelligence stay on your machine.
 
 * 🎯**Context-Aware Interface:** A focused Markdown editor paired with a dynamic right-side panel that surfaces your KB, tactics, and search results without breaking your flow.
@@ -30,28 +30,28 @@ It blends localized knowledge-base building with active, fast-paced engagement n
 Protect sensitive operation notes and attachments with robust, client-side encryption. Your data is encrypted before it ever leaves the browser—ensuring complete privacy for high-stakes engagements.
 
 
-## Notice
+## ⚠️ Notice
 
-PRAGMA is a documentation and workflow tool for security testing.
+- PRAGMA // Workbench is a documentation and workflow tool for security testing.
 
-It does not interact with targets directly, but is intended for use in authorized environments only, such as professional engagements, lab setups, and CTF platforms.
+- It does not interact with targets directly, but is intended for use in authorized environments only, such as professional engagements, lab setups, and CTF platforms.
 
-You are responsible for ensuring your work complies with applicable laws and rules of engagement.
+- YOU are responsible for ensuring your work complies with applicable laws and rules of engagement.
 
-## What It Solves
+## 🚩 What It Solves
 
 Pentest work demands focus, but the tools do not support it well. Notes end up in one place, findings in another, methodology references somewhere else entirely. Generic editors have no concept of an engagement. Reporting platforms are built for output, not the process.
 
-My idea for PRAGMA keeps everything in the same view — structured enough to be useful, without breaking the flow.
+My idea for PRAGMA // Workbench keeps everything in the same view — structured enough to be useful, without breaking the focus.
 
-## What It Is Not
+## ❌ What It Is Not
 
 - Not a reporting tool
 - Not a team platform
 - Not an exploit framework
 - Not cloud-dependent
 
-## Tech Stack
+## 🧱 Tech Stack
 
 - Node.js
 - Express
@@ -65,14 +65,14 @@ My idea for PRAGMA keeps everything in the same view — structured enough to be
 - Docker / Docker Compose
 
 
-## Requirements
+## 🛠️ Requirements
 
 - Node.js 20+
 - Docker / Docker Compose optional
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Docker (Highly recommended)
 
@@ -114,6 +114,6 @@ These are optional. PRAGMA runs totally fine without them.
 
 ---
 
-## License
-
-AGPL-3.0-or-later
+## 📝 License
+Licensed under AGPL-3.0-or-later. 
+Third-party license notices are listed in [THIRD_PARTY_NOTICES](/docs/THIRD_PARTY_NOTICES).
