@@ -893,6 +893,29 @@ RULES:
 - Do not alter unrelated KB labels or navigation behavior
 
 ---
+
+## B-25 — Clarify Attachment Storage Note Roles And Widen Modal
+
+CONTEXT:
+In the attachment storage modal, the owner note and secondary linked notes use different visual treatments, but they are not labeled clearly enough. This makes it harder to understand which note owns the attachment versus which notes only reference it. The modal also feels too narrow when the list grows.
+
+SCOPE:
+public/app/notes.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The attachment storage modal must make the note relationship explicit
+- The owning note should be labeled clearly, for example with an `Owner` tag before the note title
+- Secondary referenced notes should be labeled clearly, for example with a `Link` tag before each note title
+- The modal should be wider so attachment cards and linked-note rows have more horizontal space
+- Existing attachment open/navigation behavior must remain unchanged
+
+RULES:
+- Keep the change limited to attachment storage modal labeling and width/layout styling
+- Do not redesign unrelated sidebar storage behavior
+- Do not alter attachment tracking or note-linking logic
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

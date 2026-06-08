@@ -334,8 +334,10 @@ function renderAttachmentStorageModal(payload) {
   listEl.innerHTML = items.map((item) => {
     const refsLabel = `${item.reference_count || 0} linked note${Number(item.reference_count || 0) === 1 ? "" : "s"}`;
     const statusLabel = item.orphaned ? 'orphaned' : item.missing ? 'missing' : (item.mode === 'encrypted' ? 'encrypted' : item.mode === 'raw' ? 'stored' : 'unresolved');
+    const ownerTag = '<span class="attachment-storage-role-tag owner">Owner</span>';
+    const linkTag = '<span class="attachment-storage-role-tag link">Link</span>';
     const ownerButton = item.owner_note_id
-      ? `<button type="button" class="attachment-storage-owner-link" onclick="openAttachmentStorageNote('${item.owner_note_id}')">${esc(item.owner_note_title || "Owner Note")}</button>`
+      ? `<div class="attachment-storage-note-ref owner">${ownerTag}<button type="button" class="attachment-storage-owner-link" onclick="openAttachmentStorageNote('${item.owner_note_id}')">${esc(item.owner_note_title || "Owner Note")}</button></div>`
       : '';
     const ownerSession = item.owner_session_name
       ? `<span class="attachment-storage-owner-session">${esc(item.owner_session_name)}</span>`
@@ -348,7 +350,7 @@ function renderAttachmentStorageModal(payload) {
       : '';
     const noteRefs = (Array.isArray(item.references) ? item.references : []).filter((ref) => ref.id !== item.owner_note_id);
     const refsHtml = noteRefs.slice(0, 5).map((ref) =>
-      `<button type="button" class="attachment-storage-note-link" onclick="openAttachmentStorageNote('${ref.id}')" title="${esc(ref.title || "Untitled")}">${esc(ref.title || "Untitled")}</button>`
+      `<div class="attachment-storage-note-ref">${linkTag}<button type="button" class="attachment-storage-note-link" onclick="openAttachmentStorageNote('${ref.id}')" title="${esc(ref.title || "Untitled")}">${esc(ref.title || "Untitled")}</button></div>`
     ).join('');
     const extraCount = Math.max(0, noteRefs.length - 5);
     const moreHtml = extraCount ? `<span class="attachment-storage-pill">+${extraCount} more</span>` : '';
