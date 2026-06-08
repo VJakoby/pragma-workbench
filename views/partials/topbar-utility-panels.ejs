@@ -68,8 +68,8 @@
                 placeholder="80/tcp http apache 2.4.49&hellip;"
                 autocomplete="off" spellcheck="false"
                 onkeydown="if(event.key==='Enter')addServiceLog()">
-              <button class="svc-quick-add-btn" onclick="addServiceLog()">+ Add</button>
-              <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
+              <button class="svc-quick-add-btn" style="background:var(--accent);border-color:var(--accent);color:#fff" onclick="toggleToolPaste('ports')" id="portPasteToggle" title="Paste tool output"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Import</button>
+              <button class="svc-quick-add-btn" style="background:var(--bg3);color:var(--btn-color);border-color:var(--border)" onclick="addServiceLog()">+ Add</button>
             </div>
             <div id="portPastePanel" style="display:none;flex-direction:column;gap:6px;margin-top:6px">
               <div class="svc-hint" style="margin-bottom:2px">Paste output from: <strong style="color:var(--text2)">nmap &middot; rustscan &middot; masscan</strong></div>

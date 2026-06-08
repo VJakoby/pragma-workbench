@@ -851,6 +851,27 @@ RULES:
 - Do not broaden scope into non-KB filesystem traversal
 
 ---
+
+## B-23 — Make Ports Import The Primary Quick Log Action
+
+CONTEXT:
+In the `Ports` Quick Log tab, entries are most often added through pasted/imported tool output rather than manual single-line entry. The current button order and styling still presents `+ Add` first, which does not reflect the more common workflow.
+
+SCOPE:
+views/partials/topbar-utility-panels.ejs
+
+EXPECTED BEHAVIOR:
+- In the `Ports` Quick Log tab, the `Import` button must appear before `+ Add`
+- The `Import` button must use the purple primary action styling
+- The `+ Add` button must remain available and functional
+- The change should apply only to the `Ports` Quick Log tab unless explicitly expanded later
+
+RULES:
+- Keep the fix limited to the `Ports` Quick Log button order and visual emphasis
+- Do not redesign the broader Quick Log layout
+- Do not alter `Paths` or `Loot` button order as part of this task
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
