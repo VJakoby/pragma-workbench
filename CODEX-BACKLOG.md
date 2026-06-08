@@ -829,6 +829,28 @@ RULES:
 - Do not alter unrelated tooltips
 
 ---
+
+## B-22 — Exclude Hidden/System Folders From Knowledge Base Indexing
+
+CONTEXT:
+The current Knowledge Base indexing walks directories recursively and only filters by `.md` extension. Hidden or system folders such as `.git`, `.obsidian`, `.trash`, and similar directories are not explicitly excluded. This means they can still be traversed, and any markdown files inside them could be picked up unintentionally.
+
+SCOPE:
+server/lib/kb-index.js
+server/lib/unified-search-index.js
+
+EXPECTED BEHAVIOR:
+- Knowledge Base indexing must continue to include valid `.md` files in supported KB locations
+- Hidden or system folders should be skipped during recursive traversal
+- Common directories such as `.git`, `.obsidian`, `.trash`, and other dot-prefixed folders should not be traversed
+- Normal visible KB folders and their markdown files must continue to work unchanged
+
+RULES:
+- Keep the fix limited to KB traversal/indexing behavior
+- Do not redesign KB structure handling
+- Do not broaden scope into non-KB filesystem traversal
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
