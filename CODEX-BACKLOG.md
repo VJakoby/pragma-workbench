@@ -853,6 +853,7 @@ RULES:
 ---
 
 ## B-23 — Make Ports Import The Primary Quick Log Action
+STATUS: DONE
 
 CONTEXT:
 In the `Ports` Quick Log tab, entries are most often added through pasted/imported tool output rather than manual single-line entry. The current button order and styling still presents `+ Add` first, which does not reflect the more common workflow.
@@ -870,6 +871,26 @@ RULES:
 - Keep the fix limited to the `Ports` Quick Log button order and visual emphasis
 - Do not redesign the broader Quick Log layout
 - Do not alter `Paths` or `Loot` button order as part of this task
+
+---
+
+## B-24 — Rename KB Sidebar Subheader To Sections
+
+CONTEXT:
+The main sidebar header already says `Knowledge Base`, so the current subheader label `Discovered Sections` feels overly verbose and slightly awkward in context.
+
+SCOPE:
+views/partials/sidebar.ejs
+
+EXPECTED BEHAVIOR:
+- The KB sidebar subheader should use the simpler label `Sections`
+- The change should remain purely textual
+- Existing KB sidebar behavior must remain unchanged
+
+RULES:
+- Keep the fix limited to the sidebar subheader wording
+- Do not redesign the sidebar layout
+- Do not alter unrelated KB labels or navigation behavior
 
 ---
 # P3 — EXPERIMENTAL
