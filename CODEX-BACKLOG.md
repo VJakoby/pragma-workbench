@@ -917,6 +917,26 @@ RULES:
 - Do not alter attachment tracking or note-linking logic
 
 ---
+
+## B-29 — Center Double-Digit Ports Badge Count
+
+CONTEXT:
+The `Ports` count badge in the topbar Quick Log control looks acceptable with single-digit values, but when the count reaches `10` or higher the number appears visually offset inside the pill. This makes the badge feel unbalanced compared to the other count indicators.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The `Ports` topbar count badge should keep its number visually centered for both single-digit and double-digit values
+- The badge should preserve its current overall style, color, and placement
+- Existing `Paths` and `Loot` badge behavior must remain unchanged unless the same fix is naturally shared by the same styling rule
+
+RULES:
+- Keep the change limited to badge centering/alignment styling
+- Do not redesign the Quick Log topbar group
+- Do not alter badge values, behavior, or visibility logic
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
