@@ -917,6 +917,32 @@ RULES:
 - Do not alter attachment tracking or note-linking logic
 
 ---
+
+## B-26 — Make Session Creation Modal More Guided And Clearly Segmented
+
+CONTEXT:
+The session modal opened from the `Active Session` control currently presents session creation fields and the existing-session list as one continuous surface. It works, but it does not feel especially guided for first use, and the boundary between creating a new engagement and selecting an existing one is too weak.
+
+SCOPE:
+views/partials/overlays.ejs
+public/app/styles.css
+public/app/workbench.js
+
+EXPECTED BEHAVIOR:
+- The upper portion of the modal should read clearly as a guided `Create Engagement Session` area
+- The creation area should feel more welcoming and intentional, with clearer section heading/copy than the current plain field stack
+- The existing sessions list should be visually separated in the lower portion of the modal using a distinct border, panel, divider, or similarly clear grouping treatment
+- The modal itself should be slightly wider to give both the form and the session list more breathing room
+- Creating a session from this modal should immediately close the modal and leave the new session opened/active
+- Existing import/select session behavior must remain unchanged
+
+RULES:
+- Keep the change limited to the session modal opened from the sidebar `Active Session` control
+- Do not redesign the first-run welcome modal as part of this task
+- Do not alter session creation logic beyond what is needed for the guided presentation
+- Preserve existing keyboard and click behavior for creating, importing, and switching sessions
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

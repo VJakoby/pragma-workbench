@@ -4525,14 +4525,49 @@ body.is-resizing *{cursor:col-resize!important}
 
 /* Session modal */
 
+.session-modal-box {
+  max-width: 640px;
+}
 .session-modal-body {
   padding: 14px 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   max-height: min(78vh, 720px);
   min-height: 0;
   overflow-y: auto;
+}
+.session-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.session-modal-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.session-modal-section-kicker {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.session-modal-section-copy {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text2);
+}
+.session-modal-create-panel {
+  padding: 2px 2px 0;
+}
+.session-modal-existing-panel {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border2) 78%, transparent 22%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg3) 82%, transparent 18%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--border) 70%, transparent 30%);
 }
 
 .session-field { display: flex; flex-direction: column; gap: 4px; }
@@ -4573,8 +4608,8 @@ body.is-resizing *{cursor:col-resize!important}
 .session-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 2px;
   min-height: 0;
   overflow: visible;
   max-height: none;
@@ -4585,6 +4620,16 @@ body.is-resizing *{cursor:col-resize!important}
   font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
   padding: 0 2px 4px;
+}
+.session-list-empty {
+  border: 1px dashed color-mix(in srgb, var(--border2) 72%, transparent 28%);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--bg2) 84%, transparent 16%);
 }
 .session-list-item {
   display: flex; flex-direction: column; gap: 4px;
