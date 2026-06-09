@@ -4569,6 +4569,12 @@ body.is-resizing *{cursor:col-resize!important}
   background: color-mix(in srgb, var(--bg3) 82%, transparent 18%);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--border) 70%, transparent 30%);
 }
+.session-modal-utility-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
 
 .session-field { display: flex; flex-direction: column; gap: 4px; }
 .session-field label {
