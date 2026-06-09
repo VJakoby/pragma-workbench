@@ -117,60 +117,71 @@
 </div>
 <!-- -- SESSION MODAL -- -->
 <div class="cmd-overlay" id="sessionOverlay">
-  <div class="cmd-box" style="max-width:540px">
+  <div class="cmd-box session-modal-box">
     <div class="cmd-input-row">
       <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
       <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
     </div>
     <div class="session-modal-body">
-      <!-- New session form -->
-      <div class="session-field">
-        <label>New session codename</label>
-        <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
-      </div>
-      <div class="session-field">
-        <label>Session domain (optional)</label>
-        <input id="newSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-        <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
-      </div>
-      <div class="session-field">
-        <label>Initial target (optional)</label>
-        <div class="session-inline-field">
-          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-          <input id="newSessionTargetDomain" type="text" placeholder="Target domain-name, e.g. dc01.corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+      <div class="session-modal-section session-modal-create-panel">
+        <div class="session-modal-section-head">
+          <div class="session-modal-section-kicker">Create Engagement Session</div>
+          <div class="session-modal-section-copy">Start a new engagement workspace here. Add an optional session domain and an initial target if you want the session ready for immediate work.</div>
         </div>
-        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
-      </div>
-      <div class="session-actions">
-        <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
-        <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
-        <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
-      </div>
-      <div class="session-field" id="attackerIpFieldWrap" style="display:none">
-        <label>Attacker IP for active session</label>
-        <div class="session-inline-field">
-          <input id="sessionAttackerIpInput" type="text" placeholder="e.g. 10.10.14.7" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionAttackerIp()">
-          <button class="session-btn secondary" type="button" onclick="saveActiveSessionAttackerIp()">Save</button>
+        <div class="session-field">
+          <label>New session codename</label>
+          <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
         </div>
-        <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
-      </div>
-      <div class="session-field">
-        <label>Summary author (optional)</label>
-        <div class="session-inline-field">
-          <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
-          <label class="summary-export-check" id="summaryExportCheck" style="margin-top:0">
-            <input type="checkbox" id="summaryPdfDefault">
-            Generate PDF by default
-            <span class="summary-export-badge" id="summaryExportBadge" aria-live="polite"></span>
-          </label>
+        <div class="session-field">
+          <label>Session domain (optional)</label>
+          <input id="newSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
         </div>
-        <div class="session-field-hint" id="summaryExportHint">Used for summary exports.</div>
+        <div class="session-field">
+          <label>Initial target (optional)</label>
+          <div class="session-inline-field">
+            <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+            <input id="newSessionTargetDomain" type="text" placeholder="Target domain-name, e.g. dc01.corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+            <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          </div>
+          <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
+        </div>
+        <div class="session-actions">
+          <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
+          <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
+          <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
+        </div>
+        <div class="session-field" id="attackerIpFieldWrap" style="display:none">
+          <label>Attacker IP for active session</label>
+          <div class="session-inline-field">
+            <input id="sessionAttackerIpInput" type="text" placeholder="e.g. 10.10.14.7" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionAttackerIp()">
+            <button class="session-btn secondary" type="button" onclick="saveActiveSessionAttackerIp()">Save</button>
+          </div>
+          <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
+        </div>
+        <div class="session-field">
+          <label>Summary author (optional)</label>
+          <div class="session-inline-field">
+            <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
+            <label class="summary-export-check" id="summaryExportCheck" style="margin-top:0">
+              <input type="checkbox" id="summaryPdfDefault">
+              Generate PDF by default
+              <span class="summary-export-badge" id="summaryExportBadge" aria-live="polite"></span>
+            </label>
+          </div>
+          <div class="session-field-hint" id="summaryExportHint">Used for summary exports.</div>
+        </div>
+        <div id="importFeedback" style="display:none"></div>
       </div>
-      <div id="importFeedback" style="display:none"></div>
-      <!-- Existing sessions -->
-      <div class="session-list" id="sessionList"></div>
+      <div class="session-modal-section session-modal-existing-panel">
+        <div class="session-modal-section-head">
+          <div class="session-modal-section-kicker">Existing Sessions</div>
+          <div class="session-modal-section-copy">Re-open an existing engagement, or manage its export and status from the list below.</div>
+        </div>
+        <button class="session-btn secondary session-modal-utility-btn" id="bakDownloadBtn" onclick="downloadBackup()" title="Download latest backup" aria-label="Download latest backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><polyline points="9,12 12,15 15,12"/><line x1="12" y1="9" x2="12" y2="15"/></svg> Backup Workbench</span></button>
+        <div class="session-list" id="sessionList"></div>
+      </div>
     </div>
   </div>
 </div>

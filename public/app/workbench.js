@@ -773,15 +773,15 @@ function selectWelcomeSession(id) {
 function renderSessionList() {
   const list = document.getElementById('sessionList');
   const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!list) return;
   if (!entries.length) {
-    list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
+    list.innerHTML = '<div class="session-list-empty">No sessions yet. Create your first engagement session above or import an existing <code>.session</code> file.</div>';
     return;
   }
   const noteCount   = id => Object.values(notes).filter(n => n.session_id === id).length;
   const targetCount = id => (sessions[id]?.targets || []).length;
   const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
-  list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
-    entries.map(s => {
+  list.innerHTML = entries.map(s => {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
@@ -842,6 +842,7 @@ async function createSession(source = 'session') {
   updateSessionAttackerIpField();
   clearSessionForm(source);
   if (source === 'welcome') closeWelcomeSessionModal(true);
+  if (source === 'session') closeSessionModal();
 }
 
 function updateSessionDomainField() {
