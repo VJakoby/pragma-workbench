@@ -895,6 +895,7 @@ RULES:
 ---
 
 ## B-25 — Clarify Attachment Storage Note Roles And Widen Modal
+STATUS: DONE
 
 CONTEXT:
 In the attachment storage modal, the owner note and secondary linked notes use different visual treatments, but they are not labeled clearly enough. This makes it harder to understand which note owns the attachment versus which notes only reference it. The modal also feels too narrow when the list grows.
