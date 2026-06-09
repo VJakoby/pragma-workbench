@@ -179,6 +179,14 @@
           <div class="session-modal-section-kicker">Existing Sessions</div>
           <div class="session-modal-section-copy">Re-open an existing engagement, or manage its export and status from the list below.</div>
         </div>
+        <div class="session-field" id="sessionDomainFieldWrap" style="display:none">
+          <label>Session-wide domain for active session</label>
+          <div class="session-inline-field">
+            <input id="sessionDomainInput" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionDomain()">
+            <button class="session-btn secondary" type="button" onclick="saveActiveSessionDomain()">Save</button>
+          </div>
+          <div class="session-field-hint">Default <code>DOMAIN</code> context for the full session. Use target-specific domains only when a single target needs to differ.</div>
+        </div>
         <button class="session-btn secondary session-modal-utility-btn" id="bakDownloadBtn" onclick="downloadBackup()" title="Download latest backup" aria-label="Download latest backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><polyline points="9,12 12,15 15,12"/><line x1="12" y1="9" x2="12" y2="15"/></svg> Backup Workbench</span></button>
         <div class="session-list" id="sessionList"></div>
       </div>
