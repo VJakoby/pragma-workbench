@@ -2168,6 +2168,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
   top:50%;
   z-index:7;
   display:flex;
+  align-items:center;
+  justify-content:center;
   flex-direction:column;
   overflow:hidden;
   width:22px;
@@ -2203,6 +2205,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .notes-list-edge-btn:first-child{
   border-top:none;
+  border-radius:0 6px 6px 0;
 }
 .notes-list-edge-rail:hover{
   border-color:rgba(196,181,253,0.8);

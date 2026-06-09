@@ -1272,7 +1272,6 @@ function applyNotesListVisibility() {
   const editorBtn = document.getElementById('notesListToggleBtnEditor');
   const listBtn = document.getElementById('notesListToggleBtn');
   const reopenBtn = document.getElementById('notesListReopenBtn');
-  const peekBtn = document.getElementById('notesListPeekBtn');
   if (layout) layout.classList.toggle('notes-list-hidden', notesListHidden);
   if (editorBtn) {
     editorBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
@@ -1282,7 +1281,6 @@ function applyNotesListVisibility() {
   }
   if (listBtn) listBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
   if (reopenBtn) reopenBtn.title = notesListHidden ? 'Show notes list' : 'Hide notes list';
-  if (peekBtn) peekBtn.title = 'Quick note switcher';
   if (!notesListHidden && typeof closeNotesPeek === 'function') closeNotesPeek();
   localStorage.setItem('ops-notes-list-hidden', notesListHidden ? '1' : '0');
 }
