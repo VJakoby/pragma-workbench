@@ -5945,7 +5945,13 @@ body.enc-active-body .content-panel {
 .svc-topbar-split-count.has-entries { display: inline-block; }
 #svcTopbarCountPorts{
   padding-left:8px;
-  padding-right:10px;
+  padding-right:8px;
+}
+#svcTopbarCountPorts.has-entries{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:24px;
 }
 .todo-topbar-btn-count {
   background: rgba(var(--accent-rgb),0.16); color: var(--accent);
