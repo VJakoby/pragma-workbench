@@ -324,6 +324,7 @@ function renderContextSwitcherList() {
   const list = document.getElementById('contextSwitcherList');
   const title = document.getElementById('contextSwitcherTitle');
   const helper = document.getElementById('contextSwitcherHelper');
+  const helperExample = document.getElementById('contextSwitcherHelperExample');
   const manageBtn = document.getElementById('contextSwitcherManageBtn');
   if (!list) return;
 
@@ -338,6 +339,11 @@ function renderContextSwitcherList() {
     helper.textContent = activeContextSwitcherTab === 'sessions'
       ? 'Type to filter sessions. Enter switches session and restores its last active target. New names offer quick session creation.'
       : 'Type to filter targets. Enter switches target and refreshes injected context. IP or host-like input offers quick target creation.';
+  }
+  if (helperExample) {
+    helperExample.innerHTML = activeContextSwitcherTab === 'sessions'
+      ? 'Quick create: type a new session name and press <code>Enter</code>'
+      : 'Quick create: type <code>X.X.X.X</code> or <code>X.X.X.X labelname</code> and press <code>Enter</code>';
   }
   if (manageBtn) manageBtn.textContent = activeContextSwitcherTab === 'sessions' ? 'Manage Sessions' : 'Manage Targets';
 

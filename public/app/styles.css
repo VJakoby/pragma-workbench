@@ -4985,6 +4985,17 @@ body.is-resizing *{cursor:col-resize!important}
   color: var(--muted);
   line-height: 1.45;
 }
+.context-switcher-helper-example {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.45;
+}
+.context-switcher-helper-example code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+}
 .context-switcher-list {
   padding: 10px 14px 12px;
   display: flex;
