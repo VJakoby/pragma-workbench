@@ -919,6 +919,7 @@ RULES:
 ---
 
 ## B-26 — Make Session Creation Modal More Guided And Clearly Segmented
+STATUS: DONE
 
 CONTEXT:
 The session modal opened from the `Active Session` control currently presents session creation fields and the existing-session list as one continuous surface. It works, but it does not feel especially guided for first use, and the boundary between creating a new engagement and selecting an existing one is too weak.
@@ -941,6 +942,56 @@ RULES:
 - Do not redesign the first-run welcome modal as part of this task
 - Do not alter session creation logic beyond what is needed for the guided presentation
 - Preserve existing keyboard and click behavior for creating, importing, and switching sessions
+
+---
+
+## B-27 — Move Backup Workbench Into Session Modal Utilities
+
+CONTEXT:
+`Backup Workbench` is a useful safety/export action, but it is secondary compared to the active session context and day-to-day navigation. Keeping it in the sidebar gives it too much persistent weight for an action that is used occasionally rather than continuously.
+
+SCOPE:
+views/partials/sidebar.ejs
+views/partials/overlays.ejs
+public/app/styles.css
+public/app/workbench.js
+
+EXPECTED BEHAVIOR:
+- `Backup Workbench` should no longer appear in the main left sidebar
+- The action should instead appear inside the session modal opened from `Active Engagement Session`
+- Inside that modal, it should live in the `Existing Sessions` section, below the section heading/copy and above the session list
+- The button should use a secondary/utility visual treatment, not a primary create-action treatment
+- Existing backup behavior and visibility rules must remain unchanged
+
+RULES:
+- Keep the change limited to relocating and styling the `Backup Workbench` control
+- Do not redesign encrypted workbench behavior as part of this task
+- Do not alter backup generation/download logic unless required for the relocation
+- Preserve current enable/disable visibility behavior for encrypted vs non-encrypted modes
+
+---
+
+## B-28 — Remove Obsolete Notes List Peek Button
+
+CONTEXT:
+The hidden-notes workflow now has session tabs and grouped target tabs for fast note switching. The older edge-mounted `Quick note switcher` / peek button is no longer necessary and adds redundant chrome beside the editor.
+
+SCOPE:
+views/partials/main-panel.ejs
+public/app/styles.css
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- The `notes-list-peek-btn` edge button should be removed
+- The remaining `Show notes list` edge button should stay available
+- The remaining edge button should be visually centered/positioned cleanly on its own instead of sharing space with a second control
+- Existing show/hide notes-list behavior must remain unchanged
+- Hidden-notes tab switching behavior must remain unchanged
+
+RULES:
+- Keep the change limited to removing the obsolete peek button and re-centering the remaining edge button
+- Do not redesign the hidden-notes tab strip as part of this task
+- Do not change note switching behavior outside the removed peek control
 
 ---
 # P3 — EXPERIMENTAL
