@@ -1061,29 +1061,37 @@ RULES:
 
 ---
 
-## B-34 — Generate Per-Host Findings Summary Markdown
+## B-34 — Generate Per-Host Summary Markdown From Engagement Data
 
 CONTEXT:
-Operators may want a report-oriented host summary that is kept current as findings are added or updated. This should be generated from structured findings rather than maintained manually, so host summaries stay consistent and easier to review.
+Operators may want a report-oriented host summary that is kept current as findings are added or updated, while also pulling in other engagement data that is often scattered across notes and loot. This should be generated rather than maintained manually, so host summaries stay consistent and easier to review.
 
 SCOPE:
-host findings summary generation
+host summary markdown generation
 
 EXPECTED BEHAVIOR:
-- The platform should generate and update a markdown summary document for each host that has findings
-- Generated host summaries should be derived from structured findings, not treated as the source of truth
-- Each host summary should include finding information such as:
+- The platform should generate and update a markdown summary document for each host
+- Generated host summaries should be derived from structured findings and other relevant engagement data, not treated as the source of truth
+- Each generated host summary should include sections such as:
+  - `## Machines/Targets`
+  - `## Credentials`
+  - `## Findings`
+- The `Machines/Targets` section should summarize the relevant host/target identity and context
+- The `Credentials` section should pull in relevant credential material from Loot where applicable
+- The `Findings` section should pull in issue items from the current Evidence/Findings workflow
+- Finding content in the generated summary should include information such as:
   - title
   - severity
   - type
   - host
   - POC
 - The generated summary should remain readable as a markdown document and suitable for later review/export
-- Updating a finding should update the corresponding host summary content
+- Updating related findings or supporting host data should update the corresponding host summary content
 
 RULES:
 - Do not replace primary engagement notes with generated summaries
 - Keep generated markdown as a derived artifact, not the authoritative source
+- Prefer pulling structured data from the existing system over requiring manual duplication into the summary
 - Avoid forcing manual edits directly into generated host-summary content unless an explicit hybrid model is later designed
 
 ---
