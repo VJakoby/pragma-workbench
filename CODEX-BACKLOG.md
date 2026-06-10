@@ -1011,6 +1011,106 @@ RULES:
 - Do not alter badge values, behavior, or visibility logic
 
 ---
+
+## B-32 — Rename Evidence Workflow To Findings
+
+CONTEXT:
+The current `Evidence` wording suggests raw proof collection, but the feature is increasingly being used as an operator-facing way to track reportable issues. In a pentest or CTF-style engagement workflow, `Findings` is clearer and better aligned with how operators think about issues they may want to summarize or report later.
+
+SCOPE:
+findings/evidence UI labels and wording
+
+EXPECTED BEHAVIOR:
+- User-facing `Evidence` labels should be renamed to `Findings` where the feature represents issue tracking rather than raw proof storage
+- The rename should apply consistently across topbar controls, modal titles, helper text, and related interface wording
+- Existing underlying behavior may remain unchanged in the first pass
+
+RULES:
+- Keep the first pass focused on naming and wording consistency
+- Do not redesign the broader workflow as part of the rename alone
+- Do not remove any raw proof capability that may still support the feature internally
+
+---
+
+## B-33 — Add Structured Findings Data Model
+
+CONTEXT:
+If the current `Evidence` workflow evolves into `Findings`, the platform needs a more structured finding representation than free-form issue text alone. This should support a pentest/report workflow without replacing normal engagement notes.
+
+SCOPE:
+findings data model and persistence
+
+EXPECTED BEHAVIOR:
+- Findings should support structured fields such as:
+  - `title`
+  - `severity`
+  - `type`
+  - `summary`
+  - `poc`
+  - `impact`
+  - `recommendation`
+  - `status`
+- Findings should be session-scoped with host association support
+- A finding should support at least one primary host, with room for optional expansion to multiple affected hosts later
+- Existing engagement notes should remain separate from findings
+
+RULES:
+- Keep the model compatible with the existing engagement workflow
+- Do not force findings to replace normal notes
+- Prefer a model that can support both host-specific and broader session-wide findings over time
+
+---
+
+## B-34 — Generate Per-Host Findings Summary Markdown
+
+CONTEXT:
+Operators may want a report-oriented host summary that is kept current as findings are added or updated. This should be generated from structured findings rather than maintained manually, so host summaries stay consistent and easier to review.
+
+SCOPE:
+host findings summary generation
+
+EXPECTED BEHAVIOR:
+- The platform should generate and update a markdown summary document for each host that has findings
+- Generated host summaries should be derived from structured findings, not treated as the source of truth
+- Each host summary should include finding information such as:
+  - title
+  - severity
+  - type
+  - host
+  - POC
+- The generated summary should remain readable as a markdown document and suitable for later review/export
+- Updating a finding should update the corresponding host summary content
+
+RULES:
+- Do not replace primary engagement notes with generated summaries
+- Keep generated markdown as a derived artifact, not the authoritative source
+- Avoid forcing manual edits directly into generated host-summary content unless an explicit hybrid model is later designed
+
+---
+
+## B-35 — Link Findings To Supporting Notes And Proof
+
+CONTEXT:
+Findings become more useful when operators can connect them back to the underlying engagement material that supports them, such as notes, commands, screenshots, attachments, or loot.
+
+SCOPE:
+findings linkage and supporting-reference workflow
+
+EXPECTED BEHAVIOR:
+- A finding should support links or references to supporting material such as:
+  - engagement notes
+  - attachments/screenshots
+  - commands or proof text
+  - loot/credentials where relevant
+- Operators should be able to move from a finding to its supporting context quickly
+- Supporting references should improve report-readiness without changing the normal note-taking flow
+
+RULES:
+- Keep findings as the structured issue layer, not a duplicate full note system
+- Do not require every finding to have every kind of supporting reference
+- Preserve existing note and attachment behavior where possible
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
