@@ -268,7 +268,7 @@ function evidenceTypeLabel(type) {
     cleanup: 'Cleanup',
     note: 'Note',
   };
-  return labels[type] || (type ? String(type) : 'Evidence');
+  return labels[type] || (type ? String(type) : 'Finding');
 }
 
 function buildEvidenceTypeOptionsHtml(selectedType = '') {
@@ -469,10 +469,10 @@ function buildEvidenceMarkdownBlock(entry) {
 function upsertEvidenceBlockInBody(body, entry) {
   const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
   const block = buildEvidenceMarkdownBlock(entry);
-  const sectionMatch = cleanBody.match(/^##\s+Evidence\s*$/im);
+  const sectionMatch = cleanBody.match(/^##\s+(?:Findings|Evidence)\s*$/im);
   if (!sectionMatch || sectionMatch.index == null) {
     const prefix = cleanBody.trimEnd();
-    return `${prefix}${prefix ? '\n\n' : ''}## Evidence\n\n${block}\n`;
+    return `${prefix}${prefix ? '\n\n' : ''}## Findings\n\n${block}\n`;
   }
   const sectionStart = sectionMatch.index;
   const sectionHeader = sectionMatch[0];
@@ -734,7 +734,7 @@ function renderEvidenceList() {
   updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
 
   if (!activeSessionId || !sessions[activeSessionId]) {
-    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured findings entries.</div>`;
     return;
   }
 
@@ -751,7 +751,7 @@ function renderEvidenceList() {
   });
   if (!entries.length) {
     if (!allEntries.length) {
-      listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
+      listEl.innerHTML = `<div class="todo-empty">No findings yet. Flag a command or proof block from a session note to add it here.</div>`;
       return;
     }
     listEl.innerHTML = `
@@ -769,7 +769,7 @@ function renderEvidenceList() {
           }).join('')}
         </select>
       </div>
-      <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
+      <div class="todo-empty">No findings match the current filters. Try clearing the type or target filter.</div>
     `;
     return;
   }
@@ -967,7 +967,7 @@ function deleteEvidenceEntry(entryId) {
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
   renderEvidenceList();
-  showToast('✓ Evidence unflagged');
+  showToast('✓ Finding unflagged');
 }
 
 function clearEvidenceEntries() {
@@ -2057,7 +2057,7 @@ function renderEvidenceRowActions(id) {
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
-      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
+      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag finding and keep the note content" aria-label="Unflag finding and keep the note content">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>

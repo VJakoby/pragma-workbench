@@ -1249,7 +1249,7 @@ function getEvidenceLeadLine(text) {
   return lines[0] || '';
 }
 
-function deriveEvidenceTitle(text, fallback = 'Evidence') {
+function deriveEvidenceTitle(text, fallback = 'Finding') {
   const lead = getEvidenceLeadLine(text)
     .replace(/^#+\s+/, '')
     .replace(/^>\s+/, '')
@@ -1259,7 +1259,7 @@ function deriveEvidenceTitle(text, fallback = 'Evidence') {
     .replace(/\*\*/g, '')
     .replace(/\*/g, '')
     .trim();
-  const title = lead || fallback || 'Evidence';
+  const title = lead || fallback || 'Finding';
   return title.length > 72 ? `${title.slice(0, 72).trim()}…` : title;
 }
 
@@ -1408,7 +1408,7 @@ function deriveEvidenceTitleHint(text, type = 'discovery') {
   if (/gobuster|ffuf|feroxbuster|dirsearch/.test(lower)) return 'Web enumeration result';
   if (/local\.txt/.test(lower)) return 'local.txt recovered';
   if (/proof\.txt/.test(lower)) return 'proof.txt recovered';
-  const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Evidence').trim();
+  const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Finding').trim();
   const derived = deriveEvidenceTitle(clean, label);
   return derived || label;
 }
@@ -1647,11 +1647,11 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
 
   const block = blockOverride || getNoteEvidenceBlockSelection();
   if (!block || !block.text.trim()) {
-    showToast('⚠ Select a line or block to flag as evidence', 'err');
+    showToast('⚠ Select a line or block to flag as finding', 'err');
     return;
   }
   if (isEvidenceBlockAlreadyFlagged(block)) {
-    showToast('⚠ This block is already flagged as evidence', 'err');
+    showToast('⚠ This block is already flagged as finding', 'err');
     return;
   }
 
@@ -1733,7 +1733,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   }
   setNoteSaveIndicator('saved', 'saved');
   if (lootDuplicate) showToast('ℹ Loot already logged');
-  showToast(`✓ Flagged as ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Evidence'}`);
+  showToast(`✓ Flagged as ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Finding'}`);
 }
 
 async function persistActiveNote(opts = {}) {
