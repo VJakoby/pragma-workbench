@@ -12,6 +12,46 @@ let _evidenceFilterType = '';
 let _evidenceFilterTarget = '';
 let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
 
+function buildQuickLogOptionMap(options) {
+  const list = Array.isArray(options) ? options : [];
+  return Object.fromEntries(list.map((item) => [item.value, item.label]));
+}
+
+const FINDING_SEVERITY_LABELS = buildQuickLogOptionMap(window.FINDING_SEVERITY_OPTIONS || []);
+const FINDING_SEVERITY_VALUES = new Set(Object.keys(FINDING_SEVERITY_LABELS));
+
+function normalizeEvidenceEntry(entry, index = 0) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  const normalized = { ...entry };
+  normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : `evidence_${Date.now()}_${index}`;
+  normalized.type = String(normalized.type || 'discovery').trim() || 'discovery';
+  normalized.title = String(normalized.title || '').trim();
+  normalized.summary = String(normalized.summary || normalized.details || '').trim();
+  normalized.details = normalized.summary;
+  normalized.impact = String(normalized.impact || '').trim();
+  normalized.recommendation = String(normalized.recommendation || '').trim();
+  normalized.source_command = String(normalized.source_command || '').trim();
+  normalized.target_id = normalized.target_id ? String(normalized.target_id).trim() : null;
+  normalized.source_note_id = normalized.source_note_id ? String(normalized.source_note_id).trim() : (normalized.note_id ? String(normalized.note_id).trim() : null);
+  normalized.note_id = normalized.note_id ? String(normalized.note_id).trim() : null;
+  normalized.sync_mode = String(normalized.sync_mode || 'export_only').trim() || 'export_only';
+  normalized.severity = FINDING_SEVERITY_VALUES.has(String(normalized.severity || '').trim()) ? String(normalized.severity).trim() : 'medium';
+  normalized.created = Number(normalized.created) || Date.now();
+  normalized.updated = Number(normalized.updated) || normalized.created;
+  return normalized;
+}
+
+function findingSeverityLabel(value) {
+  return FINDING_SEVERITY_LABELS[String(value || '').trim()] || 'Medium';
+}
+
+
+function buildFindingSeverityOptionsHtml(selectedValue = 'medium') {
+  const configured = Array.isArray(window.FINDING_SEVERITY_OPTIONS) ? window.FINDING_SEVERITY_OPTIONS : [];
+  return configured.map(({ value, label }) => `<option value="${esc(value)}"${value === selectedValue ? ' selected' : ''}>${esc(label)}</option>`).join('');
+}
+
+
 function ensureActiveSession(actionLabel = 'this action') {
   if (!activeSessionId || !sessions[activeSessionId]) {
     showToast(`⚠ Open a session first to ${actionLabel}`, 'err');
@@ -199,13 +239,15 @@ function updateTodoCount() {
 
 function getSessionEvidence() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].evidence || [];
+  return ensureSessionEvidence() || [];
 }
 
 function ensureSessionEvidence() {
   if (!activeSessionId || !sessions[activeSessionId]) return null;
-  if (!Array.isArray(sessions[activeSessionId].evidence)) sessions[activeSessionId].evidence = [];
-  return sessions[activeSessionId].evidence;
+  const current = Array.isArray(sessions[activeSessionId].evidence) ? sessions[activeSessionId].evidence : [];
+  const normalized = current.map((entry, index) => normalizeEvidenceEntry(entry, index)).filter(Boolean);
+  sessions[activeSessionId].evidence = normalized;
+  return normalized;
 }
 
 function updateEvidenceCount() {
@@ -310,9 +352,10 @@ function evidenceTargetDisplay(entry) {
 
 function renderEvidenceProofCell(entry) {
   const lines = [];
+  if (entry.summary) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Summary</span>${esc(entry.summary)}</span>`);
   if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
-  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
-  if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
+  if (entry.recommendation) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Recommendation</span>${esc(entry.recommendation)}</span>`);
+  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">POC</span><code>${esc(entry.source_command)}</code></span>`);
   return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
@@ -356,7 +399,7 @@ function getEvidenceSourceSnippet(entry) {
   const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
   const raw = range
     ? String(sourceNote.body || '').slice(range.from, range.to)
-    : String(entry.source_command || entry.details || '');
+    : String(entry.source_command || entry.summary || entry.details || '');
   const compact = String(raw || '')
     .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
     .replace(/```[a-z0-9_-]*\n?/gi, '')
@@ -402,10 +445,17 @@ async function jumpToEvidenceSource(entryId) {
 
   if (typeof noteEditor === 'undefined' || !noteEditor) return;
   const docText = noteEditor.state.doc.toString();
-  const range = findEvidenceMarkerRange(docText, entryId);
+  let range = findEvidenceMarkerRange(docText, entryId);
+  if (!range) {
+    const fallbackText = String(entry?.source_command || entry?.summary || entry?.details || '').trim();
+    if (fallbackText) {
+      const at = docText.indexOf(fallbackText);
+      if (at !== -1) range = { from: at, to: at + fallbackText.length };
+    }
+  }
   if (!range) {
     noteEditor.focus();
-    showToast?.('⚠ Evidence marker not found in note', 'err');
+    showToast?.('⚠ Source text not found in note', 'err');
     return;
   }
 
@@ -456,9 +506,11 @@ function buildEvidenceMarkdownBlock(entry) {
     `### ${evidenceTypeLabel(entry.type)}: ${entry.title}`,
     '',
     `- Target: ${targetText}`,
+    `- Severity: ${findingSeverityLabel(entry.severity)}`,
   ];
+  if (entry.summary) lines.push(`- Summary: ${entry.summary}`);
   if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
-  if (entry.details) lines.push(`- Details: ${entry.details}`);
+  if (entry.recommendation) lines.push(`- Recommendation: ${entry.recommendation}`);
   if (entry.source_command) {
     lines.push('', '```text', entry.source_command, '```');
   }
@@ -751,7 +803,7 @@ function renderEvidenceList() {
   });
   if (!entries.length) {
     if (!allEntries.length) {
-      listEl.innerHTML = `<div class="todo-empty">No findings yet. Flag a command or proof block from a session note to add it here.</div>`;
+      listEl.innerHTML = `<div class="todo-empty">No findings yet. Select a line or block from a session note and add it here.</div>`;
       return;
     }
     listEl.innerHTML = `
@@ -811,6 +863,12 @@ function renderEvidenceList() {
                     ${buildEvidenceTypeOptionsHtml(entry.type)}
                   </select>
                 </label>
+                <label class="evidence-edit-field">
+                  <span class="evidence-edit-label">Severity</span>
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSeverity_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                    ${buildFindingSeverityOptionsHtml(entry.severity || 'medium')}
+                  </select>
+                </label>
                 <label class="evidence-edit-field evidence-edit-field-title">
                   <span class="evidence-edit-label">Title</span>
                   <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
@@ -848,15 +906,19 @@ function renderEvidenceList() {
             </div>
             <div class="evidence-item-body evidence-item-body-editing">
               <label class="evidence-edit-field">
+                <span class="evidence-edit-label">Summary</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditSummary_${entry.id}" type="text" value="${esc(entry.summary || entry.details || '')}" placeholder="summary" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              </label>
+              <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Impact</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
               </label>
               <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Details</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <span class="evidence-edit-label">Recommendation</span>
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
               </label>
               <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Command</span>
+                <span class="evidence-edit-label">POC</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
               </label>
             </div>
@@ -878,6 +940,10 @@ function renderEvidenceList() {
           </div>
           ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
           <div class="evidence-item-meta">
+            <span class="evidence-meta-pill evidence-severity-pill ${esc(entry.severity || 'medium')}">
+              <span class="evidence-meta-key">Severity</span>
+              <span class="evidence-meta-value">${esc(findingSeverityLabel(entry.severity))}</span>
+            </span>
             <span class="evidence-meta-pill">
               <span class="evidence-meta-key">Sync</span>
               <span class="evidence-meta-value">${esc(syncLabel)}</span>
@@ -929,18 +995,22 @@ function addEvidenceEntry() {
     noteEl?.focus();
     return;
   }
-  const entry = {
+  const entry = normalizeEvidenceEntry({
     id: `evidence_${Date.now()}`,
     type,
     title,
+    severity: 'medium',
+    summary: details,
     details,
+    impact: '',
+    recommendation: '',
     source_command: sourceCommand,
     target_id: targetId,
     note_id: noteId,
     sync_mode: syncMode,
     created: Date.now(),
     updated: Date.now(),
-  };
+  });
   entries.push(entry);
   const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
   if (titleEl) titleEl.value = '';
@@ -998,9 +1068,12 @@ function commitEvidenceEdit(entryId) {
     return;
   }
   entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
+  entry.severity = (document.getElementById(`evidenceEditSeverity_${entryId}`)?.value || entry.severity || 'medium').trim();
   entry.title = title;
-  entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
+  entry.summary = (document.getElementById(`evidenceEditSummary_${entryId}`)?.value || '').trim();
+  entry.details = entry.summary;
   entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
+  entry.recommendation = (document.getElementById(`evidenceEditRecommendation_${entryId}`)?.value || '').trim();
   entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
   entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();

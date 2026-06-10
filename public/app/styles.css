@@ -5617,6 +5617,16 @@ body.enc-active-body .content-panel {
 }
 .pw-description strong { color: var(--text); }
 .pw-field { display: flex; flex-direction: column; gap: 5px; }
+.pw-field-grid {
+  display: grid;
+  gap: 10px;
+}
+.pw-field-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pw-field-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .pw-field label {
   font-family: 'JetBrains Mono', monospace; font-size: 13px;
   font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
@@ -6573,6 +6583,21 @@ body.enc-active-body .content-panel {
 .evidence-meta-pill.evidence-target-pill .evidence-target-cell {
   color: var(--green);
 }
+.evidence-meta-pill.evidence-severity-pill.critical { border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.12); }
+.evidence-meta-pill.evidence-severity-pill.critical .evidence-meta-key,
+.evidence-meta-pill.evidence-severity-pill.critical .evidence-meta-value { color: #fca5a5; }
+.evidence-meta-pill.evidence-severity-pill.high { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.1); }
+.evidence-meta-pill.evidence-severity-pill.high .evidence-meta-key,
+.evidence-meta-pill.evidence-severity-pill.high .evidence-meta-value { color: #f87171; }
+.evidence-meta-pill.evidence-severity-pill.medium { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.12); }
+.evidence-meta-pill.evidence-severity-pill.medium .evidence-meta-key,
+.evidence-meta-pill.evidence-severity-pill.medium .evidence-meta-value { color: #fbbf24; }
+.evidence-meta-pill.evidence-severity-pill.low { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); }
+.evidence-meta-pill.evidence-severity-pill.low .evidence-meta-key,
+.evidence-meta-pill.evidence-severity-pill.low .evidence-meta-value { color: #4ade80; }
+.evidence-meta-pill.evidence-severity-pill.info { border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.12); }
+.evidence-meta-pill.evidence-severity-pill.info .evidence-meta-key,
+.evidence-meta-pill.evidence-severity-pill.info .evidence-meta-value { color: #60a5fa; }
 .evidence-proof-cell {
   white-space: normal;
   line-height: 1.4;
@@ -6595,7 +6620,9 @@ body.enc-active-body .content-panel {
 }
 @media (max-width: 860px) {
   .evidence-edit-grid,
-  .evidence-item-body-editing {
+  .evidence-item-body-editing,
+  .pw-field-grid-2,
+  .pw-field-grid-3 {
     grid-template-columns: 1fr;
   }
 }

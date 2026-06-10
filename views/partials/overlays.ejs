@@ -397,7 +397,7 @@
 </div>
 
 <div class="pw-overlay" id="evidenceFlagOverlay">
-  <div class="pw-box" style="width:440px">
+  <div class="pw-box" style="width:520px">
     <div class="pw-header">
       <span class="pw-header-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
@@ -407,31 +407,47 @@
     </div>
     <div class="pw-body">
       <div class="pw-description">Review the selected note block, choose the finding type, and add any supporting context before saving it to the session tracker.</div>
-      <div class="pw-field">
-        <label>Type</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="enumeration">Enumeration</option>
-          <option value="initial_access">Initial Access</option>
-          <option value="execution">Execution</option>
-          <option value="persistence">Persistence</option>
-          <option value="privilege_escalation">Privilege Escalation</option>
-          <option value="credential_access">Credential Access</option>
-          <option value="discovery">Discovery</option>
-          <option value="lateral_movement">Lateral Movement</option>
-          <option value="pivoting">Pivoting</option>
-          <option value="collection">Collection</option>
-          <option value="exfiltration">Exfiltration</option>
-          <option value="cleanup">Cleanup</option>
-          <option value="proof">Proof</option>
-        </select>
+      <div class="pw-field-grid pw-field-grid-2">
+        <div class="pw-field">
+          <label>Type</label>
+          <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
+            <option value="enumeration">Enumeration</option>
+            <option value="initial_access">Initial Access</option>
+            <option value="execution">Execution</option>
+            <option value="persistence">Persistence</option>
+            <option value="privilege_escalation">Privilege Escalation</option>
+            <option value="credential_access">Credential Access</option>
+            <option value="discovery">Discovery</option>
+            <option value="lateral_movement">Lateral Movement</option>
+            <option value="pivoting">Pivoting</option>
+            <option value="collection">Collection</option>
+            <option value="exfiltration">Exfiltration</option>
+            <option value="cleanup">Cleanup</option>
+            <option value="proof">Proof</option>
+          </select>
+        </div>
+        <div class="pw-field">
+          <label>Severity</label>
+          <select class="pw-input evidence-flag-select" id="evidenceFlagSeverity" onkeydown="handleEvidenceFlagKey(event)">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </div>
       </div>
       <div class="pw-field">
         <label>Title</label>
         <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
       </div>
       <div class="pw-field">
-        <label>Details</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <label>Summary</label>
+        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+      </div>
+      <div class="pw-field">
+        <label>Recommendation</label>
+        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
       </div>
       <div class="pw-field">
         <label>Command / Block</label>
@@ -477,7 +493,7 @@
       </div>
       <div class="pw-actions">
         <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
-        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
+        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Finding</button>
       </div>
     </div>
   </div>
@@ -488,7 +504,7 @@
     <span aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
     </span>
-    <span>Add as Evidence</span>
+    <span>Add as Finding</span>
   </button>
 </div>
 

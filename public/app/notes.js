@@ -36,7 +36,15 @@ const EVIDENCE_TYPE_OPTIONS = [
   { value: 'cleanup', label: 'Cleanup' },
   { value: 'proof', label: 'Proof' },
 ];
+const FINDING_SEVERITY_OPTIONS = [
+  { value: 'critical', label: 'Critical' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+  { value: 'info', label: 'Info' },
+];
 window.EVIDENCE_TYPE_OPTIONS = EVIDENCE_TYPE_OPTIONS;
+window.FINDING_SEVERITY_OPTIONS = FINDING_SEVERITY_OPTIONS;
 
 function getLeadingNoteH1(body) {
   const match = String(body || '').match(/^\s*#\s+(.+?)\s*(?:\n|$)/);
@@ -1334,14 +1342,15 @@ function syncEvidenceEntriesFromNote(noteId) {
     const block = blocks.get(entry.id);
     if (block == null) return;
     const nextCommand = deriveEvidenceCommand(block);
-    const nextDetails = deriveEvidenceDetails(block, nextCommand);
+    const nextSummary = deriveEvidenceDetails(block, nextCommand);
     let entryChanged = false;
     if (nextCommand && (entry.source_command || '') !== nextCommand) {
       entry.source_command = nextCommand;
       entryChanged = true;
     }
-    if (!entry.details && nextDetails) {
-      entry.details = nextDetails;
+    if (!(entry.summary || '').trim() && nextSummary) {
+      entry.summary = nextSummary;
+      entry.details = entry.details || nextSummary;
       entryChanged = true;
     }
     if (entryChanged) {
@@ -1495,7 +1504,7 @@ function syncEvidenceSelectionPrompt(update) {
   }
 
   const block = getNoteEvidenceBlockSelection({ requireSelection: true });
-  if (!block || !block.text.trim() || isEvidenceBlockAlreadyFlagged(block)) {
+  if (!block || !block.text.trim()) {
     hideEvidenceSelectionPrompt();
     return;
   }
@@ -1539,13 +1548,15 @@ function syncEvidenceFlagLootUi() {
   if (!syncRelevant) syncEl.checked = false;
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', command = '', loot = null } = {}) {
+function openEvidenceFlagDialog({ title = '', type = 'discovery', severity = 'medium', summary = '', recommendation = '', command = '', loot = null } = {}) {
   return new Promise((resolve) => {
     _evidenceFlagResolver = resolve;
     const overlay = document.getElementById('evidenceFlagOverlay');
     const titleEl = document.getElementById('evidenceFlagTitle');
     const typeEl = document.getElementById('evidenceFlagType');
-    const detailsEl = document.getElementById('evidenceFlagDetails');
+    const severityEl = document.getElementById('evidenceFlagSeverity');
+    const summaryEl = document.getElementById('evidenceFlagSummary');
+    const recommendationEl = document.getElementById('evidenceFlagRecommendation');
     const commandEl = document.getElementById('evidenceFlagCommand');
     const alsoLootEl = document.getElementById('evidenceFlagAlsoLoot');
     const lootTypeEl = document.getElementById('evidenceFlagLootType');
@@ -1554,13 +1565,15 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', details = '', 
     const lootNoteEl = document.getElementById('evidenceFlagLootNote');
     const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
     if (titleEl) {
-      const suggestedTitle = deriveEvidenceTitleHint(command || details, type);
+      const suggestedTitle = deriveEvidenceTitleHint(command || summary, type);
       titleEl.value = title;
       titleEl.placeholder = `${suggestedTitle}…`;
       titleEl.dataset.defaultTitle = suggestedTitle;
     }
     if (typeEl) typeEl.value = type;
-    if (detailsEl) detailsEl.value = details;
+    if (severityEl) severityEl.value = severity;
+    if (summaryEl) summaryEl.value = summary;
+    if (recommendationEl) recommendationEl.value = recommendation;
     if (commandEl) commandEl.value = command;
     if (alsoLootEl) alsoLootEl.checked = !!loot?.enabled;
     if (lootTypeEl) lootTypeEl.value = loot?.type || 'other';
@@ -1593,7 +1606,9 @@ function confirmEvidenceFlagDialog() {
   const titleEl = document.getElementById('evidenceFlagTitle');
   const title = (titleEl?.value || '').trim() || (titleEl?.dataset.defaultTitle || '').trim();
   const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
-  const details = (document.getElementById('evidenceFlagDetails')?.value || '').trim();
+  const severity = (document.getElementById('evidenceFlagSeverity')?.value || 'medium').trim();
+  const summary = (document.getElementById('evidenceFlagSummary')?.value || '').trim();
+  const recommendation = (document.getElementById('evidenceFlagRecommendation')?.value || '').trim();
   const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
   if (!title) {
     titleEl?.focus();
@@ -1619,7 +1634,7 @@ function confirmEvidenceFlagDialog() {
       sync_to_credentials: syncToCredentials,
     };
   }
-  finishEvidenceFlagDialog({ title, type, details, source_command, loot });
+  finishEvidenceFlagDialog({ title, type, severity, summary, recommendation, source_command, loot });
 }
 
 function handleEvidenceFlagKey(event) {
@@ -1647,26 +1662,22 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
 
   const block = blockOverride || getNoteEvidenceBlockSelection();
   if (!block || !block.text.trim()) {
-    showToast('⚠ Select a line or block to flag as finding', 'err');
-    return;
-  }
-  if (isEvidenceBlockAlreadyFlagged(block)) {
-    showToast('⚠ This block is already flagged as finding', 'err');
+    showToast('⚠ Select a line or block to create a finding', 'err');
     return;
   }
 
   const entries = ensureSessionEvidence();
   if (!entries) return;
 
-  const entryId = `evidence_${Date.now()}`;
-  const marker = typeof buildEvidenceMarkerId === 'function' ? buildEvidenceMarkerId(entryId) : `pragma:evidence:${entryId}`;
   const sourceCommand = deriveEvidenceCommand(block.text);
   const defaultLootType = deriveLootType(block.text);
   const suggestedType = deriveEvidenceType(block.text);
   const confirmed = await openEvidenceFlagDialog({
     title: '',
     type: suggestedType,
-    details: deriveEvidenceDetails(block.text, sourceCommand),
+    severity: 'medium',
+    summary: deriveEvidenceDetails(block.text, sourceCommand),
+    recommendation: '',
     command: sourceCommand || stripInlineEvidenceMarkers(block.text),
     loot: {
       enabled: shouldSuggestLoot(block.text, defaultLootType),
@@ -1678,27 +1689,24 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     },
   });
   if (!confirmed) return;
+
   const entry = {
-    id: entryId,
+    id: `evidence_${Date.now()}`,
     type: confirmed.type,
     title: confirmed.title,
-    details: confirmed.details,
+    severity: confirmed.severity,
+    summary: confirmed.summary,
+    details: confirmed.summary,
+    impact: '',
+    recommendation: confirmed.recommendation,
     source_command: confirmed.source_command,
     target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
     source_note_id: activeNoteId,
-    note_id: activeNoteId,
+    note_id: null,
     sync_mode: 'export_only',
     created: Date.now(),
     updated: Date.now(),
   };
-
-  const wrapped = `<!-- ${marker}:start -->\n${block.text}\n<!-- ${marker}:end -->`;
-  activeEditor.dispatch({
-    changes: { from: block.from, to: block.to, insert: wrapped },
-    selection: { anchor: block.from + `<!-- ${marker}:start -->\n`.length, head: block.from + `<!-- ${marker}:start -->\n`.length + block.text.length },
-    scrollIntoView: true,
-    userEvent: 'input'
-  });
 
   entries.push(entry);
   let syncedLootCredentialsNote = null;
@@ -1715,9 +1723,8 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
     lootDuplicate = !!lootResult?.duplicate;
   }
-  clearTimeout(noteSaveTimer);
-  syncActiveNoteDraft(activeNoteId);
-  await saveNotes({ reason: 'note-evidence-flag', immediate: true });
+
+  saveNotes();
   renderNotesList();
   renderSessionSidebar();
   if (typeof renderLootTable === 'function') renderLootTable();
@@ -1725,15 +1732,8 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   if (syncedLootCredentialsNote && typeof applySyncedNoteUpdate === 'function') applySyncedNoteUpdate(syncedLootCredentialsNote);
   if (typeof renderEvidenceList === 'function') renderEvidenceList();
   if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
-  const modifiedEl = document.getElementById('noteModifiedAt');
-  if (modifiedEl) {
-    modifiedEl.textContent = new Date(notes[activeNoteId].updated).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  }
-  setNoteSaveIndicator('saved', 'saved');
   if (lootDuplicate) showToast('ℹ Loot already logged');
-  showToast(`✓ Flagged as ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Finding'}`);
+  showToast(`✓ Finding added: ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Finding'}`);
 }
 
 async function persistActiveNote(opts = {}) {

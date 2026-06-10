@@ -534,17 +534,20 @@ function renderEvidenceSection(model) {
     .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
   if (!evidence.length) return '';
 
-  const lines = ['## Evidence', ''];
+  const lines = ['## Findings', ''];
   evidence.forEach((entry) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
+    const summary = entry.summary || entry.details || '';
     lines.push(`### ${entry.title || 'Untitled'}`);
     lines.push('');
     lines.push(`- Type: ${evidenceType(entry.type)}`);
+    lines.push(`- Severity: ${findingSeverityLabel(entry.severity)}`);
     lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
+    if (summary) lines.push(`- Summary: ${summary}`);
     if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
-    if (entry.details) lines.push(`- Details: ${entry.details}`);
+    if (entry.recommendation) lines.push(`- Recommendation: ${entry.recommendation}`);
     if (entry.source_command) {
-      lines.push('', '```text', escapeFenceContent(entry.source_command), '```');
+      lines.push('', '## POC', '', '```text', escapeFenceContent(entry.source_command), '```');
     }
     lines.push('');
   });
@@ -572,8 +575,14 @@ function evidenceType(type) {
     cleanup: 'Cleanup',
     note: 'Note',
   };
-  return labels[String(type || '').trim()] || (type ? String(type) : 'Evidence');
+  return labels[String(type || '').trim()] || (type ? String(type) : 'Finding');
 }
+
+function findingSeverityLabel(value) {
+  const labels = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info' };
+  return labels[String(value || '').trim()] || 'Medium';
+}
+
 
 function renderConsolidatedSession(model) {
   const lines = [

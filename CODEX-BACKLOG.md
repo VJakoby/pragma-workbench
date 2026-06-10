@@ -1013,6 +1013,7 @@ RULES:
 ---
 
 ## B-32 — Rename Evidence Workflow To Findings
+STATUS: DONE
 
 CONTEXT:
 The current `Evidence` wording suggests raw proof collection, but the feature is increasingly being used as an operator-facing way to track reportable issues. In a pentest or CTF-style engagement workflow, `Findings` is clearer and better aligned with how operators think about issues they may want to summarize or report later.
