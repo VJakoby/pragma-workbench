@@ -1062,45 +1062,58 @@ RULES:
 
 ---
 
-## B-34 — Generate Per-Host Summary Markdown From Engagement Data
+## B-34 — Generate Engagement Summary And Target Findings Notes
+STATUS: DONE
 
 CONTEXT:
-Operators may want a report-oriented host summary that is kept current as findings are added or updated, while also pulling in other engagement data that is often scattered across notes and loot. This should be generated rather than maintained manually, so host summaries stay consistent and easier to review.
+Operators may want derived report-oriented notes that stay current as targets, Ports, Paths, Loot, and Findings change. The platform should generate these notes automatically rather than requiring manual maintenance, so the engagement always has an up-to-date high-level summary and target-specific findings view.
 
 SCOPE:
-host summary markdown generation
+generated markdown notes derived from engagement data
 
 EXPECTED BEHAVIOR:
-- The platform should generate and update a markdown summary document for each host
-- Generated host summaries should be derived from structured findings and other relevant engagement data, not treated as the source of truth
-- Each generated host summary should include sections such as:
-  - `## Machines/Targets`
+- The platform should generate and update one session-level engagement summary note per session
+- The engagement summary note title should match the exact session name
+- The platform should also generate and update one target-level findings note per target that has target-associated findings
+- Target findings note titles should follow the pattern `FINDINGS - <LABEL>`
+- If a target has no label, the title should fall back to `FINDINGS - <IP>` or another stable target identifier already present in the session
+- Generated notes should be derived from structured data and existing quick-log/session data, not treated as the source of truth
+- The engagement summary note should include at least these sections:
+  - `# <SESSIONNAME>`
+  - `## Targets`
   - `## Credentials`
   - `## Findings`
-- The `Machines/Targets` section should summarize the relevant host/target identity and context
-- The `Credentials` section should pull in relevant credential material from Loot where applicable
-- The `Findings` section should pull in issue items from the current Evidence/Findings workflow
-- Finding content in the generated summary should include information such as:
+- The `## Targets` section should summarize each target in the session in table form, including at least:
+  - IP / host
+  - label
+  - useful target summary context derived from stored target/quick-log data
+- The `## Credentials` section should be populated from session Loot data and kept updated automatically
+- The `## Findings` section in the engagement summary should contain all findings across the session, including target-associated and session-wide findings
+- Target-scoped Ports and Paths data should feed the generated summary where relevant to target overview, but should not become the primary source of truth
+- Each generated target findings note should contain the findings associated with that target only
+- Finding content in generated notes should include structured fields such as:
   - title
   - severity
   - type
-  - host
+  - target
+  - summary
+  - recommendation
   - POC
-- The generated summary should remain readable as a markdown document and suitable for later review/export
-- Updating related findings or supporting host data should update the corresponding host summary content
+- Updating targets, Ports, Paths, Loot, or Findings should update the corresponding generated notes automatically
 
 RULES:
 - Do not replace primary engagement notes with generated summaries
-- Keep generated markdown as a derived artifact, not the authoritative source
-- Prefer pulling structured data from the existing system over requiring manual duplication into the summary
-- Avoid forcing manual edits directly into generated host-summary content unless an explicit hybrid model is later designed
+- Keep generated markdown notes as derived artifacts, not the authoritative source
+- Do not force operators to maintain generated notes manually
+- Prefer one generated findings note per target rather than one generated note per finding
+- Do not duplicate the entire engagement note system inside the generated summaries
 
 ---
 
-## B-35 — Link Findings To Supporting Notes And Proof
+## B-35 — Link Findings And Generated Notes To Supporting Notes And Proof
 
 CONTEXT:
-Findings become more useful when operators can connect them back to the underlying engagement material that supports them, such as notes, commands, screenshots, attachments, or loot.
+Generated summary notes and target findings notes become much more useful when findings can still be traced back to the underlying note content, proof commands, loot, and related operator context that supports them.
 
 SCOPE:
 findings linkage and supporting-reference workflow
@@ -1108,16 +1121,21 @@ findings linkage and supporting-reference workflow
 EXPECTED BEHAVIOR:
 - A finding should support links or references to supporting material such as:
   - engagement notes
-  - attachments/screenshots
   - commands or proof text
   - loot/credentials where relevant
+  - attachments/screenshots where already supported by the platform
 - Operators should be able to move from a finding to its supporting context quickly
+- Generated engagement summary notes should remain derived output, but should be built from findings that preserve their supporting links and references
+- Generated target findings notes should preserve the useful supporting context needed for review and later reporting
+- Findings created from note selections should remain linked to the originating note context
+- Manually created findings should still support later linkage to note/proof context where available
 - Supporting references should improve report-readiness without changing the normal note-taking flow
 
 RULES:
 - Keep findings as the structured issue layer, not a duplicate full note system
 - Do not require every finding to have every kind of supporting reference
 - Preserve existing note and attachment behavior where possible
+- Do not make generated notes the source of truth for linkage data
 
 ---
 # P3 — EXPERIMENTAL
