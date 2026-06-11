@@ -1850,7 +1850,7 @@ function hideFindingSelectionPrompt() {
   prompt?.classList.remove('open');
 }
 
-function isFindingBlockAlreadyFlagged(block) {
+function isFindingBlockAlreadyLinked(block) {
   const editor = getActiveFindingEditor();
   if (!block || !editor) return false;
   const doc = editor.state.doc;

@@ -693,7 +693,7 @@ function buildNoteEditorExtensions({ onDocChange } = {}) {
       }
     }),
     CM.EditorView.updateListener.of(update => {
-      if (typeof syncEvidenceSelectionPrompt === 'function') syncEvidenceSelectionPrompt(update);
+      if (typeof syncFindingSelectionPrompt === 'function') syncFindingSelectionPrompt(update);
       if (!update.docChanged) return;
       if (activeConfigDoc) {
         autoSaveActiveConfig();

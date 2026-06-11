@@ -854,7 +854,7 @@ function renderFindingsList() {
           </select>
         </div>
         ${newFindingButtonHtml}
-        <div class="todo-empty">No findings yet. Select a line or block from a session note and add it here.</div>`;
+        <div class="todo-empty">No findings yet. Use <strong>New Finding</strong> to create the first one.</div>`;
       return;
     }
     listEl.innerHTML = `
@@ -1088,7 +1088,7 @@ function deleteFindingEntry(entryId) {
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
   renderFindingsList();
-  showToast('✓ Finding unflagged');
+  showToast('✓ Finding removed');
 }
 
 async function clearFindingEntries() {
@@ -1234,6 +1234,7 @@ async function clearActiveQuickLog() {
   }
   syncedNetworkNotes.forEach(applySyncedNoteUpdate);
   syncedWebNotes.forEach(applySyncedNoteUpdate);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Cleared ${config.noun}`);
 }
 
@@ -1422,6 +1423,7 @@ function commitPortParse() {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
   toggleToolPaste('ports');
 }
@@ -1486,6 +1488,7 @@ function insertQuickLogPortsFromMatrixPreview(previewTarget) {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   if (added > 0) {
     showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
     return true;
@@ -1649,6 +1652,7 @@ function commitPathParse() {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Added ${added} path${added !== 1 ? 's' : ''}`);
   toggleToolPaste('paths');
 }
@@ -1676,6 +1680,7 @@ function addPathLog() {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function deletePathLog(pathId) {
@@ -1688,6 +1693,7 @@ function deletePathLog(pathId) {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function updatePathNotes(pathId, val) {
@@ -1698,6 +1704,7 @@ function updatePathNotes(pathId, val) {
   const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
   saveNotes();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function commitPathEdit(pathId) {
@@ -1720,6 +1727,7 @@ function commitPathEdit(pathId) {
   saveNotes();
   renderPathTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function getQuickLogScopeTargetId() {
@@ -2138,7 +2146,7 @@ function applySyncedNoteUpdate(note) {
   }
 }
 
-function syncGeneratedFindingNotesAfterMutation() {
+function syncGeneratedNotesAfterMutation() {
   if (!activeSessionId || typeof syncGeneratedEngagementNotes !== 'function') return;
   const previousActiveNoteId = activeNoteId;
   const changed = syncGeneratedEngagementNotes(activeSessionId);
@@ -2158,6 +2166,10 @@ function syncGeneratedFindingNotesAfterMutation() {
     applySyncedNoteUpdate(notes[activeNoteId]);
     if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);
   }
+}
+
+function syncGeneratedFindingNotesAfterMutation() {
+  syncGeneratedNotesAfterMutation();
 }
 
 function isQuickLogEditing(kind, id) {
@@ -2259,7 +2271,7 @@ function renderFindingRowActions(id) {
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('finding','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
-      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteFindingEntry('${id}')" title="Unflag finding and keep the note content" aria-label="Unflag finding and keep the note content">
+      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteFindingEntry('${id}')" title="Remove finding and keep the note content" aria-label="Remove finding and keep the note content">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>
@@ -2293,6 +2305,7 @@ function addServiceLog() {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function deleteServiceLog(svcId) {
@@ -2304,6 +2317,7 @@ function deleteServiceLog(svcId) {
   saveNotes();
   renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function updateSvcNotes(svcId, val) {
@@ -2340,6 +2354,7 @@ function commitServiceEdit(svcId) {
   saveNotes();
   renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function createNoteForService(svcId) {
@@ -2710,6 +2725,7 @@ function commitLootParse() {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2908,6 +2924,7 @@ function addLootEntry() {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2932,6 +2949,7 @@ function deleteLootEntry(lootId) {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2955,6 +2973,7 @@ function updateLootNote(lootId, val) {
   entry.note = val;
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
   saveNotes();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2994,6 +3013,7 @@ function commitLootEdit(lootId) {
   renderLootTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedCredentialsNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 const LOOT_TYPE_CSS = {
