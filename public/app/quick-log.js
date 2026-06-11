@@ -421,45 +421,7 @@ function findFindingMarkerRange(body, entryId) {
   return { from, to };
 }
 
-async function jumpToFindingSource(entryId) {
-  if (!activeSessionId || !sessions[activeSessionId]) return;
-  const entry = getSessionFindings().find((item) => item.id === entryId);
-  const noteId = getFindingSourceNoteId(entry);
-  if (!noteId || !notes[noteId]) {
-    showToast?.('⚠ No source note linked', 'err');
-    return;
-  }
 
-  closeFindingsPopover?.();
-  if (typeof switchView === 'function') {
-    switchView('notes', document.getElementById('nav-notes'));
-  }
-  if (typeof openNote === 'function') {
-    await openNote(noteId);
-  }
-
-  if (typeof noteEditor === 'undefined' || !noteEditor) return;
-  const docText = noteEditor.state.doc.toString();
-  let range = findFindingMarkerRange(docText, entryId);
-  if (!range) {
-    const fallbackText = String(entry?.source_command || entry?.summary || entry?.details || '').trim();
-    if (fallbackText) {
-      const at = docText.indexOf(fallbackText);
-      if (at !== -1) range = { from: at, to: at + fallbackText.length };
-    }
-  }
-  if (!range) {
-    noteEditor.focus();
-    showToast?.('⚠ Source text not found in note', 'err');
-    return;
-  }
-
-  noteEditor.dispatch({
-    selection: { anchor: range.from, head: range.to },
-    scrollIntoView: true
-  });
-  noteEditor.focus();
-}
 
 function removeFindingBlockFromBody(body, entryId) {
   const marker = buildLegacyFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -2171,14 +2133,8 @@ function renderFindingRowActions(id) {
   if (isQuickLogEditing('finding', id)) return renderQuickLogRowActions('finding', id, 'deleteFindingEntry');
   return `
     <div class="ql-row-actions">
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToFindingSource('${id}')" title="Jump to source" aria-label="Jump to source">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
-      </button>
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('finding','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      </button>
-      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteFindingEntry('${id}')" title="Remove finding and keep the note content" aria-label="Remove finding and keep the note content">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>
   `;
