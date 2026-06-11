@@ -7055,7 +7055,7 @@ body.enc-active-body .content-panel {
   flex: 0 0 220px !important;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot #lootHostInput {
-  flex: 0 0 180px !important;
+  flex: 0 0 190px !important;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table {
   table-layout: fixed;
@@ -7071,11 +7071,11 @@ body.enc-active-body .content-panel {
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(3),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(3) {
-  width: 18%;
+  width: 22%;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(4),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(4) {
-  width: 22%;
+  width: 18%;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(5),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(5) {

@@ -598,7 +598,14 @@ async function executeAppSave() {
   if (generatedNotesChanged) {
     if (typeof renderNotesList === 'function') renderNotesList();
     if (typeof renderSessionSidebar === 'function') renderSessionSidebar();
-    if (activeGeneratedNoteId && notes[activeGeneratedNoteId]?.generated_note === true) {
+    if (activeGeneratedNoteId && !notes[activeGeneratedNoteId]) {
+      activeNoteId = null;
+      if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+      document.getElementById('notesEmpty').style.display = 'flex';
+      document.getElementById('noteEditArea').style.display = 'none';
+      if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+      if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+    } else if (activeGeneratedNoteId && notes[activeGeneratedNoteId]?.generated_note === true) {
       const activeNote = notes[activeGeneratedNoteId];
       const titleInput = document.getElementById('noteTitleInput');
       if (titleInput && activeNote) titleInput.value = activeNote.title || '';
@@ -1049,6 +1056,14 @@ function switchSession(id) {
     activeTargetId = null;
     if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   }
+  activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+  const notesEmptyEl = document.getElementById('notesEmpty');
+  const noteEditAreaEl = document.getElementById('noteEditArea');
+  if (notesEmptyEl) notesEmptyEl.style.display = 'flex';
+  if (noteEditAreaEl) noteEditAreaEl.style.display = 'none';
+  if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+
   renderSessionSidebar();
   updateSessionDomainField();
   updateSessionAttackerIpField();

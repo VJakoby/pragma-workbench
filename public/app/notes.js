@@ -1231,6 +1231,47 @@ function formatGeneratedFindingPoc(finding) {
   return detailsText;
 }
 
+function getValidGeneratedSessionData(sessionId) {
+  const session = sessionId ? sessions[sessionId] : null;
+  if (!session) {
+    return { session: null, targets: [], services: [], paths: [], loot: [], findings: [], pruned: false };
+  }
+  const targets = Array.isArray(session.targets) ? session.targets : [];
+  const validTargetIds = new Set(targets.map((target) => String(target?.id || '').trim()).filter(Boolean));
+  const hasTargets = validTargetIds.size > 0;
+  const keepTargetBoundEntry = (entry, { allowSessionWide = true } = {}) => {
+    const targetId = String(entry?.target_id || '').trim();
+    if (!targetId) return allowSessionWide;
+    return validTargetIds.has(targetId);
+  };
+  const servicesSource = Array.isArray(session.services) ? session.services : [];
+  const pathsSource = Array.isArray(session.paths) ? session.paths : [];
+  const lootSource = Array.isArray(session.loot) ? session.loot : [];
+  const findingsSource = getSessionFindingsData(sessionId);
+  const services = servicesSource.filter((entry) => keepTargetBoundEntry(entry, { allowSessionWide: !hasTargets }));
+  const paths = pathsSource.filter((entry) => keepTargetBoundEntry(entry, { allowSessionWide: !hasTargets }));
+  const loot = lootSource.filter((entry) => keepTargetBoundEntry(entry) && String(entry?.credential || '').trim());
+  const findings = findingsSource.filter((entry) => keepTargetBoundEntry(entry));
+  const pruned = services.length !== servicesSource.length
+    || paths.length !== pathsSource.length
+    || loot.length !== lootSource.length
+    || findings.length !== findingsSource.length;
+  return { session, targets, services, paths, loot, findings, pruned };
+}
+
+function generatedNoteWillRebuild(note) {
+  if (!note?.generated_note || !note?.session_id) return false;
+  const { services, paths, loot, findings } = getValidGeneratedSessionData(note.session_id);
+  if (note.generated_kind === 'engagement_summary') {
+    return services.length > 0 || paths.length > 0 || loot.length > 0 || findings.length > 0;
+  }
+  if (note.generated_kind === 'target_findings') {
+    const targetId = note.generated_target_id || note.target_id || null;
+    return !!targetId && findings.some((entry) => (entry?.target_id || null) === targetId);
+  }
+  return false;
+}
+
 function buildEngagementSummaryNoteBody(sessionId) {
   const session = sessions[sessionId];
   if (!session) return '# Session\n';
@@ -1326,21 +1367,35 @@ function buildTargetFindingsNoteBody(sessionId, target) {
 
 function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
   if (!sessionId || !sessions[sessionId]) return false;
-  const session = sessions[sessionId];
+  const { session, targets, services, paths, loot, findings, pruned } = getValidGeneratedSessionData(sessionId);
+  if (!session) return false;
   let changed = false;
 
-  const summaryResult = upsertGeneratedNote({
-    sessionId,
-    kind: 'engagement_summary',
-    title: session.codename || 'Session',
-    body: buildEngagementSummaryNoteBody(sessionId),
-    tags: ['generated', 'summary'],
-  });
-  changed = summaryResult.changed || changed;
+  if (pruned) {
+    session.services = services;
+    session.paths = paths;
+    session.loot = loot;
+    session.findings = findings;
+    changed = true;
+  }
 
-  const findings = getSessionFindingsData(sessionId);
+  const hasSummaryData = services.length > 0 || paths.length > 0 || loot.length > 0 || findings.length > 0;
+
+  if (hasSummaryData) {
+    const summaryResult = upsertGeneratedNote({
+      sessionId,
+      kind: 'engagement_summary',
+      title: session.codename || 'Session',
+      body: buildEngagementSummaryNoteBody(sessionId),
+      tags: ['generated', 'summary'],
+    });
+    changed = summaryResult.changed || changed;
+  } else {
+    const existingSummary = findGeneratedNote(sessionId, 'engagement_summary');
+    if (existingSummary) changed = removeGeneratedNote(existingSummary) || changed;
+  }
+
   const targetIdsWithFindings = new Set(findings.map((entry) => String(entry?.target_id || '').trim()).filter(Boolean));
-  const targets = Array.isArray(session.targets) ? session.targets : [];
 
   targets.forEach((target) => {
     if (!targetIdsWithFindings.has(target.id)) return;
@@ -2206,14 +2261,18 @@ async function deleteCurrentNote() {
   if (!activeNoteId) return;
   const note = notes[activeNoteId];
   const isGenerated = !!note?.generated_note;
+  const willRebuild = isGenerated ? generatedNoteWillRebuild(note) : false;
+  const generatedDescription = willRebuild
+    ? 'This generated note copy will be removed now, but valid underlying session data still exists. The note will be rebuilt on the next save or update.'
+    : 'No valid underlying session data remains for this generated note. Removing it now will delete it permanently.';
   try {
-    await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: isGenerated ? 'Remove Generated Note' : 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: isGenerated ? 'This generated note copy will be removed now, but the underlying findings and session data stay intact. The note will be rebuilt on the next save or update.' : 'This note will be permanently deleted.', confirmLabel: isGenerated ? 'Remove Copy' : 'Delete', danger: true });
+    await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: isGenerated ? 'Remove Generated Note' : 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: isGenerated ? generatedDescription : 'This note will be permanently deleted.', confirmLabel: isGenerated ? (willRebuild ? 'Remove Copy' : 'Delete') : 'Delete', danger: true });
   } catch { return; }
   delete notes[activeNoteId];
   activeNoteId = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   await saveNotes({ reason: 'note-delete', immediate: true });
-  if (isGenerated) showToast('ℹ Generated note removed and will be recreated from session data');
+  if (isGenerated && willRebuild) showToast('ℹ Generated note removed and will be recreated from session data');
   renderNotesList();
   renderSessionSidebar();
   const total = Object.keys(notes).length;

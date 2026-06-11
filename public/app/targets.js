@@ -562,7 +562,24 @@ function setActiveTarget(id, opts = {}) {
 function deleteTarget(id) {
   if (!activeSessionId) return;
   const sess = sessions[activeSessionId];
+  const removedTarget = (sess.targets || []).find((t) => t.id === id) || null;
+  const removedTargetKeys = new Set([
+    String(removedTarget?.ip || '').trim().toLowerCase(),
+    String(removedTarget?.domain || '').trim().toLowerCase(),
+    String(removedTarget?.label || '').trim().toLowerCase(),
+  ].filter(Boolean));
+  const matchesRemovedTargetHost = (value) => removedTargetKeys.has(String(value || '').trim().toLowerCase());
+
   sess.targets = (sess.targets || []).filter((t) => t.id !== id);
+  sess.services = (Array.isArray(sess.services) ? sess.services : []).filter((entry) => (entry?.target_id || null) !== id);
+  sess.paths = (Array.isArray(sess.paths) ? sess.paths : []).filter((entry) => (entry?.target_id || null) !== id);
+  sess.loot = (Array.isArray(sess.loot) ? sess.loot : []).filter((entry) => {
+    const entryTargetId = entry?.target_id || null;
+    if (entryTargetId === id) return false;
+    if (entryTargetId) return true;
+    return !matchesRemovedTargetHost(entry?.host);
+  });
+  sess.findings = (Array.isArray(sess.findings) ? sess.findings : (Array.isArray(sess.evidence) ? sess.evidence : [])).filter((entry) => (entry?.target_id || null) !== id);
   clearRememberedTargetForSession(activeSessionId, id);
   if (activeTargetId === id) {
     activeTargetId = sess.targets[0]?.id || null;
