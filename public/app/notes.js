@@ -500,7 +500,7 @@ function updateGeneratedNoteUi(note = null) {
   if (hint) {
     if (isGenerated) {
       const kindLabel = note.generated_kind === 'engagement_summary'
-        ? 'Rebuilt from session targets, credentials, and findings'
+        ? 'Generated Summary:'
         : 'Rebuilt from structured findings data';
       hint.textContent = kindLabel;
       hint.style.display = '';
@@ -1139,7 +1139,8 @@ function escapeGeneratedNoteTableCell(value) {
 function getSessionFindingsData(sessionId) {
   const session = sessionId ? sessions[sessionId] : null;
   if (!session) return [];
-  return Array.isArray(session.findings) ? session.findings : (Array.isArray(session.evidence) ? session.evidence : []);
+  return Array.isArray(session.findings) ? session.findings : [];
+
 }
 
 function findGeneratedNote(sessionId, kind, targetId = null) {
@@ -1717,7 +1718,7 @@ function syncGeneratedFindingEntriesFromNote(noteId) {
 
 function syncFindingEntriesFromNote(noteId) {
   if (!noteId || !notes[noteId] || !activeSessionId || !sessions[activeSessionId]) return false;
-  const entries = sessions[activeSessionId].findings || sessions[activeSessionId].evidence || [];
+  const entries = Array.isArray(sessions[activeSessionId].findings) ? sessions[activeSessionId].findings : [];
   if (!entries.length) return false;
   const blocks = extractFindingBlocksFromBody(notes[noteId].body || '');
   let changed = false;

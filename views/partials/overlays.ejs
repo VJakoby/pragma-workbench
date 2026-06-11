@@ -411,7 +411,7 @@
       <div class="pw-field-grid pw-field-grid-2">
         <div class="pw-field">
           <label>Type</label>
-          <select class="pw-input evidence-flag-select" id="findingDialogType" onkeydown="handleFindingDialogKey(event)">
+          <select class="pw-input finding-dialog-select" id="findingDialogType" onkeydown="handleFindingDialogKey(event)">
             <option value="enumeration">Enumeration</option>
             <option value="initial_access">Initial Access</option>
             <option value="execution">Execution</option>
@@ -429,7 +429,7 @@
         </div>
         <div class="pw-field">
           <label>Severity</label>
-          <select class="pw-input evidence-flag-select" id="findingDialogSeverity" onkeydown="handleFindingDialogKey(event)">
+          <select class="pw-input finding-dialog-select" id="findingDialogSeverity" onkeydown="handleFindingDialogKey(event)">
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium" selected>Medium</option>
@@ -440,7 +440,7 @@
       </div>
       <div class="pw-field">
         <label>Target</label>
-        <select class="pw-input evidence-flag-select" id="findingDialogTarget" onkeydown="handleFindingDialogKey(event)"></select>
+        <select class="pw-input finding-dialog-select" id="findingDialogTarget" onkeydown="handleFindingDialogKey(event)"></select>
       </div>
       <div class="pw-field">
         <label>Title</label>
@@ -448,24 +448,24 @@
       </div>
       <div class="pw-field">
         <label>Summary</label>
-        <textarea class="pw-input evidence-flag-textarea" id="findingDialogSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field">
         <label>Recommendation</label>
-        <textarea class="pw-input evidence-flag-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field-hint" style="margin-top:-4px">The generated target findings note will include an editable <code>### POC</code> block after the finding is created.</div>
-      <div class="evidence-flag-toggle-row">
-        <label class="evidence-flag-check">
+      <div class="finding-dialog-toggle-row">
+        <label class="finding-dialog-check">
           <input id="findingDialogAlsoLoot" type="checkbox" onchange="syncFindingDialogLootUi()">
           <span>Also add as Loot</span>
         </label>
       </div>
-      <div class="evidence-flag-loot-fields" id="findingDialogLootFields" style="display:none">
-        <div class="evidence-flag-loot-grid">
+      <div class="finding-dialog-loot-fields" id="findingDialogLootFields" style="display:none">
+        <div class="finding-dialog-loot-grid">
           <div class="pw-field">
             <label>Loot type</label>
-            <select class="pw-input evidence-flag-select" id="findingDialogLootType" onchange="syncFindingDialogLootUi()" onkeydown="handleFindingDialogKey(event)">
+            <select class="pw-input finding-dialog-select" id="findingDialogLootType" onchange="syncFindingDialogLootUi()" onkeydown="handleFindingDialogKey(event)">
               <option value="cleartext">Cleartext</option>
               <option value="hash">Hash</option>
               <option value="token">Token</option>
@@ -480,14 +480,14 @@
         </div>
         <div class="pw-field">
           <label>Loot value</label>
-          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="findingDialogLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
+          <textarea class="pw-input finding-dialog-textarea finding-dialog-loot-value" id="findingDialogLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
         </div>
         <div class="pw-field">
           <label>Loot context</label>
           <input class="pw-input" id="findingDialogLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
         </div>
-        <div class="evidence-flag-loot-sync" id="findingDialogLootSyncWrap">
-          <label class="evidence-flag-check">
+        <div class="finding-dialog-loot-sync" id="findingDialogLootSyncWrap">
+          <label class="finding-dialog-check">
             <input id="findingDialogLootSyncCredentials" type="checkbox">
             <span>Sync cleartext/hash into the Credentials note</span>
           </label>
@@ -501,8 +501,8 @@
   </div>
 </div>
 
-<div class="evidence-selection-prompt" id="findingSelectionPrompt">
-  <button class="evidence-selection-prompt-btn" onclick="addPromptedSelectionAsFinding()">
+<div class="finding-selection-prompt" id="findingSelectionPrompt">
+  <button class="finding-selection-prompt-btn" onclick="addPromptedSelectionAsFinding()">
     <span aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
     </span>

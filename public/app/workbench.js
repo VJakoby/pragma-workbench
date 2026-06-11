@@ -39,6 +39,17 @@ const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
 let shouldPromptForSessionOnStartup = false;
 
+function normalizeLegacySessionFindings(session) {
+  if (!session || typeof session !== 'object' || Array.isArray(session)) return session;
+  if (!Array.isArray(session.findings) && Array.isArray(session.evidence)) {
+    session.findings = session.evidence;
+  }
+  if (Object.prototype.hasOwnProperty.call(session, 'evidence')) {
+    delete session.evidence;
+  }
+  return session;
+}
+
 function normalizeLoadedWorkbenchState(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { notes: {}, sessions: {} };
@@ -46,7 +57,7 @@ function normalizeLoadedWorkbenchState(raw) {
   const hasCompositeShape = Object.prototype.hasOwnProperty.call(raw, 'notes')
     || Object.prototype.hasOwnProperty.call(raw, 'sessions');
   const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
-    ? raw.sessions
+    ? Object.fromEntries(Object.entries(raw.sessions).map(([id, session]) => [id, normalizeLegacySessionFindings(session)]))
     : {};
   const rawNotesState = hasCompositeShape
     ? (raw.notes && typeof raw.notes === 'object' && !Array.isArray(raw.notes) ? raw.notes : {})
@@ -1202,6 +1213,7 @@ async function importSession(event) {
       }
 
       const data = parsed;
+      if (data?.session) normalizeLegacySessionFindings(data.session);
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Could not load .session file. File is malformed.');
       if (!data.session || !Array.isArray(data.notes)) throw new Error('Could not load .session file. File is malformed.');
 
@@ -1243,7 +1255,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
-          findings: cloneList(session.findings || session.evidence, [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
+          findings: cloneList(Array.isArray(session.findings) ? session.findings : [], [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({

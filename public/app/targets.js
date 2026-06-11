@@ -579,7 +579,7 @@ function deleteTarget(id) {
     if (entryTargetId) return true;
     return !matchesRemovedTargetHost(entry?.host);
   });
-  sess.findings = (Array.isArray(sess.findings) ? sess.findings : (Array.isArray(sess.evidence) ? sess.evidence : [])).filter((entry) => (entry?.target_id || null) !== id);
+  sess.findings = (Array.isArray(sess.findings) ? sess.findings : []).filter((entry) => (entry?.target_id || null) !== id);
   clearRememberedTargetForSession(activeSessionId, id);
   if (activeTargetId === id) {
     activeTargetId = sess.targets[0]?.id || null;
