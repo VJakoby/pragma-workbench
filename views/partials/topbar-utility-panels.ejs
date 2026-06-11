@@ -183,28 +183,29 @@
         </div>
       </div>
 
-      <div class="evidence-topbar-wrap" id="evidenceTopbarWrap">
-        <button class="svc-topbar-btn evidence-topbar-btn utility-topbar-segment utility-topbar-segment-right" id="evidenceTopbarBtn" onclick="toggleEvidencePopover()" title="Session findings tracker">
+      <div class="evidence-topbar-wrap" id="findingsTopbarWrap">
+        <button class="svc-topbar-btn evidence-topbar-btn utility-topbar-segment utility-topbar-segment-right" id="findingsTopbarBtn" onclick="toggleFindingsPopover()" title="Session findings tracker">
           <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M12 9v6"/><circle cx="12" cy="12" r="10"/></svg> Findings</span>
-          <span class="evidence-topbar-btn-count" id="evidenceTopbarCount"></span>
+          <span class="evidence-topbar-btn-count" id="findingsTopbarCount"></span>
         </button>
-        <div class="evidence-popover" id="evidencePopover">
+        <div class="evidence-popover" id="findingsPopover">
           <div class="evidence-popover-hdr">
             <span class="evidence-popover-title">Findings</span>
-            <span class="svc-popover-session-label" id="evidenceSessionLabel"></span>
-            <button class="evidence-clear-btn" id="evidenceClearBtn" onclick="clearEvidenceEntries()" disabled>Clear All</button>
-            <button class="icon-btn" onclick="closeEvidencePopover()" title="Close Findings panel" style="font-size:14px;padding:2px 6px">&times;</button>
+            <span class="svc-popover-session-label" id="findingsSessionLabel"></span>
+            <button class="svc-quick-add-btn" type="button" onclick="openManualFindingDialog()">+ New Finding</button>
+            <button class="evidence-clear-btn" id="findingsClearBtn" onclick="clearFindingEntries()" disabled>Clear All</button>
+            <button class="icon-btn" onclick="closeFindingsPopover()" title="Close Findings panel" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>
           <div class="evidence-popover-body">
-            <div class="svc-hint">Create findings by selecting a command or proof block in the note editor, then using <strong style="color:var(--text2)">Flag as Finding</strong>.</div>
+            <div class="svc-hint">Create findings manually with <strong style="color:var(--text2)">New Finding</strong>, or from selected note content with the floating <strong style="color:var(--text2)">Add as Finding</strong> action.</div>
             <div class="svc-info-box">
               <span class="svc-info-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               </span>
-              <div class="svc-info-text">Findings are stored separately from markdown notes, but are sourced from flagged note content so they stay tied to the original proof. Summary export still includes eligible findings entries automatically.</div>
+              <div class="svc-info-text">Findings are stored separately from markdown notes. When created from selected note content they stay tied to the original proof, while manual findings remain session data and are still included in summary export when eligible.</div>
             </div>
             <div class="evidence-list-wrap">
-              <div id="evidenceList"></div>
+              <div id="findingsList"></div>
             </div>
           </div>
         </div>

@@ -12,9 +12,9 @@ let notesPeekCloseTimer = null;
 let notesPeekHoldOpenUntil = 0;
 let notesPeekIgnoreDocumentCloseUntil = 0;
 let activeNewNoteType = null;
-let _evidenceFlagResolver = null;
-let _evidenceSelectionPromptTimer = null;
-let _evidenceSelectionPromptState = null;
+let _findingDialogResolver = null;
+let _findingSelectionPromptTimer = null;
+let _findingSelectionPromptState = null;
 let attachmentStorageSidebarTimer = null;
 let attachmentStorageSidebarSeq = 0;
 let attachmentStorageSidebarStateKey = '';
@@ -102,7 +102,6 @@ function setNoteEditorMode(mode) {
   const target = document.getElementById('noteTargetAssignWrap');
   const previewBtn = document.getElementById('notePreviewBtn');
   const unifiedBtn = document.getElementById('noteUnifiedBtn');
-  const evidenceBtn = document.getElementById('noteFlagEvidenceBtn');
   const hint = document.querySelector('.note-md-hint');
   const timestamps = document.getElementById('noteTimestamps');
   const createdWrap = document.getElementById('noteCreatedWrap');
@@ -135,7 +134,6 @@ function setNoteEditorMode(mode) {
   if (target) target.style.display = isConfig ? 'none' : '';
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
   if (unifiedBtn) unifiedBtn.style.display = isConfig ? 'none' : '';
-  if (evidenceBtn) evidenceBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
   if (createdWrap) createdWrap.style.display = isConfig ? 'none' : '';
@@ -159,7 +157,7 @@ function setNoteEditorMode(mode) {
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
-  if (isConfig) hideEvidenceSelectionPrompt();
+  if (isConfig) hideFindingSelectionPrompt();
 }
 
 function ensureNoteTypeBadge() {
@@ -253,7 +251,7 @@ async function openTemplatesConfig(navEl) {
 
 function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
-  hideEvidenceSelectionPrompt();
+  hideFindingSelectionPrompt();
   activeConfigDoc = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('configDoc');
   setNoteEditorMode('note');
@@ -828,7 +826,7 @@ async function exportCurrentNote() {
   }
   if (!activeNoteId || !notes[activeNoteId]) return;
   const n = notes[activeNoteId];
-  let body = stripEvidenceMarkersForExport(n.body || '');
+  let body = stripFindingMarkersForExport(n.body || '');
   if (typeof inlineNoteAttachmentUrlsForExport === 'function') {
     try {
       body = await inlineNoteAttachmentUrlsForExport(body);
@@ -1039,7 +1037,7 @@ function duplicateCurrentNote() {
 }
 
 async function openNote(id) {
-  hideEvidenceSelectionPrompt();
+  hideFindingSelectionPrompt();
   if (activeNoteId && activeNoteId !== id && notes[activeNoteId]) {
     clearTimeout(noteSaveTimer);
     await persistActiveNote({ reason: 'note-switch', immediate: true, noteId: activeNoteId });
@@ -1203,28 +1201,28 @@ function syncActiveNoteDraft(noteId = activeNoteId) {
   return { ok: true, changed };
 }
 
-function stripInlineEvidenceMarkers(text) {
+function stripInlineFindingMarkers(text) {
   return String(text || '')
     .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->/g, '')
     .trim();
 }
 
-function getActiveEvidenceEditor() {
+function getActiveFindingEditor() {
   if (typeof noteUnifiedPreview !== 'undefined' && noteUnifiedPreview && typeof noteUnifiedEditor !== 'undefined' && noteUnifiedEditor) {
     return noteUnifiedEditor;
   }
   return noteEditor || null;
 }
 
-function stripEvidenceMarkersForExport(text) {
+function stripFindingMarkersForExport(text) {
   return String(text || '')
     .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trimEnd();
 }
 
-function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
-  const editor = getActiveEvidenceEditor();
+function getNoteFindingBlockSelection({ requireSelection = false } = {}) {
+  const editor = getActiveFindingEditor();
   if (!editor) return null;
   const main = editor.state.selection?.main;
   if (!main) return null;
@@ -1248,8 +1246,8 @@ function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
   };
 }
 
-function getEvidenceLeadLine(text) {
-  const lines = stripInlineEvidenceMarkers(text)
+function getFindingLeadLine(text) {
+  const lines = stripInlineFindingMarkers(text)
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
@@ -1257,8 +1255,8 @@ function getEvidenceLeadLine(text) {
   return lines[0] || '';
 }
 
-function deriveEvidenceTitle(text, fallback = 'Finding') {
-  const lead = getEvidenceLeadLine(text)
+function deriveFindingTitle(text, fallback = 'Finding') {
+  const lead = getFindingLeadLine(text)
     .replace(/^#+\s+/, '')
     .replace(/^>\s+/, '')
     .replace(/^[-*+]\s+/, '')
@@ -1271,7 +1269,7 @@ function deriveEvidenceTitle(text, fallback = 'Finding') {
   return title.length > 72 ? `${title.slice(0, 72).trim()}…` : title;
 }
 
-function deriveEvidenceType(text) {
+function deriveFindingType(text) {
   const lower = String(text || '').toLowerCase();
   if (/(cleanup|remove|revert|deleted|remove uploaded|clear history|rm\s+-rf)/.test(lower)) return 'cleanup';
   if (/(password|hash|ntlm|credential|token|apikey|api key|secret|kerberoast|asrep|sam dump|lsass|mimikatz)/.test(lower)) return 'credential_access';
@@ -1288,13 +1286,13 @@ function deriveEvidenceType(text) {
   return 'discovery';
 }
 
-function deriveEvidenceCommand(text) {
+function deriveFindingCommand(text) {
   const block = String(text || '');
   const fenced = block.match(/```[a-z0-9_-]*\n([\s\S]*?)```/i);
   if (fenced && fenced[1].trim()) return fenced[1].trim().slice(0, 500);
   const inline = block.match(/`([^`\n]+)`/);
   if (inline && inline[1].trim()) return inline[1].trim().slice(0, 500);
-  const cleanLines = stripInlineEvidenceMarkers(block)
+  const cleanLines = stripInlineFindingMarkers(block)
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => line && !/^```/.test(line));
@@ -1304,21 +1302,21 @@ function deriveEvidenceCommand(text) {
       return single.replace(/^(?:[$#]\s*)/, '').slice(0, 500);
     }
   }
-  const lead = getEvidenceLeadLine(block);
+  const lead = getFindingLeadLine(block);
   if (/^(?:[$#]\s*)?[A-Za-z0-9_./:-]+(?:\s+.+)?$/.test(lead) && lead.split(/\s+/).length > 1) {
     return lead.slice(0, 500);
   }
   return '';
 }
 
-function deriveEvidenceDetails(text, sourceCommand) {
-  const clean = stripInlineEvidenceMarkers(text).replace(/\s+/g, ' ').trim();
+function deriveFindingSummary(text, sourceCommand) {
+  const clean = stripInlineFindingMarkers(text).replace(/\s+/g, ' ').trim();
   if (!clean) return '';
   if (sourceCommand && clean === sourceCommand) return '';
   return clean.length > 280 ? `${clean.slice(0, 280).trim()}…` : clean;
 }
 
-function extractEvidenceBlocksFromBody(body) {
+function extractFindingBlocksFromBody(body) {
   const text = String(body || '');
   const blocks = new Map();
   const re = /<!--\s*pragma:evidence:([^:\s]+):start\s*-->\n?([\s\S]*?)\n?<!--\s*pragma:evidence:\1:end\s*-->/g;
@@ -1329,11 +1327,11 @@ function extractEvidenceBlocksFromBody(body) {
   return blocks;
 }
 
-function syncEvidenceEntriesFromNote(noteId) {
+function syncFindingEntriesFromNote(noteId) {
   if (!noteId || !notes[noteId] || !activeSessionId || !sessions[activeSessionId]) return false;
-  const entries = sessions[activeSessionId].evidence || [];
+  const entries = sessions[activeSessionId].findings || sessions[activeSessionId].evidence || [];
   if (!entries.length) return false;
-  const blocks = extractEvidenceBlocksFromBody(notes[noteId].body || '');
+  const blocks = extractFindingBlocksFromBody(notes[noteId].body || '');
   let changed = false;
 
   entries.forEach((entry) => {
@@ -1341,8 +1339,8 @@ function syncEvidenceEntriesFromNote(noteId) {
     if (sourceNoteId !== noteId) return;
     const block = blocks.get(entry.id);
     if (block == null) return;
-    const nextCommand = deriveEvidenceCommand(block);
-    const nextSummary = deriveEvidenceDetails(block, nextCommand);
+    const nextCommand = deriveFindingCommand(block);
+    const nextSummary = deriveFindingSummary(block, nextCommand);
     let entryChanged = false;
     if (nextCommand && (entry.source_command || '') !== nextCommand) {
       entry.source_command = nextCommand;
@@ -1372,12 +1370,12 @@ function deriveLootType(text) {
 }
 
 function deriveLootValue(text, sourceCommand = '') {
-  const clean = stripInlineEvidenceMarkers(text).trim();
+  const clean = stripInlineFindingMarkers(text).trim();
   if (!clean) return sourceCommand || '';
   return clean.length > 600 ? clean.slice(0, 600).trim() : clean;
 }
 
-function detectEvidenceTargetId(text) {
+function detectFindingTargetId(text) {
   if (!activeSessionId || !sessions[activeSessionId]) return null;
   const haystack = String(text || '').toLowerCase();
   if (!haystack) return null;
@@ -1405,8 +1403,8 @@ function shouldSuggestLoot(text, derivedType = '') {
   return false;
 }
 
-function deriveEvidenceTitleHint(text, type = 'discovery') {
-  const clean = stripInlineEvidenceMarkers(String(text || ''));
+function deriveFindingTitleHint(text, type = 'discovery') {
+  const clean = stripInlineFindingMarkers(String(text || ''));
   const lower = clean.toLowerCase();
   if (/evil-winrm|winrm/.test(lower)) return 'WinRM access confirmed';
   if (/psexec|wmiexec|smbexec|dcomexec|atexec/.test(lower)) return 'Lateral movement path confirmed';
@@ -1418,11 +1416,11 @@ function deriveEvidenceTitleHint(text, type = 'discovery') {
   if (/local\.txt/.test(lower)) return 'local.txt recovered';
   if (/proof\.txt/.test(lower)) return 'proof.txt recovered';
   const label = (EVIDENCE_TYPE_OPTIONS.find((item) => item.value === type)?.label || 'Finding').trim();
-  const derived = deriveEvidenceTitle(clean, label);
+  const derived = deriveFindingTitle(clean, label);
   return derived || label;
 }
 
-function getEvidenceFlagDefaultLootHost() {
+function getFindingDefaultLootHost() {
   const ip = typeof getIP === 'function' ? getIP() : '';
   if (ip && ip !== '<IP>') return ip;
   const domain = typeof getDomain === 'function' ? getDomain() : '';
@@ -1430,28 +1428,28 @@ function getEvidenceFlagDefaultLootHost() {
   return '';
 }
 
-function getCurrentEvidenceSelectionSignature() {
-  const main = getActiveEvidenceEditor()?.state?.selection?.main;
+function getCurrentFindingSelectionSignature() {
+  const main = getActiveFindingEditor()?.state?.selection?.main;
   if (!main || main.empty) return '';
   return `${main.from}:${main.to}`;
 }
 
-function clearEvidenceSelectionPromptTimer() {
-  if (_evidenceSelectionPromptTimer) {
-    clearTimeout(_evidenceSelectionPromptTimer);
-    _evidenceSelectionPromptTimer = null;
+function clearFindingSelectionPromptTimer() {
+  if (_findingSelectionPromptTimer) {
+    clearTimeout(_findingSelectionPromptTimer);
+    _findingSelectionPromptTimer = null;
   }
 }
 
-function hideEvidenceSelectionPrompt() {
-  clearEvidenceSelectionPromptTimer();
-  _evidenceSelectionPromptState = null;
-  const prompt = document.getElementById('evidenceSelectionPrompt');
+function hideFindingSelectionPrompt() {
+  clearFindingSelectionPromptTimer();
+  _findingSelectionPromptState = null;
+  const prompt = document.getElementById('findingSelectionPrompt');
   prompt?.classList.remove('open');
 }
 
-function isEvidenceBlockAlreadyFlagged(block) {
-  const editor = getActiveEvidenceEditor();
+function isFindingBlockAlreadyFlagged(block) {
+  const editor = getActiveFindingEditor();
   if (!block || !editor) return false;
   const doc = editor.state.doc;
   const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
@@ -1459,10 +1457,10 @@ function isEvidenceBlockAlreadyFlagged(block) {
   return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
 }
 
-function positionEvidenceSelectionPrompt(prompt) {
-  const editor = getActiveEvidenceEditor();
-  if (!prompt || !editor || !_evidenceSelectionPromptState?.block) return;
-  const coords = editor.coordsAtPos(_evidenceSelectionPromptState.block.to) || editor.dom.getBoundingClientRect();
+function positionFindingSelectionPrompt(prompt) {
+  const editor = getActiveFindingEditor();
+  if (!prompt || !editor || !_findingSelectionPromptState?.block) return;
+  const coords = editor.coordsAtPos(_findingSelectionPromptState.block.to) || editor.dom.getBoundingClientRect();
   const margin = 12;
   const promptRect = prompt.getBoundingClientRect();
   let left = coords.left;
@@ -1475,70 +1473,70 @@ function positionEvidenceSelectionPrompt(prompt) {
   prompt.style.top = `${Math.round(top)}px`;
 }
 
-function showEvidenceSelectionPrompt(block) {
-  const prompt = document.getElementById('evidenceSelectionPrompt');
-  if (!prompt || !getActiveEvidenceEditor() || !block || !block.text.trim()) return;
-  _evidenceSelectionPromptState = {
+function showFindingSelectionPrompt(block) {
+  const prompt = document.getElementById('findingSelectionPrompt');
+  if (!prompt || !getActiveFindingEditor() || !block || !block.text.trim()) return;
+  _findingSelectionPromptState = {
     block,
-    signature: getCurrentEvidenceSelectionSignature(),
+    signature: getCurrentFindingSelectionSignature(),
   };
   prompt.classList.add('open');
-  requestAnimationFrame(() => positionEvidenceSelectionPrompt(prompt));
+  requestAnimationFrame(() => positionFindingSelectionPrompt(prompt));
 }
 
-function syncEvidenceSelectionPrompt(update) {
+function syncFindingSelectionPrompt(update) {
   if (activeConfigDoc || !activeNoteId || !notes[activeNoteId] || !activeSessionId || !sessions[activeSessionId]) {
-    hideEvidenceSelectionPrompt();
+    hideFindingSelectionPrompt();
     return;
   }
   if (update.docChanged) {
-    hideEvidenceSelectionPrompt();
+    hideFindingSelectionPrompt();
     return;
   }
   if (!update.selectionSet) return;
 
   const main = update.state.selection?.main;
   if (!main || main.empty || !update.view?.hasFocus) {
-    hideEvidenceSelectionPrompt();
+    hideFindingSelectionPrompt();
     return;
   }
 
-  const block = getNoteEvidenceBlockSelection({ requireSelection: true });
+  const block = getNoteFindingBlockSelection({ requireSelection: true });
   if (!block || !block.text.trim()) {
-    hideEvidenceSelectionPrompt();
+    hideFindingSelectionPrompt();
     return;
   }
 
-  clearEvidenceSelectionPromptTimer();
-  const signature = getCurrentEvidenceSelectionSignature();
-  _evidenceSelectionPromptState = { block, signature };
-  _evidenceSelectionPromptTimer = setTimeout(() => {
-    if (!_evidenceSelectionPromptState || _evidenceSelectionPromptState.signature !== getCurrentEvidenceSelectionSignature()) return;
-    showEvidenceSelectionPrompt(block);
+  clearFindingSelectionPromptTimer();
+  const signature = getCurrentFindingSelectionSignature();
+  _findingSelectionPromptState = { block, signature };
+  _findingSelectionPromptTimer = setTimeout(() => {
+    if (!_findingSelectionPromptState || _findingSelectionPromptState.signature !== getCurrentFindingSelectionSignature()) return;
+    showFindingSelectionPrompt(block);
   }, 750);
 }
 
 window.addEventListener('resize', () => {
-  const prompt = document.getElementById('evidenceSelectionPrompt');
-  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+  const prompt = document.getElementById('findingSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionFindingSelectionPrompt(prompt);
 });
 
 window.addEventListener('scroll', () => {
-  const prompt = document.getElementById('evidenceSelectionPrompt');
-  if (prompt?.classList.contains('open')) positionEvidenceSelectionPrompt(prompt);
+  const prompt = document.getElementById('findingSelectionPrompt');
+  if (prompt?.classList.contains('open')) positionFindingSelectionPrompt(prompt);
 }, true);
 
-function flagPromptedSelectionAsEvidence() {
-  if (!_evidenceSelectionPromptState?.block) return;
-  flagSelectionAsEvidence({ blockOverride: _evidenceSelectionPromptState.block });
+function addPromptedSelectionAsFinding() {
+  if (!_findingSelectionPromptState?.block) return;
+  addFindingFromSelection({ blockOverride: _findingSelectionPromptState.block });
 }
 
-function syncEvidenceFlagLootUi() {
-  const enabledEl = document.getElementById('evidenceFlagAlsoLoot');
-  const fieldsEl = document.getElementById('evidenceFlagLootFields');
-  const typeEl = document.getElementById('evidenceFlagLootType');
-  const syncWrapEl = document.getElementById('evidenceFlagLootSyncWrap');
-  const syncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+function syncFindingDialogLootUi() {
+  const enabledEl = document.getElementById('findingDialogAlsoLoot');
+  const fieldsEl = document.getElementById('findingDialogLootFields');
+  const typeEl = document.getElementById('findingDialogLootType');
+  const syncWrapEl = document.getElementById('findingDialogLootSyncWrap');
+  const syncEl = document.getElementById('findingDialogLootSyncCredentials');
   const enabled = !!enabledEl?.checked;
   if (fieldsEl) fieldsEl.style.display = enabled ? 'block' : 'none';
   if (!syncWrapEl || !syncEl) return;
@@ -1548,24 +1546,24 @@ function syncEvidenceFlagLootUi() {
   if (!syncRelevant) syncEl.checked = false;
 }
 
-function openEvidenceFlagDialog({ title = '', type = 'discovery', severity = 'medium', summary = '', recommendation = '', command = '', loot = null } = {}) {
+function openFindingDialog({ title = '', type = 'discovery', severity = 'medium', summary = '', recommendation = '', command = '', loot = null } = {}) {
   return new Promise((resolve) => {
-    _evidenceFlagResolver = resolve;
-    const overlay = document.getElementById('evidenceFlagOverlay');
-    const titleEl = document.getElementById('evidenceFlagTitle');
-    const typeEl = document.getElementById('evidenceFlagType');
-    const severityEl = document.getElementById('evidenceFlagSeverity');
-    const summaryEl = document.getElementById('evidenceFlagSummary');
-    const recommendationEl = document.getElementById('evidenceFlagRecommendation');
-    const commandEl = document.getElementById('evidenceFlagCommand');
-    const alsoLootEl = document.getElementById('evidenceFlagAlsoLoot');
-    const lootTypeEl = document.getElementById('evidenceFlagLootType');
-    const lootValueEl = document.getElementById('evidenceFlagLootValue');
-    const lootHostEl = document.getElementById('evidenceFlagLootHost');
-    const lootNoteEl = document.getElementById('evidenceFlagLootNote');
-    const lootSyncEl = document.getElementById('evidenceFlagLootSyncCredentials');
+    _findingDialogResolver = resolve;
+    const overlay = document.getElementById('findingDialogOverlay');
+    const titleEl = document.getElementById('findingDialogTitle');
+    const typeEl = document.getElementById('findingDialogType');
+    const severityEl = document.getElementById('findingDialogSeverity');
+    const summaryEl = document.getElementById('findingDialogSummary');
+    const recommendationEl = document.getElementById('findingDialogRecommendation');
+    const commandEl = document.getElementById('findingDialogCommand');
+    const alsoLootEl = document.getElementById('findingDialogAlsoLoot');
+    const lootTypeEl = document.getElementById('findingDialogLootType');
+    const lootValueEl = document.getElementById('findingDialogLootValue');
+    const lootHostEl = document.getElementById('findingDialogLootHost');
+    const lootNoteEl = document.getElementById('findingDialogLootNote');
+    const lootSyncEl = document.getElementById('findingDialogLootSyncCredentials');
     if (titleEl) {
-      const suggestedTitle = deriveEvidenceTitleHint(command || summary, type);
+      const suggestedTitle = deriveFindingTitleHint(command || summary, type);
       titleEl.value = title;
       titleEl.placeholder = `${suggestedTitle}…`;
       titleEl.dataset.defaultTitle = suggestedTitle;
@@ -1581,7 +1579,7 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', severity = 'me
     if (lootHostEl) lootHostEl.value = loot?.host || '';
     if (lootNoteEl) lootNoteEl.value = loot?.note || '';
     if (lootSyncEl) lootSyncEl.checked = !!loot?.sync_to_credentials;
-    syncEvidenceFlagLootUi();
+    syncFindingDialogLootUi();
     overlay?.classList.add('open');
     setTimeout(() => {
       titleEl?.focus();
@@ -1590,39 +1588,39 @@ function openEvidenceFlagDialog({ title = '', type = 'discovery', severity = 'me
   });
 }
 
-function finishEvidenceFlagDialog(result) {
-  const overlay = document.getElementById('evidenceFlagOverlay');
+function finishFindingDialog(result) {
+  const overlay = document.getElementById('findingDialogOverlay');
   overlay?.classList.remove('open');
-  const resolver = _evidenceFlagResolver;
-  _evidenceFlagResolver = null;
+  const resolver = _findingDialogResolver;
+  _findingDialogResolver = null;
   if (typeof resolver === 'function') resolver(result);
 }
 
-function cancelEvidenceFlagDialog() {
-  finishEvidenceFlagDialog(null);
+function cancelFindingDialog() {
+  finishFindingDialog(null);
 }
 
-function confirmEvidenceFlagDialog() {
-  const titleEl = document.getElementById('evidenceFlagTitle');
+function confirmFindingDialog() {
+  const titleEl = document.getElementById('findingDialogTitle');
   const title = (titleEl?.value || '').trim() || (titleEl?.dataset.defaultTitle || '').trim();
-  const type = (document.getElementById('evidenceFlagType')?.value || 'discovery').trim();
-  const severity = (document.getElementById('evidenceFlagSeverity')?.value || 'medium').trim();
-  const summary = (document.getElementById('evidenceFlagSummary')?.value || '').trim();
-  const recommendation = (document.getElementById('evidenceFlagRecommendation')?.value || '').trim();
-  const source_command = (document.getElementById('evidenceFlagCommand')?.value || '').trim();
+  const type = (document.getElementById('findingDialogType')?.value || 'discovery').trim();
+  const severity = (document.getElementById('findingDialogSeverity')?.value || 'medium').trim();
+  const summary = (document.getElementById('findingDialogSummary')?.value || '').trim();
+  const recommendation = (document.getElementById('findingDialogRecommendation')?.value || '').trim();
+  const source_command = (document.getElementById('findingDialogCommand')?.value || '').trim();
   if (!title) {
     titleEl?.focus();
     return;
   }
   let loot = null;
-  if (document.getElementById('evidenceFlagAlsoLoot')?.checked) {
-    const lootType = (document.getElementById('evidenceFlagLootType')?.value || 'other').trim();
-    const lootValue = (document.getElementById('evidenceFlagLootValue')?.value || '').trim();
-    const lootHost = (document.getElementById('evidenceFlagLootHost')?.value || '').trim();
-    const lootNote = (document.getElementById('evidenceFlagLootNote')?.value || '').trim();
-    const syncToCredentials = !!document.getElementById('evidenceFlagLootSyncCredentials')?.checked;
+  if (document.getElementById('findingDialogAlsoLoot')?.checked) {
+    const lootType = (document.getElementById('findingDialogLootType')?.value || 'other').trim();
+    const lootValue = (document.getElementById('findingDialogLootValue')?.value || '').trim();
+    const lootHost = (document.getElementById('findingDialogLootHost')?.value || '').trim();
+    const lootNote = (document.getElementById('findingDialogLootNote')?.value || '').trim();
+    const syncToCredentials = !!document.getElementById('findingDialogLootSyncCredentials')?.checked;
     if (!lootValue) {
-      document.getElementById('evidenceFlagLootValue')?.focus();
+      document.getElementById('findingDialogLootValue')?.focus();
       return;
     }
     loot = {
@@ -1634,64 +1632,52 @@ function confirmEvidenceFlagDialog() {
       sync_to_credentials: syncToCredentials,
     };
   }
-  finishEvidenceFlagDialog({ title, type, severity, summary, recommendation, source_command, loot });
+  finishFindingDialog({ title, type, severity, summary, recommendation, source_command, loot });
 }
 
-function handleEvidenceFlagKey(event) {
+function handleFindingDialogKey(event) {
   if (event.key === 'Escape') {
     event.preventDefault();
-    cancelEvidenceFlagDialog();
+    cancelFindingDialog();
     return;
   }
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
     event.preventDefault();
-    confirmEvidenceFlagDialog();
+    confirmFindingDialog();
   }
 }
 
-async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
+async function openManualFindingDialog() {
   if (activeConfigDoc) return;
-  const activeEditor = getActiveEvidenceEditor();
-  if (!activeNoteId || !notes[activeNoteId] || !activeEditor) return;
   if (!activeSessionId || !sessions[activeSessionId]) {
     showToast('⚠ Open a session first', 'err');
     return;
   }
-  if (typeof ensureSessionEvidence !== 'function') return;
-  hideEvidenceSelectionPrompt();
+  if (typeof ensureSessionFindings !== 'function') return;
 
-  const block = blockOverride || getNoteEvidenceBlockSelection();
-  if (!block || !block.text.trim()) {
-    showToast('⚠ Select a line or block to create a finding', 'err');
-    return;
-  }
-
-  const entries = ensureSessionEvidence();
-  if (!entries) return;
-
-  const sourceCommand = deriveEvidenceCommand(block.text);
-  const defaultLootType = deriveLootType(block.text);
-  const suggestedType = deriveEvidenceType(block.text);
-  const confirmed = await openEvidenceFlagDialog({
+  const confirmed = await openFindingDialog({
     title: '',
-    type: suggestedType,
+    type: 'discovery',
     severity: 'medium',
-    summary: deriveEvidenceDetails(block.text, sourceCommand),
+    summary: '',
     recommendation: '',
-    command: sourceCommand || stripInlineEvidenceMarkers(block.text),
+    command: '',
     loot: {
-      enabled: shouldSuggestLoot(block.text, defaultLootType),
-      type: defaultLootType,
-      value: deriveLootValue(block.text, sourceCommand),
-      host: getEvidenceFlagDefaultLootHost(),
+      enabled: false,
+      type: 'other',
+      value: '',
+      host: getFindingDefaultLootHost(),
       note: '',
-      sync_to_credentials: ['cleartext', 'hash'].includes(defaultLootType),
+      sync_to_credentials: false,
     },
   });
   if (!confirmed) return;
 
+  const entries = ensureSessionFindings();
+  if (!entries) return;
+  const noteTargetId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].target_id || null) : null;
   const entry = {
-    id: `evidence_${Date.now()}`,
+    id: `finding_${Date.now()}`,
     type: confirmed.type,
     title: confirmed.title,
     severity: confirmed.severity,
@@ -1700,7 +1686,94 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
     impact: '',
     recommendation: confirmed.recommendation,
     source_command: confirmed.source_command,
-    target_id: detectEvidenceTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
+    target_id: activeTargetId || noteTargetId || null,
+    source_note_id: null,
+    note_id: null,
+    sync_mode: 'export_only',
+    created: Date.now(),
+    updated: Date.now(),
+  };
+
+  entries.push(entry);
+  let syncedLootCredentialsNote = null;
+  let lootDuplicate = false;
+  if (confirmed.loot?.enabled && typeof addLootEntryFromData === 'function') {
+    const lootResult = addLootEntryFromData({
+      type: confirmed.loot.type,
+      credential: confirmed.loot.value,
+      host: confirmed.loot.host,
+      note: confirmed.loot.note,
+      syncToCredentials: !!confirmed.loot.sync_to_credentials,
+      targetId: entry.target_id,
+    });
+    syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
+    lootDuplicate = !!lootResult?.duplicate;
+  }
+
+  saveNotes();
+  renderNotesList();
+  renderSessionSidebar();
+  if (typeof renderLootTable === 'function') renderLootTable();
+  if (typeof updateSvcTabCounts === 'function') updateSvcTabCounts();
+  if (syncedLootCredentialsNote && typeof applySyncedNoteUpdate === 'function') applySyncedNoteUpdate(syncedLootCredentialsNote);
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
+  if (lootDuplicate) showToast('ℹ Loot already logged');
+  showToast('✓ Finding added');
+}
+
+async function addFindingFromSelection({ blockOverride = null } = {}) {
+  if (activeConfigDoc) return;
+  const activeEditor = getActiveFindingEditor();
+  if (!activeNoteId || !notes[activeNoteId] || !activeEditor) return;
+  if (!activeSessionId || !sessions[activeSessionId]) {
+    showToast('⚠ Open a session first', 'err');
+    return;
+  }
+  if (typeof ensureSessionFindings !== 'function') return;
+  hideFindingSelectionPrompt();
+
+  const block = blockOverride || getNoteFindingBlockSelection();
+  if (!block || !block.text.trim()) {
+    showToast('⚠ Select a line or block to create a finding', 'err');
+    return;
+  }
+
+  const entries = ensureSessionFindings();
+  if (!entries) return;
+
+  const sourceCommand = deriveFindingCommand(block.text);
+  const defaultLootType = deriveLootType(block.text);
+  const suggestedType = deriveFindingType(block.text);
+  const confirmed = await openFindingDialog({
+    title: '',
+    type: suggestedType,
+    severity: 'medium',
+    summary: deriveFindingSummary(block.text, sourceCommand),
+    recommendation: '',
+    command: sourceCommand || stripInlineFindingMarkers(block.text),
+    loot: {
+      enabled: shouldSuggestLoot(block.text, defaultLootType),
+      type: defaultLootType,
+      value: deriveLootValue(block.text, sourceCommand),
+      host: getFindingDefaultLootHost(),
+      note: '',
+      sync_to_credentials: ['cleartext', 'hash'].includes(defaultLootType),
+    },
+  });
+  if (!confirmed) return;
+
+  const entry = {
+    id: `finding_${Date.now()}`,
+    type: confirmed.type,
+    title: confirmed.title,
+    severity: confirmed.severity,
+    summary: confirmed.summary,
+    details: confirmed.summary,
+    impact: '',
+    recommendation: confirmed.recommendation,
+    source_command: confirmed.source_command,
+    target_id: detectFindingTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
     source_note_id: activeNoteId,
     note_id: null,
     sync_mode: 'export_only',
@@ -1730,19 +1803,19 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   if (typeof renderLootTable === 'function') renderLootTable();
   if (typeof updateSvcTabCounts === 'function') updateSvcTabCounts();
   if (syncedLootCredentialsNote && typeof applySyncedNoteUpdate === 'function') applySyncedNoteUpdate(syncedLootCredentialsNote);
-  if (typeof renderEvidenceList === 'function') renderEvidenceList();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
   if (lootDuplicate) showToast('ℹ Loot already logged');
-  showToast(`✓ Finding added: ${typeof evidenceTypeLabel === 'function' ? evidenceTypeLabel(entry.type) : 'Finding'}`);
+  showToast(`✓ Finding added: ${typeof findingTypeLabel === 'function' ? findingTypeLabel(entry.type) : 'Finding'}`);
 }
 
 async function persistActiveNote(opts = {}) {
   const noteId = opts.noteId || activeNoteId;
   const syncResult = syncActiveNoteDraft(noteId);
   if (!syncResult.ok) return false;
-  const evidenceChanged = syncEvidenceEntriesFromNote(noteId);
+  const findingsChanged = syncFindingEntriesFromNote(noteId);
   const note = notes[noteId];
-  if (!syncResult.changed && !evidenceChanged) {
+  if (!syncResult.changed && !findingsChanged) {
     if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
     return true;
   }
@@ -1753,9 +1826,9 @@ async function persistActiveNote(opts = {}) {
   });
   renderNotesList();
   renderSessionSidebar();
-  if (evidenceChanged) {
-    if (typeof renderEvidenceList === 'function') renderEvidenceList();
-    if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (findingsChanged) {
+    if (typeof renderFindingsList === 'function') renderFindingsList();
+    if (typeof updateFindingsCount === 'function') updateFindingsCount();
   }
   if (!note || notes[noteId] !== note) return ok;
   if (activeNoteId === noteId) renderBacklinks(noteId);
@@ -1793,7 +1866,7 @@ async function deleteCurrentNote() {
 }
 
 async function closeCurrentNote() {
-  hideEvidenceSelectionPrompt();
+  hideFindingSelectionPrompt();
   if (activeConfigDoc) {
     clearTimeout(noteSaveTimer);
     const ok = await persistTemplatesConfig({ reason: 'config-close' });

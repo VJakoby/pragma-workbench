@@ -396,21 +396,21 @@
   </div>
 </div>
 
-<div class="pw-overlay" id="evidenceFlagOverlay">
-  <div class="pw-box" style="width:520px">
+<div class="pw-overlay" id="findingDialogOverlay">
+  <div class="pw-box" style="width:620px">
     <div class="pw-header">
       <span class="pw-header-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
       </span>
       <span class="pw-header-title">Add as Finding</span>
-      <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
+      <button class="pw-header-close" onclick="cancelFindingDialog()">&times;</button>
     </div>
     <div class="pw-body">
       <div class="pw-description">Review the selected note block, choose the finding type, and add any supporting context before saving it to the session tracker.</div>
       <div class="pw-field-grid pw-field-grid-2">
         <div class="pw-field">
           <label>Type</label>
-          <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
+          <select class="pw-input evidence-flag-select" id="findingDialogType" onkeydown="handleFindingDialogKey(event)">
             <option value="enumeration">Enumeration</option>
             <option value="initial_access">Initial Access</option>
             <option value="execution">Execution</option>
@@ -428,7 +428,7 @@
         </div>
         <div class="pw-field">
           <label>Severity</label>
-          <select class="pw-input evidence-flag-select" id="evidenceFlagSeverity" onkeydown="handleEvidenceFlagKey(event)">
+          <select class="pw-input evidence-flag-select" id="findingDialogSeverity" onkeydown="handleFindingDialogKey(event)">
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium" selected>Medium</option>
@@ -439,31 +439,31 @@
       </div>
       <div class="pw-field">
         <label>Title</label>
-        <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+        <input class="pw-input" id="findingDialogTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
       </div>
       <div class="pw-field">
         <label>Summary</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <textarea class="pw-input evidence-flag-textarea" id="findingDialogSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field">
         <label>Recommendation</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <textarea class="pw-input evidence-flag-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field">
         <label>Command / Block</label>
-        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="findingDialogCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="evidence-flag-toggle-row">
         <label class="evidence-flag-check">
-          <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
+          <input id="findingDialogAlsoLoot" type="checkbox" onchange="syncFindingDialogLootUi()">
           <span>Also add as Loot</span>
         </label>
       </div>
-      <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
+      <div class="evidence-flag-loot-fields" id="findingDialogLootFields" style="display:none">
         <div class="evidence-flag-loot-grid">
           <div class="pw-field">
             <label>Loot type</label>
-            <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
+            <select class="pw-input evidence-flag-select" id="findingDialogLootType" onchange="syncFindingDialogLootUi()" onkeydown="handleFindingDialogKey(event)">
               <option value="cleartext">Cleartext</option>
               <option value="hash">Hash</option>
               <option value="token">Token</option>
@@ -473,34 +473,34 @@
           </div>
           <div class="pw-field">
             <label>Target / Host</label>
-            <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+            <input class="pw-input" id="findingDialogLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
           </div>
         </div>
         <div class="pw-field">
           <label>Loot value</label>
-          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="findingDialogLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
         </div>
         <div class="pw-field">
           <label>Loot context</label>
-          <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+          <input class="pw-input" id="findingDialogLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
         </div>
-        <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
+        <div class="evidence-flag-loot-sync" id="findingDialogLootSyncWrap">
           <label class="evidence-flag-check">
-            <input id="evidenceFlagLootSyncCredentials" type="checkbox">
+            <input id="findingDialogLootSyncCredentials" type="checkbox">
             <span>Sync cleartext/hash into the Credentials note</span>
           </label>
         </div>
       </div>
       <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
-        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Finding</button>
+        <button class="pw-btn secondary" onclick="cancelFindingDialog()">Cancel</button>
+        <button class="pw-btn primary" onclick="confirmFindingDialog()">Add Finding</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="evidence-selection-prompt" id="evidenceSelectionPrompt">
-  <button class="evidence-selection-prompt-btn" onclick="flagPromptedSelectionAsEvidence()">
+<div class="evidence-selection-prompt" id="findingSelectionPrompt">
+  <button class="evidence-selection-prompt-btn" onclick="addPromptedSelectionAsFinding()">
     <span aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
     </span>

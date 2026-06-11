@@ -204,13 +204,6 @@ body{
 }
 .tb-btn:hover{border-color:var(--border2);color:var(--text)}
 .tb-btn.active{border-color:var(--accent);color:var(--accent)}
-#noteFlagEvidenceBtn{
-  font-size:13px;
-}
-#noteFlagEvidenceBtn span{
-  font-size:13px;
-  line-height:1;
-}
 
 .theme-toggle{
   display:flex;align-items:center;
@@ -5579,8 +5572,8 @@ body.enc-active-body .content-panel {
   animation: cmdSlide 0.06s ease;
 }
 
-#evidenceFlagOverlay .pw-box {
-  max-width: 520px;
+#findingDialogOverlay .pw-box {
+  max-width: 620px;
   max-height: min(86vh, 760px);
   display: flex;
   flex-direction: column;
@@ -5606,7 +5599,7 @@ body.enc-active-body .content-panel {
   padding: 16px; display: flex; flex-direction: column; gap: 12px;
 }
 
-#evidenceFlagOverlay .pw-body {
+#findingDialogOverlay .pw-body {
   overflow-y: auto;
   min-height: 0;
 }

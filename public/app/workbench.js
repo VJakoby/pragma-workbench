@@ -578,7 +578,7 @@ async function initNotes() {
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
 }
 
 async function executeAppSave() {
@@ -826,7 +826,7 @@ async function createSession(source = 'session') {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], evidence: [] };
+  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], findings: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -1033,8 +1033,8 @@ function switchSession(id) {
   refreshCodeBlocks();
   updateSvcTabCounts();
   renderTodoList();
-  if (typeof renderEvidenceList === 'function') renderEvidenceList();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
   closeWelcomeSessionModal(true);
 }
 
@@ -1065,8 +1065,8 @@ async function deleteSession(id) {
   renderSessionList();
   renderNotesList();
   renderTodoList();
-  if (typeof renderEvidenceList === 'function') renderEvidenceList();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
 }
 
 let _sessionRenameId = null;
@@ -1203,7 +1203,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
-          evidence: cloneList(session.evidence, [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
+          findings: cloneList(session.findings || session.evidence, [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({

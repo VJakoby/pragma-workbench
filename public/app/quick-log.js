@@ -8,8 +8,8 @@ let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 let _editingTodoId = null;
 let _editingQuickLog = null;
-let _evidenceFilterType = '';
-let _evidenceFilterTarget = '';
+let _findingFilterType = '';
+let _findingFilterTarget = '';
 let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
 
 function buildQuickLogOptionMap(options) {
@@ -20,10 +20,10 @@ function buildQuickLogOptionMap(options) {
 const FINDING_SEVERITY_LABELS = buildQuickLogOptionMap(window.FINDING_SEVERITY_OPTIONS || []);
 const FINDING_SEVERITY_VALUES = new Set(Object.keys(FINDING_SEVERITY_LABELS));
 
-function normalizeEvidenceEntry(entry, index = 0) {
+function normalizeFindingEntry(entry, index = 0) {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
   const normalized = { ...entry };
-  normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : `evidence_${Date.now()}_${index}`;
+  normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : `finding_${Date.now()}_${index}`;
   normalized.type = String(normalized.type || 'discovery').trim() || 'discovery';
   normalized.title = String(normalized.title || '').trim();
   normalized.summary = String(normalized.summary || normalized.details || '').trim();
@@ -237,37 +237,37 @@ function updateTodoCount() {
   btn.classList.toggle('has-entries', openCount > 0);
 }
 
-function getSessionEvidence() {
+function getSessionFindings() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return ensureSessionEvidence() || [];
+  return ensureSessionFindings() || [];
 }
 
-function ensureSessionEvidence() {
+function ensureSessionFindings() {
   if (!activeSessionId || !sessions[activeSessionId]) return null;
-  const current = Array.isArray(sessions[activeSessionId].evidence) ? sessions[activeSessionId].evidence : [];
-  const normalized = current.map((entry, index) => normalizeEvidenceEntry(entry, index)).filter(Boolean);
-  sessions[activeSessionId].evidence = normalized;
+  const current = Array.isArray(sessions[activeSessionId].findings) ? sessions[activeSessionId].findings : (Array.isArray(sessions[activeSessionId].evidence) ? sessions[activeSessionId].evidence : []);
+  const normalized = current.map((entry, index) => normalizeFindingEntry(entry, index)).filter(Boolean);
+  sessions[activeSessionId].findings = normalized;
   return normalized;
 }
 
-function updateEvidenceCount() {
-  const entries = getSessionEvidence();
-  const btn = document.getElementById('evidenceTopbarCount');
+function updateFindingsCount() {
+  const entries = getSessionFindings();
+  const btn = document.getElementById('findingsTopbarCount');
   if (!btn) return;
   btn.textContent = entries.length || '';
   btn.classList.toggle('has-entries', entries.length > 0);
 }
 
-function renderEvidenceClearAction() {
-  const btn = document.getElementById('evidenceClearBtn');
+function renderFindingsClearAction() {
+  const btn = document.getElementById('findingsClearBtn');
   if (!btn) return;
-  const count = getSessionEvidence().length;
+  const count = getSessionFindings().length;
   btn.textContent = count ? `Clear All (${count})` : 'Clear All';
   btn.disabled = !activeSessionId || count === 0;
 }
 
-function renderEvidenceTargetOptions(selectedValue = '') {
-  const select = document.getElementById('evidenceTargetInput');
+function renderFindingTargetOptions(selectedValue = '') {
+  const select = document.getElementById('findingTargetInput');
   if (!select) return;
   const targets = getSessionTargets();
   const current = selectedValue || activeTargetId || '';
@@ -279,17 +279,17 @@ function renderEvidenceTargetOptions(selectedValue = '') {
   select.innerHTML = options.join('');
 }
 
-function getSessionNotesForEvidence() {
+function getSessionNotesForFindings() {
   if (!activeSessionId) return [];
   return Object.values(notes)
     .filter((note) => note.session_id === activeSessionId)
     .sort((a, b) => (b.updated || 0) - (a.updated || 0));
 }
 
-function renderEvidenceNoteOptions(selectedValue = '') {
-  const select = document.getElementById('evidenceNoteInput');
+function renderFindingNoteOptions(selectedValue = '') {
+  const select = document.getElementById('findingNoteInput');
   if (!select) return;
-  const noteItems = getSessionNotesForEvidence();
+  const noteItems = getSessionNotesForFindings();
   const options = ['<option value="">Select session note…</option>'];
   noteItems.forEach((note) => {
     options.push(`<option value="${esc(note.id)}"${note.id === selectedValue ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`);
@@ -297,7 +297,7 @@ function renderEvidenceNoteOptions(selectedValue = '') {
   select.innerHTML = options.join('');
 }
 
-function evidenceTypeLabel(type) {
+function findingTypeLabel(type) {
   const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
   const configuredHit = configured.find((item) => item.value === type);
   if (configuredHit) return configuredHit.label;
@@ -313,29 +313,29 @@ function evidenceTypeLabel(type) {
   return labels[type] || (type ? String(type) : 'Finding');
 }
 
-function buildEvidenceTypeOptionsHtml(selectedType = '') {
+function buildFindingTypeOptionsHtml(selectedType = '') {
   const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
   const options = configured.map(({ value, label }) =>
     `<option value="${esc(value)}"${value === selectedType ? ' selected' : ''}>${esc(label)}</option>`
   );
   if (selectedType && !configured.find((item) => item.value === selectedType)) {
-    options.push(`<option value="${esc(selectedType)}" selected>${esc(evidenceTypeLabel(selectedType))}</option>`);
+    options.push(`<option value="${esc(selectedType)}" selected>${esc(findingTypeLabel(selectedType))}</option>`);
   }
   return options.join('');
 }
 
-function evidenceSyncLabel(mode) {
+function findingSyncLabel(mode) {
   if (mode === 'none') return 'No sync';
   if (mode === 'note') return 'Note';
   if (mode === 'both') return 'Both';
   return 'Summary';
 }
 
-function evidenceUsesNoteSync(mode) {
+function findingUsesNoteSync(mode) {
   return mode === 'note' || mode === 'both';
 }
 
-function formatEvidenceTimestamp(ts) {
+function formatFindingTimestamp(ts) {
   if (!ts) return '';
   return new Date(ts).toLocaleString('en-GB', {
     day: '2-digit',
@@ -345,12 +345,12 @@ function formatEvidenceTimestamp(ts) {
   });
 }
 
-function evidenceTargetDisplay(entry) {
+function findingTargetDisplay(entry) {
   const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
   return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
 }
 
-function renderEvidenceProofCell(entry) {
+function renderFindingProofCell(entry) {
   const lines = [];
   if (entry.summary) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Summary</span>${esc(entry.summary)}</span>`);
   if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
@@ -359,44 +359,44 @@ function renderEvidenceProofCell(entry) {
   return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
-function updateEvidenceSyncUi(selectedNoteId = '') {
-  const syncEl = document.getElementById('evidenceSyncInput');
+function updateFindingSyncUi(selectedNoteId = '') {
+  const syncEl = document.getElementById('findingSyncInput');
   const row = document.getElementById('evidenceNoteRow');
   if (!syncEl || !row) return;
   const syncMode = (syncEl.value || 'export_only').trim();
-  const showNote = evidenceUsesNoteSync(syncMode);
+  const showNote = findingUsesNoteSync(syncMode);
   row.style.display = showNote ? 'flex' : 'none';
-  renderEvidenceNoteOptions(selectedNoteId);
+  renderFindingNoteOptions(selectedNoteId);
 }
 
-function buildEvidenceMarkerId(entryId) {
+function buildFindingMarkerId(entryId) {
   return `pragma:evidence:${entryId}`;
 }
 
-function getEvidenceSourceNoteId(entry) {
+function getFindingSourceNoteId(entry) {
   return entry?.source_note_id || entry?.note_id || null;
 }
 
-function getEvidenceSourceNote(entry) {
-  const noteId = getEvidenceSourceNoteId(entry);
+function getFindingSourceNote(entry) {
+  const noteId = getFindingSourceNoteId(entry);
   return noteId ? notes[noteId] || null : null;
 }
 
-function getEvidenceSyncNote(entry) {
-  if (!evidenceUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
+function getFindingSyncNote(entry) {
+  if (!findingUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
   const noteId = entry?.note_id || null;
   return noteId ? notes[noteId] || null : null;
 }
 
-function evidenceTypeBadgeClass(type) {
+function findingTypeBadgeClass(type) {
   if (type === 'proof') return 'loot-type-token';
   return 'loot-type-other';
 }
 
-function getEvidenceSourceSnippet(entry) {
-  const sourceNote = getEvidenceSourceNote(entry);
+function getFindingSourceSnippet(entry) {
+  const sourceNote = getFindingSourceNote(entry);
   if (!sourceNote) return '';
-  const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
+  const range = findFindingMarkerRange(sourceNote.body || '', entry.id);
   const raw = range
     ? String(sourceNote.body || '').slice(range.from, range.to)
     : String(entry.source_command || entry.summary || entry.details || '');
@@ -410,9 +410,9 @@ function getEvidenceSourceSnippet(entry) {
   return compact.length > 140 ? `${compact.slice(0, 140).trim()}…` : compact;
 }
 
-function findEvidenceMarkerRange(body, entryId) {
+function findFindingMarkerRange(body, entryId) {
   const text = String(body || '');
-  const marker = buildEvidenceMarkerId(entryId);
+  const marker = buildFindingMarkerId(entryId);
   const startToken = `<!-- ${marker}:start -->`;
   const endToken = `<!-- ${marker}:end -->`;
   const startIdx = text.indexOf(startToken);
@@ -426,16 +426,16 @@ function findEvidenceMarkerRange(body, entryId) {
   return { from, to };
 }
 
-async function jumpToEvidenceSource(entryId) {
+async function jumpToFindingSource(entryId) {
   if (!activeSessionId || !sessions[activeSessionId]) return;
-  const entry = getSessionEvidence().find((item) => item.id === entryId);
-  const noteId = getEvidenceSourceNoteId(entry);
+  const entry = getSessionFindings().find((item) => item.id === entryId);
+  const noteId = getFindingSourceNoteId(entry);
   if (!noteId || !notes[noteId]) {
     showToast?.('⚠ No source note linked', 'err');
     return;
   }
 
-  closeEvidencePopover?.();
+  closeFindingsPopover?.();
   if (typeof switchView === 'function') {
     switchView('notes', document.getElementById('nav-notes'));
   }
@@ -445,7 +445,7 @@ async function jumpToEvidenceSource(entryId) {
 
   if (typeof noteEditor === 'undefined' || !noteEditor) return;
   const docText = noteEditor.state.doc.toString();
-  let range = findEvidenceMarkerRange(docText, entryId);
+  let range = findFindingMarkerRange(docText, entryId);
   if (!range) {
     const fallbackText = String(entry?.source_command || entry?.summary || entry?.details || '').trim();
     if (fallbackText) {
@@ -466,24 +466,24 @@ async function jumpToEvidenceSource(entryId) {
   noteEditor.focus();
 }
 
-function removeEvidenceBlockFromBody(body, entryId) {
-  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function removeFindingBlockFromBody(body, entryId) {
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
   return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
-function unwrapEvidenceBlockInBody(body, entryId) {
-  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function unwrapFindingBlockInBody(body, entryId) {
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`<!-- ${marker}:start -->\\n?([\\s\\S]*?)\\n?<!-- ${marker}:end -->`, 'g');
   return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
-function updateEvidenceBlockInBody(body, entry, prevEntry) {
+function updateFindingBlockInBody(body, entry, prevEntry) {
   if (!entry?.id || !entry?.source_command) return body;
   const prevCommand = String(prevEntry?.source_command || '');
   const nextCommand = String(entry.source_command || '');
   if (prevCommand === nextCommand) return body;
-  const range = findEvidenceMarkerRange(body || '', entry.id);
+  const range = findFindingMarkerRange(body || '', entry.id);
   if (!range) return body;
   const block = String(body || '').slice(range.from, range.to);
   let updatedBlock = block;
@@ -498,12 +498,12 @@ function updateEvidenceBlockInBody(body, entry, prevEntry) {
   return `${String(body || '').slice(0, range.from)}${updatedBlock}${String(body || '').slice(range.to)}`;
 }
 
-function buildEvidenceMarkdownBlock(entry) {
-  const marker = buildEvidenceMarkerId(entry.id);
-  const targetText = evidenceTargetDisplay(entry);
+function buildFindingMarkdownBlock(entry) {
+  const marker = buildFindingMarkerId(entry.id);
+  const targetText = findingTargetDisplay(entry);
   const lines = [
     `<!-- ${marker}:start -->`,
-    `### ${evidenceTypeLabel(entry.type)}: ${entry.title}`,
+    `### ${findingTypeLabel(entry.type)}: ${entry.title}`,
     '',
     `- Target: ${targetText}`,
     `- Severity: ${findingSeverityLabel(entry.severity)}`,
@@ -518,9 +518,9 @@ function buildEvidenceMarkdownBlock(entry) {
   return lines.join('\n');
 }
 
-function upsertEvidenceBlockInBody(body, entry) {
-  const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
-  const block = buildEvidenceMarkdownBlock(entry);
+function upsertFindingBlockInBody(body, entry) {
+  const cleanBody = removeFindingBlockFromBody(body, entry.id);
+  const block = buildFindingMarkdownBlock(entry);
   const sectionMatch = cleanBody.match(/^##\s+(?:Findings|Evidence)\s*$/im);
   if (!sectionMatch || sectionMatch.index == null) {
     const prefix = cleanBody.trimEnd();
@@ -537,17 +537,17 @@ function upsertEvidenceBlockInBody(body, entry) {
   return `${before}\n\n${block}${after}`.replace(/\n{3,}/g, '\n\n');
 }
 
-function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
+function applyFindingNoteSyncChanges(prevEntry, nextEntry) {
   const syncedNotes = [];
-  const prevSourceNoteId = getEvidenceSourceNoteId(prevEntry);
-  const prevSyncNoteId = evidenceUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
-  const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
-  const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
+  const prevSourceNoteId = getFindingSourceNoteId(prevEntry);
+  const prevSyncNoteId = findingUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
+  const nextSourceNoteId = getFindingSourceNoteId(nextEntry);
+  const nextSyncNoteId = findingUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
 
   const shouldRemoveSourceMarker = !nextEntry || !nextSourceNoteId || nextSourceNoteId !== prevSourceNoteId;
   if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId] && shouldRemoveSourceMarker) {
     const prevNote = notes[prevSourceNoteId];
-    const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
+    const cleaned = unwrapFindingBlockInBody(prevNote.body || '', prevEntry.id);
     if (cleaned !== (prevNote.body || '')) {
       prevNote.body = cleaned;
       prevNote.updated = Date.now();
@@ -557,7 +557,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (prevEntry?.id && prevSyncNoteId && prevSyncNoteId !== prevSourceNoteId && notes[prevSyncNoteId]) {
     const prevSyncNote = notes[prevSyncNoteId];
-    const cleaned = removeEvidenceBlockFromBody(prevSyncNote.body || '', prevEntry.id);
+    const cleaned = removeFindingBlockFromBody(prevSyncNote.body || '', prevEntry.id);
     if (cleaned !== (prevSyncNote.body || '')) {
       prevSyncNote.body = cleaned;
       prevSyncNote.updated = Date.now();
@@ -567,7 +567,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (nextEntry?.id && nextSourceNoteId && notes[nextSourceNoteId]) {
     const sourceNote = notes[nextSourceNoteId];
-    const updated = updateEvidenceBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
+    const updated = updateFindingBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
     if (updated !== (sourceNote.body || '')) {
       sourceNote.body = updated;
       sourceNote.updated = Date.now();
@@ -577,7 +577,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (nextEntry?.id && nextSyncNoteId && nextSyncNoteId !== nextSourceNoteId && notes[nextSyncNoteId]) {
     const nextNote = notes[nextSyncNoteId];
-    const nextBody = upsertEvidenceBlockInBody(nextNote.body || '', nextEntry);
+    const nextBody = upsertFindingBlockInBody(nextNote.body || '', nextEntry);
     if (nextBody !== (nextNote.body || '')) {
       nextNote.body = nextBody;
       nextNote.updated = Date.now();
@@ -588,14 +588,14 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
   return syncedNotes;
 }
 
-function setEvidenceFilterType(value) {
-  _evidenceFilterType = String(value || '').trim();
-  renderEvidenceList();
+function setFindingFilterType(value) {
+  _findingFilterType = String(value || '').trim();
+  renderFindingsList();
 }
 
-function setEvidenceFilterTarget(value) {
-  _evidenceFilterTarget = String(value || '').trim();
-  renderEvidenceList();
+function setFindingFilterTarget(value) {
+  _findingFilterTarget = String(value || '').trim();
+  renderFindingsList();
 }
 
 function renderTodoClearAction() {
@@ -776,28 +776,28 @@ function clearCompletedTodos() {
   renderTodoList();
 }
 
-function renderEvidenceList() {
-  const listEl = document.getElementById('evidenceList');
+function renderFindingsList() {
+  const listEl = document.getElementById('findingsList');
   if (!listEl) return;
-  renderEvidenceTargetOptions();
-  renderEvidenceNoteOptions();
-  renderEvidenceClearAction();
-  updateEvidenceCount();
-  updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
+  renderFindingTargetOptions();
+  renderFindingNoteOptions();
+  renderFindingsClearAction();
+  updateFindingsCount();
+  updateFindingSyncUi(document.getElementById('findingNoteInput')?.value || '');
 
   if (!activeSessionId || !sessions[activeSessionId]) {
     listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured findings entries.</div>`;
     return;
   }
 
-  const allEntries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  const allEntries = [...getSessionFindings()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
   const targets = getSessionTargets();
-  const notes = getSessionNotesForEvidence();
+  const notes = getSessionNotesForFindings();
   const entries = allEntries.filter((entry) => {
-    if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
-    if (_evidenceFilterTarget) {
+    if (_findingFilterType && entry.type !== _findingFilterType) return false;
+    if (_findingFilterTarget) {
       const targetId = entry.target_id || '__session__';
-      if (targetId !== _evidenceFilterTarget) return false;
+      if (targetId !== _findingFilterTarget) return false;
     }
     return true;
   });
@@ -808,16 +808,16 @@ function renderEvidenceList() {
     }
     listEl.innerHTML = `
       <div class="evidence-filters">
-        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterType(this.value)">
           <option value="">All types</option>
-          ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+          ${buildFindingTypeOptionsHtml(_findingFilterType)}
         </select>
-        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterTarget(this.value)">
           <option value="">All targets</option>
-          <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+          <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
           ${targets.map((target) => {
             const label = esc(target.ip || target.domain || target.label || 'Unnamed');
-            return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+            return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
           }).join('')}
         </select>
       </div>
@@ -828,16 +828,16 @@ function renderEvidenceList() {
 
   listEl.innerHTML = `
     <div class="evidence-filters">
-      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterType(this.value)">
         <option value="">All types</option>
-        ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+        ${buildFindingTypeOptionsHtml(_findingFilterType)}
       </select>
-      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterTarget(this.value)">
         <option value="">All targets</option>
-        <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+        <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
         ${targets.map((target) => {
           const label = esc(target.ip || target.domain || target.label || 'Unnamed');
-          return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+          return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
         }).join('')}
       </select>
       <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
@@ -845,41 +845,41 @@ function renderEvidenceList() {
     <div class="evidence-items">${entries.map((entry) => {
       const target = entry.target_id ? targets.find((item) => item.id === entry.target_id) : null;
       const targetLabel = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
-      const syncLabel = evidenceSyncLabel(entry.sync_mode || 'export_only');
-      const sourceNote = getEvidenceSourceNote(entry);
+      const syncLabel = findingSyncLabel(entry.sync_mode || 'export_only');
+      const sourceNote = getFindingSourceNote(entry);
       const sourceNoteLabel = sourceNote?.title || 'Unknown source';
-      const sourceSnippet = getEvidenceSourceSnippet(entry);
-      const syncNote = getEvidenceSyncNote(entry);
-      const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
-      const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
-      if (isQuickLogEditing('evidence', entry.id)) {
+      const sourceSnippet = getFindingSourceSnippet(entry);
+      const syncNote = getFindingSyncNote(entry);
+      const syncNoteLabel = syncNote?.title || (findingUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
+      const timestampLabel = formatFindingTimestamp(entry.updated || entry.created || 0);
+      if (isQuickLogEditing('finding', entry.id)) {
         return `
           <section class="evidence-item evidence-item-editing">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group evidence-item-title-group-editing">
                 <label class="evidence-edit-field evidence-edit-field-type">
                   <span class="evidence-edit-label">Type</span>
-                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
-                    ${buildEvidenceTypeOptionsHtml(entry.type)}
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
+                    ${buildFindingTypeOptionsHtml(entry.type)}
                   </select>
                 </label>
                 <label class="evidence-edit-field">
                   <span class="evidence-edit-label">Severity</span>
-                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSeverity_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSeverity_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                     ${buildFindingSeverityOptionsHtml(entry.severity || 'medium')}
                   </select>
                 </label>
                 <label class="evidence-edit-field evidence-edit-field-title">
                   <span class="evidence-edit-label">Title</span>
-                  <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                  <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                 </label>
               </div>
-              <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+              <div class="evidence-item-actions">${renderFindingRowActions(entry.id)}</div>
             </div>
             <div class="evidence-edit-grid">
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Target</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="">Session-wide</option>
                   ${targets.map((targetItem) => {
                     const label = esc(targetItem.ip || targetItem.domain || targetItem.label || 'Unnamed');
@@ -889,7 +889,7 @@ function renderEvidenceList() {
               </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Sync</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
                   <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
                   <option value="note"${(entry.sync_mode || 'export_only') === 'note' ? ' selected' : ''}>Note</option>
@@ -898,7 +898,7 @@ function renderEvidenceList() {
               </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Synced note</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="">Select note…</option>
                   ${notes.map((item) => `<option value="${esc(item.id)}"${item.id === entry.note_id ? ' selected' : ''}>${esc(item.title || 'Untitled')}</option>`).join('')}
                 </select>
@@ -907,19 +907,19 @@ function renderEvidenceList() {
             <div class="evidence-item-body evidence-item-body-editing">
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Summary</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditSummary_${entry.id}" type="text" value="${esc(entry.summary || entry.details || '')}" placeholder="summary" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditSummary_${entry.id}" type="text" value="${esc(entry.summary || entry.details || '')}" placeholder="summary" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Impact</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Recommendation</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">POC</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
             </div>
           </section>
@@ -929,14 +929,14 @@ function renderEvidenceList() {
         <section class="evidence-item">
             <div class="evidence-item-head">
               <div class="evidence-item-title-group">
-              <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
+              <span class="loot-type-badge ${findingTypeBadgeClass(entry.type)}">${esc(findingTypeLabel(entry.type))}</span>
               <div class="evidence-item-title-wrap">
                 <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
                 <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
                 ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
               </div>
             </div>
-            <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+            <div class="evidence-item-actions">${renderFindingRowActions(entry.id)}</div>
           </div>
           ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
           <div class="evidence-item-meta">
@@ -952,7 +952,7 @@ function renderEvidenceList() {
               <span class="evidence-meta-key">Target</span>
               <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
             </span>
-            ${evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? `
+            ${findingUsesNoteSync(entry.sync_mode || 'export_only') ? `
             <span class="evidence-meta-pill" title="${esc(syncNoteLabel)}">
               <span class="evidence-meta-key">Synced</span>
               <span class="evidence-meta-value">${esc(syncNoteLabel)}</span>
@@ -960,43 +960,43 @@ function renderEvidenceList() {
             ` : ''}
           </div>
           <div class="evidence-item-body">
-            ${renderEvidenceProofCell(entry)}
+            ${renderFindingProofCell(entry)}
           </div>
         </section>
       `;
     }).join('')}</div>
   `;
 
-  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+  if (_editingQuickLog?.kind === 'finding') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
 }
 
-function addEvidenceEntry() {
+function addFindingEntry() {
   if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
+  const entries = ensureSessionFindings();
   if (!entries) return;
-  const type = (document.getElementById('evidenceTypeInput')?.value || 'discovery').trim();
-  const titleEl = document.getElementById('evidenceTitleInput');
-  const detailsEl = document.getElementById('evidenceDetailsInput');
-  const commandEl = document.getElementById('evidenceCommandInput');
-  const targetEl = document.getElementById('evidenceTargetInput');
-  const syncEl = document.getElementById('evidenceSyncInput');
-  const noteEl = document.getElementById('evidenceNoteInput');
+  const type = (document.getElementById('findingTypeInput')?.value || 'discovery').trim();
+  const titleEl = document.getElementById('findingTitleInput');
+  const detailsEl = document.getElementById('findingDetailsInput');
+  const commandEl = document.getElementById('findingCommandInput');
+  const targetEl = document.getElementById('findingTargetInput');
+  const syncEl = document.getElementById('findingSyncInput');
+  const noteEl = document.getElementById('findingNoteInput');
   const title = (titleEl?.value || '').trim();
   const details = (detailsEl?.value || '').trim();
   const sourceCommand = (commandEl?.value || '').trim();
   const targetId = (targetEl?.value || '').trim() || null;
   const syncMode = (syncEl?.value || 'export_only').trim();
-  const noteId = evidenceUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
+  const noteId = findingUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
   if (!title) {
     titleEl?.focus();
     return;
   }
-  if (evidenceUsesNoteSync(syncMode) && !noteId) {
+  if (findingUsesNoteSync(syncMode) && !noteId) {
     noteEl?.focus();
     return;
   }
-  const entry = normalizeEvidenceEntry({
-    id: `evidence_${Date.now()}`,
+  const entry = normalizeFindingEntry({
+    id: `finding_${Date.now()}`,
     type,
     title,
     severity: 'medium',
@@ -1012,7 +1012,7 @@ function addEvidenceEntry() {
     updated: Date.now(),
   });
   entries.push(entry);
-  const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
+  const syncedNotes = applyFindingNoteSyncChanges(null, entry);
   if (titleEl) titleEl.value = '';
   if (detailsEl) detailsEl.value = '';
   if (commandEl) commandEl.value = '';
@@ -1021,45 +1021,45 @@ function addEvidenceEntry() {
   if (noteEl) noteEl.value = '';
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
-  updateEvidenceSyncUi();
+  renderFindingsList();
+  updateFindingSyncUi();
   titleEl?.focus();
 }
 
-function deleteEvidenceEntry(entryId) {
+function deleteFindingEntry(entryId) {
   if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
+  const entries = ensureSessionFindings();
   if (!entries) return;
   const entry = entries.find((item) => item.id === entryId);
-  if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
-  sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
-  const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
+  if (isQuickLogEditing('finding', entryId)) clearQuickLogEditing();
+  sessions[activeSessionId].findings = entries.filter((entry) => entry.id !== entryId);
+  const syncedNotes = entry ? applyFindingNoteSyncChanges(entry, null) : [];
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
+  renderFindingsList();
   showToast('✓ Finding unflagged');
 }
 
-function clearEvidenceEntries() {
+function clearFindingEntries() {
   if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
+  const entries = ensureSessionFindings();
   if (!entries?.length) return;
   const syncedNotes = [];
   entries.forEach((entry) => {
-    applyEvidenceNoteSyncChanges(entry, null).forEach((note) => {
+    applyFindingNoteSyncChanges(entry, null).forEach((note) => {
       if (!syncedNotes.includes(note)) syncedNotes.push(note);
     });
   });
-  if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
-  sessions[activeSessionId].evidence = [];
+  if (_editingQuickLog?.kind === 'finding') clearQuickLogEditing();
+  sessions[activeSessionId].findings = [];
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
+  renderFindingsList();
 }
 
-function commitEvidenceEdit(entryId) {
+function commitFindingEdit(entryId) {
   if (!activeSessionId) return;
-  const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
+  const entry = (sessions[activeSessionId].findings || []).find((item) => item.id === entryId);
   if (!entry) return;
   const prevEntry = { ...entry };
   const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
@@ -1078,17 +1078,17 @@ function commitEvidenceEdit(entryId) {
   entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
-  entry.note_id = evidenceUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
-  if (evidenceUsesNoteSync(entry.sync_mode) && !entry.note_id) {
+  entry.note_id = findingUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  if (findingUsesNoteSync(entry.sync_mode) && !entry.note_id) {
     focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
     return;
   }
   entry.updated = Date.now();
-  const syncedNotes = applyEvidenceNoteSyncChanges(prevEntry, entry);
+  const syncedNotes = applyFindingNoteSyncChanges(prevEntry, entry);
   clearQuickLogEditing();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
+  renderFindingsList();
 }
 
 function getActiveQuickLogEntries() {
@@ -2043,7 +2043,7 @@ function rerenderQuickLogKind(kind) {
   if (kind === 'service') renderSvcLogTable();
   else if (kind === 'path') renderPathTable();
   else if (kind === 'loot') renderLootTable();
-  else if (kind === 'evidence') renderEvidenceList();
+  else if (kind === 'finding') renderFindingsList();
 }
 
 function startQuickLogEdit(kind, id) {
@@ -2075,7 +2075,7 @@ function handleQuickLogEditKeydown(event, kind, id) {
     if (kind === 'service') commitServiceEdit(id);
     else if (kind === 'path') commitPathEdit(id);
     else if (kind === 'loot') commitLootEdit(id);
-    else if (kind === 'evidence') commitEvidenceEdit(id);
+    else if (kind === 'finding') commitFindingEdit(id);
     return;
   }
   if (event.key === 'Escape') {
@@ -2093,7 +2093,7 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
         ? `commitPathEdit('${id}')`
         : kind === 'loot'
           ? `commitLootEdit('${id}')`
-          : `commitEvidenceEdit('${id}')`;
+          : `commitFindingEdit('${id}')`;
     return `
       <div class="ql-row-actions">
         <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
@@ -2120,17 +2120,17 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
   `;
 }
 
-function renderEvidenceRowActions(id) {
-  if (isQuickLogEditing('evidence', id)) return renderQuickLogRowActions('evidence', id, 'deleteEvidenceEntry');
+function renderFindingRowActions(id) {
+  if (isQuickLogEditing('finding', id)) return renderQuickLogRowActions('finding', id, 'deleteFindingEntry');
   return `
     <div class="ql-row-actions">
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToFindingSource('${id}')" title="Jump to source" aria-label="Jump to source">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
       </button>
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('finding','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
-      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag finding and keep the note content" aria-label="Unflag finding and keep the note content">
+      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteFindingEntry('${id}')" title="Unflag finding and keep the note content" aria-label="Unflag finding and keep the note content">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>
@@ -2964,7 +2964,7 @@ function openSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
     popoverId: 'svcPopover',
     buttonId,
     labelId: 'svcSessionLabel',
-    closeOthers: [closeTodoPopover, closeEvidencePopover],
+    closeOthers: [closeTodoPopover, closeFindingsPopover],
     outsideHandler: _svcOutsideClose,
     onOpen: () => {
       updateSvcPopoverLayout();
@@ -3019,7 +3019,7 @@ function toggleTodoPopover() {
     popoverId: 'todoPopover',
     buttonId: 'todoTopbarBtn',
     labelId: 'todoSessionLabel',
-    closeOthers: [closeSvcPopover, closeEvidencePopover],
+    closeOthers: [closeSvcPopover, closeFindingsPopover],
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
@@ -3042,33 +3042,33 @@ function _todoOutsideClose(e) {
   }
 }
 
-function toggleEvidencePopover() {
-  if (document.getElementById('evidencePopover')?.classList.contains('open')) {
-    closeEvidencePopover();
+function toggleFindingsPopover() {
+  if (document.getElementById('findingsPopover')?.classList.contains('open')) {
+    closeFindingsPopover();
     return;
   }
   openUtilityPopover({
-    popoverId: 'evidencePopover',
-    buttonId: 'evidenceTopbarBtn',
-    labelId: 'evidenceSessionLabel',
+    popoverId: 'findingsPopover',
+    buttonId: 'findingsTopbarBtn',
+    labelId: 'findingsSessionLabel',
     closeOthers: [closeSvcPopover, closeTodoPopover],
-    outsideHandler: _evidenceOutsideClose,
+    outsideHandler: _findingsOutsideClose,
     onOpen: () => {
-      renderEvidenceList();
+      renderFindingsList();
     },
   });
 }
 
-function closeEvidencePopover() {
-  closeUtilityPopover('evidencePopover', 'evidenceTopbarBtn');
+function closeFindingsPopover() {
+  closeUtilityPopover('findingsPopover', 'findingsTopbarBtn');
 }
 
-function _evidenceOutsideClose(e) {
-  if (isEventInsideWrap(e, 'evidenceTopbarWrap')) {
-    if (document.getElementById('evidencePopover')?.classList.contains('open')) {
-      reopenUtilityOutsideListener(_evidenceOutsideClose);
+function _findingsOutsideClose(e) {
+  if (isEventInsideWrap(e, 'findingsTopbarWrap')) {
+    if (document.getElementById('findingsPopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_findingsOutsideClose);
     }
   } else {
-    closeEvidencePopover();
+    closeFindingsPopover();
   }
 }
