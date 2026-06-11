@@ -26,8 +26,10 @@ function normalizeFindingEntry(entry, index = 0) {
   normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : `finding_${Date.now()}_${index}`;
   normalized.type = String(normalized.type || 'discovery').trim() || 'discovery';
   normalized.title = String(normalized.title || '').trim();
-  normalized.summary = String(normalized.summary || normalized.details || '').trim();
-  normalized.details = normalized.summary;
+  const normalizedSummary = String(normalized.summary || '').trim();
+  const normalizedDetails = String(normalized.details || '').trim();
+  normalized.summary = normalizedSummary || normalizedDetails;
+  normalized.details = normalizedDetails;
   normalized.impact = String(normalized.impact || '').trim();
   normalized.recommendation = String(normalized.recommendation || '').trim();
   normalized.source_command = String(normalized.source_command || '').trim();
@@ -79,6 +81,7 @@ const SVC_TAB_CONFIG = {
     panelId: 'svcPanelLoot',
     focusId: 'lootCredInput',
     onActivate: () => {
+      renderLootTargetOptions();
       renderLootTable();
       const hostInput = document.getElementById('lootHostInput');
       if (hostInput && !hostInput.value) {
@@ -279,6 +282,25 @@ function renderFindingTargetOptions(selectedValue = '') {
   select.innerHTML = options.join('');
 }
 
+function renderLootTargetOptions(selectedValue = '') {
+  const select = document.getElementById('lootTargetInput');
+  if (!select) return;
+  const targets = getSessionTargets();
+  const current = selectedValue || activeTargetId || '';
+  const options = ['<option value="">Session-wide</option>'];
+  targets.forEach((target) => {
+    const parts = [target.ip, target.label, target.domain].filter(Boolean);
+    const label = parts.join(' // ') || 'Unnamed';
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${esc(label)}</option>`);
+  });
+  select.innerHTML = options.join('');
+}
+
+function getSelectedLootTargetId() {
+  const select = document.getElementById('lootTargetInput');
+  return String(select?.value || '').trim() || null;
+}
+
 function getSessionNotesForFindings() {
   if (!activeSessionId) return [];
   return Object.values(notes)
@@ -355,7 +377,6 @@ function renderFindingProofCell(entry) {
   if (entry.summary) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Summary</span>${esc(entry.summary)}</span>`);
   if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
   if (entry.recommendation) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Recommendation</span>${esc(entry.recommendation)}</span>`);
-  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">POC</span><code>${esc(entry.source_command)}</code></span>`);
   return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
@@ -801,9 +822,31 @@ function renderFindingsList() {
     }
     return true;
   });
+  const newFindingButtonHtml = `
+    <div class="evidence-actions-row">
+      <button class="svc-quick-add-btn" type="button" onclick="openManualFindingDialog()">+ New Finding</button>
+    </div>
+  `;
+
   if (!entries.length) {
     if (!allEntries.length) {
-      listEl.innerHTML = `<div class="todo-empty">No findings yet. Select a line or block from a session note and add it here.</div>`;
+      listEl.innerHTML = `
+        <div class="evidence-filters">
+          <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterType(this.value)">
+            <option value="">All types</option>
+            ${buildFindingTypeOptionsHtml(_findingFilterType)}
+          </select>
+          <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setFindingFilterTarget(this.value)">
+            <option value="">All targets</option>
+            <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+            ${targets.map((target) => {
+              const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+              return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        ${newFindingButtonHtml}
+        <div class="todo-empty">No findings yet. Select a line or block from a session note and add it here.</div>`;
       return;
     }
     listEl.innerHTML = `
@@ -821,6 +864,7 @@ function renderFindingsList() {
           }).join('')}
         </select>
       </div>
+      ${newFindingButtonHtml}
       <div class="todo-empty">No findings match the current filters. Try clearing the type or target filter.</div>
     `;
     return;
@@ -842,6 +886,7 @@ function renderFindingsList() {
       </select>
       <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
     </div>
+    ${newFindingButtonHtml}
     <div class="evidence-items">${entries.map((entry) => {
       const target = entry.target_id ? targets.find((item) => item.id === entry.target_id) : null;
       const targetLabel = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
@@ -916,10 +961,6 @@ function renderFindingsList() {
               <label class="evidence-edit-field">
                 <span class="evidence-edit-label">Recommendation</span>
                 <input class="svc-notes-cell ql-row-input" id="evidenceEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
-              </label>
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">POC</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
             </div>
           </section>
@@ -1001,10 +1042,10 @@ function addFindingEntry() {
     title,
     severity: 'medium',
     summary: details,
-    details,
+    details: '',
     impact: '',
     recommendation: '',
-    source_command: sourceCommand,
+    source_command: '',
     target_id: targetId,
     note_id: noteId,
     sync_mode: syncMode,
@@ -1013,6 +1054,7 @@ function addFindingEntry() {
   });
   entries.push(entry);
   const syncedNotes = applyFindingNoteSyncChanges(null, entry);
+  syncGeneratedFindingNotesAfterMutation();
   if (titleEl) titleEl.value = '';
   if (detailsEl) detailsEl.value = '';
   if (commandEl) commandEl.value = '';
@@ -1034,6 +1076,7 @@ function deleteFindingEntry(entryId) {
   if (isQuickLogEditing('finding', entryId)) clearQuickLogEditing();
   sessions[activeSessionId].findings = entries.filter((entry) => entry.id !== entryId);
   const syncedNotes = entry ? applyFindingNoteSyncChanges(entry, null) : [];
+  syncGeneratedFindingNotesAfterMutation();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
   renderFindingsList();
@@ -1052,6 +1095,7 @@ function clearFindingEntries() {
   });
   if (_editingQuickLog?.kind === 'finding') clearQuickLogEditing();
   sessions[activeSessionId].findings = [];
+  syncGeneratedFindingNotesAfterMutation();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
   renderFindingsList();
@@ -1071,10 +1115,10 @@ function commitFindingEdit(entryId) {
   entry.severity = (document.getElementById(`evidenceEditSeverity_${entryId}`)?.value || entry.severity || 'medium').trim();
   entry.title = title;
   entry.summary = (document.getElementById(`evidenceEditSummary_${entryId}`)?.value || '').trim();
-  entry.details = entry.summary;
+  entry.details = entry.details || '';
   entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
   entry.recommendation = (document.getElementById(`evidenceEditRecommendation_${entryId}`)?.value || '').trim();
-  entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
+  entry.source_command = entry.source_command || '';
   entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
@@ -1085,6 +1129,7 @@ function commitFindingEdit(entryId) {
   }
   entry.updated = Date.now();
   const syncedNotes = applyFindingNoteSyncChanges(prevEntry, entry);
+  syncGeneratedFindingNotesAfterMutation();
   clearQuickLogEditing();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
@@ -1339,7 +1384,7 @@ function commitPortParse() {
   if (!_portParsed.length) return;
   if (!ensureActiveSession('add ports')) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = getSelectedLootTargetId();
   const existing = new Set(getAllSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id)));
   let added = 0;
   for (const r of _portParsed) {
@@ -1567,7 +1612,7 @@ function commitPathParse() {
   if (!_pathParsed.length) return;
   if (!ensureActiveSession('add paths')) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = getSelectedLootTargetId();
   const existing = new Set(getAllSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id)));
   let added = 0;
   for (const r of _pathParsed) {
@@ -2028,6 +2073,18 @@ function applySyncedNoteUpdate(note) {
       });
     }
     if (typeof updateNotePreview === 'function') updateNotePreview();
+  }
+}
+
+function syncGeneratedFindingNotesAfterMutation() {
+  if (!activeSessionId || typeof syncGeneratedEngagementNotes !== 'function') return;
+  const changed = syncGeneratedEngagementNotes(activeSessionId);
+  if (!changed) return;
+  renderNotesList();
+  renderSessionSidebar();
+  if (activeNoteId && notes[activeNoteId]?.generated_note === true && notes[activeNoteId]?.session_id === activeSessionId) {
+    applySyncedNoteUpdate(notes[activeNoteId]);
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);
   }
 }
 
@@ -2523,8 +2580,8 @@ function parseAndPreviewLoot() {
 
   const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
   const type = _activeLootType;
-  const targetId = resolveQuickLogTargetId();
-  const existing = new Set(getSessionLoot().map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id || targetId)));
+  const targetId = getSelectedLootTargetId();
+  const existing = new Set(getSessionLoot({ scoped: false }).map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   const fresh = _lootParsed.filter(entry => !existing.has(buildScopedLootKey(type, entry.credential, host, targetId)));
   const dupes = _lootParsed.length - fresh.length;
 
@@ -2555,7 +2612,7 @@ function commitLootParse() {
   const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
   const note = (document.getElementById('lootNoteInput')?.value || '').trim();
   const type = _activeLootType;
-  const targetId = resolveQuickLogTargetId();
+  const targetId = getSelectedLootTargetId();
   const existing = new Set(getAllSessionLoot().map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   let added = 0;
 
@@ -2750,6 +2807,7 @@ function addLootEntry() {
   const credEl = document.getElementById('lootCredInput');
   const hostEl = document.getElementById('lootHostInput');
   const noteEl = document.getElementById('lootNoteInput');
+  const targetId = getSelectedLootTargetId();
   const cred = credEl?.value.trim();
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
@@ -2761,6 +2819,7 @@ function addLootEntry() {
     host,
     note,
     syncToCredentials: true,
+    targetId,
   });
   if (!entry) {
     credEl?.focus();

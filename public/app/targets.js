@@ -247,7 +247,7 @@ function createSessionFromContextSwitcher(value) {
   const next = normalizeContextSwitcherValue(value);
   if (!next) return false;
   const id = 'sess_' + Date.now();
-  const sess = { id, codename: next, created: Date.now(), domain: '', targets: [], attacker_ip: '', todos: [], evidence: [] };
+  const sess = { id, codename: next, created: Date.now(), domain: '', targets: [], attacker_ip: '', todos: [], findings: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   switchSession(id);

@@ -166,8 +166,10 @@
               </div>
             </div>
             <div class="svc-quick-input-row">
+              <select class="svc-quick-input ql-row-select" id="lootTargetInput"
+                onkeydown="if(event.key==='Enter')document.getElementById('lootHostInput').focus()"></select>
               <input class="svc-quick-input" id="lootHostInput" type="text"
-                placeholder="Host / IP"
+                placeholder="Host / Service (optional)"
                 autocomplete="off" spellcheck="false" style="flex:0 0 150px"
                 onkeydown="if(event.key==='Enter')document.getElementById('lootNoteInput').focus()">
               <input class="svc-quick-input" id="lootNoteInput" type="text"
@@ -192,7 +194,6 @@
           <div class="evidence-popover-hdr">
             <span class="evidence-popover-title">Findings</span>
             <span class="svc-popover-session-label" id="findingsSessionLabel"></span>
-            <button class="svc-quick-add-btn" type="button" onclick="openManualFindingDialog()">+ New Finding</button>
             <button class="evidence-clear-btn" id="findingsClearBtn" onclick="clearFindingEntries()" disabled>Clear All</button>
             <button class="icon-btn" onclick="closeFindingsPopover()" title="Close Findings panel" style="font-size:14px;padding:2px 6px">&times;</button>
           </div>

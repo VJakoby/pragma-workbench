@@ -582,6 +582,31 @@ async function initNotes() {
 }
 
 async function executeAppSave() {
+  const activeGeneratedNote = activeNoteId ? notes[activeNoteId] : null;
+  const activeGeneratedNoteId = activeGeneratedNote?.generated_note === true ? activeNoteId : null;
+
+  if (activeGeneratedNoteId && typeof syncActiveNoteDraft === 'function') {
+    syncActiveNoteDraft(activeGeneratedNoteId);
+  }
+  if (activeGeneratedNoteId && activeGeneratedNote?.generated_kind === 'target_findings' && typeof syncGeneratedFindingEntriesFromNote === 'function') {
+    syncGeneratedFindingEntriesFromNote(activeGeneratedNoteId);
+  }
+
+  const generatedNotesChanged = typeof syncGeneratedEngagementNotes === 'function'
+    ? syncGeneratedEngagementNotes(activeSessionId)
+    : false;
+  if (generatedNotesChanged) {
+    if (typeof renderNotesList === 'function') renderNotesList();
+    if (typeof renderSessionSidebar === 'function') renderSessionSidebar();
+    if (activeGeneratedNoteId && notes[activeGeneratedNoteId]?.generated_note === true) {
+      const activeNote = notes[activeGeneratedNoteId];
+      const titleInput = document.getElementById('noteTitleInput');
+      if (titleInput && activeNote) titleInput.value = activeNote.title || '';
+      if (typeof invalidateNotePreviewCache === 'function') invalidateNotePreviewCache();
+    } else if (activeNoteId && notes[activeNoteId]?.generated_note === true && typeof openNote === 'function') {
+      openNote(activeNoteId);
+    }
+  }
   const payload = { notes, sessions };
   const attachmentManifest = typeof buildAttachmentManifestFromClientNotes === 'function'
     ? buildAttachmentManifestFromClientNotes(notes)
@@ -1234,6 +1259,9 @@ async function importSession(event) {
           updated: Number(note.updated) || Date.now(),
           target_ip: note.target_ip ? String(note.target_ip) : null,
           target_domain: note.target_domain ? String(note.target_domain) : null,
+          generated_note: note.generated_note === true,
+          generated_kind: note.generated_kind ? String(note.generated_kind) : null,
+          generated_target_id: typeof note.generated_target_id === 'string' ? note.generated_target_id : null,
         };
       };
 

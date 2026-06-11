@@ -438,6 +438,10 @@
         </div>
       </div>
       <div class="pw-field">
+        <label>Target</label>
+        <select class="pw-input evidence-flag-select" id="findingDialogTarget" onkeydown="handleFindingDialogKey(event)"></select>
+      </div>
+      <div class="pw-field">
         <label>Title</label>
         <input class="pw-input" id="findingDialogTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
       </div>
@@ -449,10 +453,7 @@
         <label>Recommendation</label>
         <textarea class="pw-input evidence-flag-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
-      <div class="pw-field">
-        <label>Command / Block</label>
-        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="findingDialogCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
-      </div>
+      <div class="pw-field-hint" style="margin-top:-4px">The generated target findings note will include an editable <code>### POC</code> block after the finding is created.</div>
       <div class="evidence-flag-toggle-row">
         <label class="evidence-flag-check">
           <input id="findingDialogAlsoLoot" type="checkbox" onchange="syncFindingDialogLootUi()">

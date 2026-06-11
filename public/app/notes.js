@@ -257,6 +257,7 @@ function closeConfigEditor() {
   setNoteEditorMode('note');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  updateGeneratedNoteUi(null);
   document.getElementById('nav-config-templates')?.classList.remove('active');
   renderNotesList();
   renderSessionNoteTabs();
@@ -492,6 +493,29 @@ function updateNoteSearchPlaceholder() {
   input.placeholder = placeholderByScope[activeNoteScope] || 'Search notes…';
 }
 
+function updateGeneratedNoteUi(note = null) {
+  const hint = document.getElementById('noteGeneratedHint');
+  const deleteBtn = document.getElementById('noteDeleteBtn');
+  const isGenerated = !!note?.generated_note;
+  if (hint) {
+    if (isGenerated) {
+      const kindLabel = note.generated_kind === 'engagement_summary'
+        ? 'Rebuilt from session targets, credentials, and findings'
+        : 'Rebuilt from structured findings data';
+      hint.textContent = kindLabel;
+      hint.style.display = '';
+      hint.title = 'This note is generated from session data. Deleting it will not remove the source findings or loot.';
+    } else {
+      hint.textContent = '';
+      hint.style.display = 'none';
+      hint.title = '';
+    }
+  }
+  if (deleteBtn) {
+    deleteBtn.title = isGenerated ? 'Delete generated note copy' : 'Delete note';
+  }
+}
+
 function updateNotesCountBadges() {
   const totalEl = document.getElementById('notes-count');
   const sessionEl = document.getElementById('notes-count-session');
@@ -580,7 +604,9 @@ function getVisibleNotes(opts = {}) {
 
   if (activeNoteFilter !== 'all') items = items.filter(n => n.type === activeNoteFilter);
   if (activeTagFilter) items = items.filter(n => (n.tags || []).includes(activeTagFilter));
-  if (activeTargetFilter) items = items.filter(n => n.target_id === activeTargetFilter);
+  if (activeTargetFilter) {
+    items = items.filter((n) => n.target_id === activeTargetFilter || (n.generated_note === true && n.generated_kind === 'engagement_summary'));
+  }
   if (search) {
     items = items.filter(n =>
       (n.title || '').toLowerCase().includes(search) ||
@@ -1078,6 +1104,7 @@ async function openNote(id) {
   renderBacklinks(id);
   if (typeof updateTargetAssignBtn === 'function') updateTargetAssignBtn(notes[id]);
   setNoteSaveIndicator('saved', 'saved');
+  updateGeneratedNoteUi(n);
 
   renderNotesList();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
@@ -1101,6 +1128,242 @@ function togglePinNote() {
 
 function getNotesInSession(sessionId) {
   return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
+}
+
+function escapeGeneratedNoteTableCell(value) {
+  return String(value ?? '')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+}
+
+function getSessionFindingsData(sessionId) {
+  const session = sessionId ? sessions[sessionId] : null;
+  if (!session) return [];
+  return Array.isArray(session.findings) ? session.findings : (Array.isArray(session.evidence) ? session.evidence : []);
+}
+
+function findGeneratedNote(sessionId, kind, targetId = null) {
+  return Object.values(notes).find((note) =>
+    note?.session_id === sessionId &&
+    note?.generated_note === true &&
+    note?.generated_kind === kind &&
+    (note?.generated_target_id || null) === (targetId || null)
+  ) || null;
+}
+
+function upsertGeneratedNote({ sessionId, kind, targetId = null, title, body, tags = [] }) {
+  const existing = findGeneratedNote(sessionId, kind, targetId);
+  const now = Date.now();
+  const session = sessions[sessionId] || null;
+  const target = targetId && session ? (session.targets || []).find((entry) => entry.id === targetId) || null : null;
+  if (existing) {
+    const nextTags = Array.isArray(tags) ? [...tags] : [];
+    const changed = existing.title !== title ||
+      existing.body !== body ||
+      JSON.stringify(existing.tags || []) !== JSON.stringify(nextTags) ||
+      existing.target_id !== (targetId || null);
+    existing.generated_note = true;
+    existing.generated_kind = kind;
+    existing.generated_target_id = targetId || null;
+    existing.title = title;
+    existing.body = body;
+    existing.tags = nextTags;
+    existing.target_id = targetId || null;
+    existing.target_ip = target?.ip || null;
+    existing.target_domain = target?.domain || session?.domain || null;
+    existing.updated = changed ? now : (existing.updated || now);
+    return { note: existing, changed };
+  }
+
+  const id = 'note_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  notes[id] = {
+    id,
+    session_id: sessionId || null,
+    target_id: targetId || null,
+    type: 'general',
+    template_variant: null,
+    title,
+    body,
+    tags: Array.isArray(tags) ? [...tags] : [],
+    target_ip: target?.ip || null,
+    target_domain: target?.domain || session?.domain || null,
+    created: now,
+    updated: now,
+    generated_note: true,
+    generated_kind: kind,
+    generated_target_id: targetId || null,
+  };
+  return { note: notes[id], changed: true };
+}
+
+function removeGeneratedNote(note) {
+  if (!note?.id || !notes[note.id]) return false;
+  delete notes[note.id];
+  if (activeNoteId === note.id) {
+    activeNoteId = null;
+  }
+  return true;
+}
+
+function getGeneratedTargetTitle(target) {
+  const label = String(target?.label || '').trim();
+  const ip = String(target?.ip || '').trim();
+  const domain = String(target?.domain || '').trim();
+  return label || ip || domain || 'Target';
+}
+
+function formatGeneratedFindingTarget(session, finding) {
+  const targetId = String(finding?.target_id || '').trim();
+  if (targetId && session) {
+    const target = (session.targets || []).find((entry) => entry.id === targetId);
+    if (target) {
+      const title = getGeneratedTargetTitle(target);
+      const details = [target.ip, target.domain].filter(Boolean).join(' · ');
+      return details && details !== title ? `${title} (${details})` : title;
+    }
+  }
+  const fallback = [finding?.target_label, finding?.target_ip, finding?.target_domain].filter(Boolean);
+  return fallback.length ? fallback.join(' · ') : 'Session-wide';
+}
+
+function formatGeneratedFindingPoc(finding) {
+  const detailsText = String(finding?.details || '').trim();
+  return detailsText;
+}
+
+function buildEngagementSummaryNoteBody(sessionId) {
+  const session = sessions[sessionId];
+  if (!session) return '# Session\n';
+
+  const services = Array.isArray(session.services) ? session.services : [];
+  const paths = Array.isArray(session.paths) ? session.paths : [];
+  const loot = Array.isArray(session.loot) ? session.loot : [];
+  const findings = getSessionFindingsData(sessionId);
+  const targets = Array.isArray(session.targets) ? session.targets : [];
+
+  const targetRows = targets.map((target) => {
+    const portCount = services.filter((entry) => (entry?.target_id || null) === target.id).length;
+    const pathCount = paths.filter((entry) => (entry?.target_id || null) === target.id).length;
+    const findingCount = findings.filter((entry) => (entry?.target_id || null) === target.id).length;
+    const summary = [portCount ? `${portCount} ports` : '', pathCount ? `${pathCount} paths` : '', findingCount ? `${findingCount} findings` : '']
+      .filter(Boolean)
+      .join(' · ') || '—';
+    return `| ${escapeGeneratedNoteTableCell(target.ip || target.domain || '—')} | ${escapeGeneratedNoteTableCell(target.label || '—')} | ${escapeGeneratedNoteTableCell(summary)} |`;
+  });
+
+  const credentialRows = loot.map((entry) => {
+    const target = entry?.target_id ? targets.find((item) => item.id === entry.target_id) : null;
+    const host = entry?.host || target?.label || target?.ip || target?.domain || 'Session-wide';
+    const context = [entry?.note, target?.domain].filter(Boolean).join(' · ') || '—';
+    return `| ${escapeGeneratedNoteTableCell(entry?.type || 'loot')} | ${escapeGeneratedNoteTableCell(entry?.credential || '—')} | ${escapeGeneratedNoteTableCell(host)} | ${escapeGeneratedNoteTableCell(context)} |`;
+  });
+
+  const findingRows = findings.map((entry) => (
+    `| ${escapeGeneratedNoteTableCell(entry?.title || 'Untitled finding')} | ` +
+    `${escapeGeneratedNoteTableCell(entry?.severity || '—')} | ` +
+    `${escapeGeneratedNoteTableCell(entry?.type || '—')} | ` +
+    `${escapeGeneratedNoteTableCell(formatGeneratedFindingTarget(session, entry))} |`
+  ));
+
+  return [
+    `# ${session.codename || 'Session'}`,
+    '',
+    '## Targets',
+    '',
+    '| IP / Host | Label | Summary |',
+    '|-----------|-------|---------|',
+    ...(targetRows.length ? targetRows : ['| — | — | No targets yet |']),
+    '',
+    '## Credentials',
+    '',
+    '| Type | Credential | Host | Context |',
+    '|------|------------|------|---------|',
+    ...(credentialRows.length ? credentialRows : ['| — | — | — | No credentials yet |']),
+    '',
+    '## Findings',
+    '',
+    '| Title | Severity | Type | Target |',
+    '|-------|----------|------|--------|',
+    ...(findingRows.length ? findingRows : ['| No findings yet | — | — | — |']),
+    '',
+  ].join('\n');
+}
+
+function buildTargetFindingsNoteTitle(target) {
+  return `FINDINGS - ${getGeneratedTargetTitle(target)}`;
+}
+
+function buildTargetFindingsNoteBody(sessionId, target) {
+  const session = sessions[sessionId];
+  if (!session || !target) return '# FINDINGS\n';
+  const findings = getSessionFindingsData(sessionId).filter((entry) => (entry?.target_id || null) === target.id);
+  const targetIdentity = [target.ip, target.domain].filter(Boolean).join(' · ') || '—';
+
+  const sections = findings.map((entry) => [
+    `## ${entry?.title || 'Untitled finding'}`,
+    `- Severity: ${entry?.severity || '—'}`,
+    `- Type: ${entry?.type || '—'}`,
+    `- Target: ${formatGeneratedFindingTarget(session, entry)}`,
+    `- Summary: ${entry?.summary || '—'}`,
+    `- Recommendation: ${entry?.recommendation || '—'}`,
+    '',
+    '### POC',
+    '',
+    '```text',
+    formatGeneratedFindingPoc(entry),
+    '```',
+  ].join('\n'));
+
+  return [
+    `# ${buildTargetFindingsNoteTitle(target)}`,
+    '',
+    `- Label: ${target.label || '—'}`,
+    `- Target: ${targetIdentity}`,
+    '',
+    ...(sections.length ? sections : ['No findings linked to this target yet.']),
+    '',
+  ].join('\n');
+}
+
+function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
+  if (!sessionId || !sessions[sessionId]) return false;
+  const session = sessions[sessionId];
+  let changed = false;
+
+  const summaryResult = upsertGeneratedNote({
+    sessionId,
+    kind: 'engagement_summary',
+    title: session.codename || 'Session',
+    body: buildEngagementSummaryNoteBody(sessionId),
+    tags: ['generated', 'summary'],
+  });
+  changed = summaryResult.changed || changed;
+
+  const findings = getSessionFindingsData(sessionId);
+  const targetIdsWithFindings = new Set(findings.map((entry) => String(entry?.target_id || '').trim()).filter(Boolean));
+  const targets = Array.isArray(session.targets) ? session.targets : [];
+
+  targets.forEach((target) => {
+    if (!targetIdsWithFindings.has(target.id)) return;
+    const result = upsertGeneratedNote({
+      sessionId,
+      kind: 'target_findings',
+      targetId: target.id,
+      title: buildTargetFindingsNoteTitle(target),
+      body: buildTargetFindingsNoteBody(sessionId, target),
+      tags: ['generated', 'findings'],
+    });
+    changed = result.changed || changed;
+  });
+
+  Object.values(notes).forEach((note) => {
+    if (note?.session_id !== sessionId || note?.generated_note !== true || note?.generated_kind !== 'target_findings') return;
+    const targetId = note.generated_target_id || note.target_id || null;
+    if (targetId && targetIdsWithFindings.has(targetId) && targets.some((target) => target.id === targetId)) return;
+    changed = removeGeneratedNote(note) || changed;
+  });
+
+  return changed;
 }
 
 function getTargetCandidates(target) {
@@ -1327,6 +1590,77 @@ function extractFindingBlocksFromBody(body) {
   return blocks;
 }
 
+function extractGeneratedFindingSectionsFromBody(body) {
+  const text = String(body || '');
+  const sections = [];
+  const matches = [...text.matchAll(/^##\s+/gm)];
+  if (!matches.length) return sections;
+  for (let index = 0; index < matches.length; index += 1) {
+    const startIdx = matches[index].index;
+    const endIdx = index + 1 < matches.length ? matches[index + 1].index : text.length;
+    sections.push(text.slice(startIdx, endIdx).trim());
+  }
+  return sections.filter(Boolean);
+}
+
+function parseGeneratedFindingSection(section) {
+  const text = String(section || '');
+  const titleMatch = text.match(/^##\s+(.+)$/m);
+  const extractField = (label) => {
+    const match = text.match(new RegExp(`^- ${label}:\\s*(.*)$`, 'mi'));
+    return match ? match[1].trim() : '';
+  };
+  const pocMatch = text.match(/###\s+POC\s*[\r\n]+```(?:[a-z0-9_-]+)?\n([\s\S]*?)\n```/i);
+  return {
+    title: titleMatch ? titleMatch[1].trim() : '',
+    severity: extractField('Severity'),
+    type: extractField('Type'),
+    summary: extractField('Summary'),
+    recommendation: extractField('Recommendation'),
+    poc: pocMatch ? pocMatch[1].trim() : '',
+  };
+}
+
+function syncGeneratedFindingEntriesFromNote(noteId) {
+  const note = noteId ? notes[noteId] : null;
+  if (!note || note.generated_note !== true || note.generated_kind !== 'target_findings' || !activeSessionId || !sessions[activeSessionId]) return false;
+  const targetId = note.generated_target_id || note.target_id || null;
+  const entries = getSessionFindingsData(activeSessionId).filter((entry) => (entry?.target_id || null) === targetId);
+  if (!entries.length) return false;
+  const sections = extractGeneratedFindingSectionsFromBody(note.body || '');
+  if (!sections.length) return false;
+  let changed = false;
+
+  entries.forEach((entry, index) => {
+    const section = sections[index];
+    if (!section) return;
+    const parsed = parseGeneratedFindingSection(section);
+    const updates = {
+      title: parsed.title || entry.title || '',
+      severity: parsed.severity || entry.severity || 'medium',
+      type: parsed.type || entry.type || 'discovery',
+      summary: parsed.summary,
+      details: parsed.poc,
+      recommendation: parsed.recommendation,
+    };
+    let entryChanged = false;
+    Object.entries(updates).forEach(([key, value]) => {
+      const nextValue = String(value || '').trim();
+      const currentValue = String(entry[key] || '').trim();
+      if (nextValue !== currentValue) {
+        entry[key] = nextValue;
+        entryChanged = true;
+      }
+    });
+    if (entryChanged) {
+      entry.updated = Date.now();
+      changed = true;
+    }
+  });
+
+  return changed;
+}
+
 function syncFindingEntriesFromNote(noteId) {
   if (!noteId || !notes[noteId] || !activeSessionId || !sessions[activeSessionId]) return false;
   const entries = sessions[activeSessionId].findings || sessions[activeSessionId].evidence || [];
@@ -1426,6 +1760,20 @@ function getFindingDefaultLootHost() {
   const domain = typeof getDomain === 'function' ? getDomain() : '';
   if (domain && domain !== '<DOMAIN>') return domain;
   return '';
+}
+
+function renderFindingDialogTargetOptions(selectedValue = '') {
+  const select = document.getElementById('findingDialogTarget');
+  if (!select) return;
+  const targets = typeof getSessionTargets === 'function' ? getSessionTargets() : [];
+  const current = selectedValue || '';
+  const options = ['<option value="">Session-wide</option>'];
+  targets.forEach((target) => {
+    const parts = [target.ip, target.label, target.domain].filter(Boolean);
+    const label = parts.join(' // ') || 'Unnamed';
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${esc(label)}</option>`);
+  });
+  select.innerHTML = options.join('');
 }
 
 function getCurrentFindingSelectionSignature() {
@@ -1546,7 +1894,7 @@ function syncFindingDialogLootUi() {
   if (!syncRelevant) syncEl.checked = false;
 }
 
-function openFindingDialog({ title = '', type = 'discovery', severity = 'medium', summary = '', recommendation = '', command = '', loot = null } = {}) {
+function openFindingDialog({ title = '', type = 'discovery', severity = 'medium', summary = '', recommendation = '', command = '', targetId = '', loot = null } = {}) {
   return new Promise((resolve) => {
     _findingDialogResolver = resolve;
     const overlay = document.getElementById('findingDialogOverlay');
@@ -1555,7 +1903,7 @@ function openFindingDialog({ title = '', type = 'discovery', severity = 'medium'
     const severityEl = document.getElementById('findingDialogSeverity');
     const summaryEl = document.getElementById('findingDialogSummary');
     const recommendationEl = document.getElementById('findingDialogRecommendation');
-    const commandEl = document.getElementById('findingDialogCommand');
+    const targetEl = document.getElementById('findingDialogTarget');
     const alsoLootEl = document.getElementById('findingDialogAlsoLoot');
     const lootTypeEl = document.getElementById('findingDialogLootType');
     const lootValueEl = document.getElementById('findingDialogLootValue');
@@ -1572,7 +1920,8 @@ function openFindingDialog({ title = '', type = 'discovery', severity = 'medium'
     if (severityEl) severityEl.value = severity;
     if (summaryEl) summaryEl.value = summary;
     if (recommendationEl) recommendationEl.value = recommendation;
-    if (commandEl) commandEl.value = command;
+    renderFindingDialogTargetOptions(targetId || '');
+    if (targetEl) targetEl.value = targetId || '';
     if (alsoLootEl) alsoLootEl.checked = !!loot?.enabled;
     if (lootTypeEl) lootTypeEl.value = loot?.type || 'other';
     if (lootValueEl) lootValueEl.value = loot?.value || '';
@@ -1607,7 +1956,7 @@ function confirmFindingDialog() {
   const severity = (document.getElementById('findingDialogSeverity')?.value || 'medium').trim();
   const summary = (document.getElementById('findingDialogSummary')?.value || '').trim();
   const recommendation = (document.getElementById('findingDialogRecommendation')?.value || '').trim();
-  const source_command = (document.getElementById('findingDialogCommand')?.value || '').trim();
+  const target_id = (document.getElementById('findingDialogTarget')?.value || '').trim() || null;
   if (!title) {
     titleEl?.focus();
     return;
@@ -1632,7 +1981,7 @@ function confirmFindingDialog() {
       sync_to_credentials: syncToCredentials,
     };
   }
-  finishFindingDialog({ title, type, severity, summary, recommendation, source_command, loot });
+  finishFindingDialog({ title, type, severity, summary, recommendation, target_id, loot });
 }
 
 function handleFindingDialogKey(event) {
@@ -1655,6 +2004,7 @@ async function openManualFindingDialog() {
   }
   if (typeof ensureSessionFindings !== 'function') return;
 
+  const noteTargetId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].target_id || null) : null;
   const confirmed = await openFindingDialog({
     title: '',
     type: 'discovery',
@@ -1662,6 +2012,7 @@ async function openManualFindingDialog() {
     summary: '',
     recommendation: '',
     command: '',
+    targetId: activeTargetId || noteTargetId || '',
     loot: {
       enabled: false,
       type: 'other',
@@ -1675,18 +2026,17 @@ async function openManualFindingDialog() {
 
   const entries = ensureSessionFindings();
   if (!entries) return;
-  const noteTargetId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].target_id || null) : null;
   const entry = {
     id: `finding_${Date.now()}`,
     type: confirmed.type,
     title: confirmed.title,
     severity: confirmed.severity,
     summary: confirmed.summary,
-    details: confirmed.summary,
+    details: '',
     impact: '',
     recommendation: confirmed.recommendation,
-    source_command: confirmed.source_command,
-    target_id: activeTargetId || noteTargetId || null,
+    source_command: '',
+    target_id: confirmed.target_id || null,
     source_note_id: null,
     note_id: null,
     sync_mode: 'export_only',
@@ -1695,6 +2045,7 @@ async function openManualFindingDialog() {
   };
 
   entries.push(entry);
+  if (typeof syncGeneratedFindingNotesAfterMutation === 'function') syncGeneratedFindingNotesAfterMutation();
   let syncedLootCredentialsNote = null;
   let lootDuplicate = false;
   if (confirmed.loot?.enabled && typeof addLootEntryFromData === 'function') {
@@ -1745,6 +2096,7 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
   const sourceCommand = deriveFindingCommand(block.text);
   const defaultLootType = deriveLootType(block.text);
   const suggestedType = deriveFindingType(block.text);
+  const detectedTargetId = detectFindingTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || '';
   const confirmed = await openFindingDialog({
     title: '',
     type: suggestedType,
@@ -1752,6 +2104,7 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
     summary: deriveFindingSummary(block.text, sourceCommand),
     recommendation: '',
     command: sourceCommand || stripInlineFindingMarkers(block.text),
+    targetId: detectedTargetId,
     loot: {
       enabled: shouldSuggestLoot(block.text, defaultLootType),
       type: defaultLootType,
@@ -1769,11 +2122,11 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
     title: confirmed.title,
     severity: confirmed.severity,
     summary: confirmed.summary,
-    details: confirmed.summary,
+    details: '',
     impact: '',
     recommendation: confirmed.recommendation,
-    source_command: confirmed.source_command,
-    target_id: detectFindingTargetId(block.text) || notes[activeNoteId].target_id || activeTargetId || null,
+    source_command: '',
+    target_id: confirmed.target_id || null,
     source_note_id: activeNoteId,
     note_id: null,
     sync_mode: 'export_only',
@@ -1782,6 +2135,7 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
   };
 
   entries.push(entry);
+  if (typeof syncGeneratedFindingNotesAfterMutation === 'function') syncGeneratedFindingNotesAfterMutation();
   let syncedLootCredentialsNote = null;
   let lootDuplicate = false;
   if (confirmed.loot?.enabled && typeof addLootEntryFromData === 'function') {
@@ -1791,7 +2145,7 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
       host: confirmed.loot.host,
       note: confirmed.loot.note,
       syncToCredentials: !!confirmed.loot.sync_to_credentials,
-      targetId: notes[activeNoteId]?.target_id || activeTargetId || null,
+      targetId: entry.target_id,
     });
     syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
     lootDuplicate = !!lootResult?.duplicate;
@@ -1814,8 +2168,9 @@ async function persistActiveNote(opts = {}) {
   const syncResult = syncActiveNoteDraft(noteId);
   if (!syncResult.ok) return false;
   const findingsChanged = syncFindingEntriesFromNote(noteId);
+  const generatedFindingsChanged = syncGeneratedFindingEntriesFromNote(noteId);
   const note = notes[noteId];
-  if (!syncResult.changed && !findingsChanged) {
+  if (!syncResult.changed && !findingsChanged && !generatedFindingsChanged) {
     if (activeNoteId === noteId) setNoteSaveIndicator('saved', 'saved');
     return true;
   }
@@ -1826,7 +2181,7 @@ async function persistActiveNote(opts = {}) {
   });
   renderNotesList();
   renderSessionSidebar();
-  if (findingsChanged) {
+  if (findingsChanged || generatedFindingsChanged) {
     if (typeof renderFindingsList === 'function') renderFindingsList();
     if (typeof updateFindingsCount === 'function') updateFindingsCount();
   }
@@ -1850,18 +2205,23 @@ function autoSaveNote() {
 
 async function deleteCurrentNote() {
   if (!activeNoteId) return;
-  try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: 'This note will be permanently deleted.', confirmLabel: 'Delete', danger: true }); }
-  catch { return; }
+  const note = notes[activeNoteId];
+  const isGenerated = !!note?.generated_note;
+  try {
+    await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, title: isGenerated ? 'Remove Generated Note' : 'Delete Note', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`, description: isGenerated ? 'This generated note copy will be removed now, but the underlying findings and session data stay intact. The note will be rebuilt on the next save or update.' : 'This note will be permanently deleted.', confirmLabel: isGenerated ? 'Remove Copy' : 'Delete', danger: true });
+  } catch { return; }
   delete notes[activeNoteId];
   activeNoteId = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   await saveNotes({ reason: 'note-delete', immediate: true });
+  if (isGenerated) showToast('ℹ Generated note removed and will be recreated from session data');
   renderNotesList();
   renderSessionSidebar();
   const total = Object.keys(notes).length;
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  updateGeneratedNoteUi(null);
   renderSessionNoteTabs();
 }
 
@@ -1883,6 +2243,7 @@ async function closeCurrentNote() {
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  updateGeneratedNoteUi(null);
   document.getElementById('noteReassignDropdown')?.classList.remove('open');
   document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
   renderNotesList();
