@@ -2078,10 +2078,20 @@ function applySyncedNoteUpdate(note) {
 
 function syncGeneratedFindingNotesAfterMutation() {
   if (!activeSessionId || typeof syncGeneratedEngagementNotes !== 'function') return;
+  const previousActiveNoteId = activeNoteId;
   const changed = syncGeneratedEngagementNotes(activeSessionId);
   if (!changed) return;
   renderNotesList();
   renderSessionSidebar();
+  if (previousActiveNoteId && !notes[previousActiveNoteId]) {
+    activeNoteId = null;
+    if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+    document.getElementById('notesEmpty').style.display = 'flex';
+    document.getElementById('noteEditArea').style.display = 'none';
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+    if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+    return;
+  }
   if (activeNoteId && notes[activeNoteId]?.generated_note === true && notes[activeNoteId]?.session_id === activeSessionId) {
     applySyncedNoteUpdate(notes[activeNoteId]);
     if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);

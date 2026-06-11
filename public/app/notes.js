@@ -1301,11 +1301,10 @@ function buildTargetFindingsNoteBody(sessionId, target) {
 
   const sections = findings.map((entry) => [
     `## ${entry?.title || 'Untitled finding'}`,
-    `- Severity: ${entry?.severity || '—'}`,
-    `- Type: ${entry?.type || '—'}`,
-    `- Target: ${formatGeneratedFindingTarget(session, entry)}`,
-    `- Summary: ${entry?.summary || '—'}`,
-    `- Recommendation: ${entry?.recommendation || '—'}`,
+    `- **Severity**: ${entry?.severity || '—'}`,
+    `- **Type**: ${entry?.type || '—'}`,
+    `- **Summary**: ${entry?.summary || '—'}`,
+    `- **Recommendation**: ${entry?.recommendation || '—'}`,
     '',
     '### POC',
     '',

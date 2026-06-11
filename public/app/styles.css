@@ -6061,9 +6061,9 @@ body.enc-active-body .content-panel {
 }
 .todo-topbar-btn-count.has-entries { display: inline-block; }
 .evidence-topbar-btn-count {
-  background: rgba(251,191,36,0.14); color: #f59e0b;
+  background: rgba(217,119,6,0.16); color: #b45309;
   font-size: 11px; font-weight: 700;
-  border: 1px solid rgba(251,191,36,0.22);
+  border: 1px solid rgba(217,119,6,0.28);
   border-radius: 999px; padding: 1px 7px; min-width: 22px; text-align: center;
   line-height: 1.2;
   display: none;
@@ -7260,9 +7260,9 @@ body.enc-active-body .content-panel {
 }
 [data-theme="light"] .loot-type-cleartext { color: var(--green);  background: rgba(var(--green-rgb),0.12); }
 [data-theme="light"] .loot-type-hash      { color: var(--orange); background: rgba(251,146,60,0.12); }
-[data-theme="light"] .loot-type-token     { color: var(--purple); background: rgba(167,139,250,0.12); }
-[data-theme="light"] .loot-type-key       { color: var(--yellow); background: rgba(251,191,36,0.12); }
-[data-theme="light"] .loot-type-other     { color: var(--muted);  background: var(--bg4); }
+[data-theme="light"] .loot-type-token     { color: #7c3aed; background: rgba(124,58,237,0.16); }
+[data-theme="light"] .loot-type-key       { color: #b45309; background: rgba(217,119,6,0.16); }
+[data-theme="light"] .loot-type-other     { color: #b45309;  background: rgba(217,119,6,0.14); }
 
 /* ── Timeline View ── */
 .notes-list-view-toggle {
