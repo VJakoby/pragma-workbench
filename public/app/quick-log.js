@@ -83,11 +83,6 @@ const SVC_TAB_CONFIG = {
     onActivate: () => {
       renderLootTargetOptions();
       renderLootTable();
-      const hostInput = document.getElementById('lootHostInput');
-      if (hostInput && !hostInput.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hostInput.value = ip;
-      }
     },
   },
 };
@@ -299,6 +294,19 @@ function renderLootTargetOptions(selectedValue = '') {
 function getSelectedLootTargetId() {
   const select = document.getElementById('lootTargetInput');
   return String(select?.value || '').trim() || null;
+}
+
+function formatLootHostDisplay(entry) {
+  const hostText = String(entry?.host || '').trim();
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  if (!target) return hostText || '—';
+  const targetPrimary = String(target.ip || target.domain || '').trim();
+  const targetLabel = String(target.label || '').trim();
+  const base = targetPrimary || hostText || targetLabel || '—';
+  if (!targetLabel) return base;
+  const normalizedBase = base.toLowerCase();
+  if (normalizedBase === targetLabel.toLowerCase()) return base;
+  return base + ' // ' + targetLabel;
 }
 
 function getSessionNotesForFindings() {
@@ -1083,10 +1091,24 @@ function deleteFindingEntry(entryId) {
   showToast('✓ Finding unflagged');
 }
 
-function clearFindingEntries() {
+async function clearFindingEntries() {
   if (!activeSessionId) return;
   const entries = ensureSessionFindings();
   if (!entries?.length) return;
+
+  try {
+    await showConfirmDialog({
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      title: 'Clear Findings',
+      bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      description: `Remove all ${entries.length} findings?`,
+      confirmLabel: 'Clear All',
+      danger: true,
+    });
+  } catch {
+    return;
+  }
+
   const syncedNotes = [];
   entries.forEach((entry) => {
     applyFindingNoteSyncChanges(entry, null).forEach((note) => {
@@ -2011,21 +2033,29 @@ function syncServiceEntryToNetworkEnumerationNote(entry) {
 function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getAllSessionServices()
+  const serviceRows = getAllSessionServices()
     .filter(entry => entry?.target_id === targetId)
     .map(parseServiceForNetworkRow)
     .filter(Boolean);
+  const pathRows = getAllSessionPaths()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parsePathForWebRow)
+    .filter(Boolean);
 
   let note = findTargetNetworkEnumerationNote(targetId);
-  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && serviceRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
+  if (!serviceRows.length && !pathRows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, serviceRows);
   if (!nextBody) {
     const fallbackBody = buildNetworkEnumerationBody(target);
-    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, rows);
+    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, serviceRows);
   }
   if (!nextBody || nextBody === note.body) return false;
 
@@ -2037,27 +2067,59 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getAllSessionPaths()
+  const pathRows = getAllSessionPaths()
     .filter(entry => entry?.target_id === targetId)
     .map(parsePathForWebRow)
     .filter(Boolean);
+  const serviceRows = getAllSessionServices()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parseServiceForNetworkRow)
+    .filter(Boolean);
 
   let note = findTargetNetworkEnumerationNote(targetId);
-  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && pathRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
+  if (!pathRows.length && !serviceRows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  let nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  let nextBody = replaceWebEndpointsTableInBody(withOverview, pathRows);
   if (!nextBody) {
     const fallbackBody = buildNetworkEnumerationBody(target);
-    nextBody = replaceWebEndpointsTableInBody(fallbackBody, rows);
+    nextBody = replaceWebEndpointsTableInBody(fallbackBody, pathRows);
   }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
   note.updated = Date.now();
   return note;
+}
+
+function removeSyncedSupportingNote(note) {
+  if (!note?.id || !notes[note.id]) return false;
+  delete notes[note.id];
+  const total = Object.keys(notes).length;
+  const wasActive = activeNoteId === note.id;
+  if (wasActive) {
+    activeNoteId = null;
+    if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+  }
+  renderNotesList();
+  renderSessionSidebar();
+  const countEl = document.getElementById('notes-count');
+  if (countEl) countEl.textContent = total || '—';
+  if (wasActive) {
+    const emptyEl = document.getElementById('notesEmpty');
+    const editEl = document.getElementById('noteEditArea');
+    if (emptyEl) emptyEl.style.display = 'flex';
+    if (editEl) editEl.style.display = 'none';
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+  }
+  if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+  return true;
 }
 
 function applySyncedNoteUpdate(note) {
@@ -2588,7 +2650,7 @@ function parseAndPreviewLoot() {
     return;
   }
 
-  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const host = (document.getElementById('lootHostInput')?.value || '').trim();
   const type = _activeLootType;
   const targetId = getSelectedLootTargetId();
   const existing = new Set(getSessionLoot({ scoped: false }).map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
@@ -2619,7 +2681,7 @@ function commitLootParse() {
   if (!ensureActiveSession('add loot')) return;
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
 
-  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const host = (document.getElementById('lootHostInput')?.value || '').trim();
   const note = (document.getElementById('lootNoteInput')?.value || '').trim();
   const type = _activeLootType;
   const targetId = getSelectedLootTargetId();
@@ -2771,6 +2833,10 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   let note = findSessionCredentialsNote();
   if (!note && shouldEnsureNote) note = ensureSessionCredentialsNote();
   if (!note) return false;
+  if (!rows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   let nextBody = replaceCredentialsTableInBody(note.body || '', rows);
   if (!nextBody) {
@@ -2791,7 +2857,7 @@ function addLootEntryFromData({ type = 'other', credential = '', host = '', note
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
 
   const cleanType = String(type || 'other').trim() || 'other';
-  const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const cleanHost = String(host || '').trim();
   const cleanNote = String(note || '').trim();
   const cleanTargetId = String(targetId || '').trim() || null;
   const dupeKey = buildScopedLootKey(cleanType, cleanCredential, cleanHost, cleanTargetId);
@@ -2911,7 +2977,7 @@ function commitLootEdit(lootId) {
   if (!entry) return;
   const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();
   const credential = (document.getElementById(`lootEditCredential_${lootId}`)?.value || '').trim();
-  const host = (document.getElementById(`lootEditHost_${lootId}`)?.value || '').trim();
+  const targetId = (document.getElementById(`lootEditTarget_${lootId}`)?.value || '').trim() || null;
   const note = (document.getElementById(`lootEditNote_${lootId}`)?.value || '').trim();
   if (!credential) {
     showToast('⚠ Credential cannot be empty', 'err');
@@ -2920,7 +2986,7 @@ function commitLootEdit(lootId) {
   }
   entry.type = ['cleartext', 'hash', 'token', 'key', 'other'].includes(type) ? type : 'other';
   entry.credential = credential;
-  entry.host = host;
+  entry.target_id = targetId;
   entry.note = note;
   clearQuickLogEditing();
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
@@ -2960,15 +3026,20 @@ function renderLootTable() {
           </td>
           <td><input class="svc-notes-cell ql-row-input" id="lootEditCredential_${l.id}" type="text" value="${esc(l.credential || '')}" placeholder="credential"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
-          <td><input class="svc-notes-cell ql-row-input" id="lootEditHost_${l.id}" type="text" value="${esc(l.host || '')}" placeholder="host"
-            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><select class="svc-notes-cell ql-row-input ql-row-select" id="lootEditTarget_${l.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')">
+              <option value="">Session-wide</option>
+              ${getSessionTargets().map((targetItem) => {
+                const label = esc([targetItem.ip, targetItem.label, targetItem.domain].filter(Boolean).join(' // ') || 'Unnamed');
+                return `<option value="${esc(targetItem.id)}"${targetItem.id === (l.target_id || '') ? ' selected' : ''}>${label}</option>`;
+              }).join('')}
+            </select></td>
           <td><input class="svc-notes-cell ql-row-input" id="lootEditNote_${l.id}" type="text" value="${esc(l.note || '')}" placeholder="context…"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
           <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>` : `<tr>
           <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
           <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
-          <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
+          <td style="color:var(--text2);white-space:nowrap">${esc(formatLootHostDisplay(l))}</td>
           <td style="min-width:160px;width:35%">${esc(l.note || '')}</td>
           <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>`;

@@ -355,13 +355,23 @@ document.addEventListener('keydown', async e => {
     }
   }
 
-  if (ctrl && key === 'f' && ENGRAM_SEARCH_ENABLED) {
+  if (ctrl && e.shiftKey && key === 'f' && ENGRAM_SEARCH_ENABLED) {
     if (document.activeElement.tagName !== 'TEXTAREA' &&
         document.activeElement.id !== 'noteBody' &&
         document.activeElement.id !== 'noteTitleInput') {
       e.preventDefault();
       switchView('search', document.getElementById('nav-search'));
       setTimeout(() => document.getElementById('searchInput')?.focus(), 50);
+      return;
+    }
+  }
+
+  if (ctrl && key === 'f' && !e.shiftKey) {
+    if (document.activeElement.tagName !== 'TEXTAREA' &&
+        document.activeElement.id !== 'noteBody' &&
+        document.activeElement.id !== 'noteTitleInput') {
+      e.preventDefault();
+      if (typeof toggleFindingsPopover === 'function') toggleFindingsPopover();
       return;
     }
   }
