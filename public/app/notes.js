@@ -1184,7 +1184,6 @@ function formatGeneratedTargetFindingsReference(sessionId, finding) {
 
 function formatGeneratedFindingSupportSummary(sessionId, finding) {
   const parts = [];
-  if (String(finding?.source_command || '').trim()) parts.push('POC');
   const targetFindingsRef = formatGeneratedTargetFindingsReference(sessionId, finding);
   if (targetFindingsRef) {
     parts.push(targetFindingsRef);
