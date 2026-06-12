@@ -1136,11 +1136,75 @@ function escapeGeneratedNoteTableCell(value) {
     .replace(/\r?\n/g, '<br>');
 }
 
+function formatGeneratedInlineCode(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '—';
+  return '`' + text.replace(/`/g, '\\`') + '`';
+}
+
 function getSessionFindingsData(sessionId) {
   const session = sessionId ? sessions[sessionId] : null;
   if (!session) return [];
   return Array.isArray(session.findings) ? session.findings : [];
+}
 
+function getGeneratedFindingSourceNote(sessionId, finding) {
+  const noteId = String(finding?.source_note_id || finding?.note_id || '').trim();
+  if (!noteId) return null;
+  const note = notes[noteId] || null;
+  return note && note.session_id === sessionId ? note : null;
+}
+
+function getGeneratedFindingSupportNotes(sessionId, finding) {
+  const sourceNoteId = String(finding?.source_note_id || finding?.note_id || '').trim();
+  const supportIds = Array.isArray(finding?.support_note_ids) ? finding.support_note_ids : [];
+  return [...new Set(supportIds.map((id) => String(id || '').trim()).filter(Boolean))]
+    .filter((noteId) => noteId !== sourceNoteId)
+    .map((noteId) => notes[noteId] || null)
+    .filter((note) => note && note.session_id === sessionId && note.generated_note !== true);
+}
+
+function formatGeneratedFindingNoteReference(sessionId, note) {
+  if (!note?.title) return '—';
+  const session = sessions[sessionId] || null;
+  if (!session) return note.title;
+  const target = note.target_id ? (session.targets || []).find((entry) => entry.id === note.target_id) : null;
+  const targetToken = String(target?.ip || target?.domain || target?.label || '').trim();
+  if (!targetToken) return note.title;
+  return `[en:${targetToken}:${note.title}]`;
+}
+
+function formatGeneratedTargetFindingsReference(sessionId, finding) {
+  const targetId = String(finding?.target_id || '').trim();
+  if (!sessionId || !targetId) return '';
+  const generatedNote = findGeneratedNote(sessionId, 'target_findings', targetId);
+  if (!generatedNote?.id) return '';
+  return `[${generatedNote.title || 'Findings'}](#note:${generatedNote.id})`;
+}
+
+function formatGeneratedFindingSupportSummary(sessionId, finding) {
+  const parts = [];
+  if (String(finding?.source_command || '').trim()) parts.push('POC');
+  const targetFindingsRef = formatGeneratedTargetFindingsReference(sessionId, finding);
+  if (targetFindingsRef) {
+    parts.push(targetFindingsRef);
+    return parts.join(' · ');
+  }
+  const sourceNote = getGeneratedFindingSourceNote(sessionId, finding);
+  if (sourceNote) parts.push(formatGeneratedFindingNoteReference(sessionId, sourceNote));
+  const supportNotes = getGeneratedFindingSupportNotes(sessionId, finding);
+  if (supportNotes.length === 1) parts.push(formatGeneratedFindingNoteReference(sessionId, supportNotes[0]));
+  else if (supportNotes.length > 1) parts.push(`${supportNotes.length} linked notes`);
+  return parts.join(' · ') || '—';
+}
+
+function buildGeneratedFindingSupportSection(sessionId, finding) {
+  const sourceNote = getGeneratedFindingSourceNote(sessionId, finding);
+  const supportNotes = getGeneratedFindingSupportNotes(sessionId, finding);
+  const lines = [];
+  if (sourceNote) lines.push(`- **Source note**: ${formatGeneratedFindingNoteReference(sessionId, sourceNote)}`);
+  if (supportNotes.length) lines.push(`- **Support notes**: ${supportNotes.map((note) => formatGeneratedFindingNoteReference(sessionId, note)).join(' · ')}`);
+  return lines.join('\n');
 }
 
 function findGeneratedNote(sessionId, kind, targetId = null) {
@@ -1297,14 +1361,15 @@ function buildEngagementSummaryNoteBody(sessionId) {
     const target = entry?.target_id ? targets.find((item) => item.id === entry.target_id) : null;
     const host = entry?.host || target?.label || target?.ip || target?.domain || 'Session-wide';
     const context = [entry?.note, target?.domain].filter(Boolean).join(' · ') || '—';
-    return `| ${escapeGeneratedNoteTableCell(entry?.type || 'loot')} | ${escapeGeneratedNoteTableCell(entry?.credential || '—')} | ${escapeGeneratedNoteTableCell(host)} | ${escapeGeneratedNoteTableCell(context)} |`;
+    return `| ${escapeGeneratedNoteTableCell(entry?.type || 'loot')} | ${escapeGeneratedNoteTableCell(formatGeneratedInlineCode(entry?.credential || ''))} | ${escapeGeneratedNoteTableCell(host)} | ${escapeGeneratedNoteTableCell(context)} |`;
   });
 
   const findingRows = findings.map((entry) => (
     `| ${escapeGeneratedNoteTableCell(entry?.title || 'Untitled finding')} | ` +
     `${escapeGeneratedNoteTableCell(entry?.severity || '—')} | ` +
     `${escapeGeneratedNoteTableCell(entry?.type || '—')} | ` +
-    `${escapeGeneratedNoteTableCell(formatGeneratedFindingTarget(session, entry))} |`
+    `${escapeGeneratedNoteTableCell(formatGeneratedFindingTarget(session, entry))} | ` +
+    `${escapeGeneratedNoteTableCell(formatGeneratedFindingSupportSummary(sessionId, entry))} |`
   ));
 
   return [
@@ -1324,9 +1389,9 @@ function buildEngagementSummaryNoteBody(sessionId) {
     '',
     '## Findings',
     '',
-    '| Title | Severity | Type | Target |',
-    '|-------|----------|------|--------|',
-    ...(findingRows.length ? findingRows : ['| No findings yet | — | — | — |']),
+    '| Title | Severity | Type | Target | Link |',
+    '|-------|----------|------|--------|------|',
+    ...(findingRows.length ? findingRows : ['| No findings yet | — | — | — | — |']),
     '',
   ].join('\n');
 }
@@ -1353,6 +1418,7 @@ function buildTargetFindingsNoteBody(sessionId, target) {
     '```text',
     formatGeneratedFindingPoc(entry),
     '```',
+    ...(buildGeneratedFindingSupportSection(sessionId, entry) ? ['', buildGeneratedFindingSupportSection(sessionId, entry)] : []),
   ].join('\n'));
 
   return [
@@ -2081,6 +2147,7 @@ async function openManualFindingDialog() {
 
   const entries = ensureSessionFindings();
   if (!entries) return;
+  const prevCount = entries.length;
   const entry = {
     id: `finding_${Date.now()}`,
     type: confirmed.type,
@@ -2094,12 +2161,19 @@ async function openManualFindingDialog() {
     target_id: confirmed.target_id || null,
     source_note_id: null,
     note_id: null,
+    support_note_ids: [],
     sync_mode: 'export_only',
     created: Date.now(),
     updated: Date.now(),
   };
 
   entries.push(entry);
+  if (entries.length <= prevCount) {
+    if (typeof renderFindingsList === 'function') renderFindingsList();
+    showToast('⚠ Finding could not be added', 'err');
+    return;
+  }
+  if (typeof ensureFindingVisibleInFilters === 'function') ensureFindingVisibleInFilters(entry);
   if (typeof syncGeneratedFindingNotesAfterMutation === 'function') syncGeneratedFindingNotesAfterMutation();
   let syncedLootCredentialsNote = null;
   let lootDuplicate = false;
@@ -2147,6 +2221,7 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
 
   const entries = ensureSessionFindings();
   if (!entries) return;
+  const prevCount = entries.length;
 
   const sourceCommand = deriveFindingCommand(block.text);
   const defaultLootType = deriveLootType(block.text);
@@ -2180,16 +2255,23 @@ async function addFindingFromSelection({ blockOverride = null } = {}) {
     details: '',
     impact: '',
     recommendation: confirmed.recommendation,
-    source_command: '',
+    source_command: sourceCommand || '',
     target_id: confirmed.target_id || null,
     source_note_id: activeNoteId,
     note_id: null,
+    support_note_ids: [],
     sync_mode: 'export_only',
     created: Date.now(),
     updated: Date.now(),
   };
 
   entries.push(entry);
+  if (entries.length <= prevCount) {
+    if (typeof renderFindingsList === 'function') renderFindingsList();
+    showToast('⚠ Finding could not be added', 'err');
+    return;
+  }
+  if (typeof ensureFindingVisibleInFilters === 'function') ensureFindingVisibleInFilters(entry);
   if (typeof syncGeneratedFindingNotesAfterMutation === 'function') syncGeneratedFindingNotesAfterMutation();
   let syncedLootCredentialsNote = null;
   let lootDuplicate = false;

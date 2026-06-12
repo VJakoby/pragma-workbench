@@ -10,6 +10,7 @@ let _editingTodoId = null;
 let _editingQuickLog = null;
 let _findingFilterType = '';
 let _findingFilterTarget = '';
+let _pendingFindingFocusId = null;
 let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
 
 function buildQuickLogOptionMap(options) {
@@ -36,6 +37,14 @@ function normalizeFindingEntry(entry, index = 0) {
   normalized.target_id = normalized.target_id ? String(normalized.target_id).trim() : null;
   normalized.source_note_id = normalized.source_note_id ? String(normalized.source_note_id).trim() : (normalized.note_id ? String(normalized.note_id).trim() : null);
   normalized.note_id = normalized.note_id ? String(normalized.note_id).trim() : null;
+  normalized.support_note_ids = [...new Set(
+    (Array.isArray(normalized.support_note_ids)
+      ? normalized.support_note_ids
+      : (normalized.support_note_ids ? [normalized.support_note_ids] : [])
+    )
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+  )];
   normalized.sync_mode = String(normalized.sync_mode || 'export_only').trim() || 'export_only';
   normalized.severity = FINDING_SEVERITY_VALUES.has(String(normalized.severity || '').trim()) ? String(normalized.severity).trim() : 'medium';
   normalized.created = Number(normalized.created) || Date.now();
@@ -356,11 +365,37 @@ function findingTargetDisplay(entry) {
   return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
 }
 
+function getFindingSupportNotes(entry) {
+  if (!entry || !Array.isArray(entry.support_note_ids) || !entry.support_note_ids.length) return [];
+  const excludedIds = new Set([entry.source_note_id, entry.note_id].filter(Boolean));
+  return entry.support_note_ids
+    .filter((noteId) => !excludedIds.has(noteId))
+    .map((noteId) => notes[noteId] || null)
+    .filter((note) => note && note.session_id === activeSessionId && note.generated_note !== true);
+}
+
+function getFindingSupportSummary(entry) {
+  const supportNotes = getFindingSupportNotes(entry);
+  const supportLabels = supportNotes
+    .map((note) => String(note.title || 'Untitled').trim())
+    .filter(Boolean);
+  if (!supportLabels.length) return '—';
+  const preview = supportLabels.slice(0, 2).join(' · ');
+  return supportLabels.length > 2 ? `${preview} +${supportLabels.length - 2}` : preview;
+}
+
+function getFindingSupportableNotes() {
+  return getSessionNotesForFindings().filter((note) => note?.generated_note !== true);
+}
+
 function renderFindingProofCell(entry) {
   const lines = [];
   if (entry.summary) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Summary</span>${esc(entry.summary)}</span>`);
   if (entry.impact) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Impact</span>${esc(entry.impact)}</span>`);
   if (entry.recommendation) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Recommendation</span>${esc(entry.recommendation)}</span>`);
+  if (entry.source_command) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Proof</span>${esc(entry.source_command)}</span>`);
+  const supportSummary = getFindingSupportSummary(entry);
+  if (supportSummary !== '—') lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Support</span>${esc(supportSummary)}</span>`);
   return lines.length ? `<div class="finding-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
@@ -553,6 +588,27 @@ function setFindingFilterType(value) {
 function setFindingFilterTarget(value) {
   _findingFilterTarget = String(value || '').trim();
   renderFindingsList();
+}
+
+function ensureFindingVisibleInFilters(entry) {
+  if (!entry) return;
+  const targetToken = String(entry.target_id || '').trim() || '__session__';
+  if (_findingFilterType && entry.type !== _findingFilterType) _findingFilterType = '';
+  if (_findingFilterTarget && _findingFilterTarget !== targetToken) _findingFilterTarget = targetToken;
+  _pendingFindingFocusId = entry.id || null;
+}
+
+function focusPendingFindingRow() {
+  if (!_pendingFindingFocusId) return;
+  const row = document.getElementById(`findingRow_${_pendingFindingFocusId}`);
+  if (!row) return;
+  row.classList.add('finding-item-highlight');
+  row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const focusId = _pendingFindingFocusId;
+  _pendingFindingFocusId = null;
+  setTimeout(() => {
+    document.getElementById(`findingRow_${focusId}`)?.classList.remove('finding-item-highlight');
+  }, 1800);
 }
 
 function renderTodoClearAction() {
@@ -830,9 +886,11 @@ function renderFindingsList() {
       const syncNote = getFindingSyncNote(entry);
       const syncNoteLabel = syncNote?.title || (findingUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
       const timestampLabel = formatFindingTimestamp(entry.updated || entry.created || 0);
+      const supportableNotes = getFindingSupportableNotes();
+      const selectedSupportIds = new Set(Array.isArray(entry.support_note_ids) ? entry.support_note_ids : []);
       if (isQuickLogEditing('finding', entry.id)) {
         return `
-          <section class="finding-item finding-item-editing">
+          <section class="finding-item finding-item-editing" id="findingRow_${entry.id}">
             <div class="finding-item-head">
               <div class="finding-item-title-group finding-item-title-group-editing">
                 <label class="finding-edit-field finding-edit-field-type">
@@ -895,12 +953,27 @@ function renderFindingsList() {
                 <span class="finding-edit-label">Recommendation</span>
                 <input class="svc-notes-cell ql-row-input" id="findingEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
+              <label class="finding-edit-field finding-edit-field-span-3">
+                <span class="finding-edit-label">Proof / Command</span>
+                <textarea class="svc-notes-cell ql-row-input finding-edit-textarea" id="findingEditCommand_${entry.id}" placeholder="proof command or short proof context" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">${esc(entry.source_command || '')}</textarea>
+              </label>
+              <label class="finding-edit-field finding-edit-field-span-3">
+                <span class="finding-edit-label">Support Notes</span>
+                <div class="finding-support-picker" id="findingEditSupportWrap_${entry.id}" onclick="event.stopPropagation()">
+                  ${supportableNotes.length ? supportableNotes.map((item) => `
+                    <label class="finding-support-option">
+                      <input type="checkbox" value="${esc(item.id)}"${selectedSupportIds.has(item.id) ? ' checked' : ''}>
+                      <span class="finding-support-option-title">${esc(item.title || 'Untitled')}</span>
+                    </label>
+                  `).join('') : '<div class="finding-support-empty">No session notes available yet.</div>'}
+                </div>
+              </label>
             </div>
           </section>
         `;
       }
       return `
-        <section class="finding-item">
+        <section class="finding-item" id="findingRow_${entry.id}">
             <div class="finding-item-head">
               <div class="finding-item-title-group">
               <span class="loot-type-badge ${findingTypeBadgeClass(entry.type)}">${esc(findingTypeLabel(entry.type))}</span>
@@ -942,6 +1015,7 @@ function renderFindingsList() {
   `;
 
   if (_editingQuickLog?.kind === 'finding') focusQuickLogEditInput(`findingEditTitle_${_editingQuickLog.id}`);
+  else focusPendingFindingRow();
 }
 
 function deleteFindingEntry(entryId) {
@@ -1008,11 +1082,16 @@ function commitFindingEdit(entryId) {
   entry.details = entry.details || '';
   entry.impact = (document.getElementById(`findingEditImpact_${entryId}`)?.value || '').trim();
   entry.recommendation = (document.getElementById(`findingEditRecommendation_${entryId}`)?.value || '').trim();
-  entry.source_command = entry.source_command || '';
+  entry.source_command = (document.getElementById(`findingEditCommand_${entryId}`)?.value || '').trim();
   entry.target_id = (document.getElementById(`findingEditTarget_${entryId}`)?.value || '').trim() || null;
   entry.sync_mode = (document.getElementById(`findingEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
   entry.note_id = findingUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`findingEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  entry.support_note_ids = [...new Set(
+    Array.from(document.querySelectorAll(`#findingEditSupportWrap_${entryId} input[type="checkbox"]:checked`))
+      .map((input) => String(input.value || '').trim())
+      .filter(Boolean)
+  )];
   if (findingUsesNoteSync(entry.sync_mode) && !entry.note_id) {
     focusQuickLogEditInput(`findingEditTitle_${entryId}`);
     return;
@@ -2606,11 +2685,20 @@ function commitLootParse() {
   showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
+function formatCredentialCellValue(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return `\`${text.replace(/`/g, '\\`')}\``;
+}
+
 function buildCredentialsTableRow(row, mode = 'default') {
+  const username = formatCredentialCellValue(row.username);
+  const password = formatCredentialCellValue(row.password);
+  const hash = formatCredentialCellValue(row.hash);
   if (mode === 'web') {
-    return `| ${row.username} | ${row.password} | ${row.service} |  | ${row.notes} |`;
+    return `| ${username} | ${password} | ${row.service} |  | ${row.notes} |`;
   }
-  return `| ${row.username} | ${row.password} | ${row.hash} | ${row.service} | ${row.notes} |`;
+  return `| ${username} | ${password} | ${hash} | ${row.service} | ${row.notes} |`;
 }
 
 function ensureCredentialsSection(lines) {

@@ -1236,6 +1236,10 @@ async function importSession(event) {
               fields.forEach(([key, fallback = '']) => {
                 if (key === 'added' || key === 'created' || key === 'updated' || key === 'completed') {
                   out[key] = Number(entry[key]) || null;
+                } else if (key === 'support_note_ids') {
+                  out[key] = (Array.isArray(entry[key]) ? entry[key] : [])
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean);
                 } else {
                   out[key] = String(entry[key] ?? fallback);
                 }
@@ -1255,7 +1259,7 @@ async function importSession(event) {
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
           loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
-          findings: cloneList(Array.isArray(session.findings) ? session.findings : [], [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
+          findings: cloneList(Array.isArray(session.findings) ? session.findings : [], [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['support_note_ids'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({

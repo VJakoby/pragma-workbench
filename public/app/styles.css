@@ -6585,6 +6585,41 @@ body.enc-active-body .content-panel {
 .finding-edit-field-title {
   flex: 1 1 280px;
 }
+.finding-edit-field-span-3 {
+  grid-column: 1 / -1;
+}
+.finding-edit-textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+.finding-support-picker {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg4) 82%, var(--bg3));
+}
+.finding-support-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.finding-support-option input {
+  margin: 2px 0 0;
+}
+.finding-support-option-title {
+  min-width: 0;
+  line-height: 1.35;
+}
+.finding-support-empty {
+  font-size: 12px;
+  color: var(--muted);
+}
 .finding-edit-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -6647,6 +6682,9 @@ body.enc-active-body .content-panel {
   .pw-field-grid-2,
   .pw-field-grid-3 {
     grid-template-columns: 1fr;
+  }
+  .finding-edit-field-span-3 {
+    grid-column: auto;
   }
 }
 
