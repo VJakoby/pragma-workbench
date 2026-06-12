@@ -1337,6 +1337,22 @@ function generatedNoteWillRebuild(note) {
   return false;
 }
 
+function formatGeneratedTargetSummaryBadge(label, count, cssClass) {
+  const normalizedCount = Number(count) || 0;
+  if (!normalizedCount) return '';
+  const suffix = normalizedCount === 1 ? label.replace(/s$/, '') : label;
+  return `<span class="generated-summary-badge ${cssClass}">${normalizedCount} ${suffix}</span>`;
+}
+
+function buildEngagementSummaryBadges(portCount, pathCount, findingCount) {
+  const badges = [
+    formatGeneratedTargetSummaryBadge('ports', portCount, 'is-ports'),
+    formatGeneratedTargetSummaryBadge('paths', pathCount, 'is-paths'),
+    formatGeneratedTargetSummaryBadge('findings', findingCount, 'is-findings'),
+  ].filter(Boolean);
+  return badges.join(' ') || '—';
+}
+
 function buildEngagementSummaryNoteBody(sessionId) {
   const session = sessions[sessionId];
   if (!session) return '# Session\n';
@@ -1351,10 +1367,8 @@ function buildEngagementSummaryNoteBody(sessionId) {
     const portCount = services.filter((entry) => (entry?.target_id || null) === target.id).length;
     const pathCount = paths.filter((entry) => (entry?.target_id || null) === target.id).length;
     const findingCount = findings.filter((entry) => (entry?.target_id || null) === target.id).length;
-    const summary = [portCount ? `${portCount} ports` : '', pathCount ? `${pathCount} paths` : '', findingCount ? `${findingCount} findings` : '']
-      .filter(Boolean)
-      .join(' · ') || '—';
-    return `| ${escapeGeneratedNoteTableCell(target.ip || target.domain || '—')} | ${escapeGeneratedNoteTableCell(target.label || '—')} | ${escapeGeneratedNoteTableCell(summary)} |`;
+    const summary = buildEngagementSummaryBadges(portCount, pathCount, findingCount);
+    return `| ${escapeGeneratedNoteTableCell(target.ip || target.domain || '—')} | ${escapeGeneratedNoteTableCell(target.label || '—')} | ${summary} |`;
   });
 
   const credentialRows = loot.map((entry) => {
@@ -1887,7 +1901,9 @@ function renderFindingDialogTargetOptions(selectedValue = '') {
   const select = document.getElementById('findingDialogTarget');
   if (!select) return;
   const targets = typeof getSessionTargets === 'function' ? getSessionTargets() : [];
-  const current = selectedValue || '';
+  const current = typeof normalizeSessionTargetId === 'function'
+    ? (normalizeSessionTargetId(selectedValue || '', { allowSessionWide: true }) || '')
+    : (selectedValue || '');
   const options = ['<option value="">Session-wide</option>'];
   targets.forEach((target) => {
     const parts = [target.ip, target.label, target.domain].filter(Boolean);
@@ -2077,7 +2093,10 @@ function confirmFindingDialog() {
   const severity = (document.getElementById('findingDialogSeverity')?.value || 'medium').trim();
   const summary = (document.getElementById('findingDialogSummary')?.value || '').trim();
   const recommendation = (document.getElementById('findingDialogRecommendation')?.value || '').trim();
-  const target_id = (document.getElementById('findingDialogTarget')?.value || '').trim() || null;
+  const rawTargetId = (document.getElementById('findingDialogTarget')?.value || '').trim();
+  const target_id = typeof normalizeSessionTargetId === 'function'
+    ? normalizeSessionTargetId(rawTargetId, { allowSessionWide: true })
+    : (rawTargetId || null);
   if (!title) {
     titleEl?.focus();
     return;

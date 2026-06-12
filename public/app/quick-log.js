@@ -34,7 +34,7 @@ function normalizeFindingEntry(entry, index = 0) {
   normalized.impact = String(normalized.impact || '').trim();
   normalized.recommendation = String(normalized.recommendation || '').trim();
   normalized.source_command = String(normalized.source_command || '').trim();
-  normalized.target_id = normalized.target_id ? String(normalized.target_id).trim() : null;
+  normalized.target_id = normalizeSessionTargetId(normalized.target_id, { allowSessionWide: true });
   normalized.source_note_id = normalized.source_note_id ? String(normalized.source_note_id).trim() : (normalized.note_id ? String(normalized.note_id).trim() : null);
   normalized.note_id = normalized.note_id ? String(normalized.note_id).trim() : null;
   normalized.support_note_ids = [...new Set(
@@ -277,7 +277,7 @@ function renderLootTargetOptions(selectedValue = '') {
   const select = document.getElementById('lootTargetInput');
   if (!select) return;
   const targets = getSessionTargets();
-  const current = selectedValue || activeTargetId || '';
+  const current = normalizeSessionTargetId(selectedValue || activeTargetId || '', { allowSessionWide: true }) || '';
   const options = ['<option value="">Session-wide</option>'];
   targets.forEach((target) => {
     const parts = [target.ip, target.label, target.domain].filter(Boolean);
@@ -289,7 +289,7 @@ function renderLootTargetOptions(selectedValue = '') {
 
 function getSelectedLootTargetId() {
   const select = document.getElementById('lootTargetInput');
-  return String(select?.value || '').trim() || null;
+  return normalizeSessionTargetId(select?.value || '', { allowSessionWide: true });
 }
 
 function formatLootHostDisplay(entry) {
@@ -1083,7 +1083,7 @@ function commitFindingEdit(entryId) {
   entry.impact = (document.getElementById(`findingEditImpact_${entryId}`)?.value || '').trim();
   entry.recommendation = (document.getElementById(`findingEditRecommendation_${entryId}`)?.value || '').trim();
   entry.source_command = (document.getElementById(`findingEditCommand_${entryId}`)?.value || '').trim();
-  entry.target_id = (document.getElementById(`findingEditTarget_${entryId}`)?.value || '').trim() || null;
+  entry.target_id = normalizeSessionTargetId((document.getElementById(`findingEditTarget_${entryId}`)?.value || '').trim(), { allowSessionWide: true });
   entry.sync_mode = (document.getElementById(`findingEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
   entry.note_id = findingUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`findingEditNote_${entryId}`)?.value || '').trim() || null) : null;
@@ -1102,6 +1102,10 @@ function commitFindingEdit(entryId) {
   clearQuickLogEditing();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
+  if (activeNoteId && notes[activeNoteId]?.generated_note === true && notes[activeNoteId]?.session_id === activeSessionId) {
+    applySyncedNoteUpdate(notes[activeNoteId]);
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);
+  }
   renderFindingsList();
 }
 
@@ -1354,7 +1358,8 @@ function commitPortParse() {
   if (!_portParsed.length) return;
   if (!ensureActiveSession('add ports')) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const targetId = getSelectedLootTargetId();
+  const targetId = requireValidatedSessionTargetId('add ports');
+  if (!targetId) return;
   const existing = new Set(getAllSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id)));
   let added = 0;
   for (const r of _portParsed) {
@@ -1584,7 +1589,8 @@ function commitPathParse() {
   if (!_pathParsed.length) return;
   if (!ensureActiveSession('add paths')) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const targetId = getSelectedLootTargetId();
+  const targetId = requireValidatedSessionTargetId('add paths');
+  if (!targetId) return;
   const existing = new Set(getAllSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id)));
   let added = 0;
   for (const r of _pathParsed) {
@@ -1617,7 +1623,11 @@ function addPathLog() {
   else { path = raw.split(/\s+/)[0]; notes = raw.slice(path.length).trim(); }
   if (!path.startsWith('/') && !path.includes('.')) { input.focus(); return; }
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add a path');
+  if (!targetId) {
+    input.focus();
+    return;
+  }
   const entry = { id: `path_${Date.now()}`, target_id: targetId, path, status, size: '', notes, added: Date.now() };
   sessions[activeSessionId].paths.push(entry);
   const syncedNetworkNote = targetId ? syncSessionPathsToNetworkEnumerationNote(targetId, true) : false;
@@ -1683,17 +1693,32 @@ function getQuickLogScopeTargetId() {
 
 function getAllSessionServices() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].services || [];
+  return (sessions[activeSessionId].services || []).filter((entry) =>
+    !!normalizeSessionTargetId(entry?.target_id, { allowSessionWide: false })
+  );
 }
 
 function getAllSessionPaths() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].paths || [];
+  return (sessions[activeSessionId].paths || []).filter((entry) =>
+    !!normalizeSessionTargetId(entry?.target_id, { allowSessionWide: false })
+  );
 }
 
 function getAllSessionLoot() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].loot || [];
+  const lootEntries = Array.isArray(sessions[activeSessionId].loot) ? sessions[activeSessionId].loot : [];
+  let mutated = false;
+  lootEntries.forEach((entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    const nextTargetId = normalizeSessionTargetId(entry.target_id, { allowSessionWide: true });
+    if ((entry.target_id || null) !== nextTargetId) {
+      entry.target_id = nextTargetId;
+      mutated = true;
+    }
+  });
+  if (mutated) sessions[activeSessionId].loot = lootEntries;
+  return lootEntries;
 }
 
 function buildScopedServiceKey(port, proto = 'tcp', targetId = null) {
@@ -1899,6 +1924,19 @@ function getSessionTargetById(targetId) {
   return targets.find(target => target.id === targetId) || null;
 }
 
+function normalizeSessionTargetId(targetId, { allowSessionWide = true } = {}) {
+  const cleanTargetId = String(targetId || '').trim();
+  if (!cleanTargetId) return allowSessionWide ? null : null;
+  return getSessionTargetById(cleanTargetId)?.id || null;
+}
+
+function requireValidatedSessionTargetId(actionLabel = 'continue') {
+  const targetId = normalizeSessionTargetId(resolveQuickLogTargetId(), { allowSessionWide: false });
+  if (targetId) return targetId;
+  showToast(`⚠ Select a valid session target first to ${actionLabel}`, 'err');
+  return null;
+}
+
 function populateNetworkEnumerationOverview(body, target = null) {
   const resolvedTarget = target || getActiveTarget() || null;
   const ip = resolvedTarget?.ip || '';
@@ -1925,7 +1963,7 @@ function populateNetworkEnumerationOverview(body, target = null) {
 }
 
 function resolveQuickLogTargetId() {
-  return activeTargetId || getActiveTarget()?.id || null;
+  return normalizeSessionTargetId(activeTargetId || getActiveTarget()?.id || null, { allowSessionWide: true });
 }
 
 function findTargetNetworkEnumerationNote(targetId) {
@@ -2227,7 +2265,11 @@ function addServiceLog() {
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add a service');
+  if (!targetId) {
+    input.focus();
+    return;
+  }
   const entry = {
     id: `svc_${Date.now()}`,
     target_id: targetId,
@@ -2825,7 +2867,7 @@ function addLootEntryFromData({ type = 'other', credential = '', host = '', note
   const cleanType = String(type || 'other').trim() || 'other';
   const cleanHost = String(host || '').trim();
   const cleanNote = String(note || '').trim();
-  const cleanTargetId = String(targetId || '').trim() || null;
+  const cleanTargetId = normalizeSessionTargetId(targetId, { allowSessionWide: true });
   const dupeKey = buildScopedLootKey(cleanType, cleanCredential, cleanHost, cleanTargetId);
   const existing = new Set(getAllSessionLoot().map((l) => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
@@ -2946,7 +2988,7 @@ function commitLootEdit(lootId) {
   if (!entry) return;
   const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();
   const credential = (document.getElementById(`lootEditCredential_${lootId}`)?.value || '').trim();
-  const targetId = (document.getElementById(`lootEditTarget_${lootId}`)?.value || '').trim() || null;
+  const targetId = normalizeSessionTargetId((document.getElementById(`lootEditTarget_${lootId}`)?.value || '').trim(), { allowSessionWide: true });
   const note = (document.getElementById(`lootEditNote_${lootId}`)?.value || '').trim();
   if (!credential) {
     showToast('⚠ Credential cannot be empty', 'err');
