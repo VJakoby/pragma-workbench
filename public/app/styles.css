@@ -2132,6 +2132,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   font-size:14px;
   line-height:1;
 }
+.session-note-tab.active .session-note-tab-open{
+  padding-right:8px;
+}
+.session-note-tab.active .session-note-tab-close{
+  margin-left:4px;
+  margin-right:1px;
+}
 .session-note-tab-close:hover{
   background:rgba(255,255,255,0.08);
   color:var(--text);

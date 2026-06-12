@@ -1294,4 +1294,38 @@ EXPECTED BEHAVIOR:
 
 ---
 
+## B-7 — Active Hidden Note Tabs Have Excess Right-Side Space
+STATUS: DONE
+
+CONTEXT:
+In the hidden-notes tab strip above the editor, active/open note tabs keep slightly too much empty space to the right of the title text before the close control.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Only active/open note tabs should have their right-side text spacing tightened
+- Inactive tabs must keep their current spacing
+- The close button must remain clickable and visually aligned
+
+---
+
+## B-8 — Quick Log Ports Modal Should Normalize Port/Service Both Ways
+STATUS: DONE
+
+CONTEXT:
+The Ports modal currently accepts free-text service entries, but it does not normalize entered ports and service names against the KB service mapping. This makes service labels inconsistent and forces operators to remember canonical ports manually.
+
+SCOPE:
+public/app/quick-log.js
+views/partials/topbar-utility-panels.ejs
+
+EXPECTED BEHAVIOR:
+- Entering a known port must auto-fill the canonical KB service slug
+- Entering a known service slug without a port must auto-fill the canonical port/proto
+- The normalization must apply both when adding a new port entry and when editing an existing one
+- Unknown/custom services must still remain possible without forced remapping
+
+---
+
 END
