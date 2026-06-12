@@ -7145,15 +7145,15 @@ body.enc-active-body .content-panel {
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(2),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(2) {
-  width: 38%;
+  width: 34%;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(3),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(3) {
-  width: 22%;
+  width: 24%;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(4),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(4) {
-  width: 18%;
+  width: 26%;
 }
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table th:nth-child(5),
 .svc-popover.svc-popover-loot-open #svcPanelLoot .svc-table td:nth-child(5) {
@@ -7301,8 +7301,21 @@ body.enc-active-body .content-panel {
 /* Loot table — credential cell monospace, copyable */
 .loot-cred-cell {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  color: var(--yellow); cursor: pointer; word-break: break-all; overflow-wrap: anywhere;
+  color: var(--yellow); cursor: pointer; word-break: break-word; overflow-wrap: anywhere;
+  white-space: normal;
+  max-width: 0;
   transition: color 0.1s;
+}
+.loot-host-cell {
+  color: var(--text2);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.loot-context-cell {
+  color: var(--text2);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .loot-cred-cell:hover { color: var(--text); }
 .loot-type-badge {

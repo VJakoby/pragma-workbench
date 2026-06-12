@@ -3051,8 +3051,8 @@ function renderLootTable() {
         </tr>` : `<tr>
           <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
           <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
-          <td style="color:var(--text2);white-space:nowrap">${esc(formatLootHostDisplay(l))}</td>
-          <td style="min-width:160px;width:35%">${esc(l.note || '')}</td>
+          <td class="loot-host-cell">${esc(formatLootHostDisplay(l))}</td>
+          <td class="loot-context-cell">${esc(l.note || '')}</td>
           <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>`;
       }).join('')}
