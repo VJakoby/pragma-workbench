@@ -1659,7 +1659,13 @@ function parseSvcInput(raw) {
   let version = '';
   let notes = '';
   const portProtoMatch = str.match(/^(\d+)(?:\/(tcp|udp|sctp))?/i);
-  if (!portProtoMatch) { service = str; return { port, proto, service, version, notes }; }
+  if (!portProtoMatch) {
+    const tokens = str.split(/\s+/).filter(Boolean);
+    if (tokens.length >= 1) service = tokens[0];
+    if (tokens.length >= 2) version = tokens[1];
+    if (tokens.length >= 3) notes = tokens.slice(2).join(' ');
+    return { port, proto, service, version, notes };
+  }
   port = portProtoMatch[1];
   proto = (portProtoMatch[2] || 'tcp').toLowerCase();
   const tokens = str.slice(portProtoMatch[0].length).trim().split(/\s+/).filter(Boolean);
@@ -2071,16 +2077,22 @@ function addServiceLog() {
   if (!ensureActiveSession('add a service')) { if (input) input.focus(); return; }
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
+  const normalized = normalizeQuickLogServiceEntry(parsed);
+  if (!normalized.port) {
+    showToast('⚠ Enter a port or a known KB service', 'err');
+    if (input) input.focus();
+    return;
+  }
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
   const targetId = resolveQuickLogTargetId();
   const entry = {
     id: `svc_${Date.now()}`,
     target_id: targetId,
-    port: parsed.port,
-    proto: parsed.proto,
-    service: parsed.service,
-    version: parsed.version,
-    notes: parsed.notes,
+    port: normalized.port,
+    proto: normalized.proto,
+    service: normalized.service,
+    version: normalized.version,
+    notes: normalized.notes,
     added: Date.now(),
   };
   sessions[activeSessionId].services.push(entry);
@@ -2123,16 +2135,17 @@ function commitServiceEdit(svcId) {
   const service = (document.getElementById(`svcEditService_${svcId}`)?.value || '').trim();
   const version = (document.getElementById(`svcEditVersion_${svcId}`)?.value || '').trim();
   const notes = (document.getElementById(`svcEditNotes_${svcId}`)?.value || '').trim();
-  if (!port) {
+  const normalized = normalizeQuickLogServiceEntry({ port, proto, service, version, notes });
+  if (!normalized.port) {
     showToast('⚠ Port cannot be empty', 'err');
     focusQuickLogEditInput(`svcEditPort_${svcId}`);
     return;
   }
-  svc.port = port;
-  svc.proto = proto;
-  svc.service = service;
-  svc.version = version;
-  svc.notes = notes;
+  svc.port = normalized.port;
+  svc.proto = normalized.proto;
+  svc.service = normalized.service;
+  svc.version = normalized.version;
+  svc.notes = normalized.notes;
   clearQuickLogEditing();
   const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
@@ -2246,13 +2259,13 @@ function renderSvcLogTable() {
           <td>
             <div class="ql-port-edit-wrap">
               <input class="svc-notes-cell ql-row-input ql-port-input" id="svcEditPort_${s.id}" type="text" value="${esc(s.port || '')}" placeholder="445"
-                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+                onclick="event.stopPropagation()" onblur="syncQuickLogServiceEditFields('${s.id}','port')" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
               <input class="svc-notes-cell ql-row-input ql-proto-input" id="svcEditProto_${s.id}" type="text" value="${esc(s.proto || 'tcp')}" placeholder="tcp"
                 onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
             </div>
           </td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditService_${s.id}" type="text" value="${esc(s.service || '')}" placeholder="service"
-            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+            onclick="event.stopPropagation()" onblur="syncQuickLogServiceEditFields('${s.id}','service')" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditVersion_${s.id}" type="text" value="${esc(s.version || '')}" placeholder="version"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditNotes_${s.id}" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
@@ -2284,6 +2297,104 @@ function normalizeKbServiceFileStem(value) {
     .replace(/\.md$/i, '')
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+function getQuickLogKbCanonicalServiceSlug(item) {
+  if (!item) return '';
+  const candidates = [item.id, item.file, item.name];
+  for (const candidate of candidates) {
+    const slug = normalizeKbServiceFileStem(candidate || '');
+    if (slug && !/^\d+$/.test(slug)) return slug;
+  }
+  return '';
+}
+
+function parseQuickLogKbPortMeta(portValue) {
+  const match = String(portValue || '').trim().match(/^(\d+)(?:\/([a-z+]+))?/i);
+  if (!match) return { port: '', proto: '' };
+  const protoToken = String(match[2] || '').toLowerCase();
+  let proto = '';
+  if (protoToken.includes('udp')) proto = 'udp';
+  else if (protoToken.includes('tcp')) proto = 'tcp';
+  else if (protoToken.includes('sctp')) proto = 'sctp';
+  return { port: match[1], proto };
+}
+
+function normalizeQuickLogServiceEntry(entry) {
+  if (!entry) return entry;
+  const next = {
+    ...entry,
+    port: String(entry.port || '').trim(),
+    proto: String(entry.proto || 'tcp').trim().toLowerCase() || 'tcp',
+    service: String(entry.service || '').trim(),
+    version: String(entry.version || '').trim(),
+    notes: String(entry.notes || '').trim(),
+  };
+  if (!next.port && !next.service) return next;
+  const kbItem = findKbServiceForQuickLogEntry(next);
+  if (!kbItem) return next;
+  const canonicalService = getQuickLogKbCanonicalServiceSlug(kbItem);
+  const canonicalPort = parseQuickLogKbPortMeta(kbItem.port || '');
+
+  if (next.port) {
+    if (canonicalService) next.service = canonicalService;
+    if (canonicalPort.proto && !String(entry.proto || '').trim()) next.proto = canonicalPort.proto;
+    return next;
+  }
+
+  if (canonicalService) next.service = canonicalService;
+  if (canonicalPort.port) next.port = canonicalPort.port;
+  if (canonicalPort.proto) next.proto = canonicalPort.proto;
+  return next;
+}
+
+function buildQuickLogServiceInputValue(entry) {
+  if (!entry) return '';
+  const parts = [];
+  if (entry.port) {
+    const proto = entry.proto && entry.proto !== 'tcp' ? '/' + entry.proto : '/tcp';
+    parts.push(entry.port + proto);
+  }
+  if (entry.service) parts.push(entry.service);
+  if (entry.version) parts.push(entry.version);
+  if (entry.notes) parts.push(entry.notes);
+  return parts.join(' ').trim();
+}
+
+function normalizeSvcQuickInput() {
+  const input = document.getElementById('svcQuickInput');
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  if (!raw) return;
+  const parsed = parseSvcInput(raw);
+  if (!parsed) return;
+  const normalized = normalizeQuickLogServiceEntry(parsed);
+  input.value = buildQuickLogServiceInputValue(normalized);
+}
+
+function syncQuickLogServiceEditFields(svcId, source = '') {
+  const portEl = document.getElementById('svcEditPort_' + svcId);
+  const protoEl = document.getElementById('svcEditProto_' + svcId);
+  const serviceEl = document.getElementById('svcEditService_' + svcId);
+  if (!portEl || !protoEl || !serviceEl) return;
+  const rawEntry = {
+    port: portEl.value,
+    proto: protoEl.value,
+    service: serviceEl.value,
+    version: '',
+    notes: '',
+  };
+  const normalized = normalizeQuickLogServiceEntry(rawEntry);
+  if (source === 'port') {
+    if (normalized.service) serviceEl.value = normalized.service;
+    if (normalized.proto) protoEl.value = normalized.proto;
+    return;
+  }
+  if (source === 'service' && !String(rawEntry.port || '').trim()) {
+    if (normalized.port) portEl.value = normalized.port;
+    if (normalized.proto) protoEl.value = normalized.proto;
+    if (normalized.service) serviceEl.value = normalized.service;
+  }
 }
 
 function getQuickLogServiceLookupAliases(entry) {
