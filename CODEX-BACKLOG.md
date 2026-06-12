@@ -534,6 +534,7 @@ RULES:
 
 
 ## P2-22 — Hidden Notes List Session Tab Strip
+STATUS: DONE
 
 CONTEXT:
 When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
@@ -744,7 +745,7 @@ RULES:
 ---
 
 ## B-18 — Move Topbar Help Button Beside Theme Switcher
-
+STATUS: DONE
 CONTEXT:
 The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
 
@@ -767,7 +768,7 @@ RULES:
 ---
 
 ## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
-
+STATUS: DONE
 CONTEXT:
 The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
 
@@ -789,7 +790,7 @@ RULES:
 ---
 
 ## B-20 — Some Port Service Links Do Not Resolve To Existing KB Docs
-
+STATUS: DONE
 CONTEXT:
 Certain services shown in the `Ports` Quick Log view do not link to their matching Knowledge Base documents even though the corresponding markdown file exists and the service is already represented in the KB indexing layer. One example is `RPC`, where `rpc.md` exists but the link resolution still fails.
 
@@ -811,7 +812,7 @@ RULES:
 ---
 
 ## B-21 — Unified Search Tooltip Should Match Control Label
-
+STATUS: DONE
 CONTEXT:
 The topbar control is labeled `Unified search`, but its hover tooltip still says `Quick open (Cmd+K)`. This creates inconsistent wording for the same control.
 
@@ -831,7 +832,7 @@ RULES:
 ---
 
 ## B-22 — Exclude Hidden/System Folders From Knowledge Base Indexing
-
+STATUS: DONE
 CONTEXT:
 The current Knowledge Base indexing walks directories recursively and only filters by `.md` extension. Hidden or system folders such as `.git`, `.obsidian`, `.trash`, and similar directories are not explicitly excluded. This means they can still be traversed, and any markdown files inside them could be picked up unintentionally.
 
@@ -1330,6 +1331,8 @@ EXPECTED BEHAVIOR:
 - Startup directory creation behavior should otherwise remain unchanged
 
 ## B-8 — Clarify Quick Log And Findings Modal Guidance Copy
+STATUS: DONE
+
 
 CONTEXT:
 The informational guidance text inside the Findings, Ports, Paths, and Loot modal surfaces is currently too narrow or implicit about the intended workflow. Operators should understand that these are supporting convenience features for structured tracking, not required entry points for using the platform.
@@ -1410,5 +1413,26 @@ RULES:
 - Keep the fix limited to Loot credential display treatment
 - Do not change stored Loot data
 - Do not remove existing copy behavior
+
+## B-36 — Normalize Findings Summary Severity And Target Display
+STATUS: DONE
+
+
+CONTEXT:
+The generated findings summary output is functionally correct, but small presentation inconsistencies remain. Severity values currently expose raw internal values, and target display can vary between summary surfaces. A small normalization pass would make the generated findings output easier to scan without changing workflow or data flow.
+
+SCOPE:
+public/app/notes.js
+
+EXPECTED BEHAVIOR:
+- Generated findings summaries should render severity labels in a normalized human-readable form such as `Critical`, `High`, `Medium`, `Low`, and `Info`
+- Generated findings target display should use one consistent operator-readable format across the engagement summary and target findings notes
+- Session-wide findings should remain clearly labeled as `Session-wide`
+- The change should remain presentation-only and must not alter stored finding data
+
+RULES:
+- Keep the change limited to generated findings summary and findings-note formatting
+- Do not redesign the broader findings workflow
+- Do not change underlying findings storage or sorting as part of this task
 
 END
