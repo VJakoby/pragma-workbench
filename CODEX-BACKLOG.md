@@ -1111,6 +1111,7 @@ RULES:
 ---
 
 ## B-35 — Link Findings And Generated Notes To Supporting Notes And Proof
+STATUS: DONE
 
 CONTEXT:
 Generated summary notes and target findings notes become much more useful when findings can still be traced back to the underlying note content, proof commands, loot, and related operator context that supports them.
@@ -1327,5 +1328,65 @@ EXPECTED BEHAVIOR:
 - The auto-created KB root directory must resolve to `knowledge-base`, not `knowledge_base`
 - Legacy underscore-style KB path configuration should be normalized to the hyphenated directory name before startup creation runs
 - Startup directory creation behavior should otherwise remain unchanged
+
+## B-8 — Clarify Quick Log And Findings Modal Guidance Copy
+
+CONTEXT:
+The informational guidance text inside the Findings, Ports, Paths, and Loot modal surfaces is currently too narrow or implicit about the intended workflow. Operators should understand that these are supporting convenience features for structured tracking, not required entry points for using the platform.
+
+SCOPE:
+modal guidance / helper copy for Findings and Quick Log sections
+
+EXPECTED BEHAVIOR:
+- The Findings modal information text should explain that Findings is a supporting feature for structured issue tracking
+- The copy should make clear that operators are not required to use Findings, and can still document everything manually in normal notes if preferred
+- The Ports, Paths, and Loot modal information text should similarly explain that these are supporting structured helpers, not mandatory workflow steps
+- Updated copy should remain concise, practical, and aligned with the existing operator-focused tone
+
+RULES:
+- Do not change modal behavior as part of this task
+- Do not rename features or alter data flow as part of this task
+- Keep this limited to user-facing explanatory text improvements
+
+## B-9 — Restrict Target-Bound Items To Existing Session Targets
+STATUS: DONE
+
+
+CONTEXT:
+Operators can currently end up assigning target-bound workflow items such as Ports, Paths, Loot, and Findings against hosts that do not exist as real targets in the active session. That creates inconsistent navigation and summary behavior because generated notes and scoped views assume target-bound data points back to a valid session target.
+
+SCOPE:
+target assignment and validation for Ports, Paths, Loot, and Findings
+
+EXPECTED BEHAVIOR:
+- Ports, Paths, Loot, and Findings must only be assignable to existing targets in the active session
+- Target selection for these target-bound workflows should come from session-target dropdowns or equivalent validated selectors, not free-form non-target host values
+- New entries must not create or preserve invalid target bindings to hosts that do not exist in the session target list
+- Where a target is removed or invalid legacy target-bound data is encountered, the UI should fall back safely or block the invalid binding visibly rather than silently keeping ghost host references
+- Generated summaries, findings notes, and scoped modal views must remain consistent with the validated session target list
+
+RULES:
+- Do not auto-create new targets as part of this task
+- Do not widen scope into changing session-wide item behavior unless required for target validation
+- Keep the fix focused on target validity, selector UX, and preventing ghost/non-existent host bindings
+
+## B-10 — Prevent Long Credential Values From Breaking Loot Table Layout
+
+CONTEXT:
+Very long credential or hash values in the Loot table can force the table width so far that the surrounding host, type, and context fields become difficult or impossible to see during live work.
+
+SCOPE:
+Loot table layout and long-value rendering
+
+EXPECTED BEHAVIOR:
+- Very long credential, token, or hash values must not break the Loot table layout
+- The Loot table should continue showing surrounding fields such as type, host, and context even when one value is extremely long
+- Long values should remain readable and copyable without requiring the operator to lose the rest of the row context
+- The solution should work in both light and dark mode
+
+RULES:
+- Keep the fix limited to Loot table presentation and usability for long values
+- Do not redesign the broader Quick Log layout as part of this task
+- Preserve current copy behavior for credential values if already present
 
 END
