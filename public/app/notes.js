@@ -1276,18 +1276,42 @@ function getGeneratedTargetTitle(target) {
   return label || ip || domain || 'Target';
 }
 
+function formatGeneratedSeverityLabel(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '—';
+  const labels = {
+    critical: 'Critical',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    info: 'Info',
+  };
+  return labels[raw] || raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function formatGeneratedTargetIdentity(target) {
+  if (!target || typeof target !== 'object') return 'Session-wide';
+  const label = String(target.label || '').trim();
+  const ip = String(target.ip || '').trim();
+  const domain = String(target.domain || '').trim();
+  const primary = label || ip || domain || 'Target';
+  const details = [ip, domain].filter(Boolean).filter((value) => value !== primary);
+  return details.length ? `${primary} (${details.join(' · ')})` : primary;
+}
+
 function formatGeneratedFindingTarget(session, finding) {
   const targetId = String(finding?.target_id || '').trim();
   if (targetId && session) {
     const target = (session.targets || []).find((entry) => entry.id === targetId);
-    if (target) {
-      const title = getGeneratedTargetTitle(target);
-      const details = [target.ip, target.domain].filter(Boolean).join(' · ');
-      return details && details !== title ? `${title} (${details})` : title;
-    }
+    if (target) return formatGeneratedTargetIdentity(target);
   }
-  const fallback = [finding?.target_label, finding?.target_ip, finding?.target_domain].filter(Boolean);
-  return fallback.length ? fallback.join(' · ') : 'Session-wide';
+  const fallbackTarget = {
+    label: finding?.target_label,
+    ip: finding?.target_ip,
+    domain: finding?.target_domain,
+  };
+  const hasFallback = [fallbackTarget.label, fallbackTarget.ip, fallbackTarget.domain].some(Boolean);
+  return hasFallback ? formatGeneratedTargetIdentity(fallbackTarget) : 'Session-wide';
 }
 
 function formatGeneratedFindingPoc(finding) {
@@ -1379,7 +1403,7 @@ function buildEngagementSummaryNoteBody(sessionId) {
 
   const findingRows = findings.map((entry) => (
     `| ${escapeGeneratedNoteTableCell(entry?.title || 'Untitled finding')} | ` +
-    `${escapeGeneratedNoteTableCell(entry?.severity || '—')} | ` +
+    `${escapeGeneratedNoteTableCell(formatGeneratedSeverityLabel(entry?.severity))} | ` +
     `${escapeGeneratedNoteTableCell(entry?.type || '—')} | ` +
     `${escapeGeneratedNoteTableCell(formatGeneratedFindingTarget(session, entry))} | ` +
     `${escapeGeneratedNoteTableCell(formatGeneratedFindingSupportSummary(sessionId, entry))} |`
@@ -1417,12 +1441,13 @@ function buildTargetFindingsNoteBody(sessionId, target) {
   const session = sessions[sessionId];
   if (!session || !target) return '# FINDINGS\n';
   const findings = getSessionFindingsData(sessionId).filter((entry) => (entry?.target_id || null) === target.id);
-  const targetIdentity = [target.ip, target.domain].filter(Boolean).join(' · ') || '—';
+  const targetIdentity = formatGeneratedTargetIdentity(target);
 
   const sections = findings.map((entry) => [
     `## ${entry?.title || 'Untitled finding'}`,
-    `- **Severity**: ${entry?.severity || '—'}`,
+    `- **Severity**: ${formatGeneratedSeverityLabel(entry?.severity)}`,
     `- **Type**: ${entry?.type || '—'}`,
+    `- **Target**: ${formatGeneratedTargetIdentity(target)}`,
     `- **Summary**: ${entry?.summary || '—'}`,
     `- **Recommendation**: ${entry?.recommendation || '—'}`,
     '',
