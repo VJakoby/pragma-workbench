@@ -1371,6 +1371,8 @@ RULES:
 - Keep the fix focused on target validity, selector UX, and preventing ghost/non-existent host bindings
 
 ## B-10 — Prevent Long Credential Values From Breaking Loot Table Layout
+STATUS: DONE
+
 
 CONTEXT:
 Very long credential or hash values in the Loot table can force the table width so far that the surrounding host, type, and context fields become difficult or impossible to see during live work.
@@ -1388,5 +1390,25 @@ RULES:
 - Keep the fix limited to Loot table presentation and usability for long values
 - Do not redesign the broader Quick Log layout as part of this task
 - Preserve current copy behavior for credential values if already present
+
+## B-19 — Polish Long Loot Credential Display
+
+CONTEXT:
+After stabilizing the Loot table layout, extremely long credential or hash values still look visually awkward when fully wrapped across multiple lines. Operators need a cleaner table presentation without losing copyability or the surrounding row context.
+
+SCOPE:
+Loot credential cell display treatment
+
+EXPECTED BEHAVIOR:
+- Very long Loot credential values should display in a cleaner abbreviated form inside the table
+- The full underlying value must still remain copyable from the existing click-to-copy interaction
+- The abbreviated display should preserve enough of the value to be recognizable at a glance
+- The surrounding Host and Context columns must remain readable and stable
+- The treatment should work in both light and dark mode
+
+RULES:
+- Keep the fix limited to Loot credential display treatment
+- Do not change stored Loot data
+- Do not remove existing copy behavior
 
 END
