@@ -1313,4 +1313,19 @@ EXPECTED BEHAVIOR:
 
 ---
 
+## B-7 — Legacy KB Directory Auto-Creates With Underscore Name
+STATUS: DONE
+
+CONTEXT:
+During startup integrity checks, the app can auto-create the configured knowledge-base root if it does not exist yet. In some environments, a legacy `knowledge_base` path is still being used, which causes the app to create an underscore-named directory instead of the intended `knowledge-base` path.
+
+SCOPE:
+server/config/paths.js
+server/lib/startup-check.js
+
+EXPECTED BEHAVIOR:
+- The auto-created KB root directory must resolve to `knowledge-base`, not `knowledge_base`
+- Legacy underscore-style KB path configuration should be normalized to the hyphenated directory name before startup creation runs
+- Startup directory creation behavior should otherwise remain unchanged
+
 END
