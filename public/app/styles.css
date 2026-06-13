@@ -2001,6 +2001,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
   overflow:hidden;
   background:color-mix(in srgb, var(--bg3) 68%, transparent);
 }
+.session-note-tab.session-note-tab-create{
+  border-left-width:2px;
+}
 .session-note-tab-group{
   display:flex;
   margin-left:-1px;
