@@ -1119,6 +1119,27 @@ RULES:
 - Preserve existing note and attachment behavior where possible
 
 ---
+
+## B-36 — Reduce Unified Search Recent Item Height
+
+CONTEXT:
+The previous-search cards shown in the unified search are taller than needed and take up too much vertical space compared with the amount of content they contain.
+
+SCOPE:
+public/app/styles.css
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- Previous-search cards in unified search should use a more compact height
+- The cards should remain readable and keep their existing actions usable
+- Normal unified search result rows must keep their current height and spacing
+
+RULES:
+- Keep the change limited to recent/previous-search card styling
+- Do not change unified search behavior or stored search history
+- Do not alter the sizing of other search result types
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

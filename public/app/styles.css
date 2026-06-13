@@ -3476,6 +3476,33 @@ svg { vertical-align: middle; flex-shrink: 0; }
   border-radius:6px;
   transition:color 0.12s ease, background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
 }
+.cmd-item.cmd-item-recent{
+  align-items:center;
+  gap:10px;
+  margin-bottom:7px;
+  padding:8px 10px;
+}
+.cmd-item.cmd-item-recent .cmd-item-icon{
+  width:28px;
+  height:28px;
+  font-size:16px;
+  border-radius:6px;
+}
+.cmd-item.cmd-item-recent .cmd-item-main{
+  gap:3px;
+}
+.cmd-item.cmd-item-recent .cmd-item-title{
+  font-size:14px;
+  line-height:1.2;
+}
+.cmd-item.cmd-item-recent .cmd-item-sub{
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  line-height:1.45;
+  -webkit-line-clamp:1;
+}
 .cmd-recent-action:hover{
   color:var(--text);
   background:rgba(var(--accent-rgb),0.08);
