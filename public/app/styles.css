@@ -2051,6 +2051,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .session-note-tab-group-tabs .session-note-tab:last-child{
   border-right:none;
 }
+.session-note-tab-group-tabs .session-note-tab:only-child{
+  flex-grow:1;
+  max-width:none;
+}
 
 .session-note-tab-create .session-note-tab-open{
   gap:6px;
