@@ -12,10 +12,26 @@ let cmdBuildSeq = 0;
 const CMD_RECENT_SEARCHES_KEY = 'pragma-cmd-recent-searches';
 const CMD_RECENT_SEARCHES_MAX = 5;
 
+function normalizeRecentSearch(query) {
+  return String(query || '').trim().toLowerCase();
+}
+
 function getRecentSearches() {
   try {
     const stored = localStorage.getItem(CMD_RECENT_SEARCHES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const seen = new Set();
+    return parsed
+      .map(query => String(query || '').trim())
+      .filter(query => {
+        const normalized = normalizeRecentSearch(query);
+        if (!normalized || seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+      })
+      .slice(0, CMD_RECENT_SEARCHES_MAX);
   } catch (_) {
     return [];
   }
@@ -24,7 +40,8 @@ function getRecentSearches() {
 function saveRecentSearch(query) {
   const q = String(query || '').trim();
   if (!q || q.length < 2) return;
-  const recent = getRecentSearches().filter(s => s !== q);
+  const normalized = normalizeRecentSearch(q);
+  const recent = getRecentSearches().filter(s => normalizeRecentSearch(s) !== normalized);
   recent.unshift(q);
   try {
     localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, CMD_RECENT_SEARCHES_MAX)));
@@ -32,7 +49,8 @@ function saveRecentSearch(query) {
 }
 
 function clearRecentSearch(query) {
-  const recent = getRecentSearches().filter(s => s !== query);
+  const normalized = normalizeRecentSearch(query);
+  const recent = getRecentSearches().filter(s => normalizeRecentSearch(s) !== normalized);
   try {
     localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent));
   } catch (_) {}

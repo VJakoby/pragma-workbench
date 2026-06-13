@@ -1140,6 +1140,27 @@ RULES:
 - Do not alter the sizing of other search result types
 
 ---
+
+## B-37 — Deduplicate Unified Search Recent Entries
+
+CONTEXT:
+Unified search can show multiple recent-search cards that represent the same search term, making the recent list repetitive and reducing the variety of useful search history shown.
+
+SCOPE:
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- Unified search should show each recent search term only once
+- Repeating an existing search should move that term to the most recent position instead of adding another identical card
+- Deduplication should handle equivalent terms consistently, including accidental surrounding whitespace
+- Existing recent-search selection and removal behavior must remain unchanged
+
+RULES:
+- Keep the change limited to unified-search history storage and display
+- Do not change normal unified-search result ranking or matching
+- Preserve the current maximum number of recent searches
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
