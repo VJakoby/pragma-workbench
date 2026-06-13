@@ -1121,6 +1121,7 @@ RULES:
 ---
 
 ## B-36 — Reduce Unified Search Recent Item Height
+STATUS: DONE
 
 CONTEXT:
 The previous-search cards shown in the unified search are taller than needed and take up too much vertical space compared with the amount of content they contain.
@@ -1142,6 +1143,7 @@ RULES:
 ---
 
 ## B-37 — Deduplicate Unified Search Recent Entries
+STATUS: DONE
 
 CONTEXT:
 Unified search can show multiple recent-search cards that represent the same search term, making the recent list repetitive and reducing the variety of useful search history shown.
