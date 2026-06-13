@@ -20,7 +20,9 @@ let attachmentStorageSidebarSeq = 0;
 let attachmentStorageSidebarStateKey = '';
 let attachmentStorageSidebarLoaded = false;
 let attachmentStoragePayload = null;
+let templateConfigSyncing = false;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
+const IMPORT_TEMPLATES_PATH = '/api/templates/import';
 const EVIDENCE_TYPE_OPTIONS = [
   { value: 'enumeration', label: 'Enumeration' },
   { value: 'initial_access', label: 'Initial Access' },
@@ -103,6 +105,7 @@ function setNoteEditorMode(mode) {
   const backlinks = document.getElementById('noteBacklinks');
   const exportBtn = document.getElementById('noteExportBtn');
   const attachmentCleanupBtn = document.getElementById('noteAttachmentCleanupBtn');
+  const templateImportBtn = document.getElementById('noteTemplateImportBtn');
   const duplicateBtn = document.getElementById('noteDuplicateBtn');
   const deleteBtn = document.getElementById('noteDeleteBtn');
   const previewPane = document.getElementById('notePreviewPane');
@@ -137,6 +140,7 @@ function setNoteEditorMode(mode) {
   if (duplicateBtn) duplicateBtn.style.display = isConfig ? 'none' : '';
   if (deleteBtn) deleteBtn.style.display = isConfig ? 'none' : '';
   if (attachmentCleanupBtn) attachmentCleanupBtn.style.display = isConfig ? '' : 'none';
+  if (templateImportBtn) templateImportBtn.style.display = isConfig ? '' : 'none';
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
@@ -166,10 +170,65 @@ function ensureNoteTypeBadge() {
 }
 
 async function fetchTemplatesConfigDoc() {
-  const r = await fetch(CONFIG_TEMPLATES_PATH);
+  const r = await fetch(CONFIG_TEMPLATES_PATH, { cache: 'no-store' });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || 'Failed to load note-templates.json');
   return String(d.content || '');
+}
+
+function setTemplatesConfigEditorContent(content) {
+  if (!noteEditor) {
+    cmInitNote(content);
+    return;
+  }
+  templateConfigSyncing = true;
+  try {
+    cmSetValue(noteEditor, content);
+    noteEditor.dispatch({
+      selection: { anchor: 0 },
+      scrollIntoView: true,
+    });
+  } finally {
+    templateConfigSyncing = false;
+  }
+}
+
+function openTemplateImportPicker() {
+  if (activeConfigDoc !== 'templates') return;
+  const input = document.getElementById('noteTemplateImportFile');
+  if (!input) return;
+  input.value = '';
+  input.click();
+}
+
+async function importNoteTemplateFile(file) {
+  if (!file || activeConfigDoc !== 'templates') return;
+  const input = document.getElementById('noteTemplateImportFile');
+  const button = document.getElementById('noteTemplateImportBtn');
+  if (button) button.disabled = true;
+  clearTimeout(noteSaveTimer);
+  setNoteSaveIndicator('saving', 'importing...');
+  try {
+    const content = await file.text();
+    const response = await fetch(IMPORT_TEMPLATES_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, content }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Template import failed');
+    const savedContent = await fetchTemplatesConfigDoc();
+    setTemplatesConfigEditorContent(savedContent);
+    await loadNoteTemplates();
+    setNoteSaveIndicator('saved', 'saved');
+    showToast(`Replaced note templates with ${data.templates} template${data.templates === 1 ? '' : 's'} from ${data.source_filename}`);
+  } catch (err) {
+    setNoteSaveIndicator('error', 'import failed');
+    showToast(`Template import rejected: ${err.message}`, 'err');
+  } finally {
+    if (button) button.disabled = false;
+    if (input) input.value = '';
+  }
 }
 
 async function persistTemplatesConfig(opts = {}) {
@@ -195,7 +254,7 @@ async function persistTemplatesConfig(opts = {}) {
 }
 
 function autoSaveTemplatesConfig() {
-  if (activeConfigDoc !== 'templates') return;
+  if (activeConfigDoc !== 'templates' || templateConfigSyncing) return;
   setNoteSaveIndicator('saving', '...saving');
   clearTimeout(noteSaveTimer);
   noteSaveTimer = setTimeout(() => { persistTemplatesConfig({ reason: 'config-autosave', toast: false }); }, 600);
@@ -206,6 +265,7 @@ function autoSaveActiveConfig() {
 }
 
 async function openTemplatesConfig(navEl) {
+  if (typeof closeWelcomeSessionModal === 'function') closeWelcomeSessionModal(true);
   if (activeNoteId && notes[activeNoteId]) {
     const noteId = activeNoteId;
     clearTimeout(noteSaveTimer);

@@ -190,7 +190,7 @@ function getEncryptedCache() {
 
 async function loadNoteTemplates() {
   try {
-    const r = await fetch(TEMPLATES_PATH);
+    const r = await fetch(TEMPLATES_PATH, { cache: 'no-store' });
     const d = await r.json();
     if (!d.templates || !d.templates.length) {
       console.log('[Templates] No templates file or empty — using hardcoded fallback');

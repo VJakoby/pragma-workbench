@@ -1,7 +1,7 @@
 'use strict';
 
-const fs = require('fs');
 const { getPlaceholderMatchers } = require('../../public/app/placeholders.js');
+const { loadTemplateFile } = require('./note-templates');
 
 const BUILTIN_TYPE_ORDER = ['recon', 'network-enumeration', 'exploit', 'privesc', 'loot', 'credentials', 'general', 'scratch'];
 const BUILTIN_TYPE_LABELS = {
@@ -74,10 +74,9 @@ function loadTemplateMeta(templatesFile) {
   });
 
   try {
-    const raw = fs.readFileSync(templatesFile, 'utf8');
-    const parsed = JSON.parse(raw);
-    const templates = Array.isArray(parsed.templates) ? parsed.templates : [];
-    templates.forEach((template) => {
+    const loaded = loadTemplateFile(templatesFile);
+    if (!loaded.ok) throw new Error(loaded.errors.join('; '));
+    loaded.templates.forEach((template) => {
       if (!template || !template.id) return;
       byType[template.id] = {
         id: template.id,
