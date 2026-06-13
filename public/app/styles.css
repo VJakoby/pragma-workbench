@@ -4111,7 +4111,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 /* ── Note timestamps bar ── */
 .note-timestamps {
   display: flex; gap: 10px; align-items: center;
-  padding: 3px 72px 3px 14px;
+  min-height: 30px;
+  padding: 5px 72px 5px 14px;
+  box-sizing: border-box;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;

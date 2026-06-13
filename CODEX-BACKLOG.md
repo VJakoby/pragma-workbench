@@ -500,6 +500,7 @@ RULES:
 
 
 ## P2-21 — Setup and Usage Documentation Refinement
+STATUS: DONE
 
 CONTEXT:
 The current `SETUP.md` and `USAGE.md` are accurate but too terse in the practical areas that matter during first-run setup and day-to-day operator use.
@@ -534,6 +535,7 @@ RULES:
 
 
 ## P2-22 — Hidden Notes List Session Tab Strip
+STATUS: DONE
 
 CONTEXT:
 When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
@@ -557,6 +559,38 @@ RULES:
 - Keep current note open/close behavior intact
 - Keep the scope limited to session note navigation while the notes list is collapsed
 - Prefer a lightweight VS Code-style tab row rather than a second full navigation panel
+
+---
+
+## P2-23 — Import And Replace Note Template Configuration
+STATUS: DONE
+
+CONTEXT:
+The app loads `note-templates.json` during startup, but users cannot replace that configuration from the interface. Operators should be able to import a complete template configuration without manually replacing the file on disk.
+
+SCOPE:
+note template loading, validation, persistence, and editor toolbar UI
+
+EXPECTED BEHAVIOR:
+- Add an `Import template` action under `Note Templates` in the note editor toolbar
+- The action must open a file picker for importing a complete note-template JSON file
+- A valid import must replace the active `note-templates.json` configuration as one complete document
+- Imported template files must be validated with the same schema and rules used when templates are loaded during application startup
+- Validation must confirm the full file is structurally valid before the current configuration is replaced
+- Invalid files must be rejected without changing the current `note-templates.json`
+- Validation errors must be shown clearly enough for the user to identify and correct the invalid file
+- Successfully imported templates must replace the current template choices immediately and remain active after restarting the app
+- The Note Templates editor must update immediately to show the imported configuration
+- Replacement must be atomic so a failed write cannot leave a partial template file
+
+RULES:
+- Keep `note-templates.json` as the single active template source
+- Reuse one shared validation path for startup loading and manual imports
+- Do not maintain separate or weaker validation logic in the browser
+- Do not execute content from imported template files as code
+- Do not allow an invalid import to corrupt or remove previously valid templates
+- Do not merge individual imported templates with the previous configuration
+- Keep this feature limited to replacing and loading note templates; do not add a full template marketplace
 
 ---
 
@@ -587,7 +621,6 @@ RULES:
 ## B-11 — Quick Log Topbar Count Badge Right Padding
 STATUS: DONE
 
-
 CONTEXT:
 The small count badges shown on the `Ports`, `Paths`, and `Loot` topbar buttons feel cramped against the right edge, which makes the pill look visually off-balance.
 
@@ -609,7 +642,6 @@ RULES:
 ## B-12 — Unified Search Result Hover Border Too Weak
 STATUS: DONE
 
-
 CONTEXT:
 The hover treatment around unified search / command palette results is too subtle. The border does not stand out enough when scanning and hovering multiple results.
 
@@ -630,7 +662,6 @@ RULES:
 
 ## B-13 — Context Switcher Target Creation Should Parse Inline Label
 STATUS: DONE
-
 
 CONTEXT:
 When creating a new target from the context switcher, entering both an IP/domain and a label in one string currently loses the label information. Example input such as `1.1.1.1 Websrv01` should create the target with the IP preserved and the trailing text used as the target label.
@@ -744,6 +775,7 @@ RULES:
 ---
 
 ## B-18 — Move Topbar Help Button Beside Theme Switcher
+STATUS: DONE
 
 CONTEXT:
 The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
@@ -767,6 +799,7 @@ RULES:
 ---
 
 ## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
+STATUS: DONE
 
 CONTEXT:
 The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
@@ -789,6 +822,7 @@ RULES:
 ---
 
 ## B-20 — Some Port Service Links Do Not Resolve To Existing KB Docs
+STATUS: DONE
 
 CONTEXT:
 Certain services shown in the `Ports` Quick Log view do not link to their matching Knowledge Base documents even though the corresponding markdown file exists and the service is already represented in the KB indexing layer. One example is `RPC`, where `rpc.md` exists but the link resolution still fails.
@@ -811,6 +845,7 @@ RULES:
 ---
 
 ## B-21 — Unified Search Tooltip Should Match Control Label
+STATUS: DONE
 
 CONTEXT:
 The topbar control is labeled `Unified search`, but its hover tooltip still says `Quick open (Cmd+K)`. This creates inconsistent wording for the same control.
@@ -831,6 +866,7 @@ RULES:
 ---
 
 ## B-22 — Exclude Hidden/System Folders From Knowledge Base Indexing
+STATUS: DONE
 
 CONTEXT:
 The current Knowledge Base indexing walks directories recursively and only filters by `.md` extension. Hidden or system folders such as `.git`, `.obsidian`, `.trash`, and similar directories are not explicitly excluded. This means they can still be traversed, and any markdown files inside them could be picked up unintentionally.
@@ -875,6 +911,7 @@ RULES:
 ---
 
 ## B-24 — Rename KB Sidebar Subheader To Sections
+STATUS: DONE
 
 CONTEXT:
 The main sidebar header already says `Knowledge Base`, so the current subheader label `Discovered Sections` feels overly verbose and slightly awkward in context.
@@ -946,6 +983,7 @@ RULES:
 ---
 
 ## B-27 — Move Backup Workbench Into Session Modal Utilities
+STATUS: DONE
 
 CONTEXT:
 `Backup Workbench` is a useful safety/export action, but it is secondary compared to the active session context and day-to-day navigation. Keeping it in the sidebar gives it too much persistent weight for an action that is used occasionally rather than continuously.
@@ -972,6 +1010,7 @@ RULES:
 ---
 
 ## B-28 — Remove Obsolete Notes List Peek Button
+STATUS: DONE
 
 CONTEXT:
 The hidden-notes workflow now has session tabs and grouped target tabs for fast note switching. The older edge-mounted `Quick note switcher` / peek button is no longer necessary and adds redundant chrome beside the editor.
@@ -1163,6 +1202,27 @@ RULES:
 - Preserve the current maximum number of recent searches
 
 ---
+
+## B-38 — Increase Note Timestamps Bar Height
+
+CONTEXT:
+The `note-timestamps` bar below the note editor header is too short vertically, making the created, modified, and save-status information feel cramped.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The `note-timestamps` bar must have more vertical height and breathing room
+- Created, modified, and save-status text must remain vertically centered
+- Existing timestamp content and save-state behavior must remain unchanged
+- The adjustment must work in both normal note editing and Note Templates configuration mode
+
+RULES:
+- Keep the change limited to `.note-timestamps` sizing and alignment
+- Do not redesign the note editor header or metadata layout
+- Do not alter timestamp values, formatting, or save logic
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates
@@ -1195,6 +1255,8 @@ browser editor runtime
 ---
 
 ## P3-04 — Unified Live Preview Editor
+STATUS: DONE
+
 CONTEXT:
 The current markdown workflow relies on a split editor/preview layout. It works, but it creates visual separation and friction when writing, reviewing formatting, and navigating rendered content. A unified editing surface may improve flow, but it must not regress markdown behavior, autosave, or internal linking.
 
@@ -1324,6 +1386,7 @@ No keyword matching.
 ---
 
 ## B-6 — Quick Note Switcher Unassigned Scope Closes Flyout
+STATUS: DONE
 
 CONTEXT:
 In the collapsed quick note switcher, selecting the `Unassigned` scope can immediately close the flyout, which breaks fast note navigation.
