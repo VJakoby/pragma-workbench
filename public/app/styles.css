@@ -3605,6 +3605,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   gap:10px;
   max-height:420px;
   overflow:auto;
+  padding-top:6px;
   padding-right:2px;
 }
 .welcome-session-card{
