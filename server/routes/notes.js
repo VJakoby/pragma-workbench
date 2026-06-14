@@ -7,6 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const {
+  parseTemplateDocument,
+  loadTemplateFile,
+  writeTemplateFileAtomic,
+} = require('../lib/note-templates');
+const {
   IMAGE_TYPE_TO_EXT,
   sanitizePathSegment,
   buildAttachmentDir,
@@ -383,12 +388,13 @@ ${htmlBody}
 
   app.get('/api/templates', async (req, res) => {
     try {
-      const raw = await fs.promises.readFile(templatesFile, 'utf-8');
-      const data = JSON.parse(raw);
-      const templates = Array.isArray(data.templates) ? data.templates.map((template) => ({
+      res.set('Cache-Control', 'no-store');
+      const loaded = loadTemplateFile(templatesFile);
+      if (!loaded.ok) throw new Error(loaded.errors.join('; '));
+      const templates = loaded.templates.map((template) => ({
         ...expandTemplateBody(template),
         variants: Array.isArray(template?.variants) ? template.variants.map(expandTemplateBody) : [],
-      })) : [];
+      }));
       console.log(`[PRAGMA] /api/templates — file: ${templatesFile}, parsed ${templates.length} templates`);
       if (!templates.length) return res.json({ templates: null });
       res.json({ templates });
@@ -400,6 +406,7 @@ ${htmlBody}
 
   app.get('/api/config/templates', async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store');
       const content = await fs.promises.readFile(templatesFile, 'utf-8');
       res.json({ ok: true, content });
     } catch (err) {
@@ -410,21 +417,31 @@ ${htmlBody}
   app.post('/api/config/templates', async (req, res) => {
     try {
       const content = String(req.body?.content || '');
-      let parsed;
-      try {
-        parsed = JSON.parse(content);
-      } catch (err) {
-        return res.status(400).json({ error: `Invalid JSON: ${err.message}` });
+      const parsed = parseTemplateDocument(content, path.basename(templatesFile));
+      if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join('; ') });
+      const normalized = await writeTemplateFileAtomic(templatesFile, parsed.document);
+      res.json({ ok: true, templates: parsed.document.templates.length, content: normalized });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/templates/import', async (req, res) => {
+    try {
+      const filename = path.basename(String(req.body?.filename || 'template file'));
+      const content = String(req.body?.content || '');
+      const parsed = parseTemplateDocument(content, filename);
+      if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join('; ') });
+      if (!parsed.document.templates.length) {
+        return res.status(400).json({ error: 'The imported file does not contain any templates.' });
       }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return res.status(400).json({ error: 'Root JSON value must be an object.' });
-      }
-      if (!Array.isArray(parsed.templates)) {
-        return res.status(400).json({ error: 'Expected a top-level "templates" array.' });
-      }
-      const normalized = `${JSON.stringify(parsed, null, 2)}\n`;
-      await fs.promises.writeFile(templatesFile, normalized, 'utf-8');
-      res.json({ ok: true, templates: parsed.templates.length });
+      const normalized = await writeTemplateFileAtomic(templatesFile, parsed.document);
+      res.json({
+        ok: true,
+        source_filename: filename,
+        templates: parsed.document.templates.length,
+        content: normalized,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

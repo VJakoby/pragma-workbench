@@ -561,6 +561,38 @@ RULES:
 
 ---
 
+## P2-23 — Import And Replace Note Template Configuration
+STATUS: DONE
+
+CONTEXT:
+The app loads `note-templates.json` during startup, but users cannot replace that configuration from the interface. Operators should be able to import a complete template configuration without manually replacing the file on disk.
+
+SCOPE:
+note template loading, validation, persistence, and editor toolbar UI
+
+EXPECTED BEHAVIOR:
+- Add an `Import template` action under `Note Templates` in the note editor toolbar
+- The action must open a file picker for importing a complete note-template JSON file
+- A valid import must replace the active `note-templates.json` configuration as one complete document
+- Imported template files must be validated with the same schema and rules used when templates are loaded during application startup
+- Validation must confirm the full file is structurally valid before the current configuration is replaced
+- Invalid files must be rejected without changing the current `note-templates.json`
+- Validation errors must be shown clearly enough for the user to identify and correct the invalid file
+- Successfully imported templates must replace the current template choices immediately and remain active after restarting the app
+- The Note Templates editor must update immediately to show the imported configuration
+- Replacement must be atomic so a failed write cannot leave a partial template file
+
+RULES:
+- Keep `note-templates.json` as the single active template source
+- Reuse one shared validation path for startup loading and manual imports
+- Do not maintain separate or weaker validation logic in the browser
+- Do not execute content from imported template files as code
+- Do not allow an invalid import to corrupt or remove previously valid templates
+- Do not merge individual imported templates with the previous configuration
+- Keep this feature limited to replacing and loading note templates; do not add a full template marketplace
+
+---
+
 ## P2-24 — Target-Grouped Hidden Note Tabs
 STATUS: DONE
 
