@@ -17,7 +17,8 @@
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>2</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>2</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Tactics</span>           <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>3</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search Indexed KBs</span><span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>4</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>4</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Toggle findings</span>  <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>F</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>B</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>B</kbd></span></div>
           </div>
         </div>
@@ -84,10 +85,10 @@
           <div class="welcome-session-list" id="welcomeSessionList"></div>
         </div>
         <div class="welcome-session-panel welcome-session-create-panel">
-          <div class="welcome-session-panel-hdr">Create Session</div>
+          <div class="welcome-session-panel-hdr">Create Engagement Session</div>
           <div class="session-field">
-            <label>Session codename</label>
-            <input id="welcomeSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">
+            <label>Session Name</label>
+            <input id="welcomeSessionName" type="text" placeholder="" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">
           </div>
           <div class="session-field">
             <label>Session domain (optional)</label>
@@ -130,8 +131,8 @@
           <div class="session-modal-section-copy">Start a new engagement workspace here. Add an optional session domain and an initial target if you want the session ready for immediate work.</div>
         </div>
         <div class="session-field">
-          <label>New session codename</label>
-          <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
+          <label>Session Name</label>
+          <input id="newSessionName" type="text" placeholder="" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
         </div>
         <div class="session-field">
           <label>Session domain (optional)</label>
@@ -396,58 +397,75 @@
   </div>
 </div>
 
-<div class="pw-overlay" id="evidenceFlagOverlay">
-  <div class="pw-box" style="width:440px">
+<div class="pw-overlay" id="findingDialogOverlay">
+  <div class="pw-box" style="width:620px">
     <div class="pw-header">
       <span class="pw-header-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
       </span>
-      <span class="pw-header-title">Add as Evidence</span>
-      <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
+      <span class="pw-header-title">Add as Finding</span>
+      <button class="pw-header-close" onclick="cancelFindingDialog()">&times;</button>
     </div>
     <div class="pw-body">
-      <div class="pw-description">Review the selected note block, choose the evidence type, and add any supporting context before saving it to the session tracker.</div>
+      <div class="pw-description">Review the selected note block, choose the finding type, and add any supporting context before saving it to the session tracker.</div>
+      <div class="pw-field-grid pw-field-grid-2">
+        <div class="pw-field">
+          <label>Type</label>
+          <select class="pw-input finding-dialog-select" id="findingDialogType" onkeydown="handleFindingDialogKey(event)">
+            <option value="enumeration">Enumeration</option>
+            <option value="initial_access">Initial Access</option>
+            <option value="execution">Execution</option>
+            <option value="persistence">Persistence</option>
+            <option value="privilege_escalation">Privilege Escalation</option>
+            <option value="credential_access">Credential Access</option>
+            <option value="discovery">Discovery</option>
+            <option value="lateral_movement">Lateral Movement</option>
+            <option value="pivoting">Pivoting</option>
+            <option value="collection">Collection</option>
+            <option value="exfiltration">Exfiltration</option>
+            <option value="cleanup">Cleanup</option>
+            <option value="proof">Proof</option>
+          </select>
+        </div>
+        <div class="pw-field">
+          <label>Severity</label>
+          <select class="pw-input finding-dialog-select" id="findingDialogSeverity" onkeydown="handleFindingDialogKey(event)">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </div>
+      </div>
       <div class="pw-field">
-        <label>Type</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="enumeration">Enumeration</option>
-          <option value="initial_access">Initial Access</option>
-          <option value="execution">Execution</option>
-          <option value="persistence">Persistence</option>
-          <option value="privilege_escalation">Privilege Escalation</option>
-          <option value="credential_access">Credential Access</option>
-          <option value="discovery">Discovery</option>
-          <option value="lateral_movement">Lateral Movement</option>
-          <option value="pivoting">Pivoting</option>
-          <option value="collection">Collection</option>
-          <option value="exfiltration">Exfiltration</option>
-          <option value="cleanup">Cleanup</option>
-          <option value="proof">Proof</option>
-        </select>
+        <label>Target</label>
+        <select class="pw-input finding-dialog-select" id="findingDialogTarget" onkeydown="handleFindingDialogKey(event)"></select>
       </div>
       <div class="pw-field">
         <label>Title</label>
-        <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+        <input class="pw-input" id="findingDialogTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
       </div>
       <div class="pw-field">
-        <label>Details</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <label>Summary</label>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field">
-        <label>Command / Block</label>
-        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <label>Recommendation</label>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
-      <div class="evidence-flag-toggle-row">
-        <label class="evidence-flag-check">
-          <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
+      <div class="pw-field-hint" style="margin-top:-4px">The generated target findings note will include an editable <code>### POC</code> block after the finding is created.</div>
+      <div class="finding-dialog-toggle-row">
+        <label class="finding-dialog-check">
+          <input id="findingDialogAlsoLoot" type="checkbox" onchange="syncFindingDialogLootUi()">
           <span>Also add as Loot</span>
         </label>
       </div>
-      <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
-        <div class="evidence-flag-loot-grid">
+      <div class="finding-dialog-loot-fields" id="findingDialogLootFields" style="display:none">
+        <div class="finding-dialog-loot-grid">
           <div class="pw-field">
             <label>Loot type</label>
-            <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
+            <select class="pw-input finding-dialog-select" id="findingDialogLootType" onchange="syncFindingDialogLootUi()" onkeydown="handleFindingDialogKey(event)">
               <option value="cleartext">Cleartext</option>
               <option value="hash">Hash</option>
               <option value="token">Token</option>
@@ -456,39 +474,39 @@
             </select>
           </div>
           <div class="pw-field">
-            <label>Target / Host</label>
-            <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+            <label>Service / Source</label>
+            <input class="pw-input" id="findingDialogLootHost" type="text" placeholder="SMB share, dump file, browser storage…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
           </div>
         </div>
         <div class="pw-field">
           <label>Loot value</label>
-          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+          <textarea class="pw-input finding-dialog-textarea finding-dialog-loot-value" id="findingDialogLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
         </div>
         <div class="pw-field">
           <label>Loot context</label>
-          <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+          <input class="pw-input" id="findingDialogLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
         </div>
-        <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
-          <label class="evidence-flag-check">
-            <input id="evidenceFlagLootSyncCredentials" type="checkbox">
+        <div class="finding-dialog-loot-sync" id="findingDialogLootSyncWrap">
+          <label class="finding-dialog-check">
+            <input id="findingDialogLootSyncCredentials" type="checkbox">
             <span>Sync cleartext/hash into the Credentials note</span>
           </label>
         </div>
       </div>
       <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
-        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
+        <button class="pw-btn secondary" onclick="cancelFindingDialog()">Cancel</button>
+        <button class="pw-btn primary" onclick="confirmFindingDialog()">Add Finding</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="evidence-selection-prompt" id="evidenceSelectionPrompt">
-  <button class="evidence-selection-prompt-btn" onclick="flagPromptedSelectionAsEvidence()">
+<div class="finding-selection-prompt" id="findingSelectionPrompt">
+  <button class="finding-selection-prompt-btn" onclick="addPromptedSelectionAsFinding()">
     <span aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
     </span>
-    <span>Add as Evidence</span>
+    <span>Add as Finding</span>
   </button>
 </div>
 

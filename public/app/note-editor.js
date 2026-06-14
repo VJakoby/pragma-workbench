@@ -460,6 +460,18 @@ async function refreshRenderedMarkdownSurfaces() {
   } catch (_) {}
 }
 
+async function refreshInjectedNoteContext() {
+  if (activeConfigDoc) return;
+  invalidateNotePreviewCache();
+  if (noteUnifiedPreview) {
+    try {
+      await renderNoteUnifiedSurface();
+    } catch (_) {}
+    return;
+  }
+  if (notePreviewOpen) scheduleNotePreviewUpdate({ immediate: true });
+}
+
 function scheduleNoteUnifiedRender() {
   if (noteUnifiedRenderTimer) clearTimeout(noteUnifiedRenderTimer);
   noteUnifiedRenderTimer = setTimeout(() => {
@@ -693,7 +705,7 @@ function buildNoteEditorExtensions({ onDocChange } = {}) {
       }
     }),
     CM.EditorView.updateListener.of(update => {
-      if (typeof syncEvidenceSelectionPrompt === 'function') syncEvidenceSelectionPrompt(update);
+      if (typeof syncFindingSelectionPrompt === 'function') syncFindingSelectionPrompt(update);
       if (!update.docChanged) return;
       if (activeConfigDoc) {
         autoSaveActiveConfig();
