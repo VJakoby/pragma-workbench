@@ -500,7 +500,6 @@ RULES:
 
 
 ## P2-21 — Setup and Usage Documentation Refinement
-STATUS: DONE
 
 CONTEXT:
 The current `SETUP.md` and `USAGE.md` are accurate but too terse in the practical areas that matter during first-run setup and day-to-day operator use.
@@ -535,7 +534,6 @@ RULES:
 
 
 ## P2-22 — Hidden Notes List Session Tab Strip
-STATUS: DONE
 
 CONTEXT:
 When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
@@ -621,6 +619,7 @@ RULES:
 ## B-11 — Quick Log Topbar Count Badge Right Padding
 STATUS: DONE
 
+
 CONTEXT:
 The small count badges shown on the `Ports`, `Paths`, and `Loot` topbar buttons feel cramped against the right edge, which makes the pill look visually off-balance.
 
@@ -642,6 +641,7 @@ RULES:
 ## B-12 — Unified Search Result Hover Border Too Weak
 STATUS: DONE
 
+
 CONTEXT:
 The hover treatment around unified search / command palette results is too subtle. The border does not stand out enough when scanning and hovering multiple results.
 
@@ -662,6 +662,7 @@ RULES:
 
 ## B-13 — Context Switcher Target Creation Should Parse Inline Label
 STATUS: DONE
+
 
 CONTEXT:
 When creating a new target from the context switcher, entering both an IP/domain and a label in one string currently loses the label information. Example input such as `1.1.1.1 Websrv01` should create the target with the IP preserved and the trailing text used as the target label.
@@ -775,7 +776,6 @@ RULES:
 ---
 
 ## B-18 — Move Topbar Help Button Beside Theme Switcher
-STATUS: DONE
 
 CONTEXT:
 The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
@@ -799,7 +799,6 @@ RULES:
 ---
 
 ## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
-STATUS: DONE
 
 CONTEXT:
 The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
@@ -822,7 +821,6 @@ RULES:
 ---
 
 ## B-20 — Some Port Service Links Do Not Resolve To Existing KB Docs
-STATUS: DONE
 
 CONTEXT:
 Certain services shown in the `Ports` Quick Log view do not link to their matching Knowledge Base documents even though the corresponding markdown file exists and the service is already represented in the KB indexing layer. One example is `RPC`, where `rpc.md` exists but the link resolution still fails.
@@ -845,7 +843,6 @@ RULES:
 ---
 
 ## B-21 — Unified Search Tooltip Should Match Control Label
-STATUS: DONE
 
 CONTEXT:
 The topbar control is labeled `Unified search`, but its hover tooltip still says `Quick open (Cmd+K)`. This creates inconsistent wording for the same control.
@@ -866,7 +863,6 @@ RULES:
 ---
 
 ## B-22 — Exclude Hidden/System Folders From Knowledge Base Indexing
-STATUS: DONE
 
 CONTEXT:
 The current Knowledge Base indexing walks directories recursively and only filters by `.md` extension. Hidden or system folders such as `.git`, `.obsidian`, `.trash`, and similar directories are not explicitly excluded. This means they can still be traversed, and any markdown files inside them could be picked up unintentionally.
@@ -911,7 +907,6 @@ RULES:
 ---
 
 ## B-24 — Rename KB Sidebar Subheader To Sections
-STATUS: DONE
 
 CONTEXT:
 The main sidebar header already says `Knowledge Base`, so the current subheader label `Discovered Sections` feels overly verbose and slightly awkward in context.
@@ -983,7 +978,6 @@ RULES:
 ---
 
 ## B-27 — Move Backup Workbench Into Session Modal Utilities
-STATUS: DONE
 
 CONTEXT:
 `Backup Workbench` is a useful safety/export action, but it is secondary compared to the active session context and day-to-day navigation. Keeping it in the sidebar gives it too much persistent weight for an action that is used occasionally rather than continuously.
@@ -1010,7 +1004,6 @@ RULES:
 ---
 
 ## B-28 — Remove Obsolete Notes List Peek Button
-STATUS: DONE
 
 CONTEXT:
 The hidden-notes workflow now has session tabs and grouped target tabs for fast note switching. The older edge-mounted `Quick note switcher` / peek button is no longer necessary and adds redundant chrome beside the editor.
@@ -1203,24 +1196,24 @@ RULES:
 
 ---
 
-## B-38 — Increase Note Timestamps Bar Height
+## B-38 — Match Create Note Tab Left Border Thickness
+STATUS: DONE
 
 CONTEXT:
-The `note-timestamps` bar below the note editor header is too short vertically, making the created, modified, and save-status information feel cramped.
+The left border of the `session-note-tab session-note-tab-create` control appears slightly thinner than the other sides, making the create button frame look uneven.
 
 SCOPE:
 public/app/styles.css
 
 EXPECTED BEHAVIOR:
-- The `note-timestamps` bar must have more vertical height and breathing room
-- Created, modified, and save-status text must remain vertically centered
-- Existing timestamp content and save-state behavior must remain unchanged
-- The adjustment must work in both normal note editing and Note Templates configuration mode
+- The create note tab must use the same visible border thickness on its left side as on its top, right, and bottom sides
+- The border must remain visually consistent in both light and dark mode
+- Existing create-tab sizing, spacing, hover state, and behavior must remain unchanged
 
 RULES:
-- Keep the change limited to `.note-timestamps` sizing and alignment
-- Do not redesign the note editor header or metadata layout
-- Do not alter timestamp values, formatting, or save logic
+- Keep the change limited to the create note tab border styling
+- Do not redesign the hidden note-tab strip
+- Do not alter note creation behavior
 
 ---
 # P3 — EXPERIMENTAL
@@ -1255,8 +1248,6 @@ browser editor runtime
 ---
 
 ## P3-04 — Unified Live Preview Editor
-STATUS: DONE
-
 CONTEXT:
 The current markdown workflow relies on a split editor/preview layout. It works, but it creates visual separation and friction when writing, reviewing formatting, and navigating rendered content. A unified editing surface may improve flow, but it must not regress markdown behavior, autosave, or internal linking.
 
@@ -1386,7 +1377,6 @@ No keyword matching.
 ---
 
 ## B-6 — Quick Note Switcher Unassigned Scope Closes Flyout
-STATUS: DONE
 
 CONTEXT:
 In the collapsed quick note switcher, selecting the `Unassigned` scope can immediately close the flyout, which breaks fast note navigation.
