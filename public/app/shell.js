@@ -78,7 +78,7 @@ function setTheme(theme) {
   }, 50);
 }
 
-applyTheme(localStorage.getItem('ops-theme') || 'dark');
+applyTheme(localStorage.getItem('ops-theme') || 'light');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';

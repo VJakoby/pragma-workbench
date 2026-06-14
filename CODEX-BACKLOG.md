@@ -1520,4 +1520,24 @@ RULES:
 - Do not redesign the findings modal layout
 - Do not alter unrelated Quick Log or note styling
 
+
+## B-38 — Default New Browsers To Light Theme
+STATUS: TODO
+
+CONTEXT:
+When a browser opens the workbench for the first time and no theme preference has been stored yet, the interface currently defaults to dark mode. The preferred first-run behavior is to start in light mode unless the user has already explicitly chosen a theme.
+
+SCOPE:
+public/app/shell.js
+
+EXPECTED BEHAVIOR:
+- A browser with no stored `ops-theme` preference should load the workbench in light mode by default
+- Existing saved theme preferences must continue to override the default
+- Theme switching behavior after load must remain unchanged
+
+RULES:
+- Keep the change limited to theme initialization/default selection
+- Do not redesign the theme toggle UI
+- Do not alter saved preference keys or storage behavior
+
 END
