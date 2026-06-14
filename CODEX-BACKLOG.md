@@ -1435,4 +1435,24 @@ RULES:
 - Do not redesign the broader findings workflow
 - Do not change underlying findings storage or sorting as part of this task
 
+
+## B-37 — Increase Findings List Title Font Size
+STATUS: TODO
+
+CONTEXT:
+The title text shown for findings entries in the Findings modal reads slightly smaller than ideal, which makes the list feel denser than necessary. A minor font-size increase should improve scanability without changing the layout structure.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Findings entry titles should render at a slightly larger font size than they do today
+- The change should preserve the current findings list layout and wrapping behavior
+- The updated sizing should remain consistent in both light and dark mode
+
+RULES:
+- Keep the change limited to findings list title presentation
+- Do not redesign the findings modal layout
+- Do not alter unrelated Quick Log or note styling
+
 END
