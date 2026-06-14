@@ -9,10 +9,17 @@ let activeNoteSearch = '';
 let notesPeekSearch = '';
 let notesPeekOpen = false;
 let notesPeekCloseTimer = null;
+let notesPeekHoldOpenUntil = 0;
+let notesPeekIgnoreDocumentCloseUntil = 0;
 let activeNewNoteType = null;
 let _evidenceFlagResolver = null;
 let _evidenceSelectionPromptTimer = null;
 let _evidenceSelectionPromptState = null;
+let attachmentStorageSidebarTimer = null;
+let attachmentStorageSidebarSeq = 0;
+let attachmentStorageSidebarStateKey = '';
+let attachmentStorageSidebarLoaded = false;
+let attachmentStoragePayload = null;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
 const EVIDENCE_TYPE_OPTIONS = [
   { value: 'enumeration', label: 'Enumeration' },
@@ -86,6 +93,7 @@ function setNoteEditorMode(mode) {
   const reassign = document.getElementById('noteReassignWrap');
   const target = document.getElementById('noteTargetAssignWrap');
   const previewBtn = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
   const evidenceBtn = document.getElementById('noteFlagEvidenceBtn');
   const hint = document.querySelector('.note-md-hint');
   const timestamps = document.getElementById('noteTimestamps');
@@ -101,6 +109,7 @@ function setNoteEditorMode(mode) {
   const previewHandle = document.getElementById('notePreviewHandle');
   const layoutToggle = document.getElementById('previewLayoutToggle');
   const split = document.getElementById('noteEditorSplit');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
 
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
@@ -117,6 +126,7 @@ function setNoteEditorMode(mode) {
   if (reassign) reassign.style.display = isConfig ? 'none' : '';
   if (target) target.style.display = isConfig ? 'none' : '';
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
+  if (unifiedBtn) unifiedBtn.style.display = isConfig ? 'none' : '';
   if (evidenceBtn) evidenceBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
@@ -130,13 +140,14 @@ function setNoteEditorMode(mode) {
   if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
   if (split) {
     if (isConfig) {
-      split.classList.remove('preview-open', 'split-side');
+      split.classList.remove('preview-open', 'split-side', 'preview-unified');
       split.style.removeProperty('--note-editor-w');
       split.style.removeProperty('--note-editor-h');
     } else {
       applyNotePreviewState();
     }
   }
+  if (unifiedSurface && isConfig) unifiedSurface.style.display = 'none';
   if (previewPane && isConfig) previewPane.style.display = 'none';
   if (previewHandle && isConfig) previewHandle.style.display = 'none';
   if (layoutToggle && isConfig) layoutToggle.classList.remove('visible');
@@ -209,6 +220,7 @@ async function openTemplatesConfig(navEl) {
   document.getElementById('notesEmpty').style.display = 'none';
   const area = document.getElementById('noteEditArea');
   area.style.display = 'flex';
+  renderSessionNoteTabs();
 
   const badge = ensureNoteTypeBadge();
   badge.textContent = '⚙ Note Templates';
@@ -241,6 +253,189 @@ function closeConfigEditor() {
   document.getElementById('noteEditArea').style.display = 'none';
   document.getElementById('nav-config-templates')?.classList.remove('active');
   renderNotesList();
+  renderSessionNoteTabs();
+}
+
+function formatAttachmentStorageBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (!Number.isFinite(value) || value <= 0) return '0 B';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(value >= 10240 ? 0 : 1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+function buildAttachmentStorageSidebarStateKey() {
+  return Object.keys(notes || {})
+    .sort()
+    .map((id) => {
+      const note = notes[id] || {};
+      const body = String(note.body || '');
+      const attachmentCount = (body.match(/\/api\/notes\/attachments\//g) || []).length;
+      return `${id}:${note.updated || 0}:${attachmentCount}`;
+    })
+    .join('|');
+}
+
+function buildAttachmentStorageSummaryText(summary = {}) {
+  const tracked = Number(summary.tracked_count || 0);
+  const orphaned = Number(summary.orphaned_count || 0);
+  const missing = Number(summary.missing_count || 0);
+  const sizeLabel = formatAttachmentStorageBytes(summary.total_bytes || 0);
+  if (!tracked) {
+    if (orphaned) return `${orphaned} orphaned file${orphaned === 1 ? "" : "s"} · ${sizeLabel} total`;
+    return 'No attachment usage yet';
+  }
+  const parts = [`${tracked} file${tracked === 1 ? "" : "s"}`, sizeLabel + ' total'];
+  if (orphaned) parts.push(`${orphaned} orphaned`);
+  if (missing) parts.push(`${missing} missing`);
+  return parts.join(' · ');
+}
+
+function buildAttachmentStorageModalSummaryText(summary = {}) {
+  const tracked = Number(summary.tracked_count || 0);
+  const refs = Number(summary.referenced_note_count || 0);
+  const orphaned = Number(summary.orphaned_count || 0);
+  const missing = Number(summary.missing_count || 0);
+  const sizeLabel = formatAttachmentStorageBytes(summary.total_bytes || 0);
+  const parts = [`${tracked} tracked file${tracked === 1 ? "" : "s"}`, `${refs} note link${refs === 1 ? "" : "s"}`, sizeLabel + ' total'];
+  if (orphaned) parts.push(`${orphaned} orphaned`);
+  if (missing) parts.push(`${missing} missing`);
+  return 'Workbench-wide attachment usage: ' + parts.join(' · ');
+}
+
+function closeAttachmentStorageModal() {
+  document.getElementById('attachmentStorageOverlay')?.classList.remove('open');
+}
+
+function openAttachmentStorageModal() {
+  document.getElementById('attachmentStorageOverlay')?.classList.add('open');
+  if (!attachmentStoragePayload) scheduleAttachmentStorageSidebarRefresh(true);
+}
+
+function openAttachmentStorageNote(noteId) {
+  closeAttachmentStorageModal();
+  if (noteId) openNote(noteId);
+}
+
+function renderAttachmentStorageModal(payload) {
+  const summaryEl = document.getElementById('attachmentStorageModalSummary');
+  const listEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !listEl) return;
+
+  const summary = payload?.summary || {};
+  const items = Array.isArray(payload?.attachments) ? payload.attachments : [];
+  summaryEl.textContent = buildAttachmentStorageModalSummaryText(summary);
+
+  if (!items.length) {
+    listEl.innerHTML = '<div class="attachment-storage-empty modal-empty">Attach images in notes to track them across the workbench.</div>';
+    return;
+  }
+
+  listEl.innerHTML = items.map((item) => {
+    const refsLabel = `${item.reference_count || 0} linked note${Number(item.reference_count || 0) === 1 ? "" : "s"}`;
+    const statusLabel = item.orphaned ? 'orphaned' : item.missing ? 'missing' : (item.mode === 'encrypted' ? 'encrypted' : item.mode === 'raw' ? 'stored' : 'unresolved');
+    const ownerTag = '<span class="attachment-storage-role-tag owner">Owner</span>';
+    const linkTag = '<span class="attachment-storage-role-tag link">Link</span>';
+    const ownerButton = item.owner_note_id
+      ? `<div class="attachment-storage-note-ref owner">${ownerTag}<button type="button" class="attachment-storage-owner-link" onclick="openAttachmentStorageNote('${item.owner_note_id}')">${esc(item.owner_note_title || "Owner Note")}</button></div>`
+      : '';
+    const ownerSession = item.owner_session_name
+      ? `<span class="attachment-storage-owner-session">${esc(item.owner_session_name)}</span>`
+      : '';
+    const ownerContext = ownerButton
+      ? `<div class="attachment-storage-owner-row">${ownerButton}</div>`
+      : '';
+    const sessionBadge = ownerSession
+      ? `<div class="attachment-storage-session-row">${ownerSession}</div>`
+      : '';
+    const noteRefs = (Array.isArray(item.references) ? item.references : []).filter((ref) => ref.id !== item.owner_note_id);
+    const refsHtml = noteRefs.slice(0, 5).map((ref) =>
+      `<div class="attachment-storage-note-ref">${linkTag}<button type="button" class="attachment-storage-note-link" onclick="openAttachmentStorageNote('${ref.id}')" title="${esc(ref.title || "Untitled")}">${esc(ref.title || "Untitled")}</button></div>`
+    ).join('');
+    const extraCount = Math.max(0, noteRefs.length - 5);
+    const moreHtml = extraCount ? `<span class="attachment-storage-pill">+${extraCount} more</span>` : '';
+    return `<div class="attachment-storage-item modal-item${item.orphaned ? " orphaned" : item.missing ? " missing" : ""}">
+      <div class="attachment-storage-head modal-head">
+        <div class="attachment-storage-head-main">
+          ${sessionBadge}
+          <div class="attachment-storage-name modal-name" title="${esc(item.filename || "")}">${esc(item.filename || "attachment")}</div>
+        </div>
+        <div class="attachment-storage-size modal-size">${formatAttachmentStorageBytes(item.size_bytes || 0)}</div>
+      </div>
+      <div class="attachment-storage-meta modal-meta">
+        <span class="attachment-storage-pill${item.orphaned ? " status-orphaned" : item.missing ? " status-missing" : ""}">${statusLabel}</span>
+        <span class="attachment-storage-pill">${refsLabel}</span>
+      </div>
+      ${ownerContext}
+      <div class="attachment-storage-notes modal-notes">${refsHtml || '<span class="attachment-storage-pill">No linked notes</span>'}${moreHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAttachmentStorageSidebar(payload) {
+  const summaryEl = document.getElementById('attachmentStorageSummary');
+  const countEl = document.getElementById('attachmentStorageCount');
+  const modalSummaryEl = document.getElementById('attachmentStorageModalSummary');
+  const modalListEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !countEl) return;
+
+  attachmentStoragePayload = payload || null;
+  const summary = payload?.summary || {};
+  const tracked = Number(summary.tracked_count || 0);
+  summaryEl.textContent = buildAttachmentStorageSummaryText(summary);
+  countEl.textContent = tracked || '—';
+  renderAttachmentStorageModal(payload);
+
+  if (!tracked && modalSummaryEl && modalListEl) {
+    modalSummaryEl.textContent = buildAttachmentStorageModalSummaryText(summary);
+  }
+}
+
+async function refreshAttachmentStorageSidebar(force = false, precomputedKey = '') {
+  const summaryEl = document.getElementById('attachmentStorageSummary');
+  const countEl = document.getElementById('attachmentStorageCount');
+  const modalSummaryEl = document.getElementById('attachmentStorageModalSummary');
+  const modalListEl = document.getElementById('attachmentStorageModalList');
+  if (!summaryEl || !countEl) return;
+
+  const stateKey = precomputedKey || buildAttachmentStorageSidebarStateKey();
+  if (!force && attachmentStorageSidebarLoaded && stateKey === attachmentStorageSidebarStateKey) return;
+  attachmentStorageSidebarStateKey = stateKey;
+  const seq = ++attachmentStorageSidebarSeq;
+  summaryEl.textContent = 'Loading…';
+  countEl.textContent = '—';
+  if (modalSummaryEl) modalSummaryEl.textContent = 'Loading attachment usage…';
+  if (modalListEl && !attachmentStorageSidebarLoaded) modalListEl.innerHTML = '<div class="attachment-storage-empty modal-empty">Loading attachment usage…</div>';
+
+  try {
+    const res = await fetch('/api/notes/attachments/usage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessions, notes }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (seq !== attachmentStorageSidebarSeq) return;
+    if (!res.ok || data.ok !== true) throw new Error(data.error || 'Failed to load attachment usage');
+    attachmentStorageSidebarLoaded = true;
+    renderAttachmentStorageSidebar(data);
+  } catch (err) {
+    if (seq !== attachmentStorageSidebarSeq) return;
+    attachmentStorageSidebarLoaded = false;
+    attachmentStoragePayload = null;
+    summaryEl.textContent = 'Attachment usage unavailable';
+    countEl.textContent = '—';
+    if (modalSummaryEl) modalSummaryEl.textContent = 'Attachment usage unavailable';
+    if (modalListEl) modalListEl.innerHTML = `<div class="attachment-storage-empty modal-empty">${esc(err.message || "Attachment usage unavailable")}</div>`;
+  }
+}
+
+function scheduleAttachmentStorageSidebarRefresh(force = false) {
+  const nextKey = buildAttachmentStorageSidebarStateKey();
+  if (!force && attachmentStorageSidebarLoaded && nextKey === attachmentStorageSidebarStateKey) return;
+  clearTimeout(attachmentStorageSidebarTimer);
+  attachmentStorageSidebarTimer = setTimeout(() => {
+    refreshAttachmentStorageSidebar(force, nextKey);
+  }, force ? 0 : 80);
 }
 
 function renderNoteFilterBar() {
@@ -309,6 +504,7 @@ function updateNotesCountBadges() {
 function renderNotesList() {
   updateNoteSearchPlaceholder();
   updateNotesCountBadges();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') {
     renderTimeline();
     updateNotesCountBadges();
@@ -324,6 +520,7 @@ function renderNotesList() {
       ${activeNoteSearch ? 'No matching notes' : activeNoteFilter === 'all' ? 'No notes yet' : 'No ' + activeNoteFilter + ' notes'}
     </div>`;
     renderNotesPeekList();
+    scheduleAttachmentStorageSidebarRefresh();
     return;
   }
 
@@ -357,6 +554,7 @@ function renderNotesList() {
   updateNotesCountBadges();
   renderTargetFilterBar();
   renderNotesPeekList();
+  scheduleAttachmentStorageSidebarRefresh();
 }
 
 function getVisibleNotes(opts = {}) {
@@ -385,6 +583,94 @@ function getVisibleNotes(opts = {}) {
   }
 
   return items;
+}
+
+
+function getSessionNoteTabsItems() {
+  if (!activeSessionId || !sessions[activeSessionId] || activeConfigDoc) return [];
+  return getNotesInSession(activeSessionId).sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return (b.updated || 0) - (a.updated || 0);
+  });
+}
+
+function closeNoteFromTab(noteId, event) {
+  event?.stopPropagation();
+  if (!noteId || noteId !== activeNoteId) return;
+  closeCurrentNote();
+}
+
+function renderSessionNoteTabs() {
+  const strip = document.getElementById("sessionNoteTabs");
+  if (!strip) return;
+  const items = getSessionNoteTabsItems();
+  const canCreate = !!activeSessionId && !activeConfigDoc;
+  const groups = [];
+  const groupMap = new Map();
+
+  items.forEach((note) => {
+    const target = note.target_id && activeSessionId && sessions[activeSessionId]
+      ? (sessions[activeSessionId].targets || []).find((t) => t.id === note.target_id)
+      : null;
+    const groupKey = target?.id || "__unassigned__";
+    let group = groupMap.get(groupKey);
+    if (!group) {
+      const targetPrimary = target ? (target.ip || target.domain || "") : "";
+      const targetSecondary = target ? String(target.label || "").trim() : "";
+      const combinedLabel = target
+        ? [targetPrimary, targetSecondary].filter((value, index, arr) => value && arr.indexOf(value) === index).join(" // ") || "target"
+        : "Unassigned";
+      group = {
+        key: groupKey,
+        label: combinedLabel,
+        targeted: !!target,
+        notes: [],
+      };
+      groupMap.set(groupKey, group);
+      groups.push(group);
+    }
+    group.notes.push(note);
+  });
+
+  strip.classList.toggle("has-tabs", canCreate || groups.length > 0);
+  if (!canCreate && !groups.length) {
+    strip.innerHTML = "";
+    return;
+  }
+
+  const createTab = canCreate
+    ? `<div class="session-note-tab session-note-tab-create" title="Create new note">
+      <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
+        <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
+        <span class="session-note-tab-title">New</span>
+      </button>
+    </div>`
+    : "";
+
+  const groupsHtml = groups.map((group) => {
+    const tabsHtml = group.notes.map((note) => {
+      const meta = getNoteTypeMeta(note.type);
+      const active = note.id === activeNoteId;
+      const closeBtn = active
+        ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
+        : "";
+      return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+        <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
+          <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
+          <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
+          <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
+        </button>
+        ${closeBtn}
+      </div>`;
+    }).join("");
+    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
+      <div class="session-note-tab-group-label" title="${esc(group.label)}">${esc(group.label)}</div>
+      <div class="session-note-tab-group-tabs">${tabsHtml}</div>
+    </div>`;
+  }).join("");
+
+  strip.innerHTML = createTab + groupsHtml;
 }
 
 function renderNotesPeekList() {
@@ -445,10 +731,19 @@ function toggleNotesPeek(event) {
 
 function scheduleNotesPeekClose() {
   clearTimeout(notesPeekCloseTimer);
-  notesPeekCloseTimer = setTimeout(() => {
+  const attemptClose = () => {
     if (!notesPeekOpen) return;
+    const holdRemaining = notesPeekHoldOpenUntil - Date.now();
+    if (holdRemaining > 0) {
+      notesPeekCloseTimer = setTimeout(attemptClose, holdRemaining + 10);
+      return;
+    }
+    const flyout = document.getElementById('notesPeekFlyout');
+    const peekBtn = document.getElementById('notesListPeekBtn');
+    if (flyout?.matches(':hover') || peekBtn?.matches(':hover')) return;
     closeNotesPeek();
-  }, 120);
+  };
+  notesPeekCloseTimer = setTimeout(attemptClose, 120);
 }
 
 function syncNotesPeekScopeButtons() {
@@ -456,11 +751,19 @@ function syncNotesPeekScopeButtons() {
 }
 
 function setNotesPeekScope(scope, button) {
+  notesPeekHoldOpenUntil = Date.now() + 800;
+  notesPeekIgnoreDocumentCloseUntil = Date.now() + 800;
+  clearTimeout(notesPeekCloseTimer);
   activeNoteScope = scope;
   activeTargetFilter = null;
   syncNotesPeekScopeButtons();
   updateNoteSearchPlaceholder();
   renderNotesList();
+  requestAnimationFrame(() => {
+    document.querySelector('.notes-layout')?.classList.add('notes-peek-open');
+    notesPeekOpen = true;
+    document.getElementById('notesPeekSearchInput')?.focus({ preventScroll: true });
+  });
   if (button) button.blur();
 }
 
@@ -476,11 +779,13 @@ function openNoteFromPeek(id) {
 
 document.addEventListener('click', (event) => {
   if (!notesPeekOpen) return;
+  if (Date.now() < notesPeekIgnoreDocumentCloseUntil) return;
   if (event.target.closest('#notesPeekFlyout') || event.target.closest('#notesListPeekBtn')) return;
   closeNotesPeek();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  scheduleAttachmentStorageSidebarRefresh(true);
   const peekBtn = document.getElementById('notesListPeekBtn');
   const peekFlyout = document.getElementById('notesPeekFlyout');
   if (peekBtn) {
@@ -774,6 +1079,7 @@ async function openNote(id) {
   applyNotePreviewState();
 }
 
+
 function togglePinNote() {
   if (!activeNoteId || !notes[activeNoteId]) return;
   notes[activeNoteId].pinned = !notes[activeNoteId].pinned;
@@ -791,97 +1097,58 @@ function getNotesInSession(sessionId) {
   return Object.values(notes).filter((note) => (note?.session_id || null) === (sessionId || null));
 }
 
-function resolveNoteLink(rawTitle, sessionId = null) {
+function getTargetCandidates(target) {
+  return [
+    String(target?.ip || '').trim(),
+    String(target?.domain || '').trim(),
+    String(target?.label || '').trim(),
+  ].filter(Boolean);
+}
+
+function resolveTargetInSession(rawTarget, sessionId = null) {
+  const q = String(rawTarget || '').trim().toLowerCase();
+  if (!q || !sessionId || !sessions[sessionId]) return null;
+  const targets = sessions[sessionId].targets || [];
+  let exactHit = null;
+  let partialHit = null;
+  targets.forEach((target) => {
+    const candidates = getTargetCandidates(target).map((value) => value.toLowerCase());
+    if (!exactHit && candidates.includes(q)) {
+      exactHit = target;
+      return;
+    }
+    const partial = candidates.find((value) => value.includes(q));
+    if (!partial) return;
+    if (!partialHit || partial.length > partialHit.length) partialHit = { target, length: partial.length };
+  });
+  return exactHit || partialHit?.target || null;
+}
+
+function resolveNoteLink(rawTitle, sessionId = null, { targetId } = {}) {
   const source = String(rawTitle || '').trim();
   const q = source.split('|')[0].trim().toLowerCase();
   if (!q) return null;
-  const scopedNotes = getNotesInSession(sessionId);
+  let scopedNotes = getNotesInSession(sessionId);
+  if (targetId !== undefined) scopedNotes = scopedNotes.filter((note) => (note.target_id || null) === (targetId || null));
   let hit = scopedNotes.find(n => (n.title || '').toLowerCase() === q);
   if (!hit) hit = scopedNotes.find(n => (n.title || '').toLowerCase().includes(q));
   return hit ? hit.id : null;
 }
 
-function parseWikiLink(raw) {
-  const source = String(raw || '').trim();
-  const pipeIdx = source.indexOf('|');
-  if (pipeIdx === -1) {
-    return { target: source, label: source };
-  }
-  const target = source.slice(0, pipeIdx).trim();
-  const label = source.slice(pipeIdx + 1).trim() || target;
-  return { target, label };
+function resolveEngagementNoteLinkInSession(rawTarget, rawTitle, sessionId = null) {
+  const target = resolveTargetInSession(rawTarget, sessionId);
+  if (!target) return null;
+  return resolveNoteLink(rawTitle, sessionId, { targetId: target.id });
 }
 
-function buildWikiLinkElement(raw) {
-  const { target, label } = parseWikiLink(raw);
-  const currentSessionId = activeNoteId && notes[activeNoteId] ? (notes[activeNoteId].session_id || null) : null;
-  const targetId = resolveNoteLink(target, currentSessionId);
-  const el = document.createElement('span');
-  el.className = `note-wikilink${targetId ? '' : ' broken'}`;
-  el.textContent = label || target;
-  el.title = targetId
-    ? `Open note: ${target}`
-    : `No matching note for: ${target}`;
-
-  if (targetId) {
-    el.tabIndex = 0;
-    el.setAttribute('role', 'link');
-    el.addEventListener('click', () => {
-      if (typeof openNote === 'function') openNote(targetId);
-    });
-    el.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (typeof openNote === 'function') openNote(targetId);
-      }
-    });
-  }
-
-  return el;
+function resolveEngagementNoteLink(rawTarget, rawTitle, sessionId = null) {
+  const currentSessionId = sessionId || (activeNoteId && notes[activeNoteId]
+    ? (notes[activeNoteId].session_id || null)
+    : activeSessionId || null);
+  return resolveEngagementNoteLinkInSession(rawTarget, rawTitle, currentSessionId);
 }
 
-function enhanceNoteWikiLinks(root) {
-  if (!root || typeof document === 'undefined') return;
-  const textNodes = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!node?.nodeValue || !node.nodeValue.includes('[[')) return NodeFilter.FILTER_REJECT;
-      const parent = node.parentElement;
-      if (!parent) return NodeFilter.FILTER_REJECT;
-      if (parent.closest('a, code, pre, .note-wikilink')) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
-
-  let current;
-  while ((current = walker.nextNode())) textNodes.push(current);
-
-  textNodes.forEach((node) => {
-    const text = node.nodeValue;
-    const re = /\[\[([^\]]+)\]\]/g;
-    let lastIndex = 0;
-    let match;
-    let found = false;
-    const fragment = document.createDocumentFragment();
-
-    while ((match = re.exec(text)) !== null) {
-      found = true;
-      if (match.index > lastIndex) {
-        fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
-      }
-      fragment.appendChild(buildWikiLinkElement(match[1]));
-      lastIndex = re.lastIndex;
-    }
-
-    if (!found) return;
-    if (lastIndex < text.length) {
-      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
-    }
-    node.parentNode?.replaceChild(fragment, node);
-  });
-}
-
-window.enhanceNoteWikiLinks = enhanceNoteWikiLinks;
+window.resolveEngagementNoteLink = resolveEngagementNoteLink;
 
 function getBacklinks(noteId) {
   const targetNote = notes[noteId];
@@ -890,10 +1157,10 @@ function getBacklinks(noteId) {
     if (n.id === noteId) return false;
     if ((n.session_id || null) !== targetSessionId) return false;
     const body = n.body || '';
-    const re = /\[\[([^\]]+)\]\]/g;
-    let m;
-    while ((m = re.exec(body)) !== null) {
-      if (resolveNoteLink(m[1], n.session_id || null) === noteId) return true;
+    const engagementRe = new RegExp(String.raw`\[en:([^:\]\n]+):([^\]\n]+)\](?!\()`, 'gi');
+    let match;
+    while ((match = engagementRe.exec(body)) !== null) {
+      if (resolveEngagementNoteLinkInSession(match[1], match[2], n.session_id || null) === noteId) return true;
     }
     return false;
   });
@@ -934,6 +1201,13 @@ function stripInlineEvidenceMarkers(text) {
     .trim();
 }
 
+function getActiveEvidenceEditor() {
+  if (typeof noteUnifiedPreview !== 'undefined' && noteUnifiedPreview && typeof noteUnifiedEditor !== 'undefined' && noteUnifiedEditor) {
+    return noteUnifiedEditor;
+  }
+  return noteEditor || null;
+}
+
 function stripEvidenceMarkersForExport(text) {
   return String(text || '')
     .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
@@ -942,11 +1216,12 @@ function stripEvidenceMarkersForExport(text) {
 }
 
 function getNoteEvidenceBlockSelection({ requireSelection = false } = {}) {
-  if (!noteEditor) return null;
-  const main = noteEditor.state.selection?.main;
+  const editor = getActiveEvidenceEditor();
+  if (!editor) return null;
+  const main = editor.state.selection?.main;
   if (!main) return null;
   if (requireSelection && main.empty) return null;
-  const doc = noteEditor.state.doc;
+  const doc = editor.state.doc;
   let blockFrom = main.from;
   let blockTo = main.to;
 
@@ -1147,7 +1422,7 @@ function getEvidenceFlagDefaultLootHost() {
 }
 
 function getCurrentEvidenceSelectionSignature() {
-  const main = noteEditor?.state?.selection?.main;
+  const main = getActiveEvidenceEditor()?.state?.selection?.main;
   if (!main || main.empty) return '';
   return `${main.from}:${main.to}`;
 }
@@ -1167,16 +1442,18 @@ function hideEvidenceSelectionPrompt() {
 }
 
 function isEvidenceBlockAlreadyFlagged(block) {
-  if (!block || !noteEditor) return false;
-  const doc = noteEditor.state.doc;
+  const editor = getActiveEvidenceEditor();
+  if (!block || !editor) return false;
+  const doc = editor.state.doc;
   const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
   const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
   return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
 }
 
 function positionEvidenceSelectionPrompt(prompt) {
-  if (!prompt || !noteEditor || !_evidenceSelectionPromptState?.block) return;
-  const coords = noteEditor.coordsAtPos(_evidenceSelectionPromptState.block.to) || noteEditor.dom.getBoundingClientRect();
+  const editor = getActiveEvidenceEditor();
+  if (!prompt || !editor || !_evidenceSelectionPromptState?.block) return;
+  const coords = editor.coordsAtPos(_evidenceSelectionPromptState.block.to) || editor.dom.getBoundingClientRect();
   const margin = 12;
   const promptRect = prompt.getBoundingClientRect();
   let left = coords.left;
@@ -1191,7 +1468,7 @@ function positionEvidenceSelectionPrompt(prompt) {
 
 function showEvidenceSelectionPrompt(block) {
   const prompt = document.getElementById('evidenceSelectionPrompt');
-  if (!prompt || !noteEditor || !block || !block.text.trim()) return;
+  if (!prompt || !getActiveEvidenceEditor() || !block || !block.text.trim()) return;
   _evidenceSelectionPromptState = {
     block,
     signature: getCurrentEvidenceSelectionSignature(),
@@ -1212,7 +1489,7 @@ function syncEvidenceSelectionPrompt(update) {
   if (!update.selectionSet) return;
 
   const main = update.state.selection?.main;
-  if (!main || main.empty || !noteEditor?.hasFocus) {
+  if (!main || main.empty || !update.view?.hasFocus) {
     hideEvidenceSelectionPrompt();
     return;
   }
@@ -1359,7 +1636,8 @@ function handleEvidenceFlagKey(event) {
 
 async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   if (activeConfigDoc) return;
-  if (!activeNoteId || !notes[activeNoteId] || !noteEditor) return;
+  const activeEditor = getActiveEvidenceEditor();
+  if (!activeNoteId || !notes[activeNoteId] || !activeEditor) return;
   if (!activeSessionId || !sessions[activeSessionId]) {
     showToast('⚠ Open a session first', 'err');
     return;
@@ -1415,7 +1693,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
   };
 
   const wrapped = `<!-- ${marker}:start -->\n${block.text}\n<!-- ${marker}:end -->`;
-  noteEditor.dispatch({
+  activeEditor.dispatch({
     changes: { from: block.from, to: block.to, insert: wrapped },
     selection: { anchor: block.from + `<!-- ${marker}:start -->\n`.length, head: block.from + `<!-- ${marker}:start -->\n`.length + block.text.length },
     scrollIntoView: true,
@@ -1432,6 +1710,7 @@ async function flagSelectionAsEvidence({ blockOverride = null } = {}) {
       host: confirmed.loot.host,
       note: confirmed.loot.note,
       syncToCredentials: !!confirmed.loot.sync_to_credentials,
+      targetId: notes[activeNoteId]?.target_id || activeTargetId || null,
     });
     syncedLootCredentialsNote = lootResult?.syncedCredentialsNote || null;
     lootDuplicate = !!lootResult?.duplicate;
@@ -1483,7 +1762,9 @@ async function persistActiveNote(opts = {}) {
   const moEl = document.getElementById('noteModifiedAt');
   if (moEl && activeNoteId === noteId) moEl.textContent = new Date(note.updated).toLocaleString('en-GB', {
     day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-  if (activeNoteId === noteId) updateNotePreview();
+  if (activeNoteId === noteId && typeof invalidateNotePreviewCache === 'function') {
+    invalidateNotePreviewCache();
+  }
   return ok;
 }
 
@@ -1508,6 +1789,7 @@ async function deleteCurrentNote() {
   document.getElementById('notes-count').textContent = total || '—';
   document.getElementById('notesEmpty').style.display = 'flex';
   document.getElementById('noteEditArea').style.display = 'none';
+  renderSessionNoteTabs();
 }
 
 async function closeCurrentNote() {
@@ -1531,6 +1813,7 @@ async function closeCurrentNote() {
   document.getElementById('noteReassignDropdown')?.classList.remove('open');
   document.getElementById('noteTargetAssignDropdown')?.classList.remove('open');
   renderNotesList();
+  renderSessionNoteTabs();
   if (typeof notesListViewMode !== 'undefined' && notesListViewMode === 'timeline') renderTimeline();
 }
 
@@ -1899,6 +2182,7 @@ async function cleanupOrphanedAttachments() {
     const removed = Number(data.removed_count || 0);
     const missing = Number(data.missing_count || 0);
     const refs = Number(data.referenced_count || 0);
+    scheduleAttachmentStorageSidebarRefresh(true);
     showToast(`✓ Attachment cleanup complete: removed ${removed} orphaned file(s), ${refs} referenced, ${missing} missing reference(s)`);
   } catch (err) {
     showToast(`⚠ ${err.message || 'Attachment cleanup failed'}`, 'err');

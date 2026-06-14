@@ -136,6 +136,9 @@ function setSyntaxTheme(name) {
 
   if (typeof cmInitNote === 'function') cmInitNote(noteContent);
   if (typeof cmInitKb === 'function') cmInitKb(kbContent);
+  if (typeof renderNoteUnifiedSurface === 'function' && typeof noteUnifiedPreview !== 'undefined' && noteUnifiedPreview) {
+    void renderNoteUnifiedSurface();
+  }
 }
 
 function initSyntaxThemePicker() {

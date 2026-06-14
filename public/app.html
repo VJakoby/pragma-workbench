@@ -175,7 +175,12 @@
     </div>
 
     <button class="cmd-trigger" onclick="openCmd()" title="⌘K">
-      <span class="cmd-trigger-icon">⌘</span>
+      <span class="cmd-trigger-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 10,12 4,18"/>
+          <line x1="12" y1="18" x2="20" y2="18"/>
+        </svg>
+      </span>
       <span class="cmd-trigger-text">Quick open, search anything…</span>
       <span class="cmd-trigger-kbd">⌘K</span>
     </button>
@@ -433,7 +438,7 @@
               <div class="note-md-hint">
                 <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>
                 <span><code>`code`</code></span><span><code>```block```</code></span><span>- list</span><span>> quote</span>
-                <span title="Wiki link to another note">[[link]]</span>
+                <span title="Engagement link by target and note title">[en:target:note-title]</span><span title="KB link by document id">[kb:service:ssh]</span>
               </div>
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts">Created: <strong id="noteCreatedAt">—</strong></span>
@@ -665,7 +670,12 @@
 <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdIfOutside(event)">
   <div class="cmd-box">
     <div class="cmd-input-row">
-      <span class="cmd-input-icon">⌘</span>
+      <span class="cmd-input-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 10,12 4,18"/>
+          <line x1="12" y1="18" x2="20" y2="18"/>
+        </svg>
+      </span>
       <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, tactics, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
       <span class="cmd-esc">ESC</span>
     </div>

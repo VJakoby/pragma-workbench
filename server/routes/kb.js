@@ -17,6 +17,7 @@ function registerKbRoutes(app, deps) {
     normalizeKbFilename,
     safeCategoryPath,
     normalizeFolderName,
+    unifiedSearchIndex,
   } = deps;
 
   function getServiceCategoryRoots() {
@@ -131,6 +132,14 @@ function registerKbRoutes(app, deps) {
     res.json({ total: items.length, items });
   });
 
+  app.get('/api/unified-search-index', (req, res) => {
+    if (!unifiedSearchIndex) {
+      return res.status(503).json({ error: 'Unified search index not available' });
+    }
+    const items = unifiedSearchIndex.getIndexData({ fresh: true });
+    res.json({ total: items.length, items });
+  });
+
   app.get('/api/kb-section/:folder', (req, res) => {
     const section = getRootKbSection(req.params.folder);
     if (!section) return res.status(404).json({ error: 'KB section not found' });
@@ -236,7 +245,7 @@ function registerKbRoutes(app, deps) {
         id: svc.id,
         title: svc.name,
         page_name: svc.file,
-        source_name: `knowledge_base/${svc.file}`,
+        source_name: `knowledge-base/${svc.file}`,
         source_id: svc.id,
         url: `file://${svc.filepath}`,
         file_path: svc.filepath,

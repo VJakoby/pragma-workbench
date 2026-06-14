@@ -1,97 +1,37 @@
-# PRAGMA Ecosystem Setup
+# PRAGMA Setup
 
-This document explains the setup around:
+This guide focuses on the practical setup of PRAGMA itself.
+It covers the simple local-first setup, optional components, runtime paths, and first-run validation.
 
-- `PRAGMA` — the main workbench
-- `ENGRAM` — optional indexed search backend
-- `PRAGMA // Toolbox` — optional adjacent toolbox
+Core setup is straightforward:
+- PRAGMA runs on its own
+- the normal setup already includes a usable local `knowledge-base/` path
+- that KB can start empty and you can build it gradually
+- setup becomes meaningfully more complex only when ENGRAM is added as a separate integration
 
-Use this as the short ecosystem/setup guide. It focuses on runtime layout, KB structure, and integration points. For container details, see [DOCKER.md](./DOCKER.md).
-
----
-
-## 1. What Each Piece Is
-
-### PRAGMA
-
-PRAGMA is the core application.
-
-It owns:
-- sessions
-- notes
-- KB browsing
-- TODO / Log / Loot / Evidence
-- local workflow state
-
-PRAGMA works on its own.
-
-### ENGRAM
-
-ENGRAM is optional.
-
-It adds indexed external source search to PRAGMA's `KB Search` view through `SEARCH_URL`.
-
-If ENGRAM is not running:
-- PRAGMA still works
-- local KB search still works
-- only the external indexed search surface is unavailable
-
-### PRAGMA // Toolbox
-
-PRAGMA // Toolbox is optional.
-
-It is not a dependency of PRAGMA. Treat it as adjacent tooling rather than part of the PRAGMA runtime.
+For container details, see `DOCKER.md`.
 
 ---
 
-## 2. Recommended Setup
+## 1. What Is Required
 
-The preferred setup is:
+Required:
+- the PRAGMA repo
+- a writable session storage path
+- Node or Docker, depending on how you run it
 
-- ENGRAM running and reachable through `SEARCH_URL`
-- persistent host storage for `sessions/`
-- a curated host-backed `knowledge_base/`
+Optional:
+- a personal `knowledge-base/`
+- ENGRAM through `SEARCH_URL`
+- PRAGMA Toolbox or other adjacent tooling
 
-Practical path advice:
-
-- keep the repo and runtime data in separate folders
-- keep `sessions/` on persistent storage
-- point `knowledge_base/` to the KB tree you actually maintain, not a temporary scratch folder
-
----
-
-## 3. Required vs Optional
-
-### Minimum
-
-`PRAGMA`
-
-Gives you:
-- notes
-- sessions
-- local KB
-- local search
-- TODO / Log / Evidence
-
-### Preferred
-
-`PRAGMA + ENGRAM`
-
-Gives you:
-- everything above
-- indexed external search inside `KB Search`
-
-### Optional broader ecosystem
-
-`PRAGMA + ENGRAM + PRAGMA // Toolbox`
-
-Use this only if you want PRAGMA // Toolbox as separate supporting tooling.
+PRAGMA works without ENGRAM and without a populated KB.
 
 ---
 
-## 4. Recommended File Structure
+## 2. Recommended Local Layout
 
-Preferred workspace layout:
+A clean local layout is:
 
 ```text
 operator-workspace/
@@ -99,13 +39,40 @@ operator-workspace/
 │   └── ...repo...
 ├── pragma-data/
 │   ├── sessions/
-│   └── knowledge_base/
+│   └── knowledge-base/
 └── optional/
     ├── engram/
-    └── matrix-toolbox/
+    └── toolbox/
 ```
 
-Preferred PRAGMA runtime layout:
+This keeps:
+- repo code
+- session data
+- KB content
+- optional supporting tools
+
+separate from each other.
+
+---
+
+## 3. Runtime Paths
+
+The main runtime paths are:
+- `SESSIONS_DIR`
+- `KB_DIR`
+- `SEARCH_URL`
+
+Recommended behavior:
+- keep `SESSIONS_DIR` on persistent host storage
+- point `KB_DIR` at the KB you actually maintain
+- use `SEARCH_URL` only if ENGRAM is running
+
+In the default/basic setup:
+- `knowledge-base/` is available from the start
+- it is valid for that directory to be empty initially
+- ENGRAM is not required to begin building and using your own KB
+
+Recommended PRAGMA data layout:
 
 ```text
 pragma-data/
@@ -114,122 +81,143 @@ pragma-data/
 │   ├── pragma.workbench.enc
 │   ├── attachments/
 │   └── backup/
-└── knowledge_base/
-    ├── services/            # Directory must exist
-    ├── tactics/             # Directory must exist
-    └── <other-sections>/    # Can be whatever
+└── knowledge-base/
+    ├── services/
+    ├── tactics/
+    └── <other-sections>/
 ```
-
-This keeps:
-- repo code
-- runtime state
-- optional external tools
-
-cleanly separated.
 
 ---
 
-## 5. Recommended KB Structure
+## 4. Knowledge Base Setup
 
-PRAGMA expects:
+PRAGMA expects these top-level KB folders:
+- `services/` -> `Services`
+- `tactics/` -> `Tactics`
+- any other top-level folder -> its own KB section
 
-- `knowledge_base/services/` -> `Services`
-- `knowledge_base/tactics/` -> `Tactics`
-- other top-level folders -> separate KB sections
-
-Recommended shape:
+Recommended structure:
 
 ```text
-knowledge_base/
+knowledge-base/
 ├── services/
 │   ├── smb.md
 │   ├── ssh.md
 │   └── winrm.md
 ├── tactics/
 │   ├── active-directory.md
-│   ├── pivoting.md
-│   └── kerberos.md
-├── attacks/
+│   ├── kerberos.md
+│   └── pivoting.md
 ├── web/
-└── windows/
+├── windows/
+└── attacks/
 ```
 
-Preferred KB style:
+Recommended practice:
+- keep KB content curated and reusable
+- keep scratch notes in sessions, not in the KB
+- prefer shallow top-level folders over deep trees
 
-- one topic per markdown file
-- shallow, meaningful top-level sections
-- curated content, not scratch notes dumped into the KB
+If your KB lives elsewhere, using a symlink into `./knowledge-base` is a good local setup pattern.
 
-Less ideal:
+If you do not already have a KB:
+- leave `knowledge-base/` in place
+- start with empty `services/` and `tactics/`
+- add files as your own library grows
 
-- very deep folder trees
-- huge mixed-topic markdown files
-- mixing scratchpad content with reusable KB content
+That is still a complete and valid setup.
 
 ---
 
-## 6. Important Paths and Config
+## 5. Environment and Bootstrap
 
-Main PRAGMA runtime paths:
+Typical first-run flow:
 
-- `KB_DIR`
+1. create or copy your environment file
+2. set session and KB paths if you do not want defaults
+3. start PRAGMA with Node or Docker
+4. verify the session store and optional KB mount are working
+
+Important values to check:
 - `SESSIONS_DIR`
-
-Most important integration setting:
-
-- `SEARCH_URL` -> ENGRAM endpoint
-
-Common examples:
-
-- local ENGRAM: `http://localhost:3002`
-- Docker/shared network: `http://engram:3002`
-
-In Docker-oriented setups, you will most often care about:
-
-- `PRAGMA_UID`
-- `PRAGMA_GID`
-- `PRAGMA_KB_PATH`
-- `PRAGMA_SESSIONS_PATH`
+- `KB_DIR`
 - `SEARCH_URL`
+- Docker-oriented path variables if you run containers
+
+If ENGRAM is not present, leave `SEARCH_URL` unset or point it only when available.
 
 ---
 
-## 7. Suggested Startup Order
+## 6. Common Setup Patterns
+
+### Minimal local setup
+
+Use this when you only want PRAGMA itself:
+- local session storage
+- local KB available from the start, even if empty
+- no ENGRAM
+
+This gives you:
+- sessions
+- notes
+- Quick Log
+- Evidence
+- local KB browsing
+- local search
+
+### Preferred daily setup
+
+Use this when PRAGMA is part of your normal workflow:
+- persistent `sessions/`
+- maintained `knowledge-base/`
+- ENGRAM reachable through `SEARCH_URL`
+
+This gives you everything above plus indexed external search.
+
+### Adjacent-tooling setup
+
+Use this only if you also run Toolbox or other side utilities.
+PRAGMA does not require them.
+
+---
+
+## 7. First-Run Validation
+
+After startup, validate these points:
+
+1. the app opens and creates/loads a session normally
+2. notes save without errors
+3. attachments and backup/session files are written to the expected session path
+4. KB sections load if `KB_DIR` is configured
+5. `KB Search` only expects ENGRAM if `SEARCH_URL` is configured
+
+If something is wrong, check path mapping first before assuming an app issue.
+
+---
+
+## 8. Startup Order
 
 ### PRAGMA only
-
-1. Start PRAGMA
+1. start PRAGMA
 
 ### PRAGMA + ENGRAM
+1. start ENGRAM
+2. start PRAGMA
+3. verify `KB Search` can reach ENGRAM
 
-1. Start ENGRAM
-2. Start PRAGMA
-3. Confirm `ENGRAM` is reachable in `KB Search`
-
-### PRAGMA + ENGRAM + PRAGMA // Toolbox
-
-1. Start supporting tooling as needed
-2. Start ENGRAM
-3. Start PRAGMA
+### PRAGMA + optional side tooling
+1. start the side tooling when needed
+2. start ENGRAM if used
+3. start PRAGMA
 
 ---
 
-## 8. Summary
+## 9. Practical Summary
 
 Short version:
-
-- `PRAGMA` is the required core
-- `ENGRAM` is the preferred optional search backend
-- `PRAGMA // Toolbox` is optional supporting tooling
-
-Best practical setup:
-
-- persistent `sessions/`
-- curated `knowledge_base/`
-- ENGRAM wired through `SEARCH_URL`
-
-If ENGRAM is absent:
-
-- PRAGMA still runs normally
-- local KB search still works
-- only indexed external search is unavailable
+- PRAGMA is the only required component
+- the local KB path is part of the normal setup and may start empty
+- ENGRAM is optional but useful
+- keep repo code and runtime data separate
+- keep `sessions/` persistent
+- build KB content gradually as your own reusable library

@@ -2,7 +2,7 @@
 .env
 .gitignore
 screenshots
-knowledge_base
+knowledge-base
 sessions
 node_modules
 README.md

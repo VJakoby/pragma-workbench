@@ -37,6 +37,45 @@ const NOTE_TEMPLATES_FALLBACK = {
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
+let shouldPromptForSessionOnStartup = false;
+
+function normalizeLoadedWorkbenchState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { notes: {}, sessions: {} };
+  }
+  const hasCompositeShape = Object.prototype.hasOwnProperty.call(raw, 'notes')
+    || Object.prototype.hasOwnProperty.call(raw, 'sessions');
+  const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
+    ? raw.sessions
+    : {};
+  const rawNotesState = hasCompositeShape
+    ? (raw.notes && typeof raw.notes === 'object' && !Array.isArray(raw.notes) ? raw.notes : {})
+    : raw;
+  const sessionIds = new Set(Object.keys(sessionsState));
+  const hasSessions = sessionIds.size > 0;
+  const notesState = hasSessions
+    ? Object.fromEntries(Object.entries(rawNotesState || {}).filter(([, note]) => {
+        if (!note || typeof note !== 'object' || Array.isArray(note)) return false;
+        const sessionId = note.session_id == null ? null : String(note.session_id || '').trim();
+        return !!sessionId && sessionIds.has(sessionId);
+      }))
+    : {};
+  return {
+    notes: notesState,
+    sessions: sessionsState,
+  };
+}
+
+function hasMeaningfulWorkbenchState(state) {
+  if (!state || typeof state !== 'object') return false;
+  return Object.keys(state.notes || {}).length > 0 || Object.keys(state.sessions || {}).length > 0;
+}
+
+function preferNonEmptyWorkbenchState(primary, fallback) {
+  if (hasMeaningfulWorkbenchState(primary)) return primary;
+  if (hasMeaningfulWorkbenchState(fallback)) return fallback;
+  return primary;
+}
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -416,6 +455,7 @@ async function toggleEncryptedStorage(e) {
 }
 
 async function initNotes() {
+  const cachedLocalState = normalizeLoadedWorkbenchState(JSON.parse(localStorage.getItem('ops-notes-v2') || '{}'));
   try {
     const r = await fetch('/api/notes');
     const d = await r.json();
@@ -444,13 +484,11 @@ async function initNotes() {
       encryptedStorageHint     = encObj.hint || '';
       updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
-      notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-      sessions = parsed.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
       setEncryptedCache(encObj);
       localStorage.removeItem('ops-notes-v2');
     } else {
-      notes    = (d.notes !== undefined ? d.notes : d) || {};
-      sessions = d.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(d), cachedLocalState));
       localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
       clearEncryptedCache();
       encryptedStorageEnabled  = false;
@@ -487,15 +525,13 @@ async function initNotes() {
           encryptedStorageHint     = encObj.hint || '';
           updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
-          notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-          sessions = parsed.sessions || {};
+          ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
           setEncryptedCache(encObj);
         }
       }
       if (!encryptedStorageEnabled) {
         const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
-        notes    = cached.notes || {};
-        sessions = cached.sessions || {};
+        ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(cached), cachedLocalState));
       }
     } catch (innerErr) {
       if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
@@ -507,8 +543,13 @@ async function initNotes() {
   }
 
   const savedSid = localStorage.getItem('ops-active-session');
-  if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
-  else if (Object.keys(sessions).length) activeSessionId = Object.keys(sessions)[0];
+  if (savedSid && sessions[savedSid]) {
+    activeSessionId = savedSid;
+    shouldPromptForSessionOnStartup = false;
+  } else {
+    activeSessionId = null;
+    shouldPromptForSessionOnStartup = true;
+  }
 
   renderSessionSidebar();
   renderNotesList();
@@ -522,6 +563,8 @@ async function initNotes() {
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+  } else {
+    activeTargetId = null;
   }
   if (sess && (!sess.targets || !sess.targets.length) && (sess.target_ip || sess.target_domain)) {
     const id = 'tgt_migrate_' + sess.id;
@@ -595,7 +638,7 @@ function renderSessionSidebar() {
     name.textContent = sess.codename;
     name.title = sess.codename || '';
     if (card) card.title = sess.codename || 'Sessions';
-    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
+    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : (sess.domain || '— click to set');
     target.textContent = targetLabel;
     target.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
@@ -622,9 +665,11 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionDomain').value = '';
   document.getElementById('newSessionTargetIP').value = '';
   document.getElementById('newSessionTargetDomain').value = '';
   document.getElementById('newSessionTargetLabel').value = '';
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   syncSummaryExportPrefsUI();
   renderSessionList();
@@ -634,21 +679,113 @@ function openSessionModal() {
 
 function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
 
+function getSessionFormRefs(source = 'session') {
+  return source === 'welcome'
+    ? {
+        name: document.getElementById('welcomeSessionName'),
+        domain: document.getElementById('welcomeSessionDomain'),
+        targetIp: document.getElementById('welcomeSessionTargetIP'),
+        targetDomain: document.getElementById('welcomeSessionTargetDomain'),
+        targetLabel: document.getElementById('welcomeSessionTargetLabel'),
+      }
+    : {
+        name: document.getElementById('newSessionName'),
+        domain: document.getElementById('newSessionDomain'),
+        targetIp: document.getElementById('newSessionTargetIP'),
+        targetDomain: document.getElementById('newSessionTargetDomain'),
+        targetLabel: document.getElementById('newSessionTargetLabel'),
+      };
+}
+
+function clearSessionForm(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  if (!refs.name) return;
+  refs.name.value = '';
+  if (refs.domain) refs.domain.value = '';
+  refs.targetIp.value = '';
+  refs.targetDomain.value = '';
+  refs.targetLabel.value = '';
+}
+
+function renderWelcomeSessionList() {
+  const list = document.getElementById('welcomeSessionList');
+  if (!list) return;
+  const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!entries.length) {
+    list.innerHTML = `
+      <div class="welcome-session-empty">
+        <div class="welcome-session-empty-title">No sessions yet</div>
+        <div class="welcome-session-empty-copy">Create your first session or import an existing <code>.session</code> file to begin.</div>
+      </div>`;
+    return;
+  }
+  const noteCount = (id) => Object.values(notes).filter((n) => n.session_id === id).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
+  list.innerHTML = entries.map((session) => {
+    const targets = Array.isArray(session.targets) ? session.targets : [];
+    const targetLabel = targets[0]
+      ? (targets[0].label || targets[0].ip || targets[0].domain || 'target')
+      : 'No targets yet';
+    return `
+      <button class="welcome-session-card${session.id === activeSessionId ? ' active' : ''}" type="button" onclick="selectWelcomeSession('${session.id}')">
+        <div class="welcome-session-card-top">
+          <div class="welcome-session-card-title">${esc(session.codename || 'Untitled Session')}</div>
+          <div class="session-status-pill ${session.status || 'active'}">
+            <span class="status-dot ${session.status || 'active'}"></span>${statusLabel[session.status || 'active'] || 'Active'}
+          </div>
+        </div>
+        <div class="welcome-session-card-meta">${noteCount(session.id)} notes · ${targets.length} target${targets.length !== 1 ? 's' : ''} · ${new Date(session.created || Date.now()).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="welcome-session-card-target">Session domain: ${esc(session.domain || '—')}</div>
+        <div class="welcome-session-card-target">Primary target: ${esc(targetLabel)}</div>
+      </button>`;
+  }).join('');
+}
+
+function openWelcomeSessionModal() {
+  renderWelcomeSessionList();
+  clearSessionForm('welcome');
+  const feedback = document.getElementById('welcomeImportFeedback');
+  if (feedback) feedback.style.display = 'none';
+  const overlay = document.getElementById('welcomeSessionOverlay');
+  const esc = document.getElementById('welcomeSessionEsc');
+  if (esc) esc.style.display = activeSessionId ? '' : 'none';
+  overlay?.classList.add('open');
+  setTimeout(() => document.getElementById('welcomeSessionName')?.focus(), 60);
+}
+
+function closeWelcomeSessionModal(force = false) {
+  if (!force && !activeSessionId) return;
+  document.getElementById('welcomeSessionOverlay')?.classList.remove('open');
+}
+
+function shouldOpenWelcomeSessionModalOnStartup() {
+  if (!shouldPromptForSessionOnStartup) return false;
+  openWelcomeSessionModal();
+  return true;
+}
+
+function selectWelcomeSession(id) {
+  if (!sessions[id]) return;
+  switchSession(id);
+  closeWelcomeSessionModal(true);
+}
+
 function renderSessionList() {
   const list = document.getElementById('sessionList');
   const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!list) return;
   if (!entries.length) {
-    list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
+    list.innerHTML = '<div class="session-list-empty">No sessions yet. Create your first engagement session above or import an existing <code>.session</code> file.</div>';
     return;
   }
   const noteCount   = id => Object.values(notes).filter(n => n.session_id === id).length;
   const targetCount = id => (sessions[id]?.targets || []).length;
   const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
-  list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
-    entries.map(s => {
+  list.innerHTML = entries.map(s => {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      const sessionDomain = s.domain ? ` · domain ${esc(s.domain)}` : '';
       const attacker = s.attacker_ip ? ` · attacker ${esc(s.attacker_ip)}` : '';
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
@@ -658,7 +795,7 @@ function renderSessionList() {
         </div>
         <div class="session-list-item-name">${esc(s.codename)}</div>
       </div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${sessionDomain}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-item-actions">
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
@@ -671,12 +808,14 @@ function renderSessionList() {
     }).join('');
 }
 
-function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
-  const targetIp = document.getElementById('newSessionTargetIP').value.trim();
-  const targetDomain = document.getElementById('newSessionTargetDomain').value.trim();
-  const targetLabel = document.getElementById('newSessionTargetLabel').value.trim();
-  if (!name) { document.getElementById('newSessionName').focus(); return; }
+async function createSession(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  const name = refs.name?.value.trim() || '';
+  const sessionDomain = refs.domain?.value.trim() || '';
+  const targetIp = refs.targetIp?.value.trim() || '';
+  const targetDomain = refs.targetDomain?.value.trim() || '';
+  const targetLabel = refs.targetLabel?.value.trim() || '';
+  if (!name) { refs.name?.focus(); return; }
   const id = 'sess_' + Date.now();
   const targets = [];
   if (targetIp || targetDomain || targetLabel) {
@@ -687,21 +826,37 @@ function createSession() {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
+  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], evidence: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   }
   switchSession(id);
-  saveNotes();
+  await saveNotes({ reason: 'session-create', immediate: true });
   renderSessionList();
+  renderWelcomeSessionList();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
-  document.getElementById('newSessionName').value = '';
-  document.getElementById('newSessionTargetIP').value = '';
-  document.getElementById('newSessionTargetDomain').value = '';
-  document.getElementById('newSessionTargetLabel').value = '';
+  clearSessionForm(source);
+  if (source === 'welcome') closeWelcomeSessionModal(true);
+  if (source === 'session') closeSessionModal();
+}
+
+function updateSessionDomainField() {
+  const wrap = document.getElementById('sessionDomainFieldWrap');
+  const input = document.getElementById('sessionDomainInput');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !input) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  input.value = sess.domain || '';
 }
 
 function updateSessionAttackerIpField() {
@@ -755,6 +910,22 @@ function syncSummaryExportPrefsUI() {
       };
     }
   }
+}
+
+function saveActiveSessionDomain() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const input = document.getElementById('sessionDomainInput');
+  if (!sess || !input) return;
+  const next = input.value.trim();
+  if ((sess.domain || '') === next) return;
+  sess.domain = next;
+  saveNotes();
+  renderSessionList();
+  renderWelcomeSessionList();
+  renderSessionSidebar();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  showToast(next ? `✓ Session domain set: ${next}` : '✓ Session domain cleared');
 }
 
 function saveActiveSessionAttackerIp() {
@@ -824,6 +995,8 @@ function setSessionStatus(e, sessId, status) {
 }
 
 function switchSession(id) {
+  if (!sessions[id]) return;
+  shouldPromptForSessionOnStartup = false;
   activeSessionId = id;
   localStorage.setItem('ops-active-session', id);
   activeNoteScope = 'session';
@@ -835,16 +1008,24 @@ function switchSession(id) {
     b.classList.toggle('active', b.dataset.scope === 'session'));
   const sess = sessions[id];
   const targets = (sess && sess.targets) || [];
+  const rememberedTarget = typeof getRememberedTargetForSession === 'function' ? getRememberedTargetForSession(id) : '';
   const savedTarget = localStorage.getItem('ops-active-target');
-  if (savedTarget && targets.find(t => t.id === savedTarget)) {
+  if (rememberedTarget && targets.find((t) => t.id === rememberedTarget)) {
+    activeTargetId = rememberedTarget;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  } else if (savedTarget && targets.find((t) => t.id === savedTarget)) {
     activeTargetId = savedTarget;
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else {
     activeTargetId = null;
+    if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   }
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
@@ -854,6 +1035,7 @@ function switchSession(id) {
   renderTodoList();
   if (typeof renderEvidenceList === 'function') renderEvidenceList();
   if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  closeWelcomeSessionModal(true);
 }
 
 async function deleteSession(id) {
@@ -870,6 +1052,7 @@ async function deleteSession(id) {
   });
 
   delete sessions[id];
+  if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   if (activeSessionId === id) {
     activeSessionId = Object.keys(sessions)[0] || null;
     if (activeSessionId) localStorage.setItem('ops-active-session', activeSessionId);
@@ -877,6 +1060,7 @@ async function deleteSession(id) {
   }
   saveNotes();
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
   renderSessionList();
   renderNotesList();
@@ -941,7 +1125,8 @@ async function renameSession(id) {
 async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const fb = document.getElementById('importFeedback');
+  const source = event.target.dataset.source || 'session';
+  const fb = document.getElementById(event.target.dataset.feedbackId || 'importFeedback');
   fb.style.display = 'block';
   fb.className = 'import-feedback';
   fb.textContent = '⏳ Importing…';
@@ -1010,13 +1195,14 @@ async function importSession(event) {
         return {
           codename: String(session.codename || 'Imported Session'),
           created: Number(session.created) || Date.now(),
+          domain: String(session.domain || ''),
           attacker_ip: String(session.attacker_ip || ''),
           status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
           imported_from: String(session.codename || ''),
           targets: cleanTargets,
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
-          loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
           evidence: cloneList(session.evidence, [['id'], ['target_id'], ['note_id'], ['type'], ['title'], ['details'], ['impact'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
@@ -1067,9 +1253,11 @@ async function importSession(event) {
       saveNotes();
       switchSession(newSessId);
       renderSessionList();
+      renderWelcomeSessionList();
 
       fb.className = 'import-feedback ok';
       fb.textContent = '✓ Imported "' + importedSess.codename + '" — ' + noteCount + ' note' + (noteCount !== 1 ? 's' : '');
+      if (source === 'welcome') closeWelcomeSessionModal(true);
       setTimeout(() => { fb.style.display = 'none'; }, 4000);
     } catch (err) {
       fb.className = 'import-feedback err';

@@ -25,6 +25,7 @@ const { marked } = require('marked');
 const { createPaths } = require('./config/paths');
 const { sanitizeRenderedHtml } = require('./lib/html-sanitize');
 const { createKbIndex } = require('./lib/kb-index');
+const { createUnifiedSearchIndex } = require('./lib/unified-search-index');
 const { runStartupIntegrityCheck } = require('./lib/startup-check');
 const { createWorkbenchStorage } = require('./lib/workbench-storage');
 const { registerKbRoutes } = require('./routes/kb');
@@ -62,6 +63,13 @@ const normalizeKbFilename = kbIndex.normalizeKbFilename;
 const safeCategoryPath = kbIndex.safeCategoryPath;
 const normalizeFolderName = kbIndex.normalizeFolderName;
 const storage = createWorkbenchStorage({ sessionsDir: SESSIONS_DIR, initialWorkbenchName: 'pragma' });
+const unifiedSearchIndex = createUnifiedSearchIndex({
+  kbDir: KB_DIR,
+  servicesDir: SERVICES_DIR,
+  tacticsDir: TACTICS_DIR,
+  sessionsDir: SESSIONS_DIR,
+  storage,
+});
 
 marked.setOptions({ gfm: true, breaks: false });
 function preprocessImageResizeMarkdown(markdown) {
@@ -93,10 +101,47 @@ function normalizeAlternateLinkSyntax(markdown) {
   return String(markdown || '')
     .replace(/(?<!\!)\(([^()\n]+)\)\[([^\]\n]+)\]/g, '[$1]($2)');
 }
+function formatKbLinkLabel(target) {
+  const source = String(target || '').trim();
+  const parts = source.split(':');
+  if (parts.length < 3 || parts[0].toLowerCase() !== 'kb') return source;
+  const id = parts.slice(2).join(':')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return `KB ${id || parts[1]}`.toUpperCase();
+}
+function formatEngagementLinkLabel(target) {
+  const source = String(target || '').trim();
+  const parts = source.split(':');
+  if (parts.length < 3 || parts[0].toLowerCase() !== 'en') return source;
+  const targetLabel = String(parts[1] || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const noteLabel = parts.slice(2).join(':')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const segments = [targetLabel, noteLabel].filter(Boolean).map((part) => part.toUpperCase());
+  return segments.length ? `EN ${segments.join(' / ')}` : source.toUpperCase();
+}
+function normalizeKbLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\[(kb:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatKbLinkLabel(target)}](#${target})`);
+}
+function normalizeEngagementLinkSyntax(markdown) {
+  return String(markdown || '')
+    .replace(/(?<!\!)\[(en:[^\]\n]+:[^\]\n]+)\](?!\()/gi, (_, target) => `[${formatEngagementLinkLabel(target)}](#${target})`);
+}
 const renderMarkdown = (markdown) => sanitizeRenderedHtml(
   marked.parse(
     preprocessImageResizeMarkdown(
-      normalizeAlternateLinkSyntax(markdown)
+      normalizeEngagementLinkSyntax(
+        normalizeKbLinkSyntax(
+          normalizeAlternateLinkSyntax(markdown)
+        )
+      )
     )
   )
 );
@@ -153,6 +198,7 @@ registerKbRoutes(app, {
   normalizeKbFilename,
   safeCategoryPath,
   normalizeFolderName,
+  unifiedSearchIndex,
 });
 
 registerSearchProxyRoutes(app, { searchUrl: SEARCH_URL });

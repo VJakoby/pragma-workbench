@@ -8,7 +8,7 @@
       <button class="target-selector-copy target-selector-copy-ip" id="targetSelectorCopy" title="Copy IP" onclick="copyActiveTargetIP()" aria-label="Copy active target IP">
         <span class="target-copy-text" id="targetCopyIpText">—</span>
       </button>
-      <button class="target-selector-main" id="targetSelectorMain" onclick="openTargetsPanel()" title="Open targets">
+      <button class="target-selector-main" id="targetSelectorMain" onclick="openContextSwitcher()" title="Switch target or session">
         <div class="target-sel-dot" id="targetSelDot"></div>
         <span class="target-sel-label target-sel-label-main" id="targetSelLabel">No target</span>
         <span class="target-sel-edit" onclick="event.stopPropagation(); editActiveTargetQuick()" title="Edit active target" aria-label="Edit active target">
@@ -25,22 +25,21 @@
       </button>
     </div>
 
-    <%- include('topbar-utility-panels') %>
-
-    <button class="cmd-trigger" onclick="openCmd()" title="Quick open (Cmd+K)">
+    <button class="cmd-trigger" onclick="openCmd()" title="Unified search (Cmd+K)">
       <span class="cmd-trigger-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"/>
-          <path d="m20 20-3.5-3.5"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 10,12 4,18"/>
+          <line x1="12" y1="18" x2="20" y2="18"/>
         </svg>
       </span>
-      <span class="cmd-trigger-text">Quick open, search anything&hellip;</span>
+      <span class="cmd-trigger-text">Unified search&hellip;</span>
       <span class="cmd-trigger-kbd">Cmd+K</span>
     </button>
 
-    <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
+    <%- include('topbar-utility-panels') %>
 
     <div class="topbar-actions">
+      <button class="tb-btn" onclick="openShortcutsModal()" title="Keyboard shortcuts">?</button>
       <div class="theme-toggle" id="themeBtn" role="group" aria-label="Theme selector">
         <button class="theme-toggle-btn" id="themeLightBtn" onclick="setTheme('light')" title="Use light theme" aria-label="Use light theme" aria-pressed="false">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
