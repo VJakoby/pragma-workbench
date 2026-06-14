@@ -305,6 +305,18 @@ function formatLootHostDisplay(entry) {
   return base + ' // ' + targetLabel;
 }
 
+function formatLootTargetSummaryDisplay(entry) {
+  const hostText = String(entry?.host || '').trim();
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  if (!target) return hostText || '—';
+  const ip = String(target.ip || '').trim();
+  const label = String(target.label || '').trim();
+  const domain = String(target.domain || '').trim();
+  const primary = label || domain || ip || hostText || '—';
+  if (!ip || primary.toLowerCase() === ip.toLowerCase()) return primary;
+  return primary + ' (' + ip + ')';
+}
+
 function getSessionNotesForFindings() {
   if (!activeSessionId) return [];
   return Object.values(notes)
@@ -2617,7 +2629,7 @@ function parseLootForCredentialsRow(entry) {
     username: escapeCredentialsCell(username),
     password: escapeCredentialsCell(password),
     hash: escapeCredentialsCell(hash),
-    service: escapeCredentialsCell(host),
+    service: escapeCredentialsCell(formatLootTargetSummaryDisplay(entry)),
     notes: escapeCredentialsCell(note),
   };
 }

@@ -1396,7 +1396,7 @@ function buildEngagementSummaryNoteBody(sessionId) {
 
   const credentialRows = loot.map((entry) => {
     const target = entry?.target_id ? targets.find((item) => item.id === entry.target_id) : null;
-    const host = entry?.host || target?.label || target?.ip || target?.domain || 'Session-wide';
+    const host = target ? formatGeneratedTargetIdentity(target) : (entry?.host || 'Session-wide');
     const context = [entry?.note, target?.domain].filter(Boolean).join(' · ') || '—';
     return `| ${escapeGeneratedNoteTableCell(entry?.type || 'loot')} | ${escapeGeneratedNoteTableCell(formatGeneratedInlineCode(entry?.credential || ''))} | ${escapeGeneratedNoteTableCell(host)} | ${escapeGeneratedNoteTableCell(context)} |`;
   });
