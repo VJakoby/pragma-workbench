@@ -238,6 +238,7 @@ function createTargetFromContextSwitcher(value) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   refreshTargetScopedQuickLogUi();
   showToast('✓ Target created: ' + next);
   return true;
@@ -545,6 +546,7 @@ function addTarget() {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   refreshTargetScopedQuickLogUi();
 }
 
@@ -555,6 +557,7 @@ function setActiveTarget(id, opts = {}) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   refreshTargetScopedQuickLogUi();
   if (opts.closeOverlay !== false) closeTargetsPanel();
 }
@@ -595,6 +598,7 @@ function deleteTarget(id) {
   renderTargetsList();
   updateTargetSelector();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   refreshTargetScopedQuickLogUi();
 }
 
@@ -656,5 +660,6 @@ async function renameTarget(id) {
   updateTargetSelector();
   if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
   renderSessionSidebar();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) renderContextSwitcherList();
 }

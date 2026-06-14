@@ -958,6 +958,7 @@ function saveActiveSessionDomain() {
   renderSessionSidebar();
   updateTargetSelector();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   showToast(next ? `✓ Session domain set: ${next}` : '✓ Session domain cleared');
 }
 
@@ -972,6 +973,7 @@ function saveActiveSessionAttackerIp() {
   renderSessionList();
   renderSessionSidebar();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   showToast(next ? `✓ Attacker IP set: ${next}` : '✓ Attacker IP cleared');
 }
 

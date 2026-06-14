@@ -1540,4 +1540,27 @@ RULES:
 - Do not redesign the theme toggle UI
 - Do not alter saved preference keys or storage behavior
 
+
+## B-39 — Refresh Injected Note Context After Target Or Session Changes
+STATUS: TODO
+
+CONTEXT:
+Injected placeholders in note preview surfaces depend on the active target and session context, but those surfaces do not currently refresh when the operator adds, switches, renames, or otherwise changes target/session context while a note remains open. This leaves stale injected values visible until the note is manually reopened or refreshed.
+
+SCOPE:
+public/app/note-editor.js
+public/app/targets.js
+public/app/workbench.js
+
+EXPECTED BEHAVIOR:
+- Open note preview surfaces should refresh automatically when active target context changes
+- Open note preview surfaces should refresh automatically when target metadata changes in ways that affect injected placeholders
+- Open note preview surfaces should refresh automatically when session-level context such as session domain or attacker IP changes
+- The change should work for standard preview and unified preview modes
+
+RULES:
+- Keep the change limited to live note-context refresh behavior
+- Do not redesign placeholder injection rules as part of this task
+- Do not force unnecessary full note reopen flows when a targeted preview refresh is sufficient
+
 END
