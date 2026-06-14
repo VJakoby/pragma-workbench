@@ -39,16 +39,6 @@ const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
 let shouldPromptForSessionOnStartup = false;
 
-function normalizeLegacySessionFindings(session) {
-  if (!session || typeof session !== 'object' || Array.isArray(session)) return session;
-  if (!Array.isArray(session.findings) && Array.isArray(session.evidence)) {
-    session.findings = session.evidence;
-  }
-  if (Object.prototype.hasOwnProperty.call(session, 'evidence')) {
-    delete session.evidence;
-  }
-  return session;
-}
 
 function normalizeLoadedWorkbenchState(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -57,7 +47,7 @@ function normalizeLoadedWorkbenchState(raw) {
   const hasCompositeShape = Object.prototype.hasOwnProperty.call(raw, 'notes')
     || Object.prototype.hasOwnProperty.call(raw, 'sessions');
   const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
-    ? Object.fromEntries(Object.entries(raw.sessions).map(([id, session]) => [id, normalizeLegacySessionFindings(session)]))
+    ? Object.fromEntries(Object.entries(raw.sessions).map(([id, session]) => [id, session]))
     : {};
   const rawNotesState = hasCompositeShape
     ? (raw.notes && typeof raw.notes === 'object' && !Array.isArray(raw.notes) ? raw.notes : {})

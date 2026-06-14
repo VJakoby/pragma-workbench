@@ -6437,30 +6437,6 @@ body.enc-active-body .content-panel {
 .svc-popover-table-wrap::-webkit-scrollbar { width: 3px; }
 .svc-popover-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); }
 
-.evidence-input-grid {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr) 160px 170px;
-  gap: 8px;
-  margin-top: 10px;
-}
-.evidence-input-select {
-  min-width: 0;
-}
-.evidence-note-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-.evidence-note-label {
-  flex: 0 0 auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
 .finding-items {
   display: flex;
   flex-direction: column;

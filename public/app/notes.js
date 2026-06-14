@@ -1625,7 +1625,7 @@ function syncActiveNoteDraft(noteId = activeNoteId) {
 
 function stripInlineFindingMarkers(text) {
   return String(text || '')
-    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->/g, '')
+    .replace(/<!--\s*pragma:findings:[^>]+:(?:start|end)\s*-->/g, '')
     .trim();
 }
 
@@ -1638,7 +1638,7 @@ function getActiveFindingEditor() {
 
 function stripFindingMarkersForExport(text) {
   return String(text || '')
-    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/<!--\s*pragma:findings:[^>]+:(?:start|end)\s*-->\n?/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trimEnd();
 }
@@ -1741,7 +1741,7 @@ function deriveFindingSummary(text, sourceCommand) {
 function extractFindingBlocksFromBody(body) {
   const text = String(body || '');
   const blocks = new Map();
-  const re = /<!--\s*pragma:evidence:([^:\s]+):start\s*-->\n?([\s\S]*?)\n?<!--\s*pragma:evidence:\1:end\s*-->/g;
+  const re = /<!--\s*pragma:findings:([^:\s]+):start\s*-->\n?([\s\S]*?)\n?<!--\s*pragma:findings:\1:end\s*-->/g;
   let match;
   while ((match = re.exec(text)) !== null) {
     blocks.set(match[1], match[2] || '');
@@ -1963,7 +1963,9 @@ function isFindingBlockAlreadyLinked(block) {
   const doc = editor.state.doc;
   const beforeLine = block.from > 0 ? doc.lineAt(Math.max(0, block.from - 1)).text : '';
   const afterLine = block.to < doc.length ? doc.lineAt(Math.min(doc.length, block.to + 1)).text : '';
-  return /pragma:evidence:/.test(block.text) || /pragma:evidence:.*:start/.test(beforeLine) || /pragma:evidence:.*:end/.test(afterLine);
+  return /pragma:findings:/.test(block.text)
+    || /pragma:findings:.*:start/.test(beforeLine)
+    || /pragma:findings:.*:end/.test(afterLine);
 }
 
 function positionFindingSelectionPrompt(prompt) {

@@ -399,8 +399,8 @@ function renderFindingProofCell(entry) {
   return lines.length ? `<div class="finding-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
-function buildLegacyFindingMarkerId(entryId) {
-  return `pragma:evidence:${entryId}`;
+function buildFindingMarkerId(entryId) {
+  return `pragma:findings:${entryId}`;
 }
 
 function getFindingSourceNoteId(entry) {
@@ -431,7 +431,7 @@ function getFindingSourceSnippet(entry) {
     ? String(sourceNote.body || '').slice(range.from, range.to)
     : String(entry.source_command || entry.summary || entry.details || '');
   const compact = String(raw || '')
-    .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
+    .replace(/<!--\s*pragma:findings:[\s\S]*?-->/g, '')
     .replace(/```[a-z0-9_-]*\n?/gi, '')
     .replace(/```/g, '')
     .replace(/\s+/g, ' ')
@@ -442,7 +442,7 @@ function getFindingSourceSnippet(entry) {
 
 function findFindingMarkerRange(body, entryId) {
   const text = String(body || '');
-  const marker = buildLegacyFindingMarkerId(entryId);
+  const marker = buildFindingMarkerId(entryId);
   const startToken = `<!-- ${marker}:start -->`;
   const endToken = `<!-- ${marker}:end -->`;
   const startIdx = text.indexOf(startToken);
@@ -459,13 +459,13 @@ function findFindingMarkerRange(body, entryId) {
 
 
 function removeFindingBlockFromBody(body, entryId) {
-  const marker = buildLegacyFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
   return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
 function unwrapFindingBlockInBody(body, entryId) {
-  const marker = buildLegacyFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`<!-- ${marker}:start -->\\n?([\\s\\S]*?)\\n?<!-- ${marker}:end -->`, 'g');
   return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
@@ -491,7 +491,7 @@ function updateFindingBlockInBody(body, entry, prevEntry) {
 }
 
 function buildFindingMarkdownBlock(entry) {
-  const marker = buildLegacyFindingMarkerId(entry.id);
+  const marker = buildFindingMarkerId(entry.id);
   const targetText = findingTargetDisplay(entry);
   const lines = [
     `<!-- ${marker}:start -->`,
@@ -513,7 +513,7 @@ function buildFindingMarkdownBlock(entry) {
 function upsertFindingBlockInBody(body, entry) {
   const cleanBody = removeFindingBlockFromBody(body, entry.id);
   const block = buildFindingMarkdownBlock(entry);
-  const sectionMatch = cleanBody.match(/^##\s+(?:Findings|Evidence)\s*$/im);
+  const sectionMatch = cleanBody.match(/^##\s+Findings\s*$/im);
   if (!sectionMatch || sectionMatch.index == null) {
     const prefix = cleanBody.trimEnd();
     return `${prefix}${prefix ? '\n\n' : ''}## Findings\n\n${block}\n`;

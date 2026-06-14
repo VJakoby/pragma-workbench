@@ -52,7 +52,7 @@ function escapeFenceContent(value) {
 
 function stripFindingMarkers(text) {
   return String(text || '')
-    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/<!--\s*pragma:findings:[^>]+:(?:start|end)\s*-->\n?/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trimEnd();
 }
@@ -235,7 +235,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
   const services = Array.isArray(session.services) ? [...session.services] : [];
   const paths = Array.isArray(session.paths) ? [...session.paths] : [];
   const loot = Array.isArray(session.loot) ? [...session.loot] : [];
-  const findings = Array.isArray(session.findings) ? [...session.findings] : (Array.isArray(session.evidence) ? [...session.evidence] : []);
+  const findings = Array.isArray(session.findings) ? [...session.findings] : [];
   const sessionEvents = Array.isArray(session.events) ? [...session.events] : [];
 
   const noteEvents = allNotes.map((note) => ({
