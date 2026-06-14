@@ -1140,6 +1140,71 @@ RULES:
 - Do not make generated notes the source of truth for linkage data
 
 ---
+
+## B-36 — Reduce Unified Search Recent Item Height
+STATUS: DONE
+
+CONTEXT:
+The previous-search cards shown in the unified search are taller than needed and take up too much vertical space compared with the amount of content they contain.
+
+SCOPE:
+public/app/styles.css
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- Previous-search cards in unified search should use a more compact height
+- The cards should remain readable and keep their existing actions usable
+- Normal unified search result rows must keep their current height and spacing
+
+RULES:
+- Keep the change limited to recent/previous-search card styling
+- Do not change unified search behavior or stored search history
+- Do not alter the sizing of other search result types
+
+---
+
+## B-37 — Deduplicate Unified Search Recent Entries
+STATUS: DONE
+
+CONTEXT:
+Unified search can show multiple recent-search cards that represent the same search term, making the recent list repetitive and reducing the variety of useful search history shown.
+
+SCOPE:
+public/app/app.js
+
+EXPECTED BEHAVIOR:
+- Unified search should show each recent search term only once
+- Repeating an existing search should move that term to the most recent position instead of adding another identical card
+- Deduplication should handle equivalent terms consistently, including accidental surrounding whitespace
+- Existing recent-search selection and removal behavior must remain unchanged
+
+RULES:
+- Keep the change limited to unified-search history storage and display
+- Do not change normal unified-search result ranking or matching
+- Preserve the current maximum number of recent searches
+
+---
+
+## B-38 — Match Create Note Tab Left Border Thickness
+STATUS: DONE
+
+CONTEXT:
+The left border of the `session-note-tab session-note-tab-create` control appears slightly thinner than the other sides, making the create button frame look uneven.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The create note tab must use the same visible border thickness on its left side as on its top, right, and bottom sides
+- The border must remain visually consistent in both light and dark mode
+- Existing create-tab sizing, spacing, hover state, and behavior must remain unchanged
+
+RULES:
+- Keep the change limited to the create note tab border styling
+- Do not redesign the hidden note-tab strip
+- Do not alter note creation behavior
+
+---
 # P3 — EXPERIMENTAL
 
 ## P3-01 — Interactive Documentation Templates

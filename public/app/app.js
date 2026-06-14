@@ -12,10 +12,26 @@ let cmdBuildSeq = 0;
 const CMD_RECENT_SEARCHES_KEY = 'pragma-cmd-recent-searches';
 const CMD_RECENT_SEARCHES_MAX = 5;
 
+function normalizeRecentSearch(query) {
+  return String(query || '').trim().toLowerCase();
+}
+
 function getRecentSearches() {
   try {
     const stored = localStorage.getItem(CMD_RECENT_SEARCHES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const seen = new Set();
+    return parsed
+      .map(query => String(query || '').trim())
+      .filter(query => {
+        const normalized = normalizeRecentSearch(query);
+        if (!normalized || seen.has(normalized)) return false;
+        seen.add(normalized);
+        return true;
+      })
+      .slice(0, CMD_RECENT_SEARCHES_MAX);
   } catch (_) {
     return [];
   }
@@ -24,7 +40,8 @@ function getRecentSearches() {
 function saveRecentSearch(query) {
   const q = String(query || '').trim();
   if (!q || q.length < 2) return;
-  const recent = getRecentSearches().filter(s => s !== q);
+  const normalized = normalizeRecentSearch(q);
+  const recent = getRecentSearches().filter(s => normalizeRecentSearch(s) !== normalized);
   recent.unshift(q);
   try {
     localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, CMD_RECENT_SEARCHES_MAX)));
@@ -32,7 +49,8 @@ function saveRecentSearch(query) {
 }
 
 function clearRecentSearch(query) {
-  const recent = getRecentSearches().filter(s => s !== query);
+  const normalized = normalizeRecentSearch(query);
+  const recent = getRecentSearches().filter(s => normalizeRecentSearch(s) !== normalized);
   try {
     localStorage.setItem(CMD_RECENT_SEARCHES_KEY, JSON.stringify(recent));
   } catch (_) {}
@@ -709,7 +727,7 @@ async function buildCmdResults(q) {
             const snippet = buildCommandPaletteKbSnippet({ content: item.content }, query);
             const metaParts = [esc(item.metadata?.category || item.type.replace('kb-', ''))];
             if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
-            if (snippet) metaParts.push(highlightCmdMatch(snippet, query));
+            if (snippet) metaParts.push(esc(snippet));
             
             let icon = ICONS.notes;
             let tag = 'recent';
@@ -741,7 +759,7 @@ async function buildCmdResults(q) {
             }
             
             cmdItems.push({ type, id, label: item.title, view, query });
-            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+            html += `<div class="cmd-item cmd-item-recent" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
               <span class="cmd-item-icon">${icon}</span>
               <div class="cmd-item-main">
                 <div class="cmd-item-title">${esc(stripLeadingEmoji(item.title))}</div>
@@ -752,7 +770,7 @@ async function buildCmdResults(q) {
             </div>`;
           } else {
             cmdItems.push({ type: 'recent-search', query, label: query });
-            html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+            html += `<div class="cmd-item cmd-item-recent" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
               <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
               <div class="cmd-item-main">
                 <div class="cmd-item-title">${esc(query)}</div>
@@ -765,7 +783,7 @@ async function buildCmdResults(q) {
       } else {
         recent.forEach(query => {
           cmdItems.push({ type: 'recent-search', query, label: query });
-          html += `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
+          html += `<div class="cmd-item cmd-item-recent" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
             <span class="cmd-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
             <div class="cmd-item-main">
               <div class="cmd-item-title">${esc(query)}</div>

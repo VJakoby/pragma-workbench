@@ -1987,12 +1987,15 @@ svg { vertical-align: middle; flex-shrink: 0; }
   color:var(--text);
   align-self:flex-end;
   margin-left:5px;
-  height:30px;
-  border:1px solid var(--border);
+  height:33px;
+  border:2px solid var(--border);
   border-radius:8px;
   box-sizing:border-box;
   overflow:hidden;
   background:color-mix(in srgb, var(--bg3) 68%, transparent);
+}
+.session-note-tab.session-note-tab-create{
+  border-left-width:2px;
 }
 .session-note-tab-group{
   display:flex;
@@ -2028,8 +2031,12 @@ svg { vertical-align: middle; flex-shrink: 0; }
   background:color-mix(in srgb, var(--bg3) 68%, transparent);
 }
 .session-note-tab-group.targeted .session-note-tab-group-tabs{
-  border-color:rgba(var(--green-rgb),0.34);
+  border-width:2px;
+  border-color:rgba(var(--green-rgb),0.38);
   box-shadow:inset 0 1px 0 rgba(var(--green-rgb),0.12);
+}
+.session-note-tab-group.unassigned .session-note-tab-group-tabs{
+  border-width:2px;
 }
 .session-note-tab-group-tabs .session-note-tab{
   border-right:1px solid var(--border);
@@ -2039,6 +2046,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .session-note-tab-group-tabs .session-note-tab:last-child{
   border-right:none;
+}
+.session-note-tab-group-tabs .session-note-tab:only-child{
+  flex-grow:1;
+  max-width:none;
 }
 
 .session-note-tab-create .session-note-tab-open{
@@ -2124,6 +2135,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   cursor:pointer;
   font-size:14px;
   line-height:1;
+}
+.session-note-tab.active .session-note-tab-open{
+  padding-right:8px;
+}
+.session-note-tab.active .session-note-tab-close{
+  margin-left:4px;
+  margin-right:1px;
 }
 .session-note-tab-close:hover{
   background:rgba(255,255,255,0.08);
@@ -3497,6 +3515,33 @@ svg { vertical-align: middle; flex-shrink: 0; }
   cursor:pointer;
   border-radius:6px;
   transition:color 0.12s ease, background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+.cmd-item.cmd-item-recent{
+  align-items:center;
+  gap:10px;
+  margin-bottom:7px;
+  padding:8px 10px;
+}
+.cmd-item.cmd-item-recent .cmd-item-icon{
+  width:28px;
+  height:28px;
+  font-size:16px;
+  border-radius:6px;
+}
+.cmd-item.cmd-item-recent .cmd-item-main{
+  gap:3px;
+}
+.cmd-item.cmd-item-recent .cmd-item-title{
+  font-size:14px;
+  line-height:1.2;
+}
+.cmd-item.cmd-item-recent .cmd-item-sub{
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  line-height:1.45;
+  -webkit-line-clamp:1;
 }
 .cmd-recent-action:hover{
   color:var(--text);
