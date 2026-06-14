@@ -1437,7 +1437,7 @@ RULES:
 
 
 ## B-37 — Increase Findings List Title Font Size
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The title text shown for findings entries in the Findings modal reads slightly smaller than ideal, which makes the list feel denser than necessary. A minor font-size increase should improve scanability without changing the layout structure.
