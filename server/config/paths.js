@@ -2,8 +2,17 @@
 
 const path = require('path');
 
+function normalizeKbDir(kbDir) {
+  const value = String(kbDir || '').trim();
+  if (!value) return value;
+  const normalized = path.normalize(value);
+  const parsed = path.parse(normalized);
+  if (parsed.base !== 'knowledge_base') return value;
+  return path.join(parsed.dir, 'knowledge-base');
+}
+
 function createPaths(rootDir) {
-  const KB_DIR = process.env.KB_DIR || path.join(rootDir, 'knowledge-base');
+  const KB_DIR = normalizeKbDir(process.env.KB_DIR || path.join(rootDir, 'knowledge-base'));
   const toolboxUrls = String(process.env.TOOLBOX_URLS || process.env.MATRIX_URLS || '')
     .split(',')
     .map(value => value.trim())
@@ -28,4 +37,4 @@ function createPaths(rootDir) {
   };
 }
 
-module.exports = { createPaths };
+module.exports = { createPaths, normalizeKbDir };

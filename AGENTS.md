@@ -6,6 +6,8 @@ Rules:
 - Only pick ONE task per run
 - Do not modify or execute tasks not selected
 - Do not infer additional tasks or unrelated improvements
+- Small in-scope follow-up fixes are allowed during an active selected task when the user explicitly requests them and they are directly adjacent to the same workflow, UI, or bug surface
+- These follow-up fixes must remain limited in scope and must be committed together with the active task rather than treated as a separate unrelated task
 - Mark tasks as completed ONLY after explicit user approval
 
 ---
