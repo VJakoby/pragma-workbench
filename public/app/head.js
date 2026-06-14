@@ -262,6 +262,41 @@
     }
 
 
+    function parseDirectNoteLinkTarget(rawHref) {
+      const source = String(rawHref || '').trim().replace(/^#/, '');
+      if (!/^note:/i.test(source)) return null;
+      const noteId = source.slice(5).trim();
+      return noteId || null;
+    }
+
+    function enhanceDirectNoteLinks(root) {
+      if (!root) return;
+      root.querySelectorAll('a[href^="#note:"], a[href^="#NOTE:"]').forEach((link) => {
+        const noteId = parseDirectNoteLinkTarget(link.getAttribute('href'));
+        if (!noteId) return;
+        const note = typeof notes === 'object' && notes ? notes[noteId] || null : null;
+        const label = String(link.textContent || '').trim() || (note?.title || noteId);
+        const el = document.createElement('span');
+        el.className = 'note-wikilink' + (note ? '' : ' broken');
+        el.textContent = label;
+        el.title = note ? ('Open note: ' + (note.title || noteId)) : ('No matching note for id: ' + noteId);
+        if (note) {
+          el.tabIndex = 0;
+          el.setAttribute('role', 'link');
+          el.addEventListener('click', () => {
+            if (typeof openNote === 'function') openNote(noteId);
+          });
+          el.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (typeof openNote === 'function') openNote(noteId);
+            }
+          });
+        }
+        link.replaceWith(el);
+      });
+    }
+
     function parseEngagementLinkTarget(rawHref) {
       const source = String(rawHref || '').trim().replace(/^#/, '');
       if (!/^en:/i.test(source)) return null;
@@ -368,6 +403,7 @@
 
       el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
       enhanceKbLinks(el);
+      enhanceDirectNoteLinks(el);
       enhanceEngagementLinks(el);
       normalizeTaskLists(el);
       if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);

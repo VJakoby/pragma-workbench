@@ -398,7 +398,6 @@
                       <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
                     </div>
                   </div>
-                  <button class="tb-btn" id="noteFlagEvidenceBtn" onclick="flagSelectionAsEvidence()" title="Flag selected block as evidence"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg> Flag</span></button>
                   <div class="notes-editor-hdr-spacer"></div>
                   <div id="noteHeaderActions" class="note-header-actions">
                     <button class="icon-btn" id="noteAttachmentCleanupBtn" onclick="cleanupOrphanedAttachments()" title="Clean orphaned attachments" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
@@ -416,6 +415,7 @@
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts" id="noteCreatedWrap">Created: <strong id="noteCreatedAt">&mdash;</strong></span>
                 <span class="note-ts" id="noteModifiedWrap">Modified: <strong id="noteModifiedAt">&mdash;</strong></span>
+                <span class="note-generated-hint" id="noteGeneratedHint" style="display:none"></span>
                 <span class="note-save-status" id="noteSaveStatus">saved</span>
               </div>
               <div class="note-tags-row" id="noteTagsRow">

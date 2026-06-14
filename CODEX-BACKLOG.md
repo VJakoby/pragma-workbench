@@ -534,6 +534,7 @@ RULES:
 
 
 ## P2-22 — Hidden Notes List Session Tab Strip
+STATUS: DONE
 
 CONTEXT:
 When the notes list is collapsed, operators lose fast visibility and switching access to the notes already open or available within the current session. This creates unnecessary friction compared to the normal split layout.
@@ -744,7 +745,7 @@ RULES:
 ---
 
 ## B-18 — Move Topbar Help Button Beside Theme Switcher
-
+STATUS: DONE
 CONTEXT:
 The `(?)` help button in the topbar currently sits away from the far-right theme controls. It should be repositioned so it lives at the far right of the topbar, directly beside the Light/Dark mode switcher, which makes the topbar controls feel more intentional and grouped.
 
@@ -767,7 +768,7 @@ RULES:
 ---
 
 ## B-19 — Add Spacing Below Hidden Note Tabs And Use Full Corner Radius
-
+STATUS: DONE
 CONTEXT:
 The hidden-notes session tab row currently sits directly against the editor surface below it, which makes the layout feel cramped and prevents the tab containers from using the same rounded treatment on all four corners.
 
@@ -789,7 +790,7 @@ RULES:
 ---
 
 ## B-20 — Some Port Service Links Do Not Resolve To Existing KB Docs
-
+STATUS: DONE
 CONTEXT:
 Certain services shown in the `Ports` Quick Log view do not link to their matching Knowledge Base documents even though the corresponding markdown file exists and the service is already represented in the KB indexing layer. One example is `RPC`, where `rpc.md` exists but the link resolution still fails.
 
@@ -811,7 +812,7 @@ RULES:
 ---
 
 ## B-21 — Unified Search Tooltip Should Match Control Label
-
+STATUS: DONE
 CONTEXT:
 The topbar control is labeled `Unified search`, but its hover tooltip still says `Quick open (Cmd+K)`. This creates inconsistent wording for the same control.
 
@@ -831,7 +832,7 @@ RULES:
 ---
 
 ## B-22 — Exclude Hidden/System Folders From Knowledge Base Indexing
-
+STATUS: DONE
 CONTEXT:
 The current Knowledge Base indexing walks directories recursively and only filters by `.md` extension. Hidden or system folders such as `.git`, `.obsidian`, `.trash`, and similar directories are not explicitly excluded. This means they can still be traversed, and any markdown files inside them could be picked up unintentionally.
 
@@ -1013,6 +1014,7 @@ RULES:
 ---
 
 ## B-32 — Rename Evidence Workflow To Findings
+STATUS: DONE
 
 CONTEXT:
 The current `Evidence` wording suggests raw proof collection, but the feature is increasingly being used as an operator-facing way to track reportable issues. In a pentest or CTF-style engagement workflow, `Findings` is clearer and better aligned with how operators think about issues they may want to summarize or report later.
@@ -1061,45 +1063,59 @@ RULES:
 
 ---
 
-## B-34 — Generate Per-Host Summary Markdown From Engagement Data
+## B-34 — Generate Engagement Summary And Target Findings Notes
+STATUS: DONE
 
 CONTEXT:
-Operators may want a report-oriented host summary that is kept current as findings are added or updated, while also pulling in other engagement data that is often scattered across notes and loot. This should be generated rather than maintained manually, so host summaries stay consistent and easier to review.
+Operators may want derived report-oriented notes that stay current as targets, Ports, Paths, Loot, and Findings change. The platform should generate these notes automatically rather than requiring manual maintenance, so the engagement always has an up-to-date high-level summary and target-specific findings view.
 
 SCOPE:
-host summary markdown generation
+generated markdown notes derived from engagement data
 
 EXPECTED BEHAVIOR:
-- The platform should generate and update a markdown summary document for each host
-- Generated host summaries should be derived from structured findings and other relevant engagement data, not treated as the source of truth
-- Each generated host summary should include sections such as:
-  - `## Machines/Targets`
+- The platform should generate and update one session-level engagement summary note per session
+- The engagement summary note title should match the exact session name
+- The platform should also generate and update one target-level findings note per target that has target-associated findings
+- Target findings note titles should follow the pattern `FINDINGS - <LABEL>`
+- If a target has no label, the title should fall back to `FINDINGS - <IP>` or another stable target identifier already present in the session
+- Generated notes should be derived from structured data and existing quick-log/session data, not treated as the source of truth
+- The engagement summary note should include at least these sections:
+  - `# <SESSIONNAME>`
+  - `## Targets`
   - `## Credentials`
   - `## Findings`
-- The `Machines/Targets` section should summarize the relevant host/target identity and context
-- The `Credentials` section should pull in relevant credential material from Loot where applicable
-- The `Findings` section should pull in issue items from the current Evidence/Findings workflow
-- Finding content in the generated summary should include information such as:
+- The `## Targets` section should summarize each target in the session in table form, including at least:
+  - IP / host
+  - label
+  - useful target summary context derived from stored target/quick-log data
+- The `## Credentials` section should be populated from session Loot data and kept updated automatically
+- The `## Findings` section in the engagement summary should contain all findings across the session, including target-associated and session-wide findings
+- Target-scoped Ports and Paths data should feed the generated summary where relevant to target overview, but should not become the primary source of truth
+- Each generated target findings note should contain the findings associated with that target only
+- Finding content in generated notes should include structured fields such as:
   - title
   - severity
   - type
-  - host
+  - target
+  - summary
+  - recommendation
   - POC
-- The generated summary should remain readable as a markdown document and suitable for later review/export
-- Updating related findings or supporting host data should update the corresponding host summary content
+- Updating targets, Ports, Paths, Loot, or Findings should update the corresponding generated notes automatically
 
 RULES:
 - Do not replace primary engagement notes with generated summaries
-- Keep generated markdown as a derived artifact, not the authoritative source
-- Prefer pulling structured data from the existing system over requiring manual duplication into the summary
-- Avoid forcing manual edits directly into generated host-summary content unless an explicit hybrid model is later designed
+- Keep generated markdown notes as derived artifacts, not the authoritative source
+- Do not force operators to maintain generated notes manually
+- Prefer one generated findings note per target rather than one generated note per finding
+- Do not duplicate the entire engagement note system inside the generated summaries
 
 ---
 
-## B-35 — Link Findings To Supporting Notes And Proof
+## B-35 — Link Findings And Generated Notes To Supporting Notes And Proof
+STATUS: DONE
 
 CONTEXT:
-Findings become more useful when operators can connect them back to the underlying engagement material that supports them, such as notes, commands, screenshots, attachments, or loot.
+Generated summary notes and target findings notes become much more useful when findings can still be traced back to the underlying note content, proof commands, loot, and related operator context that supports them.
 
 SCOPE:
 findings linkage and supporting-reference workflow
@@ -1107,16 +1123,21 @@ findings linkage and supporting-reference workflow
 EXPECTED BEHAVIOR:
 - A finding should support links or references to supporting material such as:
   - engagement notes
-  - attachments/screenshots
   - commands or proof text
   - loot/credentials where relevant
+  - attachments/screenshots where already supported by the platform
 - Operators should be able to move from a finding to its supporting context quickly
+- Generated engagement summary notes should remain derived output, but should be built from findings that preserve their supporting links and references
+- Generated target findings notes should preserve the useful supporting context needed for review and later reporting
+- Findings created from note selections should remain linked to the originating note context
+- Manually created findings should still support later linkage to note/proof context where available
 - Supporting references should improve report-readiness without changing the normal note-taking flow
 
 RULES:
 - Keep findings as the structured issue layer, not a duplicate full note system
 - Do not require every finding to have every kind of supporting reference
 - Preserve existing note and attachment behavior where possible
+- Do not make generated notes the source of truth for linkage data
 
 ---
 
@@ -1359,38 +1380,144 @@ EXPECTED BEHAVIOR:
 
 ---
 
-## B-7 — Active Hidden Note Tabs Have Excess Right-Side Space
+## B-7 — Legacy KB Directory Auto-Creates With Underscore Name
 STATUS: DONE
 
 CONTEXT:
-In the hidden-notes tab strip above the editor, active/open note tabs keep slightly too much empty space to the right of the title text before the close control.
+During startup integrity checks, the app can auto-create the configured knowledge-base root if it does not exist yet. In some environments, a legacy `knowledge_base` path is still being used, which causes the app to create an underscore-named directory instead of the intended `knowledge-base` path.
+
+SCOPE:
+server/config/paths.js
+server/lib/startup-check.js
+
+EXPECTED BEHAVIOR:
+- The auto-created KB root directory must resolve to `knowledge-base`, not `knowledge_base`
+- Legacy underscore-style KB path configuration should be normalized to the hyphenated directory name before startup creation runs
+- Startup directory creation behavior should otherwise remain unchanged
+
+## B-8 — Clarify Quick Log And Findings Modal Guidance Copy
+STATUS: DONE
+
+
+CONTEXT:
+The informational guidance text inside the Findings, Ports, Paths, and Loot modal surfaces is currently too narrow or implicit about the intended workflow. Operators should understand that these are supporting convenience features for structured tracking, not required entry points for using the platform.
+
+SCOPE:
+modal guidance / helper copy for Findings and Quick Log sections
+
+EXPECTED BEHAVIOR:
+- The Findings modal information text should explain that Findings is a supporting feature for structured issue tracking
+- The copy should make clear that operators are not required to use Findings, and can still document everything manually in normal notes if preferred
+- The Ports, Paths, and Loot modal information text should similarly explain that these are supporting structured helpers, not mandatory workflow steps
+- Updated copy should remain concise, practical, and aligned with the existing operator-focused tone
+
+RULES:
+- Do not change modal behavior as part of this task
+- Do not rename features or alter data flow as part of this task
+- Keep this limited to user-facing explanatory text improvements
+
+## B-9 — Restrict Target-Bound Items To Existing Session Targets
+STATUS: DONE
+
+
+CONTEXT:
+Operators can currently end up assigning target-bound workflow items such as Ports, Paths, Loot, and Findings against hosts that do not exist as real targets in the active session. That creates inconsistent navigation and summary behavior because generated notes and scoped views assume target-bound data points back to a valid session target.
+
+SCOPE:
+target assignment and validation for Ports, Paths, Loot, and Findings
+
+EXPECTED BEHAVIOR:
+- Ports, Paths, Loot, and Findings must only be assignable to existing targets in the active session
+- Target selection for these target-bound workflows should come from session-target dropdowns or equivalent validated selectors, not free-form non-target host values
+- New entries must not create or preserve invalid target bindings to hosts that do not exist in the session target list
+- Where a target is removed or invalid legacy target-bound data is encountered, the UI should fall back safely or block the invalid binding visibly rather than silently keeping ghost host references
+- Generated summaries, findings notes, and scoped modal views must remain consistent with the validated session target list
+
+RULES:
+- Do not auto-create new targets as part of this task
+- Do not widen scope into changing session-wide item behavior unless required for target validation
+- Keep the fix focused on target validity, selector UX, and preventing ghost/non-existent host bindings
+
+## B-10 — Prevent Long Credential Values From Breaking Loot Table Layout
+STATUS: DONE
+
+
+CONTEXT:
+Very long credential or hash values in the Loot table can force the table width so far that the surrounding host, type, and context fields become difficult or impossible to see during live work.
+
+SCOPE:
+Loot table layout and long-value rendering
+
+EXPECTED BEHAVIOR:
+- Very long credential, token, or hash values must not break the Loot table layout
+- The Loot table should continue showing surrounding fields such as type, host, and context even when one value is extremely long
+- Long values should remain readable and copyable without requiring the operator to lose the rest of the row context
+- The solution should work in both light and dark mode
+
+RULES:
+- Keep the fix limited to Loot table presentation and usability for long values
+- Do not redesign the broader Quick Log layout as part of this task
+- Preserve current copy behavior for credential values if already present
+
+## B-19 — Polish Long Loot Credential Display
+
+CONTEXT:
+After stabilizing the Loot table layout, extremely long credential or hash values still look visually awkward when fully wrapped across multiple lines. Operators need a cleaner table presentation without losing copyability or the surrounding row context.
+
+SCOPE:
+Loot credential cell display treatment
+
+EXPECTED BEHAVIOR:
+- Very long Loot credential values should display in a cleaner abbreviated form inside the table
+- The full underlying value must still remain copyable from the existing click-to-copy interaction
+- The abbreviated display should preserve enough of the value to be recognizable at a glance
+- The surrounding Host and Context columns must remain readable and stable
+- The treatment should work in both light and dark mode
+
+RULES:
+- Keep the fix limited to Loot credential display treatment
+- Do not change stored Loot data
+- Do not remove existing copy behavior
+
+## B-36 — Normalize Findings Summary Severity And Target Display
+STATUS: DONE
+
+
+CONTEXT:
+The generated findings summary output is functionally correct, but small presentation inconsistencies remain. Severity values currently expose raw internal values, and target display can vary between summary surfaces. A small normalization pass would make the generated findings output easier to scan without changing workflow or data flow.
+
+SCOPE:
+public/app/notes.js
+
+EXPECTED BEHAVIOR:
+- Generated findings summaries should render severity labels in a normalized human-readable form such as `Critical`, `High`, `Medium`, `Low`, and `Info`
+- Generated findings target display should use one consistent operator-readable format across the engagement summary and target findings notes
+- Session-wide findings should remain clearly labeled as `Session-wide`
+- The change should remain presentation-only and must not alter stored finding data
+
+RULES:
+- Keep the change limited to generated findings summary and findings-note formatting
+- Do not redesign the broader findings workflow
+- Do not change underlying findings storage or sorting as part of this task
+
+
+## B-37 — Increase Findings List Title Font Size
+STATUS: DONE
+
+CONTEXT:
+The title text shown for findings entries in the Findings modal reads slightly smaller than ideal, which makes the list feel denser than necessary. A minor font-size increase should improve scanability without changing the layout structure.
 
 SCOPE:
 public/app/styles.css
 
 EXPECTED BEHAVIOR:
-- Only active/open note tabs should have their right-side text spacing tightened
-- Inactive tabs must keep their current spacing
-- The close button must remain clickable and visually aligned
+- Findings entry titles should render at a slightly larger font size than they do today
+- The change should preserve the current findings list layout and wrapping behavior
+- The updated sizing should remain consistent in both light and dark mode
 
----
-
-## B-8 — Quick Log Ports Modal Should Normalize Port/Service Both Ways
-STATUS: DONE
-
-CONTEXT:
-The Ports modal currently accepts free-text service entries, but it does not normalize entered ports and service names against the KB service mapping. This makes service labels inconsistent and forces operators to remember canonical ports manually.
-
-SCOPE:
-public/app/quick-log.js
-views/partials/topbar-utility-panels.ejs
-
-EXPECTED BEHAVIOR:
-- Entering a known port must auto-fill the canonical KB service slug
-- Entering a known service slug without a port must auto-fill the canonical port/proto
-- The normalization must apply both when adding a new port entry and when editing an existing one
-- Unknown/custom services must still remain possible without forced remapping
-
----
+RULES:
+- Keep the change limited to findings list title presentation
+- Do not redesign the findings modal layout
+- Do not alter unrelated Quick Log or note styling
 
 END

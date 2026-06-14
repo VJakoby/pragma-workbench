@@ -355,13 +355,23 @@ document.addEventListener('keydown', async e => {
     }
   }
 
-  if (ctrl && key === 'f' && ENGRAM_SEARCH_ENABLED) {
+  if (ctrl && e.shiftKey && key === 'f' && ENGRAM_SEARCH_ENABLED) {
     if (document.activeElement.tagName !== 'TEXTAREA' &&
         document.activeElement.id !== 'noteBody' &&
         document.activeElement.id !== 'noteTitleInput') {
       e.preventDefault();
       switchView('search', document.getElementById('nav-search'));
       setTimeout(() => document.getElementById('searchInput')?.focus(), 50);
+      return;
+    }
+  }
+
+  if (ctrl && key === 'f' && !e.shiftKey) {
+    if (document.activeElement.tagName !== 'TEXTAREA' &&
+        document.activeElement.id !== 'noteBody' &&
+        document.activeElement.id !== 'noteTitleInput') {
+      e.preventDefault();
+      if (typeof toggleFindingsPopover === 'function') toggleFindingsPopover();
       return;
     }
   }
@@ -426,7 +436,7 @@ document.addEventListener('keydown', async e => {
     if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
     if (document.getElementById('pwOverlay')?.classList.contains('open')) { pwCancel(); return; }
-    if (document.getElementById('evidenceFlagOverlay')?.classList.contains('open')) { cancelEvidenceFlagDialog(); return; }
+    if (document.getElementById('findingDialogOverlay')?.classList.contains('open')) { cancelFindingDialog(); return; }
     if (document.getElementById('targetEditOverlay')?.classList.contains('open')) { _targetEditCancel(); return; }
     if (document.getElementById('sessionRenameOverlay')?.classList.contains('open')) { _sessionRenameCancel(); return; }
     if (document.getElementById('kbCreateOverlay')?.classList.contains('open')) { closeKbCreateModal(); return; }
@@ -434,7 +444,7 @@ document.addEventListener('keydown', async e => {
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
     const targetAssignDropdown = document.getElementById('noteTargetAssignDropdown');
     if (targetAssignDropdown?.classList.contains('open')) { targetAssignDropdown.classList.remove('open'); return; }
-    if (document.getElementById('evidencePopover')?.classList.contains('open')) { closeEvidencePopover(); return; }
+    if (document.getElementById('findingsPopover')?.classList.contains('open')) { closeFindingsPopover(); return; }
     if (document.getElementById('todoPopover')?.classList.contains('open')) { closeTodoPopover(); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
     if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) { closeContextSwitcher(); return; }

@@ -50,9 +50,9 @@ function escapeFenceContent(value) {
   return String(value || '').replace(/```/g, '\\`\\`\\`').trim();
 }
 
-function stripEvidenceMarkers(text) {
+function stripFindingMarkers(text) {
   return String(text || '')
-    .replace(/<!--\s*pragma:evidence:[^>]+:(?:start|end)\s*-->\n?/g, '')
+    .replace(/<!--\s*pragma:findings:[^>]+:(?:start|end)\s*-->\n?/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trimEnd();
 }
@@ -235,7 +235,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
   const services = Array.isArray(session.services) ? [...session.services] : [];
   const paths = Array.isArray(session.paths) ? [...session.paths] : [];
   const loot = Array.isArray(session.loot) ? [...session.loot] : [];
-  const evidence = Array.isArray(session.evidence) ? [...session.evidence] : [];
+  const findings = Array.isArray(session.findings) ? [...session.findings] : [];
   const sessionEvents = Array.isArray(session.events) ? [...session.events] : [];
 
   const noteEvents = allNotes.map((note) => ({
@@ -271,7 +271,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
     services,
     paths,
     loot,
-    evidence,
+    findings,
     events,
     notes: {
       all: allNotes,
@@ -300,7 +300,7 @@ function renderTargetNoteFile({ note, session, target, typeMeta, storage, attach
   const title = injectTargetPlaceholders(noteTitle(note, storage), placeholderContext);
   const label = targetLabel(target);
   const body = rewriteAttachmentUrls(
-    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
+    stripFindingMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
     attachmentUrlMap
   );
   return [
@@ -321,7 +321,7 @@ function renderSessionNoteFile({ note, session, typeMeta, storage, attachmentUrl
   const placeholderContext = { attacker_ip: session.attacker_ip || '', domain: session.domain || '' };
   const title = injectTargetPlaceholders(noteTitle(note, storage), placeholderContext);
   const body = rewriteAttachmentUrls(
-    stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
+    stripFindingMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
     attachmentUrlMap
   );
   return [
@@ -379,7 +379,7 @@ function renderTimelineSummary(model) {
           const targetPart = target ? ` \`${targetLabel(target)}\`` : '';
           const placeholderContext = target ? { ...model.sessionContext, ...target } : model.sessionContext;
           const title = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
-          const preview = stripEvidenceMarkers(note.body || '')
+          const preview = stripFindingMarkers(note.body || '')
             .split('\n')
             .map((line) => line.trim())
             .find((line) => line && !line.startsWith('#') && !line.startsWith('---') && line.length > 3);
@@ -473,7 +473,7 @@ function renderNoteEntries(bucket, model, includeTarget) {
     const placeholderContext = target ? { ...model.sessionContext, ...target } : model.sessionContext;
     const resolvedTitle = injectTargetPlaceholders(noteTitle(note, model.storage), placeholderContext);
     const resolvedBody = rewriteAttachmentUrls(
-      stripEvidenceMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
+      stripFindingMarkers(injectTargetPlaceholders(note.body || '', placeholderContext)),
       model.attachmentUrlMapByNoteId?.[note.id] || null
     );
     const leadingHeading = getLeadingMarkdownHeading(resolvedBody);
@@ -528,30 +528,33 @@ function renderTimelineSection(model) {
   return lines.join('\n');
 }
 
-function renderEvidenceSection(model) {
-  const evidence = model.evidence
+function renderFindingsSection(model) {
+  const findings = model.findings
     .filter((entry) => ['export_only', 'both'].includes(String(entry.sync_mode || 'export_only').trim()))
     .sort((a, b) => (a.created || a.updated || 0) - (b.created || b.updated || 0));
-  if (!evidence.length) return '';
+  if (!findings.length) return '';
 
-  const lines = ['## Evidence', ''];
-  evidence.forEach((entry) => {
+  const lines = ['## Findings', ''];
+  findings.forEach((entry) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
+    const summary = entry.summary || entry.details || '';
     lines.push(`### ${entry.title || 'Untitled'}`);
     lines.push('');
-    lines.push(`- Type: ${evidenceType(entry.type)}`);
+    lines.push(`- Type: ${findingType(entry.type)}`);
+    lines.push(`- Severity: ${findingSeverityLabel(entry.severity)}`);
     lines.push(`- Target: ${target ? targetLabel(target) : 'Session-wide'}`);
+    if (summary) lines.push(`- Summary: ${summary}`);
     if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
-    if (entry.details) lines.push(`- Details: ${entry.details}`);
+    if (entry.recommendation) lines.push(`- Recommendation: ${entry.recommendation}`);
     if (entry.source_command) {
-      lines.push('', '```text', escapeFenceContent(entry.source_command), '```');
+      lines.push('', '## POC', '', '```text', escapeFenceContent(entry.source_command), '```');
     }
     lines.push('');
   });
   return lines.join('\n').trimEnd();
 }
 
-function evidenceType(type) {
+function findingType(type) {
   const labels = {
     enumeration: 'Enumeration',
     initial_access: 'Initial Access',
@@ -572,8 +575,14 @@ function evidenceType(type) {
     cleanup: 'Cleanup',
     note: 'Note',
   };
-  return labels[String(type || '').trim()] || (type ? String(type) : 'Evidence');
+  return labels[String(type || '').trim()] || (type ? String(type) : 'Finding');
 }
+
+function findingSeverityLabel(value) {
+  const labels = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info' };
+  return labels[String(value || '').trim()] || 'Medium';
+}
+
 
 function renderConsolidatedSession(model) {
   const lines = [
@@ -620,9 +629,9 @@ function renderConsolidatedSession(model) {
     lines.push('');
   }
 
-  const evidenceSection = renderEvidenceSection(model);
-  if (evidenceSection) {
-    lines.push('---', '', evidenceSection, '');
+  const findingsSection = renderFindingsSection(model);
+  if (findingsSection) {
+    lines.push('---', '', findingsSection, '');
   }
 
   if (model.events.length) {
