@@ -683,6 +683,9 @@ function renderSessionNoteTabs() {
   const groupsHtml = groups.map((group) => {
     const tabsHtml = group.notes.map((note) => {
       const meta = getNoteTypeMeta(note.type);
+      const tabIcon = note.generated_note === true && note.generated_kind === 'engagement_summary'
+        ? '🧾'
+        : meta.icon;
       const active = note.id === activeNoteId;
       const closeBtn = active
         ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
@@ -690,7 +693,7 @@ function renderSessionNoteTabs() {
       return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
         <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
           <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
-          <span class="session-note-tab-icon" title="${esc(meta.label)}">${meta.icon}</span>
+          <span class="session-note-tab-icon" title="${esc(meta.label)}">${tabIcon}</span>
           <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
         </button>
         ${closeBtn}
