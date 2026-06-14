@@ -197,7 +197,7 @@ function switchSvcTab(tab) {
 function updateSvcTabCounts() {
   const ports = getSessionServices().length;
   const paths = getSessionPaths().length;
-  const loot = getSessionLoot().length;
+  const loot = getSessionLoot({ scoped: false }).length;
   const cp = document.getElementById('svcTabCountPorts');
   const ch = document.getElementById('svcTabCountPaths');
   const cl = document.getElementById('svcTabCountLoot');
@@ -1111,7 +1111,7 @@ function commitFindingEdit(entryId) {
 
 function getActiveQuickLogEntries() {
   if (_activeSvcTab === 'paths') return getSessionPaths();
-  if (_activeSvcTab === 'loot') return getSessionLoot();
+  if (_activeSvcTab === 'loot') return getSessionLoot({ scoped: false });
   return getSessionServices();
 }
 
@@ -3020,7 +3020,7 @@ function renderLootTable() {
   const el = document.getElementById('lootLogTable');
   if (!el) return;
   updateSvcTabCounts();
-  const entries = [...getSessionLoot()].sort((a, b) => (a.added || 0) - (b.added || 0));
+  const entries = [...getSessionLoot({ scoped: false })].sort((a, b) => (a.added || 0) - (b.added || 0));
   if (!entries.length) {
     el.innerHTML = '<div class="svc-empty">No loot logged yet — add credentials, hashes or tokens above</div>';
     return;
