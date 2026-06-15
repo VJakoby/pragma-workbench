@@ -4911,13 +4911,6 @@ body.is-resizing *{cursor:col-resize!important}
   overflow:auto;
   user-select:text;
 }
-.session-scope-assets-code code {
-  display:block;
-  font:inherit;
-  color:inherit;
-  background:none;
-  padding:0;
-}
 .session-scope-asset-line {
   display:flex;
   align-items:flex-start;

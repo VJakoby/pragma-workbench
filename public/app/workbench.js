@@ -876,19 +876,19 @@ function renderSessionScopeAssets() {
   list.innerHTML = [
     '<div class="session-scope-assets-block">',
     '  <div class="session-scope-assets-codewrap">',
-    '    <pre class="session-scope-assets-code"><code>' + assets.map((asset) => {
+    '    <div class="session-scope-assets-code" role="list">' + assets.map((asset) => {
       const value = esc(asset.value);
-      const rawValue = JSON.stringify(String(asset.value || ''));
+      const encodedValue = encodeURIComponent(String(asset.value || ''));
       return [
-        '<div class="session-scope-asset-line">',
-        `  <span class="session-scope-asset-line-text" title="${value}">${value}</span>`,
-        '  <span class="session-scope-asset-line-actions">',
-        `    <button class="session-item-export-btn session-scope-asset-copy" type="button" onclick="copySessionScopeAssetValue(${rawValue})" title="Copy scope asset" aria-label="Copy scope asset">${ICONS.clipboard}</button>`,
+        '<div class="session-scope-asset-line" role="listitem">',
+        `  <div class="session-scope-asset-line-text" title="${value}">${value}</div>`,
+        '  <div class="session-scope-asset-line-actions">',
+        `    <button class="session-item-export-btn session-scope-asset-copy" type="button" onclick="copySessionScopeAssetValue(decodeURIComponent('${encodedValue}'))" title="Copy scope asset" aria-label="Copy scope asset">${ICONS.clipboard}</button>`,
         `    <button class="session-item-export-btn session-scope-asset-delete" type="button" onclick="deleteSessionScopeAsset('${asset.id}')" title="Delete scope asset" aria-label="Delete scope asset">&times;</button>`,
-        '  </span>',
+        '  </div>',
         '</div>'
       ].join('');
-    }).join('') + '</code></pre>',
+    }).join('') + '</div>',
     '  </div>',
     '</div>'
   ].join('');
