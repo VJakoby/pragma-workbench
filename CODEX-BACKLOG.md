@@ -1660,4 +1660,28 @@ RULES:
 - Do not reintroduce or simulate the older structured template editor
 - Do not change template parsing, validation, import, or persistence behavior
 
+
+## B-43 — Replace Inter Editor Font Option With IBM Plex Mono
+STATUS: TODO
+
+CONTEXT:
+The note editor font switcher currently offers `Inter`, which does not fit the editor as well as a stronger writing-oriented monospace choice. The desired change is to keep the switcher note-editor-only and replace the `Inter` option with `IBM Plex Mono`.
+
+SCOPE:
+public/app/editor-theme.js
+views/partials/main-panel.ejs
+views/partials/head.ejs
+
+EXPECTED BEHAVIOR:
+- The note editor font choices should offer `Classic`, `Mono`, and `Plex`
+- The previous `Inter` editor option should be removed from the note editor switcher
+- Selecting `Plex` should apply `IBM Plex Mono` only to the note editor font setting
+- Existing saved editor font preferences that still point to the old `Inter` option should migrate cleanly to `Plex`
+- No broader UI font usage should change outside the note editor font setting
+
+RULES:
+- Keep the change limited to the note editor font option set and supporting font import/mapping
+- Do not change the broader application typography system
+- Do not expand the font switcher beyond replacing the existing option
+
 END
