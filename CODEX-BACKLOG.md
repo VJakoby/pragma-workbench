@@ -1684,4 +1684,48 @@ RULES:
 - Do not change the broader application typography system
 - Do not expand the font switcher beyond replacing the existing option
 
+
+## B-44 — Add Session-Scoped Scope Assets With Text Import
+STATUS: TODO
+
+CONTEXT:
+Some engagements, especially web pentests, involve many domains, subdomains, hosts, or URLs that belong to the assessment scope but should not automatically become full PRAGMA targets. The current target model is better suited for focused operational contexts with notes, ports, paths, loot, and target-specific workflows. A lighter session-scoped asset list is needed for broader engagement scope tracking.
+
+SCOPE:
+session data model
+scope asset UI
+plain-text import flow
+optional target-promotion hook
+
+EXPECTED BEHAVIOR:
+- Add a new session-scoped collection for `Scope Assets`
+- Scope Assets must be separate from existing PRAGMA targets
+- A Scope Asset may represent items such as:
+  - domain
+  - subdomain
+  - host
+  - URL
+- Users must be able to import Scope Assets from a plain text file where each line represents one asset
+- Imported lines must create Scope Assets only; they must not automatically create PRAGMA targets
+- Scope Assets must remain attached to the current session only
+- The UI must make the distinction clear between:
+  - `Scope Assets` as engagement scope records
+  - `Targets` as focused PRAGMA operational targets
+- The design should leave room for a later optional action to promote a Scope Asset into a real PRAGMA target
+
+DATA / VALIDATION RULES:
+- Ignore blank lines during import
+- Trim surrounding whitespace from each imported line
+- Preserve the original imported value as the visible asset label/value
+- Do not require assets to resolve or validate online during import
+- Prevent obvious duplicate asset entries within the same session when the normalized line matches an existing asset
+- Keep the initial asset model lightweight; do not require notes, ports, or loot fields on Scope Assets
+
+RULES:
+- Do not merge Scope Assets into the existing PRAGMA target model
+- Do not auto-create notes, ports, paths, loot, or findings for imported Scope Assets
+- Do not treat imported web scope entries as active workspace targets by default
+- Keep the first implementation focused on session-scoped storage, listing, and plain-text import
+- Leave promotion into a full PRAGMA target as a later extension, not part of the initial implementation
+
 END
