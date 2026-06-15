@@ -14,7 +14,10 @@
 **PRAGMA // Workbench** is a self-hosted, completely local operational workbench designed for pentest engagements and CTFs. 
 It blends localized knowledge-base building with active, fast-paced engagement note-taking—keeping your *notes*, *evidence*, *loot*, and *tactics* all in the same place.
 
-<img src="screenshots/pragma-workbench-main.png" width="700"></img>
+<div align="center">
+  <img src="docs/screenshots/Welcome-Modal.png" alt="Welcome Modal" width="400" />
+  <img src="docs/screenshots/Workbench.png" alt="Workbench" width="375" />
+</div>
 </div>
 
 ## 🏷️ Key Features
