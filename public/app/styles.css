@@ -4709,7 +4709,7 @@ body.is-resizing *{cursor:col-resize!important}
 /* Session modal */
 
 .session-modal-box {
-  max-width: 640px;
+  max-width: 720px;
 }
 .session-modal-body {
   padding: 14px 16px 18px;
@@ -4854,6 +4854,107 @@ body.is-resizing *{cursor:col-resize!important}
   min-height: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
 }
 .session-item-export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.session-scope-assets-toolbar {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.session-scope-assets-toolbar input {
+  flex:1 1 280px;
+  min-width:0;
+}
+.session-scope-assets-btn {
+  flex:0 0 auto;
+}
+.session-scope-assets-list {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:4px;
+}
+.session-scope-assets-empty {
+  border:1px dashed color-mix(in srgb, var(--border2) 72%, transparent 28%);
+  border-radius:10px;
+  padding:10px 12px;
+  color:var(--muted);
+  font-family:'Inter',sans-serif;
+  font-size:12px;
+  line-height:1.45;
+  background:color-mix(in srgb, var(--bg2) 84%, transparent 16%);
+}
+.session-scope-assets-block {
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:color-mix(in srgb, var(--bg2) 86%, var(--bg3) 14%);
+  padding:10px;
+}
+.session-scope-assets-codewrap {
+  min-width:0;
+}
+.session-scope-assets-code {
+  margin:0;
+  width:100%;
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid color-mix(in srgb, var(--border2) 72%, transparent 28%);
+  border-radius:7px;
+  background:var(--bg3);
+  color:var(--text);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.45;
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow:auto;
+  user-select:text;
+}
+.session-scope-assets-code code {
+  display:block;
+  font:inherit;
+  color:inherit;
+  background:none;
+  padding:0;
+}
+.session-scope-asset-line {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.session-scope-asset-line + .session-scope-asset-line {
+  margin-top:4px;
+}
+.session-scope-asset-line-text {
+  flex:1 1 auto;
+  min-width:0;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.session-scope-asset-line-actions {
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-left:10px;
+}
+.session-scope-asset-copy,
+.session-scope-asset-delete {
+  flex:0 0 auto;
+  min-width:28px;
+  padding:2px 6px;
+  color:var(--muted);
+}
+.session-scope-asset-copy:hover {
+  color:var(--accent);
+}
+.session-scope-asset-delete:hover {
+  color:var(--red);
+  border-color:rgba(248,113,113,0.45);
+  background:rgba(248,113,113,0.08);
+}
 
 .session-delete-btn {
   min-width: 28px;

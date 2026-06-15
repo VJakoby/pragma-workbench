@@ -704,6 +704,7 @@ function openSessionModal() {
   document.getElementById('newSessionTargetLabel').value = '';
   updateSessionDomainField();
   updateSessionAttackerIpField();
+  renderSessionScopeAssets();
   syncSummaryExportPrefsUI();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
@@ -738,6 +739,245 @@ function clearSessionForm(source = 'session') {
   refs.targetIp.value = '';
   refs.targetDomain.value = '';
   refs.targetLabel.value = '';
+}
+
+function normalizeScopeAssetValue(value) {
+  return String(value ?? '').trim();
+}
+
+function normalizeScopeAssetKey(value) {
+  const raw = normalizeScopeAssetValue(value);
+  if (!raw) return '';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      const pathname = (url.pathname || '').replace(/\/+$/, '');
+      const normalizedPath = pathname && pathname !== '/' ? pathname : '';
+      return `${url.protocol.toLowerCase()}//${url.host.toLowerCase()}${normalizedPath}${url.search}${url.hash}`;
+    } catch (_) {}
+  }
+  return raw.replace(/\/+$/, '').replace(/\.$/, '').replace(/\s+/g, ' ').toLowerCase();
+}
+
+function inferScopeAssetKind(value) {
+  const raw = normalizeScopeAssetValue(value);
+  if (!raw) return 'host';
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) || raw.includes('/')) return 'url';
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(raw)) return 'host';
+  if (/^[0-9a-f:]+$/i.test(raw) && raw.includes(':')) return 'host';
+  const labels = raw.replace(/\.$/, '').split('.').filter(Boolean);
+  if (labels.length >= 3) return 'subdomain';
+  if (labels.length === 2) return 'domain';
+  return 'host';
+}
+
+function normalizeScopeAssetEntry(entry, index = 0) {
+  let value = '';
+  let id = '';
+  let kind = '';
+  let created = Date.now();
+  if (typeof entry === 'string') {
+    value = entry;
+  } else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+    value = entry.value ?? entry.label ?? entry.asset ?? '';
+    id = String(entry.id || '');
+    kind = String(entry.kind || '').trim().toLowerCase();
+    created = Number(entry.created) || Date.now();
+  }
+  value = normalizeScopeAssetValue(value);
+  if (!value) return null;
+  const nextKind = ['domain', 'subdomain', 'host', 'url'].includes(kind) ? kind : inferScopeAssetKind(value);
+  return {
+    id: id || `scope_${created}_${index}`,
+    value,
+    kind: nextKind,
+    created,
+  };
+}
+
+function normalizeScopeAssetsList(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const out = [];
+  list.forEach((entry, index) => {
+    const normalized = normalizeScopeAssetEntry(entry, index);
+    if (!normalized) return;
+    const key = normalizeScopeAssetKey(normalized.value);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(normalized);
+  });
+  return out;
+}
+
+function ensureSessionScopeAssets(sessionId = activeSessionId) {
+  if (!sessionId || !sessions[sessionId]) return null;
+  const sess = sessions[sessionId];
+  const normalized = normalizeScopeAssetsList(sess.scope_assets);
+  if (!Array.isArray(sess.scope_assets) || normalized.length !== sess.scope_assets.length || normalized.some((entry, index) => {
+    const current = sess.scope_assets[index] || {};
+    return String(current?.id || '') !== entry.id || String(current?.value || current) !== entry.value || String(current?.kind || '') !== entry.kind;
+  })) {
+    sess.scope_assets = normalized;
+  }
+  return sess.scope_assets;
+}
+
+function getSessionScopeAssets(sessionId = activeSessionId) {
+  return ensureSessionScopeAssets(sessionId) || [];
+}
+
+function copyTextToClipboardValue(text, successMessage = '✓ Copied to clipboard') {
+  const value = String(text || '');
+  if (!value) return;
+  navigator.clipboard.writeText(value).then(() => {
+    showToast(successMessage);
+  }).catch(() => {
+    showToast('Clipboard copy failed', 'err');
+  });
+}
+
+function copySessionScopeAssetValue(value) {
+  copyTextToClipboardValue(value, '✓ Scope asset copied');
+}
+
+function copyAllSessionScopeAssets() {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const assets = getSessionScopeAssets(activeSessionId)
+    .slice()
+    .sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!assets.length) {
+    showToast('⚠ No scope assets to copy', 'err');
+    return;
+  }
+  copyTextToClipboardValue(assets.map((asset) => asset.value).join('\n'), '✓ Scope assets copied');
+}
+
+function renderSessionScopeAssets() {
+  const wrap = document.getElementById('sessionScopeAssetsWrap');
+  const list = document.getElementById('sessionScopeAssetsList');
+  const input = document.getElementById('sessionScopeAssetInput');
+  if (!wrap || !list) return;
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!sess) {
+    wrap.style.display = 'none';
+    list.innerHTML = '';
+    if (input) input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  const assets = getSessionScopeAssets(activeSessionId)
+    .slice()
+    .sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!assets.length) {
+    list.innerHTML = '<div class="session-scope-assets-empty">No scope assets yet. Add or import domains, subdomains, hosts, or URLs for this session.</div>';
+    return;
+  }
+  list.innerHTML = [
+    '<div class="session-scope-assets-block">',
+    '  <div class="session-scope-assets-codewrap">',
+    '    <pre class="session-scope-assets-code"><code>' + assets.map((asset) => {
+      const value = esc(asset.value);
+      const rawValue = JSON.stringify(String(asset.value || ''));
+      return [
+        '<div class="session-scope-asset-line">',
+        `  <span class="session-scope-asset-line-text" title="${value}">${value}</span>`,
+        '  <span class="session-scope-asset-line-actions">',
+        `    <button class="session-item-export-btn session-scope-asset-copy" type="button" onclick="copySessionScopeAssetValue(${rawValue})" title="Copy scope asset" aria-label="Copy scope asset">${ICONS.clipboard}</button>`,
+        `    <button class="session-item-export-btn session-scope-asset-delete" type="button" onclick="deleteSessionScopeAsset('${asset.id}')" title="Delete scope asset" aria-label="Delete scope asset">&times;</button>`,
+        '  </span>',
+        '</div>'
+      ].join('');
+    }).join('') + '</code></pre>',
+    '  </div>',
+    '</div>'
+  ].join('');
+}
+
+function addScopeAssetToSession(sessionId, rawValue, { persist = true, render = true, toast = true } = {}) {
+  if (!sessionId || !sessions[sessionId]) return { status: 'no-session' };
+  const value = normalizeScopeAssetValue(rawValue);
+  if (!value) return { status: 'empty' };
+  const assets = ensureSessionScopeAssets(sessionId);
+  const key = normalizeScopeAssetKey(value);
+  if (assets.some((asset) => normalizeScopeAssetKey(asset.value) === key)) {
+    if (toast) showToast('⚠ Scope asset already exists for this session', 'err');
+    return { status: 'duplicate' };
+  }
+  assets.push({
+    id: `scope_${Date.now()}_${assets.length}`,
+    value,
+    kind: inferScopeAssetKind(value),
+    created: Date.now(),
+  });
+  if (render) renderSessionScopeAssets();
+  if (persist) saveNotes();
+  return { status: 'added' };
+}
+
+function addSessionScopeAsset() {
+  const input = document.getElementById('sessionScopeAssetInput');
+  if (!input || !activeSessionId || !sessions[activeSessionId]) return;
+  const result = addScopeAssetToSession(activeSessionId, input.value, { persist: false, render: true, toast: true });
+  if (result.status !== 'added') {
+    if (result.status === 'empty') showToast('⚠ Scope asset cannot be empty', 'err');
+    return;
+  }
+  input.value = '';
+  saveNotes();
+  input.focus();
+  showToast('✓ Scope asset added');
+}
+
+async function importSessionScopeAssetsFile(file) {
+  const input = document.getElementById('sessionScopeAssetsImportFile');
+  if (!file || !activeSessionId || !sessions[activeSessionId]) {
+    if (input) input.value = '';
+    return;
+  }
+  try {
+    const text = await file.text();
+    const lines = String(text || '').split(/\r?\n/);
+    let added = 0;
+    let duplicates = 0;
+    let blank = 0;
+    lines.forEach((line) => {
+      const trimmed = normalizeScopeAssetValue(line);
+      if (!trimmed) {
+        blank++;
+        return;
+      }
+      const result = addScopeAssetToSession(activeSessionId, trimmed, { persist: false, render: false, toast: false });
+      if (result.status === 'added') added++;
+      else if (result.status === 'duplicate') duplicates++;
+    });
+    renderSessionScopeAssets();
+    if (added) saveNotes();
+    if (!added && duplicates && !blank) {
+      showToast('⚠ No new scope assets imported. All entries already existed.', 'err');
+    } else if (!added) {
+      showToast('⚠ No scope assets imported from file', 'err');
+    } else {
+      const parts = [`✓ Imported ${added} scope asset${added === 1 ? '' : 's'}`];
+      if (duplicates) parts.push(`${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped`);
+      if (blank) parts.push(`${blank} blank line${blank === 1 ? '' : 's'} ignored`);
+      showToast(parts.join(' · '));
+    }
+  } catch (err) {
+    showToast(`Scope asset import failed: ${err.message}`, 'err');
+  } finally {
+    if (input) input.value = '';
+  }
+}
+
+function deleteSessionScopeAsset(assetId) {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const assets = ensureSessionScopeAssets(activeSessionId);
+  const next = assets.filter((asset) => asset.id !== assetId);
+  if (next.length === assets.length) return;
+  sessions[activeSessionId].scope_assets = next;
+  renderSessionScopeAssets();
+  saveNotes();
 }
 
 function renderWelcomeSessionList() {
@@ -859,7 +1099,7 @@ async function createSession(source = 'session') {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], findings: [] };
+  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], findings: [], scope_assets: [] };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
@@ -873,6 +1113,7 @@ async function createSession(source = 'session') {
   renderWelcomeSessionList();
   updateSessionDomainField();
   updateSessionAttackerIpField();
+  renderSessionScopeAssets();
   clearSessionForm(source);
   if (source === 'welcome') closeWelcomeSessionModal(true);
   if (source === 'session') closeSessionModal();
@@ -1070,6 +1311,7 @@ function switchSession(id) {
   renderSessionSidebar();
   updateSessionDomainField();
   updateSessionAttackerIpField();
+  renderSessionScopeAssets();
   renderSessionList();
   renderNotesList();
   updateTargetSelector();
@@ -1247,6 +1489,7 @@ async function importSession(event) {
           attacker_ip: String(session.attacker_ip || ''),
           status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
           imported_from: String(session.codename || ''),
+          scope_assets: normalizeScopeAssetsList(session.scope_assets),
           targets: cleanTargets,
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
