@@ -113,6 +113,9 @@ function setNoteEditorMode(mode) {
   const exportBtn = document.getElementById('noteExportBtn');
   const attachmentCleanupBtn = document.getElementById('noteAttachmentCleanupBtn');
   const templateImportBtn = document.getElementById('noteTemplateImportBtn');
+  const configHint = document.getElementById('noteConfigHint');
+  const syntaxThemePicker = document.querySelector('.syntax-theme-picker');
+  const editorFontControls = document.querySelector('.editor-font-controls');
   const duplicateBtn = document.getElementById('noteDuplicateBtn');
   const deleteBtn = document.getElementById('noteDeleteBtn');
   const previewPane = document.getElementById('notePreviewPane');
@@ -124,7 +127,7 @@ function setNoteEditorMode(mode) {
   if (editor) editor.classList.toggle('config-mode', isConfig);
   if (badge) {
     if (isConfig) {
-      badge.textContent = '⚙ Note Templates';
+      badge.textContent = '⚙ Template Config';
       badge.className = 'note-item-type note-type-config';
     }
   }
@@ -138,6 +141,9 @@ function setNoteEditorMode(mode) {
   if (previewBtn) previewBtn.style.display = isConfig ? 'none' : '';
   if (unifiedBtn) unifiedBtn.style.display = isConfig ? 'none' : '';
   if (hint) hint.style.display = isConfig ? 'none' : '';
+  if (configHint) configHint.style.display = isConfig ? '' : 'none';
+  if (syntaxThemePicker) syntaxThemePicker.style.display = isConfig ? 'none' : '';
+  if (editorFontControls) editorFontControls.style.display = isConfig ? 'none' : '';
   if (timestamps) timestamps.style.display = '';
   if (createdWrap) createdWrap.style.display = isConfig ? 'none' : '';
   if (modifiedWrap) modifiedWrap.style.display = isConfig ? 'none' : '';
@@ -147,7 +153,7 @@ function setNoteEditorMode(mode) {
   if (deleteBtn) deleteBtn.style.display = isConfig ? 'none' : '';
   if (attachmentCleanupBtn) attachmentCleanupBtn.style.display = isConfig ? '' : 'none';
   if (templateImportBtn) templateImportBtn.style.display = isConfig ? '' : 'none';
-  if (exportBtn) exportBtn.title = isConfig ? 'Download note-templates.json' : 'Export note as .md';
+  if (exportBtn) exportBtn.title = isConfig ? 'Download template config file' : 'Export note as .md';
   if (split) {
     if (isConfig) {
       split.classList.remove('preview-open', 'split-side', 'preview-unified');
@@ -226,7 +232,7 @@ async function importNoteTemplateFile(file) {
     const savedContent = await fetchTemplatesConfigDoc();
     setTemplatesConfigEditorContent(savedContent);
     await loadNoteTemplates();
-    setNoteSaveIndicator('saved', 'saved');
+    setNoteSaveIndicator('saved', 'Loaded');
     showToast(`Replaced note templates with ${data.templates} template${data.templates === 1 ? '' : 's'} from ${data.source_filename}`);
   } catch (err) {
     setNoteSaveIndicator('error', 'import failed');
@@ -289,7 +295,7 @@ async function openTemplatesConfig(navEl) {
   renderSessionNoteTabs();
 
   const badge = ensureNoteTypeBadge();
-  badge.textContent = '⚙ Note Templates';
+  badge.textContent = '⚙ Template Config';
   badge.className = 'note-item-type note-type-config';
 
   const title = document.getElementById('noteTitleInput');
@@ -301,7 +307,7 @@ async function openTemplatesConfig(navEl) {
   try {
     const content = await fetchTemplatesConfigDoc();
     cmInitNote(content);
-    setNoteSaveIndicator('saved', 'saved');
+    setNoteSaveIndicator('saved', 'Loaded');
   } catch (err) {
     cmInitNote('');
     setNoteSaveIndicator('error', 'load failed');

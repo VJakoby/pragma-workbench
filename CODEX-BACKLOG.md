@@ -1635,4 +1635,29 @@ RULES:
 - Do not redesign the broader TODO workflow or content structure
 - Do not alter the existing small-screen responsive override
 
+
+## B-42 — Clarify File-Based Note Template Configuration UI
+STATUS: TODO
+
+CONTEXT:
+The current note-template configuration screen uses labels that imply a richer template editor, even though this branch only supports editing and replacing the raw `note-templates.json` file. That can mislead operators into expecting a structured GUI workflow that does not exist here.
+
+SCOPE:
+views/partials/sidebar.ejs
+views/partials/main-panel.ejs
+public/app/notes.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The configuration entry should clearly read as a file-based template configuration surface
+- In-view labels should not imply a structured template designer or builder
+- The import action should clearly read as replacing the full template file
+- The config view should include a short explanation that the operator is editing the raw `note-templates.json` file directly
+- No underlying template behavior should change
+
+RULES:
+- Keep the change limited to labels, helper text, and presentation for the template config view
+- Do not reintroduce or simulate the older structured template editor
+- Do not change template parsing, validation, import, or persistence behavior
+
 END

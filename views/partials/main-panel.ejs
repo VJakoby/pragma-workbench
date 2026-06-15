@@ -398,7 +398,7 @@
                       <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
                     </div>
                   </div>
-                  <button class="tb-btn" id="noteTemplateImportBtn" type="button" onclick="openTemplateImportPicker()" title="Replace the active note templates from a JSON file" style="display:none">Import template</button>
+                  <button class="tb-btn" id="noteTemplateImportBtn" type="button" onclick="openTemplateImportPicker()" title="Replace note-templates.json from a JSON file" style="display:none">Replace template file</button>
                   <input id="noteTemplateImportFile" type="file" accept=".json,.notes-json,application/json" onchange="importNoteTemplateFile(this.files && this.files[0])" hidden>
                   <div class="notes-editor-hdr-spacer"></div>
                   <div id="noteHeaderActions" class="note-header-actions">
@@ -414,11 +414,12 @@
                 <span><code>`code`</code></span><span><code>```block```</code></span><span>- list</span><span>1. list</span><span>- [ ] task</span><span>&gt; quote</span>
                 <span title="Engagement link by target and note title">[en:target:note-title]</span><span title="KB link by document id">[kb:service:ssh]</span><span title="Paste or drag an image into the editor">![image](...)</span><span title="Paste screenshot with Ctrl+V or drag image into editor">paste/drag image</span>
               </div>
+              <div class="note-config-hint" id="noteConfigHint" style="display:none">This view edits the raw <code>note-templates.json</code> file directly. Use <strong>Replace template file</strong> to swap the full config.</div>
               <div class="note-timestamps" id="noteTimestamps">
                 <span class="note-ts" id="noteCreatedWrap">Created: <strong id="noteCreatedAt">&mdash;</strong></span>
                 <span class="note-ts" id="noteModifiedWrap">Modified: <strong id="noteModifiedAt">&mdash;</strong></span>
                 <span class="note-generated-hint" id="noteGeneratedHint" style="display:none"></span>
-                <span class="note-save-status" id="noteSaveStatus">saved</span>
+                <span class="note-save-status" id="noteSaveStatus">Loaded</span>
               </div>
               <div class="note-tags-row" id="noteTagsRow">
                 <input class="note-tag-input" id="noteTagInput" placeholder="+ add tag, press Enter"
