@@ -1686,7 +1686,7 @@ RULES:
 
 
 ## B-44 — Add Session-Scoped Scope Assets With Text Import
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 Some engagements, especially web pentests, involve many domains, subdomains, hosts, or URLs that belong to the assessment scope but should not automatically become full PRAGMA targets. The current target model is better suited for focused operational contexts with notes, ports, paths, loot, and target-specific workflows. A lighter session-scoped asset list is needed for broader engagement scope tracking.
