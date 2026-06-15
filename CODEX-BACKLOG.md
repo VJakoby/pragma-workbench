@@ -1595,4 +1595,24 @@ RULES:
 - Do not redesign placeholder injection rules as part of this task
 - Do not force unnecessary full note reopen flows when a targeted preview refresh is sufficient
 
+## B-40 — Align Sidebar And KB Card Hover Treatment
+STATUS: TODO
+
+CONTEXT:
+Hover feedback across the sidebar and Knowledge Base cards currently uses a lighter or less consistent visual treatment than the unified search results. This makes the UI feel uneven when moving between navigation surfaces.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Sidebar clickable items should use the same general hover language as unified search results
+- Knowledge Base cards such as services and tactics should use the same general hover language as unified search results
+- Hover feedback should feel more prominent and visually consistent without causing layout shift
+- The change should remain consistent in both light and dark mode
+
+RULES:
+- Keep the change limited to hover presentation for sidebar items and KB cards
+- Do not redesign unrelated controls or card layout structure
+- Do not introduce hover-driven movement or layout jank
+
 END
