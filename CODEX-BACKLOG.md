@@ -1615,4 +1615,24 @@ RULES:
 - Do not redesign unrelated controls or card layout structure
 - Do not introduce hover-driven movement or layout jank
 
+
+## B-41 — Increase TODO Modal Width
+STATUS: TODO
+
+CONTEXT:
+The current TODO modal feels slightly too narrow for the add row and list content, which makes the panel feel more cramped than adjacent utility surfaces.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The TODO modal should render slightly wider on desktop-sized layouts
+- The existing responsive/mobile behavior must remain intact
+- No other TODO modal layout behavior should change
+
+RULES:
+- Keep the change limited to TODO modal width
+- Do not redesign the broader TODO workflow or content structure
+- Do not alter the existing small-screen responsive override
+
 END
