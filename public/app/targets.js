@@ -400,7 +400,14 @@ function activateContextSwitcherSelection() {
     return;
   }
   if (item.kind === 'create-target') {
-    if (createTargetFromContextSwitcher(item.value)) closeContextSwitcher();
+    if (createTargetFromContextSwitcher(item.value)) {
+      activeContextSwitcherQuery = '';
+      const input = document.getElementById('contextSwitcherInput');
+      if (input) input.value = '';
+      activeContextSwitcherIndex = 0;
+      renderContextSwitcherList();
+      input?.focus();
+    }
     return;
   }
   if (item.kind === 'session') {

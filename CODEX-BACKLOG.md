@@ -1730,8 +1730,29 @@ RULES:
 
 END
 
-## B-48 — Keep Backup Workbench Action In Session Modal For All Storage Modes
+## B-49 — Keep Context Switcher Open When Quick-Creating Targets
 STATUS: TODO
+
+CONTEXT:
+The Switch target/session modal currently closes immediately after a new target is quick-created from within the target tab. That slows down workflows where the operator wants to add several targets in sequence from the same modal. The modal should stay open for repeated target creation and only close when the operator explicitly dismisses it or selects an existing target/session.
+
+SCOPE:
+public/app/targets.js
+
+EXPECTED BEHAVIOR:
+- Quick-creating a new target from the context switcher must not close the modal
+- After creating a target, the input should reset so another target can be added immediately
+- Existing behavior for switching to an existing target or session should remain unchanged
+- Existing behavior for quick-creating a new session can remain unchanged
+
+RULES:
+- Keep the change limited to the context-switcher quick-create target flow
+- Do not redesign the broader context switcher UI or target management panel
+
+END
+
+## B-48 — Keep Backup Workbench Action In Session Modal For All Storage Modes
+STATUS: DONE
 
 CONTEXT:
 The backup workbench action is currently shown inside the session modal in plaintext mode, but moves back into the sidebar when encrypted storage is active. That creates inconsistent UI placement for the same action depending on storage mode. The backup/export action should remain in the same session-modal location regardless of whether the workbench is encrypted or plaintext.
