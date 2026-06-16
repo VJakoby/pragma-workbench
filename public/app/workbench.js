@@ -261,7 +261,6 @@ function renderNoteTypeGrid() {
 
 function updateEncryptedStorageUI() {
   const btn      = document.getElementById('encStorageBtn');
-  const dlBtn    = document.getElementById('encDownloadBtn');
   const bakBtn   = document.getElementById('bakDownloadBtn');
   const sidebar  = document.querySelector('.sidebar');
   if (!btn) return;
@@ -274,8 +273,16 @@ function updateEncryptedStorageUI() {
   btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
   btn.title = locked ? 'Encrypted Workbench (Locked)' : active ? 'Encrypted Workbench (Enabled)' : 'Encrypted Workbench';
   btn.setAttribute('aria-label', btn.title);
-  if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
-  if (bakBtn) bakBtn.style.display = encryptedStorageEnabled ? 'none' : '';
+  if (bakBtn) {
+    bakBtn.style.display = '';
+    bakBtn.title = encryptedStorageEnabled ? 'Download encrypted workbench backup' : 'Download latest backup';
+    bakBtn.setAttribute('aria-label', bakBtn.title);
+  }
+}
+
+async function downloadCurrentWorkbenchBackup() {
+  if (encryptedStorageEnabled) return downloadWorkbench();
+  return downloadBackup();
 }
 
 async function downloadWorkbench() {

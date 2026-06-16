@@ -1730,8 +1730,31 @@ RULES:
 
 END
 
-## B-47 — Add Visual Separators Between Generated Target Findings
+## B-48 — Keep Backup Workbench Action In Session Modal For All Storage Modes
 STATUS: TODO
+
+CONTEXT:
+The backup workbench action is currently shown inside the session modal in plaintext mode, but moves back into the sidebar when encrypted storage is active. That creates inconsistent UI placement for the same action depending on storage mode. The backup/export action should remain in the same session-modal location regardless of whether the workbench is encrypted or plaintext.
+
+SCOPE:
+views/partials/sidebar.ejs
+views/partials/overlays.ejs
+public/app/workbench.js
+
+EXPECTED BEHAVIOR:
+- The backup workbench action must remain inside the session modal utility area in both plaintext and encrypted modes
+- Activating encrypted storage must not reintroduce a separate sidebar backup button
+- The session-modal backup button must trigger the appropriate existing download behavior for the active storage mode
+- Existing encrypted toggle behavior must remain unchanged
+
+RULES:
+- Keep the change limited to backup button placement and mode-aware button wiring
+- Do not redesign the broader session modal or encrypted storage workflow
+
+END
+
+## B-47 — Add Visual Separators Between Generated Target Findings
+STATUS: DONE
 
 CONTEXT:
 Generated target findings notes currently render findings back-to-back, which makes the document harder to scan once several findings exist for the same target. A lightweight markdown separator is needed between each finding section without changing the actual finding content structure.
