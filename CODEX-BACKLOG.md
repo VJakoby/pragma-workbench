@@ -1903,7 +1903,7 @@ END
 
 
 ## B-52 — Session Modal Toggles For Generated Helper Notes
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The app now generates helper notes such as the target-scoped `Services` note from Quick Log Ports and the session summary note. Those generated notes are useful for many engagements, but they should remain optional because some operators prefer to manage those notes manually. The toggle belongs in the session management modal so the operator can control generated-note behavior at the engagement level rather than as a global app preference.
