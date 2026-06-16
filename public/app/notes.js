@@ -21,6 +21,7 @@ let attachmentStorageSidebarStateKey = '';
 let attachmentStorageSidebarLoaded = false;
 let attachmentStoragePayload = null;
 let templateConfigSyncing = false;
+let templateConfigDirty = false;
 const CONFIG_TEMPLATES_PATH = '/api/config/templates';
 const IMPORT_TEMPLATES_PATH = '/api/templates/import';
 const EVIDENCE_TYPE_OPTIONS = [
@@ -191,6 +192,7 @@ async function fetchTemplatesConfigDoc() {
 function setTemplatesConfigEditorContent(content) {
   if (!noteEditor) {
     cmInitNote(content);
+    templateConfigDirty = false;
     return;
   }
   templateConfigSyncing = true;
@@ -203,6 +205,7 @@ function setTemplatesConfigEditorContent(content) {
   } finally {
     templateConfigSyncing = false;
   }
+  templateConfigDirty = false;
 }
 
 function openTemplateImportPicker() {
@@ -245,6 +248,10 @@ async function importNoteTemplateFile(file) {
 
 async function persistTemplatesConfig(opts = {}) {
   if (activeConfigDoc !== 'templates') return false;
+  if (!templateConfigDirty) {
+    if (opts.reason === 'config-close') setNoteSaveIndicator('saved', 'Loaded');
+    return true;
+  }
   const content = cmGetValue(noteEditor);
   const seq = beginAppSave(opts.statusText || '...saving');
   try {
@@ -256,6 +263,7 @@ async function persistTemplatesConfig(opts = {}) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Save failed');
     await loadNoteTemplates();
+    templateConfigDirty = false;
     finishAppSaveSuccess(seq, 'saved');
     return true;
   } catch (err) {
@@ -267,6 +275,7 @@ async function persistTemplatesConfig(opts = {}) {
 
 function autoSaveTemplatesConfig() {
   if (activeConfigDoc !== 'templates' || templateConfigSyncing) return;
+  templateConfigDirty = true;
   setNoteSaveIndicator('saving', '...saving');
   clearTimeout(noteSaveTimer);
   noteSaveTimer = setTimeout(() => { persistTemplatesConfig({ reason: 'config-autosave', toast: false }); }, 600);
@@ -307,9 +316,11 @@ async function openTemplatesConfig(navEl) {
   try {
     const content = await fetchTemplatesConfigDoc();
     cmInitNote(content);
+    templateConfigDirty = false;
     setNoteSaveIndicator('saved', 'Loaded');
   } catch (err) {
     cmInitNote('');
+    templateConfigDirty = false;
     setNoteSaveIndicator('error', 'load failed');
     showToast(`⚠ ${err.message}`, 'err');
   }
@@ -318,6 +329,7 @@ async function openTemplatesConfig(navEl) {
 function closeConfigEditor() {
   clearTimeout(noteSaveTimer);
   hideFindingSelectionPrompt();
+  templateConfigDirty = false;
   activeConfigDoc = null;
   if (typeof clearLastLocationFields === 'function') clearLastLocationFields('configDoc');
   setNoteEditorMode('note');
