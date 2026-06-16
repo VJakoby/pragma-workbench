@@ -1984,6 +1984,22 @@ function resolveQuickLogTargetId() {
   return normalizeSessionTargetId(activeTargetId || getActiveTarget()?.id || null, { allowSessionWide: true });
 }
 
+function isSupportingHelperNoteEnabled(key, sessionId = activeSessionId) {
+  const session = sessionId ? sessions?.[sessionId] : null;
+  if (!session) return true;
+  const settings = typeof ensureSessionGeneratedNoteSettings === 'function'
+    ? ensureSessionGeneratedNoteSettings(session)
+    : (session.generated_notes && typeof session.generated_notes === 'object' && !Array.isArray(session.generated_notes)
+      ? {
+          services_note: session.generated_notes.services_note !== false,
+          session_summary: session.generated_notes.session_summary !== false,
+          network_enumeration: session.generated_notes.network_enumeration !== false,
+          credentials_note: session.generated_notes.credentials_note !== false,
+        }
+      : { services_note: true, session_summary: true, network_enumeration: true, credentials_note: true });
+  return settings?.[key] !== false;
+}
+
 function findTargetNetworkEnumerationNote(targetId) {
   if (!activeSessionId || !targetId) return null;
   return Object.values(notes).find(note =>
@@ -1995,6 +2011,7 @@ function findTargetNetworkEnumerationNote(targetId) {
 
 function ensureTargetNetworkEnumerationNote(targetId) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId || !targetId) return null;
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) return null;
   const target = getSessionTargetById(targetId);
   if (!target) return null;
 
@@ -2044,6 +2061,12 @@ function syncServiceEntryToNetworkEnumerationNote(entry) {
 function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
   const serviceRows = getAllSessionServices()
     .filter(entry => entry?.target_id === targetId)
     .map(parseServiceForNetworkRow)
@@ -2053,7 +2076,6 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
     .map(parsePathForWebRow)
     .filter(Boolean);
 
-  let note = findTargetNetworkEnumerationNote(targetId);
   if (!note && createIfMissing && serviceRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
   if (!serviceRows.length && !pathRows.length) {
@@ -2078,6 +2100,12 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
   const pathRows = getAllSessionPaths()
     .filter(entry => entry?.target_id === targetId)
     .map(parsePathForWebRow)
@@ -2087,7 +2115,6 @@ function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = fa
     .map(parseServiceForNetworkRow)
     .filter(Boolean);
 
-  let note = findTargetNetworkEnumerationNote(targetId);
   if (!note && createIfMissing && pathRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
   if (!pathRows.length && !serviceRows.length) {
@@ -2173,6 +2200,42 @@ function syncGeneratedNotesAfterMutation() {
 
 function syncGeneratedFindingNotesAfterMutation() {
   syncGeneratedNotesAfterMutation();
+}
+
+function syncSupportingHelperNotesForSession(sessionId = activeSessionId) {
+  if (!sessionId || !sessions?.[sessionId] || sessionId !== activeSessionId) return false;
+  let changed = false;
+  const session = sessions[sessionId];
+  const targets = Array.isArray(session.targets) ? session.targets : [];
+
+  if (!isSupportingHelperNoteEnabled('network_enumeration', sessionId)) {
+    Object.values(notes).forEach((note) => {
+      if (note?.session_id === sessionId && note?.type === 'network-enumeration') {
+        changed = removeSyncedSupportingNote(note) || changed;
+      }
+    });
+  } else {
+    targets.forEach((target) => {
+      if (!target?.id) return;
+      const beforeNote = findTargetNetworkEnumerationNote(target.id);
+      const updatedByServices = syncSessionServicesToNetworkEnumerationNote(target.id, true);
+      const updatedByPaths = syncSessionPathsToNetworkEnumerationNote(target.id, true);
+      const afterNote = findTargetNetworkEnumerationNote(target.id);
+      if (updatedByServices || updatedByPaths || beforeNote !== afterNote) changed = true;
+    });
+  }
+
+  if (!isSupportingHelperNoteEnabled('credentials_note', sessionId)) {
+    const existingCredentials = findSessionCredentialsNote();
+    if (existingCredentials) changed = removeSyncedSupportingNote(existingCredentials) || changed;
+  } else {
+    const beforeCredentials = findSessionCredentialsNote();
+    const syncedCredentials = syncSessionLootToCredentialsNote(true);
+    const afterCredentials = findSessionCredentialsNote();
+    if (syncedCredentials || beforeCredentials !== afterCredentials) changed = true;
+  }
+
+  return changed;
 }
 
 function isQuickLogEditing(kind, id) {
@@ -2920,6 +2983,7 @@ function sessionHasCredentialSyncLootEntries() {
 
 function ensureSessionCredentialsNote() {
   if (!NOTE_TEMPLATES?.credentials || !activeSessionId) return null;
+  if (!isSupportingHelperNoteEnabled('credentials_note')) return null;
   let note = findSessionCredentialsNote();
   if (note) return note;
 
@@ -2956,12 +3020,17 @@ function buildCredentialsBody() {
 function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
+  let note = findSessionCredentialsNote();
+  if (!isSupportingHelperNoteEnabled('credentials_note')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
   const rows = getAllSessionLoot()
     .map(parseLootForCredentialsRow)
     .filter(Boolean);
   const shouldEnsureNote = !!createIfMissing || rows.length > 0 || sessionHasCredentialSyncLootEntries();
 
-  let note = findSessionCredentialsNote();
   if (!note && shouldEnsureNote) note = ensureSessionCredentialsNote();
   if (!note) return false;
   if (!rows.length) {

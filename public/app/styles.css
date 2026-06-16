@@ -4781,6 +4781,19 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .session-field input:focus { border-color: var(--accent); }
 .session-field input::placeholder { color: var(--muted); }
+.session-helper-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.session-helper-checks .summary-export-check {
+  margin-top: 0;
+  min-height: 0;
+  white-space: normal;
+  line-height: 1.35;
+  justify-content: flex-start;
+}
 .session-actions { display: flex; gap: 8px; margin-top: 4px; }
 .session-btn {
   flex: 1; padding: 8px; border-radius: 7px; border: 1px solid var(--border);

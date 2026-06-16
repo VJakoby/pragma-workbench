@@ -1429,10 +1429,25 @@ function getValidGeneratedSessionData(sessionId) {
 }
 
 
+function isGeneratedHelperNoteEnabled(sessionId, key) {
+  const session = sessionId ? sessions[sessionId] : null;
+  if (!session) return true;
+  const settings = typeof ensureSessionGeneratedNoteSettings === 'function'
+    ? ensureSessionGeneratedNoteSettings(session)
+    : (session.generated_notes && typeof session.generated_notes === 'object' && !Array.isArray(session.generated_notes)
+      ? {
+          services_note: session.generated_notes.services_note !== false,
+          session_summary: session.generated_notes.session_summary !== false,
+        }
+      : { services_note: true, session_summary: true });
+  return settings?.[key] !== false;
+}
+
 function generatedNoteWillRebuild(note) {
   if (!note?.generated_note || !note?.session_id) return false;
   const { services, paths, loot, findings } = getValidGeneratedSessionData(note.session_id);
   if (note.generated_kind === 'engagement_summary') {
+    if (!isGeneratedHelperNoteEnabled(note.session_id, 'session_summary')) return false;
     return services.length > 0 || paths.length > 0 || loot.length > 0 || findings.length > 0;
   }
   if (note.generated_kind === 'target_findings') {
@@ -1440,6 +1455,7 @@ function generatedNoteWillRebuild(note) {
     return !!targetId && findings.some((entry) => (entry?.target_id || null) === targetId);
   }
   if (note.generated_kind === 'target_services') {
+    if (!isGeneratedHelperNoteEnabled(note.session_id, 'services_note')) return false;
     const targetId = note.generated_target_id || note.target_id || null;
     return !!targetId && services.some((entry) => (entry?.target_id || null) === targetId);
   }
@@ -1654,9 +1670,11 @@ function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
     changed = true;
   }
 
+  const summaryEnabled = isGeneratedHelperNoteEnabled(sessionId, 'session_summary');
+  const servicesEnabled = isGeneratedHelperNoteEnabled(sessionId, 'services_note');
   const hasSummaryData = services.length > 0 || paths.length > 0 || loot.length > 0 || findings.length > 0;
 
-  if (hasSummaryData) {
+  if (summaryEnabled && hasSummaryData) {
     const summaryResult = upsertGeneratedNote({
       sessionId,
       kind: 'engagement_summary',
@@ -1686,7 +1704,7 @@ function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
       changed = result.changed || changed;
     }
 
-    if (targetIdsWithServices.has(target.id)) {
+    if (servicesEnabled && targetIdsWithServices.has(target.id)) {
       const existingServicesNote = findGeneratedNote(sessionId, 'target_services', target.id);
       const result = upsertGeneratedNote({
         sessionId,
@@ -1710,7 +1728,7 @@ function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
   Object.values(notes).forEach((note) => {
     if (note?.session_id !== sessionId || note?.generated_note !== true || note?.generated_kind !== 'target_services') return;
     const targetId = note.generated_target_id || note.target_id || null;
-    if (targetId && targetIdsWithServices.has(targetId) && targets.some((target) => target.id === targetId)) return;
+    if (servicesEnabled && targetId && targetIdsWithServices.has(targetId) && targets.some((target) => target.id === targetId)) return;
     changed = removeGeneratedNote(note) || changed;
   });
 

@@ -188,6 +188,28 @@
           </div>
           <div class="session-field-hint">Default <code>DOMAIN</code> context for the full session. Use target-specific domains only when a single target needs to differ.</div>
         </div>
+        <div class="session-field" id="sessionGeneratedNotesFieldWrap" style="display:none">
+          <label>Generated helper notes</label>
+          <div class="session-field-hint">Optional helper notes generated from engagement data. Disable them if you prefer to manage these notes manually.</div>
+          <div class="session-helper-checks">
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedServicesToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create Services notes from Quick Log Ports
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedSummaryToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create the session summary note
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedNetworkEnumToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create Network Enumeration notes
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedCredentialsToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create the Credentials note
+            </label>
+          </div>
+        </div>
         <button class="session-btn secondary session-modal-utility-btn" id="bakDownloadBtn" onclick="downloadCurrentWorkbenchBackup()" title="Download workbench backup" aria-label="Download workbench backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><polyline points="9,12 12,15 15,12"/><line x1="12" y1="9" x2="12" y2="15"/></svg> Backup Workbench</span></button>
         <div class="session-list" id="sessionList"></div>
       </div>
