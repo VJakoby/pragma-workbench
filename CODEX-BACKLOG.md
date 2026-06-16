@@ -1900,3 +1900,37 @@ RULES:
 - Do not broaden the task into unrelated note editor or sidebar changes
 
 END
+
+
+## B-52 — Session Modal Toggles For Generated Helper Notes
+STATUS: TODO
+
+CONTEXT:
+The app now generates helper notes such as the target-scoped `Services` note from Quick Log Ports and the session summary note. Those generated notes are useful for many engagements, but they should remain optional because some operators prefer to manage those notes manually. The toggle belongs in the session management modal so the operator can control generated-note behavior at the engagement level rather than as a global app preference.
+
+SCOPE:
+session management modal UI
+session settings persistence
+generated services note sync
+generated session summary sync
+
+EXPECTED BEHAVIOR:
+- The session management modal must include a small `Generated helper notes` section
+- That section must include checkboxes for:
+  - auto-create/update the generated `Services` notes from Quick Log Ports
+  - auto-create/update the generated session summary note
+- The section must include a brief explanatory helper text clarifying that these notes are optional helper notes generated from engagement data
+- The toggle state must persist with the current session
+- Existing sessions that do not yet define these settings must default to the current behavior, meaning generated helper notes remain enabled
+- When a toggle is disabled, the corresponding generated-note sync path must stop auto-creating and auto-updating that note type for the session
+- When a toggle is re-enabled, the corresponding generated-note sync path must resume normally from current session data
+
+RULES:
+- Keep the setting session-scoped rather than global
+- Keep the UI inside the existing session management modal
+- Keep the helper text brief and operationally clear
+- Do not redesign unrelated parts of the session modal
+- Do not broaden the task into a general settings framework
+- Do not change the underlying generated-note formats beyond what is needed to gate their sync behavior
+
+END
