@@ -1730,8 +1730,28 @@ RULES:
 
 END
 
-## B-46 — Fix Findings Sync and Encrypted Unified Search Indexing
+## B-47 — Add Visual Separators Between Generated Target Findings
 STATUS: TODO
+
+CONTEXT:
+Generated target findings notes currently render findings back-to-back, which makes the document harder to scan once several findings exist for the same target. A lightweight markdown separator is needed between each finding section without changing the actual finding content structure.
+
+SCOPE:
+public/app/notes.js
+
+EXPECTED BEHAVIOR:
+- In generated target findings notes, each finding after the first must be preceded by a blank line and a markdown horizontal rule using `---`
+- The first finding in the note must not gain a leading separator
+- Existing section content, parser markers, and finding sync behavior must remain unchanged
+
+RULES:
+- Keep the change limited to generated target findings note formatting
+- Do not change findings data, parsing logic, or other generated note formats
+
+END
+
+## B-46 — Fix Findings Sync and Encrypted Unified Search Indexing
+STATUS: DONE
 
 CONTEXT:
 Recent review findings identified three correctness issues in the new findings and encrypted-workbench flows. Generated target findings notes now render markdown fields in a format that no longer matches the parser used to sync edits back into session findings. The generated findings sync also relies on section order instead of stable finding identity, which risks applying edits to the wrong finding after reorder or deletion. Separately, unified search watches encrypted workbench files but does not enumerate encrypted-only workbench names, so local notes can disappear from search when plaintext workbench files are absent.

@@ -1535,7 +1535,7 @@ function buildTargetFindingsNoteBody(sessionId, target) {
     `- Label: ${target.label || '—'}`,
     `- Target: ${targetIdentity}`,
     '',
-    ...(sections.length ? sections : ['No findings linked to this target yet.']),
+    ...(sections.length ? [sections.join('\n\n---\n\n')] : ['No findings linked to this target yet.']),
     '',
   ].join('\n');
 }
