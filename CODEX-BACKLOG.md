@@ -1729,3 +1729,31 @@ RULES:
 - Leave promotion into a full PRAGMA target as a later extension, not part of the initial implementation
 
 END
+
+## B-45 — Fix Mixed Attachment Storage During Encrypted Workbench Migration
+STATUS: TODO
+
+CONTEXT:
+The workbench can currently end up in a mixed state where the main `.workbench` file is plaintext while one or more referenced note attachments still exist only as encrypted `.enc` payloads. When the operator later enables `Encrypted Workbench`, attachment migration can fail with `Wrong password or corrupted data`, even though the main workbench flow should remain usable.
+
+SCOPE:
+public/app/note-editor.js
+public/app/workbench.js
+server/lib/note-attachments.js
+server/routes/notes.js
+
+EXPECTED BEHAVIOR:
+- Enabling `Encrypted Workbench` must not fail simply because referenced attachments are already stored as encrypted blobs from an earlier state
+- The attachment migration flow must handle mixed attachment state safely when moving into encrypted mode
+- Plaintext workbench saves must not continue preserving encrypted attachment siblings for the same referenced files
+- Encrypted workbench saves must not continue preserving plaintext attachment siblings for the same referenced files
+- Existing attachment URLs and note markdown references must remain unchanged
+- Existing successful attachment upload, render, and export behavior must continue to work
+
+RULES:
+- Keep the change limited to attachment storage normalization and encrypted-workbench migration behavior
+- Do not redesign the broader encrypted workbench UX beyond what is required to recover from the mixed attachment state
+- Do not alter note body attachment URL format
+- Do not broaden the task into unrelated note editor or sidebar changes
+
+END

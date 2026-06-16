@@ -63,7 +63,7 @@ function extractNoteAttachmentRefs(markdown) {
   return refs;
 }
 
-async function fetchNoteAttachmentBlobFromUrl(url) {
+async function fetchNoteAttachmentSourceFromUrl(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
     let detail = '';
@@ -71,18 +71,24 @@ async function fetchNoteAttachmentBlobFromUrl(url) {
       const payload = await res.json();
       detail = payload?.error || payload?.detail || '';
     } catch (_) {}
-    const suffix = detail ? `: ${detail}` : '';
-    throw new Error(`Attachment fetch failed (${res.status}) for ${url}${suffix}`);
+    const suffix = detail ? ': ' + detail : '';
+    throw new Error('Attachment fetch failed (' + res.status + ') for ' + url + suffix);
   }
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
   if (contentType.includes('application/json')) {
     const payload = await res.json();
     if (!payload?.encrypted) throw new Error('Attachment payload invalid');
-    if (!encryptedStoragePassword) throw new Error('Workbench is locked');
-    const decrypted = await decryptBinaryPayload(payload, encryptedStoragePassword);
-    return new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
+    return { mode: 'encrypted', payload };
   }
-  return res.blob();
+  return { mode: 'raw', blob: await res.blob() };
+}
+
+async function fetchNoteAttachmentBlobFromUrl(url) {
+  const source = await fetchNoteAttachmentSourceFromUrl(url);
+  if (source.mode === 'raw') return source.blob;
+  if (!encryptedStoragePassword) throw new Error('Workbench is locked');
+  const decrypted = await decryptBinaryPayload(source.payload, encryptedStoragePassword);
+  return new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
 }
 
 async function blobToDataUrl(blob) {
@@ -231,6 +237,13 @@ function insertImageMarkdownAt(view, markdown, pos) {
   view.focus();
 }
 
+async function persistInsertedAttachmentReference(noteId = activeNoteId) {
+  if (!noteId || !notes[noteId] || typeof syncActiveNoteDraft !== 'function' || typeof saveNotes !== 'function') return;
+  const syncResult = syncActiveNoteDraft(noteId);
+  if (!syncResult?.ok) return;
+  await saveNotes({ reason: 'note-attachment-insert', immediate: true });
+}
+
 async function uploadNoteImage(file, opts = {}) {
   const noteId = String(opts.noteId || activeNoteId || '').trim();
   if (!noteId || !notes[noteId]) throw new Error('Open a note first');
@@ -273,6 +286,7 @@ async function uploadNoteImage(file, opts = {}) {
 async function resolveRenderedAttachmentImages(root) {
   if (!root) return;
   const images = [...root.querySelectorAll('img[src^="/api/notes/attachments/"]')];
+  const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
   const renderAttachmentWarning = (img, message) => {
     if (!img || img.dataset.pragmaAttachmentBroken === '1') return;
@@ -292,20 +306,28 @@ async function resolveRenderedAttachmentImages(root) {
   for (const img of images) {
     const src = img.getAttribute('src') || '';
     if (!src || img.dataset.pragmaResolvedAttachment === src) continue;
-    img.addEventListener('error', () => {
-      renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
-    }, { once: true });
-    if (!encryptedStorageEnabled) continue;
+    if (!encryptedStorageEnabled) {
+      img.addEventListener('error', () => {
+        renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
+      }, { once: true });
+      continue;
+    }
     if (!encryptedStoragePassword) {
       renderAttachmentWarning(img, 'Workbench is locked. Unlock it to decrypt this attachment.');
       continue;
     }
     try {
+      // Prevent the browser from trying to decode the encrypted JSON payload as an image
+      // before we replace it with a decrypted object URL.
+      img.src = transparentPixel;
       const blob = await fetchNoteAttachmentBlobFromUrl(src);
       const objectUrl = URL.createObjectURL(blob);
       if (img.dataset.pragmaObjectUrl) {
         try { URL.revokeObjectURL(img.dataset.pragmaObjectUrl); } catch (_) {}
       }
+      img.addEventListener('error', () => {
+        renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
+      }, { once: true });
       img.dataset.pragmaResolvedAttachment = src;
       img.dataset.pragmaObjectUrl = objectUrl;
       img.src = objectUrl;
@@ -318,17 +340,34 @@ async function resolveRenderedAttachmentImages(root) {
 async function migrateNoteAttachmentsStorage(targetMode) {
   const seen = new Set();
   const refs = [];
+  let preservedEncryptedCount = 0;
   Object.values(notes || {}).forEach((note) => {
     extractNoteAttachmentRefs(note?.body || '').forEach((ref) => {
       const ownerNoteId = String(note?.id || '').trim();
-      const key = `${ref.noteId || ownerNoteId}:${ref.filename}`;
+      const key = (ref.noteId || ownerNoteId) + ':' + ref.filename;
       if (seen.has(key)) return;
       seen.add(key);
       refs.push({ ...ref, ownerNoteId });
     });
   });
   for (const ref of refs) {
-    const blob = await fetchNoteAttachmentBlobFromUrl(ref.url);
+    const source = await fetchNoteAttachmentSourceFromUrl(ref.url);
+    let blob = null;
+    if (source.mode === 'raw') {
+      blob = source.blob;
+    } else {
+      if (!encryptedStoragePassword) throw new Error('Workbench is locked');
+      try {
+        const decrypted = await decryptBinaryPayload(source.payload, encryptedStoragePassword);
+        blob = new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
+      } catch (err) {
+        if (targetMode === 'encrypted') {
+          preservedEncryptedCount += 1;
+          continue;
+        }
+        throw err;
+      }
+    }
     const file = new File([blob], ref.filename, { type: blob.type || 'application/octet-stream' });
     await uploadNoteImage(file, {
       noteId: ref.noteId || ref.ownerNoteId,
@@ -336,6 +375,7 @@ async function migrateNoteAttachmentsStorage(targetMode) {
       forceMode: targetMode,
     });
   }
+  return { preservedEncryptedCount, total: refs.length };
 }
 
 async function handleNoteImageDrop(event, view) {
@@ -353,9 +393,11 @@ async function handleNoteImageDrop(event, view) {
     if (imageFile) {
       const uploadedUrl = await uploadNoteImage(imageFile);
       insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name), pos);
+      await persistInsertedAttachmentReference();
       showToast?.('✓ Image attached');
     } else if (imageUrl) {
       insertImageMarkdownAt(view, buildNoteImageMarkdown(imageUrl, imageUrl), pos);
+      await persistInsertedAttachmentReference();
       showToast?.('✓ Image link inserted');
     }
     return true;
@@ -377,6 +419,7 @@ async function handleNoteImagePaste(event, view) {
   try {
     const uploadedUrl = await uploadNoteImage(imageFile);
     insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name || 'clipboard-image'), pos);
+    await persistInsertedAttachmentReference();
     showToast?.('✓ Screenshot attached');
     return true;
   } catch (err) {

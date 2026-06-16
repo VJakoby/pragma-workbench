@@ -470,7 +470,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest);
+      cleanupAttachmentStore(sessionsDir, attachmentManifest, { preferredMode: 'raw' });
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -557,7 +557,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchEncFile());
       storage.atomicWrite(storage.workbenchEncFile(), JSON.stringify(blob, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {});
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {}, { preferredMode: 'encrypted' });
       if (fs.existsSync(storage.workbenchFile())) {
         try { fs.unlinkSync(storage.workbenchFile()); } catch (_) {}
       }
@@ -579,7 +579,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes), { preferredMode: 'raw' });
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }

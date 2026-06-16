@@ -388,9 +388,10 @@ async function toggleEncryptedStorage(e) {
     encryptedStoragePassword = pw1.password;
     encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
+    let attachmentMigration = null;
     try {
       if (typeof migrateNoteAttachmentsStorage === 'function') {
-        await migrateNoteAttachmentsStorage('encrypted');
+        attachmentMigration = await migrateNoteAttachmentsStorage('encrypted');
       }
     } catch (err) {
       encryptedStorageEnabled = false;
@@ -399,6 +400,10 @@ async function toggleEncryptedStorage(e) {
       updateEncryptedStorageUI();
       showToast('⚠ Attachment encryption failed: ' + (err.message || 'unknown error'), 'err');
       return;
+    }
+    if (attachmentMigration?.preservedEncryptedCount) {
+      const count = attachmentMigration.preservedEncryptedCount;
+      showToast('⚠ Preserved ' + count + ' existing encrypted attachment' + (count === 1 ? '' : 's') + ' as-is during migration', 'err');
     }
     if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
     await saveNotes({ reason: 'enable-encrypted-storage', immediate: true });
