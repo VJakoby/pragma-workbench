@@ -1731,7 +1731,7 @@ RULES:
 END
 
 ## B-50 — Increase Context Switcher Item Typography
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The target/session context switcher item text is currently slightly too small, especially the target or session label line and the smaller meta line beneath it. A small typography increase is needed so both lines are easier to scan without changing the structure or behavior of the switcher.
