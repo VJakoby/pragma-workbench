@@ -1730,6 +1730,42 @@ RULES:
 
 END
 
+## B-51 — Generate Session Services Note From Quick Log Ports
+STATUS: TODO
+
+CONTEXT:
+Operators currently need to create and structure separate investigation notes manually for each discovered service after logging ports in Quick Log. That adds friction once several ports need follow-up. A generated markdown note should provide a ready-made investigation surface by turning the current Quick Log Ports inventory into service subsections automatically, while still staying synchronized when port or service values change later.
+
+SCOPE:
+generated note pipeline
+Quick Log Ports → markdown synchronization
+service investigation note rendering
+
+EXPECTED BEHAVIOR:
+- A generated note named `Services` must be created for the active session when relevant Quick Log Ports data exists
+- The generated note must start with:
+  - `# Services`
+- Each logged Quick Log Ports entry should create its own markdown subsection, for example:
+  - `## 80 / http`
+- The subsection heading content must be derived from the current Quick Log Ports data, using the port number and resolved service name
+- The generated note is intended as an investigation workspace, so the operator can write service-specific notes directly beneath each generated subsection
+- If a Quick Log Ports entry changes later, the generated service subsection heading must update to match the latest port/service values
+- If ports are removed, the generated structure must reflect that removal appropriately
+- The feature should follow the same generated-note model already used for other synchronized notes such as credentials/network-enumeration style notes
+
+SYNC / CONTENT RULES:
+- The generated structure must be based on session Quick Log Ports data, respecting the app's current scoping rules for ports
+- The generated note should preserve operator-written content beneath each service subsection when possible, rather than wiping investigation text on every sync
+- Stable section identity should be used so updates map to the correct service block even after reorder or rename
+- The generated note should not require the operator to create separate manual notes just to begin documenting service investigation steps
+
+RULES:
+- Keep the first implementation focused on generating and synchronizing the `Services` markdown note from Quick Log Ports
+- Do not expand this task into KB auto-linking redesign or per-service standalone note creation unless required later
+- Do not replace existing manual note creation features; this is an additional generated investigation surface
+
+END
+
 ## B-50 — Increase Context Switcher Item Typography
 STATUS: DONE
 
