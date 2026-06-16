@@ -1731,7 +1731,7 @@ RULES:
 END
 
 ## B-51 — Generate Session Services Note From Quick Log Ports
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 Operators currently need to create and structure separate investigation notes manually for each discovered service after logging ports in Quick Log. That adds friction once several ports need follow-up. A generated markdown note should provide a ready-made investigation surface by turning the current Quick Log Ports inventory into service subsections automatically, while still staying synchronized when port or service values change later.
