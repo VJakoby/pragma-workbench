@@ -5275,7 +5275,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .context-switcher-item-title {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
   overflow: hidden;
@@ -5284,7 +5284,7 @@ body.is-resizing *{cursor:col-resize!important}
 }
 .context-switcher-item-meta {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;

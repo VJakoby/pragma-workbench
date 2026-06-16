@@ -1730,8 +1730,28 @@ RULES:
 
 END
 
-## B-49 — Keep Context Switcher Open When Quick-Creating Targets
+## B-50 — Increase Context Switcher Item Typography
 STATUS: TODO
+
+CONTEXT:
+The target/session context switcher item text is currently slightly too small, especially the target or session label line and the smaller meta line beneath it. A small typography increase is needed so both lines are easier to scan without changing the structure or behavior of the switcher.
+
+SCOPE:
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The main context switcher item title/label must render slightly larger
+- The context switcher item meta line must also render slightly larger
+- Existing layout, truncation, and interaction behavior must remain unchanged
+
+RULES:
+- Keep the change limited to context switcher item typography
+- Do not redesign spacing, badges, or selection behavior
+
+END
+
+## B-49 — Keep Context Switcher Open When Quick-Creating Targets
+STATUS: DONE
 
 CONTEXT:
 The Switch target/session modal currently closes immediately after a new target is quick-created from within the target tab. That slows down workflows where the operator wants to add several targets in sequence from the same modal. The modal should stay open for repeated target creation and only close when the operator explicitly dismisses it or selects an existing target/session.
