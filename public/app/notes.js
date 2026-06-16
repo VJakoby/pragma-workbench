@@ -1416,6 +1416,7 @@ function getValidGeneratedSessionData(sessionId) {
   return { session, targets, services, paths, loot, findings, pruned };
 }
 
+
 function generatedNoteWillRebuild(note) {
   if (!note?.generated_note || !note?.session_id) return false;
   const { services, paths, loot, findings } = getValidGeneratedSessionData(note.session_id);
@@ -1425,6 +1426,10 @@ function generatedNoteWillRebuild(note) {
   if (note.generated_kind === 'target_findings') {
     const targetId = note.generated_target_id || note.target_id || null;
     return !!targetId && findings.some((entry) => (entry?.target_id || null) === targetId);
+  }
+  if (note.generated_kind === 'target_services') {
+    const targetId = note.generated_target_id || note.target_id || null;
+    return !!targetId && services.some((entry) => (entry?.target_id || null) === targetId);
   }
   return false;
 }
@@ -1502,6 +1507,88 @@ function buildEngagementSummaryNoteBody(sessionId) {
   ].join('\n');
 }
 
+function buildTargetServicesNoteTitle(target) {
+  return `Services - ${getGeneratedTargetTitle(target)}`;
+}
+
+function normalizeGeneratedServiceHeading(entry) {
+  const port = String(entry?.port || '').trim() || 'Unknown Port';
+  const service = String(entry?.service || '').trim() || 'unknown-service';
+  return `${port} / ${service}`;
+}
+
+function extractGeneratedServiceSectionsFromBody(body) {
+  const text = String(body || '');
+  const sections = [];
+  const matches = [...text.matchAll(/^##\s+/gm)];
+  if (!matches.length) return sections;
+  for (let index = 0; index < matches.length; index += 1) {
+    const startIdx = matches[index].index;
+    const endIdx = index + 1 < matches.length ? matches[index + 1].index : text.length;
+    const sectionText = text.slice(startIdx, endIdx).trim();
+    if (!sectionText) continue;
+    const lines = sectionText.split('\n');
+    const titleMatch = lines[0]?.match(/^##\s+(.+)$/);
+    const markerIdx = lines.findIndex((line) => /^<!--\s*pragma:generated-service:[^\s>]+\s*-->$/i.test(line.trim()));
+    const idMatch = markerIdx >= 0 ? lines[markerIdx].match(/^<!--\s*pragma:generated-service:([^\s>]+)\s*-->$/i) : null;
+    const contentLines = (markerIdx >= 0 ? lines.slice(markerIdx + 1) : lines.slice(1))
+      .filter((line) => !/^-\s+\*\*Version\*\*:\s*/i.test(line.trim()))
+      .filter((line) => !/^-\s+\*\*Notes\*\*:\s*/i.test(line.trim()));
+    const content = contentLines
+      .join('\n')
+      .replace(/^\n+/, '')
+      .replace(/\n*---\s*$/, '')
+      .trimEnd();
+    sections.push({
+      id: idMatch ? idMatch[1].trim() : '',
+      title: titleMatch ? titleMatch[1].trim() : '',
+      content,
+    });
+  }
+  return sections;
+}
+
+function buildTargetServicesNoteBody(sessionId, target, existingBody = '') {
+  const session = sessions[sessionId];
+  if (!session || !target) return '# Services\n';
+  const services = (Array.isArray(session.services) ? session.services : [])
+    .filter((entry) => (entry?.target_id || null) === target.id)
+    .sort((a, b) => {
+      const aPort = parseInt(a?.port, 10);
+      const bPort = parseInt(b?.port, 10);
+      if (Number.isFinite(aPort) && Number.isFinite(bPort) && aPort !== bPort) return aPort - bPort;
+      return normalizeGeneratedServiceHeading(a).localeCompare(normalizeGeneratedServiceHeading(b));
+    });
+  const existingSections = extractGeneratedServiceSectionsFromBody(existingBody);
+  const existingById = new Map(existingSections.filter((section) => section.id).map((section) => [section.id, section.content]));
+  const existingByTitle = new Map(existingSections.filter((section) => section.title).map((section) => [section.title, section.content]));
+  const targetIdentity = formatGeneratedTargetIdentity(target);
+
+  const sections = services.map((entry) => {
+    const heading = normalizeGeneratedServiceHeading(entry);
+    const preservedContent = existingById.get(String(entry?.id || '').trim()) || existingByTitle.get(heading) || '';
+    const versionLine = `- **Version**: ${formatGeneratedInlineCode(entry?.version || '')}`;
+    const notesLine = `- **Notes**: ${String(entry?.notes || '').trim() || '—'}`;
+    return [
+      `## ${heading}`,
+      `<!-- pragma:generated-service:${entry?.id || ''} -->`,
+      versionLine,
+      notesLine,
+      '',
+      ...(preservedContent ? [preservedContent] : []),
+    ].join('\n').trimEnd();
+  });
+
+  return [
+    '# Services',
+    '',
+    `- Target: ${targetIdentity}`,
+    '',
+    ...(sections.length ? [sections.join('\n\n\n\n---\n\n')] : ['No services logged for this target yet.']),
+    '',
+  ].join('\n');
+}
+
 function buildTargetFindingsNoteTitle(target) {
   return `FINDINGS - ${getGeneratedTargetTitle(target)}`;
 }
@@ -1540,6 +1627,7 @@ function buildTargetFindingsNoteBody(sessionId, target) {
   ].join('\n');
 }
 
+
 function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
   if (!sessionId || !sessions[sessionId]) return false;
   const { session, targets, services, paths, loot, findings, pruned } = getValidGeneratedSessionData(sessionId);
@@ -1571,24 +1659,46 @@ function syncGeneratedEngagementNotes(sessionId = activeSessionId) {
   }
 
   const targetIdsWithFindings = new Set(findings.map((entry) => String(entry?.target_id || '').trim()).filter(Boolean));
+  const targetIdsWithServices = new Set(services.map((entry) => String(entry?.target_id || '').trim()).filter(Boolean));
 
   targets.forEach((target) => {
-    if (!targetIdsWithFindings.has(target.id)) return;
-    const result = upsertGeneratedNote({
-      sessionId,
-      kind: 'target_findings',
-      targetId: target.id,
-      title: buildTargetFindingsNoteTitle(target),
-      body: buildTargetFindingsNoteBody(sessionId, target),
-      tags: ['generated', 'findings'],
-    });
-    changed = result.changed || changed;
+    if (targetIdsWithFindings.has(target.id)) {
+      const result = upsertGeneratedNote({
+        sessionId,
+        kind: 'target_findings',
+        targetId: target.id,
+        title: buildTargetFindingsNoteTitle(target),
+        body: buildTargetFindingsNoteBody(sessionId, target),
+        tags: ['generated', 'findings'],
+      });
+      changed = result.changed || changed;
+    }
+
+    if (targetIdsWithServices.has(target.id)) {
+      const existingServicesNote = findGeneratedNote(sessionId, 'target_services', target.id);
+      const result = upsertGeneratedNote({
+        sessionId,
+        kind: 'target_services',
+        targetId: target.id,
+        title: buildTargetServicesNoteTitle(target),
+        body: buildTargetServicesNoteBody(sessionId, target, existingServicesNote?.body || ''),
+        tags: ['generated', 'services'],
+      });
+      changed = result.changed || changed;
+    }
   });
 
   Object.values(notes).forEach((note) => {
     if (note?.session_id !== sessionId || note?.generated_note !== true || note?.generated_kind !== 'target_findings') return;
     const targetId = note.generated_target_id || note.target_id || null;
     if (targetId && targetIdsWithFindings.has(targetId) && targets.some((target) => target.id === targetId)) return;
+    changed = removeGeneratedNote(note) || changed;
+  });
+
+  Object.values(notes).forEach((note) => {
+    if (note?.session_id !== sessionId || note?.generated_note !== true || note?.generated_kind !== 'target_services') return;
+    const targetId = note.generated_target_id || note.target_id || null;
+    if (targetId && targetIdsWithServices.has(targetId) && targets.some((target) => target.id === targetId)) return;
     changed = removeGeneratedNote(note) || changed;
   });
 
