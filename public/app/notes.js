@@ -1514,6 +1514,7 @@ function buildTargetFindingsNoteBody(sessionId, target) {
 
   const sections = findings.map((entry) => [
     `## ${entry?.title || 'Untitled finding'}`,
+    `<!-- pragma:generated-finding:${entry?.id || ''} -->`,
     `- **Severity**: ${formatGeneratedSeverityLabel(entry?.severity)}`,
     `- **Type**: ${entry?.type || '—'}`,
     `- **Target**: ${formatGeneratedTargetIdentity(target)}`,
@@ -1826,20 +1827,28 @@ function extractGeneratedFindingSectionsFromBody(body) {
   for (let index = 0; index < matches.length; index += 1) {
     const startIdx = matches[index].index;
     const endIdx = index + 1 < matches.length ? matches[index + 1].index : text.length;
-    sections.push(text.slice(startIdx, endIdx).trim());
+    const sectionText = text.slice(startIdx, endIdx).trim();
+    if (!sectionText) continue;
+    const idMatch = sectionText.match(/^<!--\s*pragma:generated-finding:([^\s>]+)\s*-->$/mi);
+    sections.push({
+      id: idMatch ? idMatch[1].trim() : '',
+      text: sectionText,
+    });
   }
-  return sections.filter(Boolean);
+  return sections;
 }
 
 function parseGeneratedFindingSection(section) {
-  const text = String(section || '');
+  const raw = typeof section === 'string' ? { id: '', text: section } : (section || {});
+  const text = String(raw.text || '');
   const titleMatch = text.match(/^##\s+(.+)$/m);
   const extractField = (label) => {
-    const match = text.match(new RegExp(`^- ${label}:\\s*(.*)$`, 'mi'));
+    const match = text.match(new RegExp('^-\\s+(?:\\*\\*)?' + label + '(?:\\*\\*)?:\\s*(.*)$', 'mi'));
     return match ? match[1].trim() : '';
   };
   const pocMatch = text.match(/###\s+POC\s*[\r\n]+```(?:[a-z0-9_-]+)?\n([\s\S]*?)\n```/i);
   return {
+    id: String(raw.id || '').trim(),
     title: titleMatch ? titleMatch[1].trim() : '',
     severity: extractField('Severity'),
     type: extractField('Type'),
@@ -1851,18 +1860,49 @@ function parseGeneratedFindingSection(section) {
 
 function syncGeneratedFindingEntriesFromNote(noteId) {
   const note = noteId ? notes[noteId] : null;
-  if (!note || note.generated_note !== true || note.generated_kind !== 'target_findings' || !activeSessionId || !sessions[activeSessionId]) return false;
+  const sessionId = note?.session_id || activeSessionId || null;
+  if (!note || note.generated_note !== true || note.generated_kind !== 'target_findings' || !sessionId || !sessions[sessionId]) return false;
   const targetId = note.generated_target_id || note.target_id || null;
-  const entries = getSessionFindingsData(activeSessionId).filter((entry) => (entry?.target_id || null) === targetId);
+  const entries = getSessionFindingsData(sessionId).filter((entry) => (entry?.target_id || null) === targetId);
   if (!entries.length) return false;
   const sections = extractGeneratedFindingSectionsFromBody(note.body || '');
   if (!sections.length) return false;
   let changed = false;
 
-  entries.forEach((entry, index) => {
-    const section = sections[index];
-    if (!section) return;
-    const parsed = parseGeneratedFindingSection(section);
+  const entryById = new Map(entries.map((entry) => [String(entry?.id || '').trim(), entry]));
+  const unassignedEntries = new Set(entries);
+  const parsedSections = sections.map((section, index) => ({ index, parsed: parseGeneratedFindingSection(section) }));
+  const entryMatches = [];
+
+  parsedSections.forEach(({ index, parsed }) => {
+    const entry = parsed.id ? entryById.get(parsed.id) : null;
+    if (!entry || !unassignedEntries.has(entry)) return;
+    unassignedEntries.delete(entry);
+    entryMatches.push({ index, parsed, entry });
+  });
+
+  parsedSections.forEach(({ index, parsed }) => {
+    if (entryMatches.some((match) => match.index === index)) return;
+    const normalizedTitle = String(parsed.title || '').trim().toLowerCase();
+    if (!normalizedTitle) return;
+    const titleMatches = [...unassignedEntries].filter((entry) => String(entry?.title || '').trim().toLowerCase() === normalizedTitle);
+    if (titleMatches.length !== 1) return;
+    unassignedEntries.delete(titleMatches[0]);
+    entryMatches.push({ index, parsed, entry: titleMatches[0] });
+  });
+
+  const allSectionsAreLegacy = parsedSections.length > 0 && parsedSections.every(({ parsed }) => !parsed.id);
+  if (allSectionsAreLegacy && entryMatches.length < parsedSections.length && parsedSections.length === entries.length) {
+    parsedSections.forEach(({ index, parsed }) => {
+      if (entryMatches.some((match) => match.index === index)) return;
+      const entry = entries[index];
+      if (!entry || !unassignedEntries.has(entry)) return;
+      unassignedEntries.delete(entry);
+      entryMatches.push({ index, parsed, entry });
+    });
+  }
+
+  entryMatches.forEach(({ parsed, entry }) => {
     const updates = {
       title: parsed.title || entry.title || '',
       severity: parsed.severity || entry.severity || 'medium',

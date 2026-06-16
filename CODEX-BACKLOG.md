@@ -1730,8 +1730,31 @@ RULES:
 
 END
 
-## B-45 — Fix Mixed Attachment Storage During Encrypted Workbench Migration
+## B-46 — Fix Findings Sync and Encrypted Unified Search Indexing
 STATUS: TODO
+
+CONTEXT:
+Recent review findings identified three correctness issues in the new findings and encrypted-workbench flows. Generated target findings notes now render markdown fields in a format that no longer matches the parser used to sync edits back into session findings. The generated findings sync also relies on section order instead of stable finding identity, which risks applying edits to the wrong finding after reorder or deletion. Separately, unified search watches encrypted workbench files but does not enumerate encrypted-only workbench names, so local notes can disappear from search when plaintext workbench files are absent.
+
+SCOPE:
+public/app/notes.js
+server/lib/unified-search-index.js
+
+EXPECTED BEHAVIOR:
+- Generated target findings note parsing must match the current markdown field format written by the note generator
+- Syncing generated target findings note edits back into session findings must use stable finding identity instead of section index position
+- Unified search must index local notes from encrypted-only workbench files the same way it indexes plaintext workbench files
+- Existing findings note editing flow and existing unified search behavior for plaintext workbenches must continue to work
+
+RULES:
+- Keep the change limited to generated findings parsing/sync behavior and unified search workbench discovery
+- Do not redesign the findings markdown format beyond what is required for reliable parsing and sync
+- Do not broaden the task into unrelated findings UI changes or general search refactors
+
+END
+
+## B-45 — Fix Mixed Attachment Storage During Encrypted Workbench Migration
+STATUS: DONE
 
 CONTEXT:
 The workbench can currently end up in a mixed state where the main `.workbench` file is plaintext while one or more referenced note attachments still exist only as encrypted `.enc` payloads. When the operator later enables `Encrypted Workbench`, attachment migration can fail with `Wrong password or corrupted data`, even though the main workbench flow should remain usable.

@@ -150,7 +150,7 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
     return entries;
   }
 
-  function listPlainWorkbenchNames() {
+  function listWorkbenchNames() {
     let entries;
     try {
       entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
@@ -160,7 +160,7 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
     const names = new Set();
     for (const entry of entries) {
       if (!entry.isFile()) continue;
-      const match = entry.name.match(/^(.+)\.workbench$/);
+      const match = entry.name.match(/^(.+)\.workbench(?:\.enc)?$/);
       if (match) names.add(match[1]);
     }
     return [...names];
@@ -177,7 +177,8 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
         : null;
       if (!result || !result.data) return {};
       const raw = result.data;
-      if (!raw.sessions && !raw.notes) return raw || {};
+      if (!raw || typeof raw !== 'object') return {};
+      if (!raw.sessions && !raw.notes) return {};
       return raw.notes || {};
     } catch (err) {
       console.warn(`[UnifiedSearch] Failed to read workbench ${name}:`, err.message);
@@ -188,7 +189,7 @@ function createUnifiedSearchIndex({ kbDir, servicesDir, tacticsDir, sessionsDir,
   function buildNoteEntries() {
     const entries = [];
     try {
-      const workbenches = listPlainWorkbenchNames();
+      const workbenches = listWorkbenchNames();
       for (const name of workbenches) {
         try {
           const notes = loadWorkbenchNotes(name);
