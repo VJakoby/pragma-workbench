@@ -15,7 +15,7 @@ A typical engagement flow is:
 3. open a working note from a template
 4. use KB and service context as reference while writing
 5. log structured findings through Quick Log
-6. flag proof directly from the note as Evidence
+6. create findings when proof needs to be preserved for review or handoff
 7. generate a summary when the session needs review, export, or handoff
 
 ---
@@ -29,7 +29,7 @@ It holds:
 - notes
 - targets
 - Quick Log data
-- Evidence
+- Findings
 - session-level state
 
 Use a new session when the engagement itself changes.
@@ -86,7 +86,7 @@ Quick Log is for structured operational data:
 - `Ports`
 - `Paths`
 - `Loot`
-- `Evidence` is related, but managed through note flagging rather than as a primary import surface
+- `Findings` is related, but managed through the Findings workflow rather than as a primary import surface
 
 Use Quick Log when you want structured data without manually formatting tables in notes.
 
@@ -140,20 +140,32 @@ If you rely on automatic sync, keep the expected templates available:
 
 Those note types are the structured destination for synced Quick Log content.
 
+### Generated Helper Notes
+
+Generated helper notes are optional per session and can be controlled from the session management modal.
+
+Available helper notes:
+- `Services` notes from Quick Log `Ports`
+- `Session summary` note
+- `Network Enumeration` notes
+- `Credentials` note
+
+When enabled, PRAGMA creates and updates these notes automatically from current session data. When disabled, PRAGMA stops rebuilding them for that session.
+
 ---
 
-## 6. Evidence Flow
+## 6. Findings Flow
 
-Evidence is for proof that matters later.
-Instead of manually copying proof into a separate table, mark the relevant block directly from the note.
+Findings are for proof and conclusions that matter later.
+Use Findings when you want to preserve a result, summarize why it matters, and keep it available for summaries and review.
 
 Recommended pattern:
-- flag only proof that supports a finding, access path, or result
-- keep the evidence title short
+- create findings only for proof that supports an access path, result, or conclusion worth keeping
+- keep the finding title short
 - keep the details meaningful enough for later review
-- use `Jump to Source` when validating or exporting
+- keep the summary and recommendation fields concise and operationally useful
 
-Evidence can also feed related loot logging when the flagged block contains credentials or similar material.
+Findings can also feed related loot logging when the workflow includes credentials or similar material.
 
 ---
 
@@ -177,7 +189,7 @@ Evidence can also feed related loot logging when the flagged block contains cred
 5. Switch to target B and import its results separately.
 6. Add discovered web paths into `Paths` for the current target.
 7. Add credentials or hashes into `Loot`.
-8. Flag important command output from the note as Evidence.
+8. Create a finding for important command output or confirmed results that should survive into summaries.
 9. Use KB service or tactic pages only as supporting context.
 10. Generate a summary when the work needs to be reviewed or handed off.
 
@@ -190,5 +202,5 @@ Short version:
 - use targets deliberately
 - use Quick Log for structured findings
 - treat KB as reference context
-- flag proof as Evidence when it matters
+- use Findings when proof or conclusions need to persist beyond the working note
 - keep summaries for milestones and handoff points
