@@ -152,6 +152,8 @@ Available helper notes:
 
 When enabled, PRAGMA creates and updates these notes automatically from current session data. When disabled, PRAGMA stops rebuilding them for that session.
 
+These helper-note toggles do not affect Findings notes. Findings still create and maintain their target-linked findings documents when findings exist.
+
 ---
 
 ## 6. Findings Flow
