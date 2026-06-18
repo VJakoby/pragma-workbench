@@ -368,16 +368,24 @@ async function buildCmdResults(q) {
   const folderDocIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><polyline points="14,2 14,7 19,7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
   const noteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
   const stripLeadingEmoji = (text) => String(text || '').replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '').trim();
+  const formatSearchCategoryLabel = (value) => String(value || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, ch => ch.toUpperCase())
+    .trim();
 
-  const pushCmdItem = ({ type, id, label, icon, title, sub, tag, ...rest }) => {
+  const pushCmdItem = ({ type, id, label, icon, title, sub, tag, tagTone = '', subtag = '', subtagTone = '', ...rest }) => {
     cmdItems.push({ type, id, label, ...rest });
+    const badges = [
+      tag ? `<span class="cmd-item-tag${tagTone ? ` ${tagTone}` : ''}">${tag}</span>` : '',
+      subtag ? `<span class="cmd-item-tag cmd-item-subtag${subtagTone ? ` ${subtagTone}` : ''}">${subtag}</span>` : '',
+    ].filter(Boolean).join('');
     return `<div class="cmd-item" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
       <span class="cmd-item-icon">${icon}</span>
       <div class="cmd-item-main">
         <div class="cmd-item-title">${title}</div>
         <div class="cmd-item-sub">${sub}</div>
       </div>
-      ${tag ? `<span class="cmd-item-tag">${tag}</span>` : ''}
+      ${badges ? `<div class="cmd-item-badges">${badges}</div>` : ''}
     </div>`;
   };
 
@@ -458,6 +466,7 @@ async function buildCmdResults(q) {
           title: esc(stripLeadingEmoji(item.title)),
           sub: metaParts.join(' · '),
           tag: 'service',
+          tagTone: 'is-service',
         });
       });
     }
@@ -466,7 +475,7 @@ async function buildCmdResults(q) {
       html += `<div class="cmd-group-hdr">Tactics</div>`;
       grouped['kb-tactic'].forEach(item => {
         const snippet = buildCommandPaletteKbSnippet({ content: item.content }, ql);
-        const metaParts = [esc(item.metadata?.category || 'Tactic')];
+        const metaParts = [];
         if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
         html += pushCmdItem({
           type: 'tactic',
@@ -476,6 +485,9 @@ async function buildCmdResults(q) {
           title: esc(stripLeadingEmoji(item.title)),
           sub: metaParts.join(' · '),
           tag: 'tactic',
+          tagTone: 'is-tactic',
+          subtag: item.metadata?.category ? esc(formatSearchCategoryLabel(item.metadata.category)) : '',
+          subtagTone: 'is-subcategory',
         });
       });
     }
@@ -484,8 +496,7 @@ async function buildCmdResults(q) {
       html += `<div class="cmd-group-hdr">KB Documents</div>`;
       grouped['kb-section'].forEach(item => {
         const snippet = buildCommandPaletteKbSnippet({ content: item.content }, ql);
-        const metaParts = [esc(item.metadata?.category || 'Knowledge')];
-        if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
+        const metaParts = [];
         if (snippet) metaParts.push(highlightCmdMatch(snippet, ql));
         html += pushCmdItem({
           type: 'kbdoc',
@@ -495,7 +506,10 @@ async function buildCmdResults(q) {
           icon: folderDocIcon,
           title: esc(stripLeadingEmoji(item.title)),
           sub: metaParts.join(' · '),
-          tag: 'kb',
+          tag: 'kb-doc',
+          tagTone: 'is-kb',
+          subtag: item.metadata?.folder ? esc(formatSearchCategoryLabel(item.metadata.folder)) : '',
+          subtagTone: 'is-subcategory',
         });
       });
     }
@@ -519,6 +533,7 @@ async function buildCmdResults(q) {
           title: esc(item.title || 'Untitled'),
           sub: subParts.join(' · '),
           tag: 'note',
+          tagTone: 'is-note',
         });
       });
       localNoteMatches.slice(0, 5).forEach(({ note: n, tagHit }) => {
@@ -725,12 +740,18 @@ async function buildCmdResults(q) {
           if (matches.length > 0) {
             const { item } = matches[0];
             const snippet = buildCommandPaletteKbSnippet({ content: item.content }, query);
-            const metaParts = [esc(item.metadata?.category || item.type.replace('kb-', ''))];
-            if (item.metadata?.folder) metaParts.push(esc(item.metadata.folder));
+            const metaParts = [];
+            if (item.type !== 'kb-tactic' && item.type !== 'kb-section') {
+              metaParts.push(esc(formatSearchCategoryLabel(item.metadata?.category || item.type.replace('kb-', ''))));
+              if (item.metadata?.folder) metaParts.push(esc(formatSearchCategoryLabel(item.metadata.folder)));
+            }
             if (snippet) metaParts.push(esc(snippet));
             
             let icon = ICONS.notes;
             let tag = 'recent';
+            let tagTone = '';
+            let subtag = '';
+            let subtagTone = '';
             let type = 'recent-search';
             let id = item.id;
             let view = null;
@@ -740,33 +761,45 @@ async function buildCmdResults(q) {
               type = 'service';
               id = item.id.replace('kb-service-', '');
               tag = 'service';
+              tagTone = 'is-service';
             } else if (item.type === 'kb-tactic') {
               icon = ICONS.guides;
               type = 'tactic';
               id = item.id.replace('kb-tactic-', '');
               tag = 'tactic';
+              tagTone = 'is-tactic';
+              subtag = item.metadata?.category ? esc(formatSearchCategoryLabel(item.metadata.category)) : '';
+              subtagTone = 'is-subcategory';
             } else if (item.type === 'kb-section') {
               icon = folderDocIcon;
               type = 'kbdoc';
               id = item.id.replace('kb-section-', '');
               view = `kb:${item.metadata?.folder || ''}`;
-              tag = 'kb';
+              tag = 'kb-doc';
+              tagTone = 'is-kb';
+              subtag = item.metadata?.folder ? esc(formatSearchCategoryLabel(item.metadata.folder)) : '';
+              subtagTone = 'is-subcategory';
             } else if (item.type === 'note') {
               icon = noteIcon;
               type = 'note';
               id = item.metadata?.noteId || item.id.replace('note-', '');
               tag = 'note';
+              tagTone = 'is-note';
             }
             
             cmdItems.push({ type, id, label: item.title, view, query });
+            const recentBadges = [
+              `<span class="cmd-item-tag${tagTone ? ` ${tagTone}` : ''}" style="opacity:0.86">${tag}</span>`,
+              subtag ? `<span class="cmd-item-tag cmd-item-subtag${subtagTone ? ` ${subtagTone}` : ''}" style="opacity:0.9">${subtag}</span>` : ''
+            ].filter(Boolean).join('');
             html += `<div class="cmd-item cmd-item-recent" data-idx="${cmdItems.length-1}" onclick="execCmd(${cmdItems.length-1})">
               <span class="cmd-item-icon">${icon}</span>
               <div class="cmd-item-main">
                 <div class="cmd-item-title">${esc(stripLeadingEmoji(item.title))}</div>
                 <div class="cmd-item-sub">${metaParts.join(' · ')}</div>
               </div>
-              <span class="cmd-item-tag" style="opacity:0.6">${tag}</span>
-              <button class="cmd-recent-action cmd-recent-action-remove" onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\\'")}')" title="Remove from history" aria-label="Remove from history">×</button>
+              <div class="cmd-item-badges">${recentBadges}</div>
+              <button class="cmd-recent-action cmd-recent-action-remove" onclick="event.stopPropagation();clearRecentSearch('${esc(query).replace(/'/g, "\'")}')" title="Remove from history" aria-label="Remove from history">×</button>
             </div>`;
           } else {
             cmdItems.push({ type: 'recent-search', query, label: query });

@@ -1962,5 +1962,59 @@ RULES:
 - Preserve markdown formatting and practical operator notes wherever possible
 - Prefer structural consolidation over prose rewriting
 - Do not broaden the task into a larger KB taxonomy or navigation redesign
+## B-54 — Show Tactic Subcategory Badges In Unified Search Results
+STATUS: DONE
+
+CONTEXT:
+Unified search results currently show only the broad result type, such as note, tactic, or service. For tactic documents this hides useful context, because the operator cannot immediately see whether a result belongs to a subcategory such as Windows, Linux, or Active Directory. The search results should expose that subcategory directly and visually separate it from the existing type badge.
+
+SCOPE:
+public/app/search.js
+public/app/styles.css
+server/lib/unified-search-index.js (only if result metadata needs to be exposed)
+
+EXPECTED BEHAVIOR:
+- Unified search results must continue to show the primary result type badge
+- Tactic results must also show their tactic subcategory when that metadata is available
+- The tactic subcategory should be rendered as a blue badge
+- The tactic subcategory badge should appear beneath the current right-side type badge area rather than replacing it
+- Existing type badges should use clearer distinct colors so note, tactic, and service results are easier to differentiate visually
+- Non-tactic results must not gain fake or empty subcategory badges
+- Existing search ranking, navigation, and click behavior must remain unchanged
+
+RULES:
+- Keep the task limited to unified search result metadata display and badge styling
+- Prefer reusing existing indexed metadata if already available before expanding server payload shape
+- Do not redesign the broader unified search layout beyond the badge presentation required for this task
+- Do not change search scoring, filtering, or indexing behavior unless strictly needed to surface existing tactic subcategory metadata
+
+END
+
+## B-55 — Share Editor Theme Controls With KB Editor
+STATUS: DONE
+
+CONTEXT:
+The note editor already exposes syntax theme and editor font controls, and those preferences are stored as shared editor settings. The KB editor uses the same underlying theme system internally, but the controls are not exposed in the KB edit toolbar. This creates an inconsistent experience because the KB editor follows the shared settings without giving the operator the same direct access to them while editing KB content.
+
+SCOPE:
+views/partials/content-panel.ejs
+views/partials/main-panel.ejs
+public/app/editor-theme.js
+public/app/kb-editor.js
+
+EXPECTED BEHAVIOR:
+- The KB editor toolbar must expose the same syntax theme picker as the main note editor
+- The KB editor toolbar must expose the same editor font family controls as the main note editor
+- The KB editor toolbar must expose the same editor font size controls as the main note editor
+- Theme and font settings must remain shared globally between the note editor and KB editor
+- Changing theme or font from either editor must immediately reflect in the other editor controls and editor surface
+- Entering KB edit mode must show the currently active shared theme and font state without requiring manual refresh
+- Existing KB preview, save, and edit behavior must remain unchanged
+
+RULES:
+- Keep the task limited to exposing the existing shared editor theme system inside the KB editor UI
+- Do not introduce separate KB-only theme preferences or new storage keys
+- Do not redesign the broader KB editor layout beyond what is needed to place the shared controls cleanly
+- Reuse the existing editor control styling and interaction model where possible
 
 END

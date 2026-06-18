@@ -106,8 +106,9 @@ function applyEditorFontSize(size = activeEditorFontSize) {
   activeEditorFontSize = Math.min(22, Math.max(11, size));
   localStorage.setItem('pragma-editor-font-size', String(activeEditorFontSize));
   document.documentElement.style.setProperty('--editor-font-size', `${activeEditorFontSize}px`);
-  const label = document.getElementById('editorFontSizeLabel');
-  if (label) label.textContent = `${activeEditorFontSize}px`;
+  document.querySelectorAll('[data-editor-font-size-label]').forEach(label => {
+    label.textContent = `${activeEditorFontSize}px`;
+  });
 }
 
 function increaseEditorFont() {
