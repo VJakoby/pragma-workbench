@@ -1934,3 +1934,33 @@ RULES:
 - Do not change the underlying generated-note formats beyond what is needed to gate their sync behavior
 
 END
+
+
+## B-53 — Consolidate Active Directory Tactic Documents Into ad.md
+STATUS: TODO
+
+CONTEXT:
+The Active Directory tactic material is currently split across `ad.md`, `ad-lateral-movement.md`, and `ad-tactical-guide.md`. The content overlaps in scope and forces the operator to jump between multiple related documents for one AD workflow. The goal is to consolidate those notes into a single, stronger `ad.md` tactical workflow while preserving the practical commands, notes, and markdown structure already captured across the three files.
+
+SCOPE:
+knowledge-base/tactics/active-directory/ad.md
+source material from:
+- knowledge-base/tactics/active-directory/ad-lateral-movement.md
+- knowledge-base/tactics/active-directory/ad-tactical-guide.md
+
+EXPECTED BEHAVIOR:
+- `ad.md` must become the consolidated Active Directory workflow / tactic document
+- The merged `ad.md` must preserve the useful commands, notes, and markdown content from all three source files
+- The merged structure should remove obvious duplication where the same tactic appears multiple times, while still keeping the operational detail intact
+- The merged structure should read as one coherent AD workflow, covering enumeration, access, movement, escalation, persistence, and cracking references where applicable
+- Existing source files must remain unchanged during this task so the merged result can be reviewed safely before any manual cleanup
+- Internal links or file references inside the merged `ad.md` should be corrected if they point to outdated or mismatched filenames
+
+RULES:
+- Keep the task limited to consolidating the AD tactic content into `ad.md`
+- Do not delete, rename, or move the old source files in this task
+- Preserve markdown formatting and practical operator notes wherever possible
+- Prefer structural consolidation over prose rewriting
+- Do not broaden the task into a larger KB taxonomy or navigation redesign
+
+END
