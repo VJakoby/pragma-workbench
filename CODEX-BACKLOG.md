@@ -2018,3 +2018,65 @@ RULES:
 - Reuse the existing editor control styling and interaction model where possible
 
 END
+
+## B-56 — Exclude Generated Helper Notes From Summary Export And Normalize Findings Export
+STATUS: DONE
+
+CONTEXT:
+The generated helper notes used inside the workspace, such as target findings notes and target services notes, are currently useful for operational navigation and live editing. However, the markdown session summary export still includes those generated notes under the generic Notes section. This causes duplicated content, heading mismatches, and structurally awkward output such as exported findings appearing as nested helper-note titles instead of a clean Findings section built from canonical session data.
+
+SCOPE:
+server/lib/session-export.js
+public/app/notes.js (read-only reference for generated note kinds and current helper-note structure)
+
+EXPECTED BEHAVIOR:
+- Generated helper notes must not be included in the exported summary Notes section
+- The exported Findings section must be built only from canonical session findings data
+- Exported findings must render in a clean export-specific structure:
+  - `## Findings`
+  - `### <Finding Title>`
+  - finding metadata lines
+  - `#### POC` when proof content exists
+- Exported findings must not include helper-note wrapper headings such as `FINDINGS - <target>`
+- Exported findings must not duplicate target metadata already implied by helper-note titles
+- Manual user-authored notes must continue to export normally
+- Internal generated notes inside the live platform must remain unchanged and continue working as operational helper documents
+- Existing generated summary/session note syncing must remain unchanged
+- Existing target findings note syncing must remain unchanged
+- Existing services helper-note syncing must remain unchanged
+
+RULES:
+- Keep the task limited to summary export behavior only
+- Do not change internal generated note formats unless strictly required for export correctness
+- Prefer filtering generated helper notes at export-model selection time rather than patching rendered markdown afterward
+- Export formatting may diverge from internal helper-note formatting where necessary
+- Do not alter live note preview, note tabs, findings modal behavior, or generated note rebuild logic
+
+END
+
+## B-57 — Move Quick Log Group Before Unified Search In Top Bar
+STATUS: TODO
+
+CONTEXT:
+The top bar currently places the unified search field before the shared operational utility buttons such as TODO, Ports, Paths, Loot, and Findings. This makes the search field occupy a more primary slot than the quick operational actions that are used continuously during an engagement. The layout should instead reflect the engagement workflow more clearly by placing the operational actions before the search field while preserving the existing responsive behavior.
+
+SCOPE:
+views/partials/topbar.ejs
+views/partials/topbar-utility-panels.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The shared utility group containing TODO, Ports, Paths, Loot, and Findings must appear before the unified search field in the top bar
+- The unified search field must move to the previous utility-group position
+- Existing search behavior, keyboard shortcut behavior, and result rendering must remain unchanged
+- Existing utility button behavior and popovers must remain unchanged
+- The search field must remain the flexible-width element that shrinks first on smaller widths
+- The utility buttons must remain fixed-size and visually stable
+- Existing right-side utility actions such as help and theme controls must remain in place
+
+RULES:
+- Keep the task limited to top-bar layout ordering and any minimal styling adjustments required by the move
+- Do not redesign button styling, search functionality, or utility behavior
+- Preserve current responsive sizing behavior where the search field yields width before the fixed utility buttons
+
+END
