@@ -3528,6 +3528,14 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding: 0 4px;
   box-shadow: inset 0 0 0 1px rgba(var(--green-rgb),0.06);
 }
+.cmd-item-badges{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:5px;
+  flex-shrink:0;
+  align-self:flex-start;
+}
 .cmd-item-tag{
   font-family:'Inter',sans-serif;font-size:11px;font-weight:700;
   background:color-mix(in srgb, var(--bg4) 86%, var(--bg3));
@@ -3536,11 +3544,69 @@ svg { vertical-align: middle; flex-shrink: 0; }
   padding:3px 9px;
   color:var(--text2);
   flex-shrink:0;
-  align-self:flex-start;
+  align-self:flex-end;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+}
+.cmd-item-subtag{
+  font-size:10px;
+  padding:3px 8px;
+  text-transform:none;
+  letter-spacing:0;
+}
+.cmd-item-tag.is-note{
+  color:#f59e0b;
+  background:rgba(245,158,11,0.12);
+  border-color:rgba(245,158,11,0.28);
+}
+.cmd-item-tag.is-service{
+  color:rgba(var(--green-rgb),0.96);
+  background:rgba(var(--green-rgb),0.12);
+  border-color:rgba(var(--green-rgb),0.24);
+}
+.cmd-item-tag.is-tactic{
+  color:#c084fc;
+  background:rgba(192,132,252,0.12);
+  border-color:rgba(192,132,252,0.28);
+}
+.cmd-item-tag.is-kb{
+  color:#94a3b8;
+  background:rgba(148,163,184,0.12);
+  border-color:rgba(148,163,184,0.24);
+}
+.cmd-item-tag.is-subcategory{
+  color:#60a5fa;
+  background:rgba(96,165,250,0.12);
+  border-color:rgba(96,165,250,0.28);
 }
 [data-theme="dark"] .cmd-item-tag{
   color: color-mix(in srgb, var(--text) 84%, white 16%);
   border-color: color-mix(in srgb, var(--border2) 58%, rgba(var(--accent-rgb),0.22) 42%);
+}
+[data-theme="dark"] .cmd-item-tag.is-note{
+  color:#fbbf24;
+  background:rgba(245,158,11,0.16);
+  border-color:rgba(245,158,11,0.32);
+}
+[data-theme="dark"] .cmd-item-tag.is-service{
+  color:#86efac;
+  background:rgba(var(--green-rgb),0.16);
+  border-color:rgba(var(--green-rgb),0.3);
+}
+[data-theme="dark"] .cmd-item-tag.is-tactic{
+  color:#d8b4fe;
+  background:rgba(192,132,252,0.16);
+  border-color:rgba(192,132,252,0.34);
+}
+[data-theme="dark"] .cmd-item-tag.is-kb{
+  color:#cbd5e1;
+  background:rgba(148,163,184,0.14);
+  border-color:rgba(148,163,184,0.28);
+}
+[data-theme="dark"] .cmd-item-tag.is-subcategory{
+  color:#93c5fd;
+  background:rgba(96,165,250,0.16);
+  border-color:rgba(96,165,250,0.34);
 }
 .cmd-recent-action{
   appearance:none;
