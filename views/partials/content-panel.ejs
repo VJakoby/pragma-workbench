@@ -32,6 +32,24 @@
           <button class="tb-btn" id="kbPreviewBtn" onclick="toggleKbPreview()" title="Toggle markdown preview">
             <span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</span>
           </button>
+          <div class="syntax-theme-picker" style="margin-left:2px" aria-label="Editor syntax theme">
+            <button class="syntax-dot" type="button" data-theme="quietlight" style="--dot-color:#007acc" onclick="setSyntaxTheme('quietlight')" title="Quiet Light" aria-label="Quiet Light"></button>
+            <button class="syntax-dot" type="button" data-theme="monokai" style="--dot-color:#f92672" onclick="setSyntaxTheme('monokai')" title="Monokai" aria-label="Monokai"></button>
+            <button class="syntax-dot" type="button" data-theme="nord" style="--dot-color:#88c0d0" onclick="setSyntaxTheme('nord')" title="Nord" aria-label="Nord"></button>
+            <button class="syntax-dot" type="button" data-theme="solarized" style="--dot-color:#859900" onclick="setSyntaxTheme('solarized')" title="Solarized" aria-label="Solarized"></button>
+          </div>
+          <div class="editor-font-controls" title="Editor font controls">
+            <div class="editor-font-family-group" role="group" aria-label="Editor font family">
+              <button class="editor-font-choice" data-font="classic" onclick="setEditorFontFamily('classic')" title="Use classic editor font rendering">Classic</button>
+              <button class="editor-font-choice" data-font="mono" onclick="setEditorFontFamily('mono')" title="Use JetBrains Mono editor font">Mono</button>
+              <button class="editor-font-choice" data-font="plex" onclick="setEditorFontFamily('plex')" title="Use IBM Plex Mono editor font">Plex</button>
+            </div>
+            <div class="editor-font-size-group" role="group" aria-label="Editor font size">
+              <button class="editor-font-btn" onclick="decreaseEditorFont()" title="Decrease editor font">A-</button>
+              <button class="editor-font-label editor-font-size-label" data-editor-font-size-label="1" onclick="resetEditorFont()" title="Reset editor font size">14px</button>
+              <button class="editor-font-btn" onclick="increaseEditorFont()" title="Increase editor font">A+</button>
+            </div>
+          </div>
         </div>
         <div class="note-md-hint">
           <span># h1</span><span>## h2</span><span>**bold**</span><span>*italic*</span>

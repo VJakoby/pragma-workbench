@@ -142,6 +142,7 @@ function enterEditMode() {
   document.getElementById('cpEditBtn').classList.add('editing');
   document.getElementById('cpEditBtn').title = 'Exit edit mode';
   cmInitKb();
+  if (typeof initSyntaxThemePicker === 'function') initSyntaxThemePicker();
   syncKbEditorToActiveDoc();
   applyKbPreviewState();
   setTimeout(() => kbEditor && kbEditor.focus(), 30);
