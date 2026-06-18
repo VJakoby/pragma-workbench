@@ -2080,3 +2080,53 @@ RULES:
 - Preserve current responsive sizing behavior where the search field yields width before the fixed utility buttons
 
 END
+
+## B-58 — Add Optional Bottom-Bar Layout Mode For The Main Top Bar
+STATUS: DONE
+
+CONTEXT:
+The main navigation bar currently exists only as a top bar. Some operators may prefer the same control layout anchored at the bottom of the viewport, especially for mouse-heavy workflows or screen setups where bottom-edge navigation feels faster and more comfortable. The feature should reuse the exact same bar content and ordering, but allow the platform to switch between top-bar mode and bottom-bar mode without changing functionality.
+
+SCOPE:
+views/partials/topbar.ejs
+public/app/styles.css
+public/app/app.js
+public/app/shell.js
+views/partials/topbar-utility-panels.ejs
+
+EXPECTED BEHAVIOR:
+- A new layout toggle control must appear near the existing light/dark theme toggle
+- The new control must switch the main top bar between:
+  - standard top-bar mode
+  - bottom-bar mode using the same content and ordering
+- The selected layout mode must persist across reloads using local storage
+- Top-bar mode must remain the default
+- Bottom-bar mode must reposition the bar to the bottom edge of the viewport without changing the bar's internal control order
+- All existing top-bar controls must continue working identically in both modes:
+  - target/session selector
+  - quick-log utility buttons
+  - unified search trigger
+  - help button
+  - light/dark theme toggle
+- Utility popovers and floating panels anchored to the bar must reposition correctly in bottom-bar mode
+- Elements currently positioned using top-bar offsets must adapt correctly when the bar is at the bottom
+- The main content area and panel sizing must remain usable in both modes without overlap or inaccessible controls
+- Keyboard shortcuts and unified search behavior must remain unchanged
+
+DEPENDENT SURFACES TO VERIFY:
+- TODO popover
+- Ports/Paths/Loot popovers
+- Findings popover
+- Any fixed-position overlays or panels that currently assume a top-origin anchor based on `var(--topbar-h)`
+- Main content and side-panel height/offset calculations
+- Responsive behavior on smaller widths and heights
+
+RULES:
+- Reuse the existing bar markup and internal button ordering rather than creating a separate duplicated bottom-bar component
+- Implement this as a layout mode, not as a second independent navigation surface
+- Keep top-bar mode as the default and preserve current behavior when the new mode is not enabled
+- Do not redesign the visual styling of the bar beyond what is required to support top vs bottom anchoring
+- Prefer a single root/body class such as `bottom-bar-mode` to drive CSS and anchored UI changes
+- Update anchored popovers and offset calculations systematically rather than patching individual elements ad hoc
+
+END
