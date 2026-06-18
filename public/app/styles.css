@@ -99,6 +99,7 @@ body{
 
 /* ── LAYOUT ── */
 .layout{display:flex;flex-direction:column;height:100vh;position:relative}
+body.bottom-bar-mode .layout{flex-direction:column-reverse}
 
 /* ── TOPBAR ── */
 .topbar{
@@ -190,6 +191,11 @@ body{
 }
 
 .topbar-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+body.bottom-bar-mode .topbar{
+  border-bottom:none;
+  border-top:1px solid var(--border);
+}
+.topbar-layout-btn svg{display:block}
 
 .tb-btn{
   background:var(--bg3);border:1px solid var(--border);
@@ -6329,6 +6335,13 @@ body.enc-active-body .content-panel {
   transition: opacity 0.08s ease, visibility 0.08s ease;
 }
 .svc-popover.open { visibility: visible; opacity: 1; pointer-events: auto; }
+body.bottom-bar-mode .svc-popover,
+body.bottom-bar-mode .todo-popover,
+body.bottom-bar-mode .finding-popover{
+  top:auto;
+  bottom:calc(var(--topbar-h) + 8px);
+  max-height:calc(100vh - var(--topbar-h) - 20px);
+}
 .todo-popover {
   visibility: hidden; opacity: 0; pointer-events: none;
   position: fixed; top: calc(var(--topbar-h) + 8px);

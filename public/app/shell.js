@@ -4,6 +4,7 @@ const ACCENT_COLORS = [
 ];
 
 const THEME_ORDER = ['dark', 'light'];
+const TOPBAR_LAYOUT_KEY = 'ops-topbar-layout';
 const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
 const ENGRAM_SEARCH_ENABLED = Boolean(window.PRAGMA_CONFIG?.engramSearchEnabled);
@@ -32,6 +33,33 @@ function refreshThemeToggle(theme) {
   lightBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
   darkBtn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
   toggle.title = `Current theme: ${theme}. Switch to ${nextTheme}`;
+}
+
+function refreshTopbarLayoutToggle(mode) {
+  const btn = document.getElementById('topbarLayoutBtn');
+  if (!btn) return;
+  const isBottom = mode === 'bottom';
+  btn.classList.toggle('active', isBottom);
+  btn.setAttribute('aria-pressed', isBottom ? 'true' : 'false');
+  btn.title = isBottom ? 'Move bar to top' : 'Move bar to bottom';
+  btn.setAttribute('aria-label', isBottom ? 'Move bar to top' : 'Move bar to bottom');
+}
+
+function applyTopbarLayout(mode) {
+  const normalized = mode === 'bottom' ? 'bottom' : 'top';
+  document.body.classList.toggle('bottom-bar-mode', normalized === 'bottom');
+  refreshTopbarLayoutToggle(normalized);
+}
+
+function setTopbarLayoutMode(mode) {
+  const normalized = mode === 'bottom' ? 'bottom' : 'top';
+  localStorage.setItem(TOPBAR_LAYOUT_KEY, normalized);
+  applyTopbarLayout(normalized);
+}
+
+function toggleTopbarLayoutMode() {
+  const current = localStorage.getItem(TOPBAR_LAYOUT_KEY) === 'bottom' ? 'bottom' : 'top';
+  setTopbarLayoutMode(current === 'bottom' ? 'top' : 'bottom');
 }
 
 function applyTheme(theme) {
@@ -79,6 +107,7 @@ function setTheme(theme) {
 }
 
 applyTheme(localStorage.getItem('ops-theme') || 'light');
+applyTopbarLayout(localStorage.getItem(TOPBAR_LAYOUT_KEY) || 'top');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
