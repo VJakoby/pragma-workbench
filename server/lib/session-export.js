@@ -222,22 +222,23 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
   const targetById = Object.fromEntries(targets.map((target) => [target.id, target]));
 
   const allNotes = [...notes].sort((a, b) => noteTimestamp(a) - noteTimestamp(b));
+  const manualNotes = allNotes.filter((note) => note?.generated_note !== true);
   const assigned = [];
   const unassigned = [];
 
-  allNotes.forEach((note) => {
+  manualNotes.forEach((note) => {
     if (note.target_id && targetById[note.target_id]) assigned.push(note);
     else unassigned.push(note);
   });
 
-  const notesForMainSection = targets.length ? assigned : allNotes;
+  const notesForMainSection = targets.length ? assigned : manualNotes;
   const services = Array.isArray(session.services) ? [...session.services] : [];
   const paths = Array.isArray(session.paths) ? [...session.paths] : [];
   const loot = Array.isArray(session.loot) ? [...session.loot] : [];
   const findings = Array.isArray(session.findings) ? [...session.findings] : [];
   const sessionEvents = Array.isArray(session.events) ? [...session.events] : [];
 
-  const noteEvents = allNotes.map((note) => ({
+  const noteEvents = manualNotes.map((note) => ({
     ts: note.created || note.updated || 0,
     kind: 'note',
     note,
@@ -254,8 +255,8 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
   const eventTimestamps = events.map((item) => item.ts).filter(Boolean);
   const firstTs = eventTimestamps.length ? eventTimestamps[0] : 0;
   const lastTs = eventTimestamps.length ? eventTimestamps[eventTimestamps.length - 1] : 0;
-  const hasCredentialsNote = allNotes.some((note) => String(note.type || '').trim() === 'credentials');
-  const hasNetworkEnumerationNote = allNotes.some((note) => String(note.type || '').trim() === 'network-enumeration');
+  const hasCredentialsNote = manualNotes.some((note) => String(note.type || '').trim() === 'credentials');
+  const hasNetworkEnumerationNote = manualNotes.some((note) => String(note.type || '').trim() === 'network-enumeration');
 
   return {
     author: String(author || '').trim(),
@@ -274,6 +275,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
     events,
     notes: {
       all: allNotes,
+      manual: manualNotes,
       assigned,
       unassigned,
       main: notesForMainSection,
@@ -281,7 +283,7 @@ function buildSessionExportModel({ session, notes, storage, templateMeta, author
       appendixBuckets: buildTypeBuckets(unassigned, templateMeta),
     },
     stats: {
-      noteCount: allNotes.length,
+      noteCount: manualNotes.length,
       targetCount: targets.length,
       firstTs,
       lastTs,
@@ -534,9 +536,10 @@ function renderFindingsSection(model) {
   if (!findings.length) return '';
 
   const lines = ['## Findings', ''];
-  findings.forEach((entry) => {
+  findings.forEach((entry, index) => {
     const target = entry.target_id ? model.targetById[entry.target_id] : null;
     const summary = entry.summary || entry.details || '';
+    if (index > 0) lines.push('---', '');
     lines.push(`### ${entry.title || 'Untitled'}`);
     lines.push('');
     lines.push(`- Type: ${findingType(entry.type)}`);
@@ -546,7 +549,7 @@ function renderFindingsSection(model) {
     if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
     if (entry.recommendation) lines.push(`- Recommendation: ${entry.recommendation}`);
     if (entry.source_command) {
-      lines.push('', '## POC', '', '```text', escapeFenceContent(entry.source_command), '```');
+      lines.push('', '#### POC', '', '```text', escapeFenceContent(entry.source_command), '```');
     }
     lines.push('');
   });
