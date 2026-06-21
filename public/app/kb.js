@@ -426,6 +426,30 @@ function openKbCreateModal(view, opts = {}) {
   setTimeout(() => input?.focus(), 40);
 }
 
+function openActiveKbCreateModal(defaultView = 'services') {
+  if (defaultView === 'services') {
+    if (activeKbRootFolder) {
+      const section = rootKbSections.find(item => item.folder === activeKbRootFolder);
+      openKbCreateModal(`kb:${activeKbRootFolder}`, {
+        folder: activeKbRootFolder,
+        label: section?.label || activeKbRootFolder,
+      });
+      return;
+    }
+
+    if (activeCatFolder) {
+      const folderMeta = serviceCategoryMeta.find(item => (item.folder || '') === activeCatFolder);
+      openKbCreateModal('services', {
+        folder: activeCatFolder,
+        label: folderMeta?.label || activeCatFolder,
+      });
+      return;
+    }
+  }
+
+  openKbCreateModal(defaultView);
+}
+
 function closeKbCreateModal() {
   document.getElementById('kbCreateOverlay').classList.remove('open');
 }
@@ -454,13 +478,15 @@ async function submitKbCreate() {
     return;
   }
 
-  const clientView = kbCreateView === 'services' ? 'services' : 'tactics';
+  const clientView = kbCreateView;
   const backendView = getKbBackendView(clientView);
   const category = kbCreateFolder
     ? kbCreateFolder
-    : (activeView === clientView && activeCat !== 'all'
-      ? (activeCatFolder || activeCat)
-      : '');
+    : (typeof clientView === 'string' && clientView.startsWith('kb:')
+      ? clientView.slice(3)
+      : clientView === 'services'
+        ? (activeCatFolder || (activeView === clientView && activeCat !== 'all' ? activeCat : ''))
+        : '');
 
   try {
     if (err) {
@@ -482,10 +508,14 @@ async function submitKbCreate() {
 
     closeKbCreateModal();
     await refreshKbView(clientView);
-    if (clientView !== 'services' && clientView !== 'tactics' && typeof refreshRootKbSections === 'function') {
+    if (typeof clientView === 'string' && clientView.startsWith('kb:') && typeof refreshRootKbSections === 'function') {
       await refreshRootKbSections();
     }
-    if (activeView !== clientView) {
+    const isActiveRootKbView = typeof clientView === 'string'
+      && clientView.startsWith('kb:')
+      && activeView === 'services'
+      && activeKbRootFolder === clientView.slice(3);
+    if (activeView !== clientView && !isActiveRootKbView) {
       if (!shouldOpenKbSidebarInSidePanel() && (clientView === 'services' || clientView === 'tactics')) {
         switchView(clientView, document.getElementById(`nav-${clientView}`));
       }

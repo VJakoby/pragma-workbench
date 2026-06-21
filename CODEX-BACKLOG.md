@@ -2130,3 +2130,29 @@ RULES:
 - Update anchored popovers and offset calculations systematically rather than patching individual elements ad hoc
 
 END
+
+
+## B-59 — Create KB Documents In The Active Selected Section
+STATUS: DONE
+
+CONTEXT:
+When the operator is browsing a specific knowledge-base section from the sidebar, pressing `Create` should create the new markdown file inside that currently selected section. Right now the create flow can fall back to the default `services` destination instead of respecting the active sidebar selection, which makes section-scoped authoring unreliable and confusing.
+
+SCOPE:
+views/partials/main-panel.ejs
+public/app/kb.js
+server/routes/kb.js
+
+EXPECTED BEHAVIOR:
+- If the operator has selected a service-folder category in the KB sidebar, pressing `Create` must create the file inside that folder
+- If the operator has selected a root knowledge-base section such as `oscp-exam`, pressing `Create` must create the file inside that section instead of /services
+- The create modal copy must still reflect the correct target location
+- After creation, the new document must open from the same section it was created in
+- Existing create behavior for plain `Services` and `Tactics` views must remain unchanged
+
+RULES:
+- Do not redesign the KB create modal
+- Do not change unrelated KB browsing or editing behavior
+- Preserve current service and tactic creation semantics when no scoped folder/section is selected
+
+END
