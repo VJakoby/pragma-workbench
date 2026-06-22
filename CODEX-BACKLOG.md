@@ -2211,3 +2211,28 @@ RULES:
 - Keep the change limited to grouped hidden note tabs
 
 END
+
+
+## B-62 — Align Hidden Notes New Button Height With Grouped Tab Clusters
+STATUS: DONE
+
+CONTEXT:
+After strengthening the grouped hidden note tabs, the standalone `New` tab-style create control still uses the older shorter vertical footprint. That makes the empty space above it feel awkward beside the taller grouped target clusters and breaks the visual baseline of the row.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/notes.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The standalone `New` control in the hidden-notes tab strip must visually align in overall height with the grouped target tab clusters
+- The awkward empty space above the `New` control should be removed
+- The `New` control must remain outside the target groups and keep the same behavior
+- The tab button itself should remain visually consistent with the rest of the row
+
+RULES:
+- Do not change note creation behavior
+- Do not merge the `New` control into any target group
+- Keep the change limited to the hidden-notes tab strip presentation
+
+END

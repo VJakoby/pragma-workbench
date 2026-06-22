@@ -2033,12 +2033,19 @@ svg { vertical-align: middle; flex-shrink: 0; }
   color:var(--text);
   background:color-mix(in srgb, var(--bg3) 88%, rgba(var(--accent-rgb),0.04));
 }
+.session-note-tab-create-shell{
+  display:flex;
+  flex:0 0 auto;
+  align-items:flex-end;
+  padding:4px 0 4px;
+  margin-left:5px;
+}
 .session-note-tab-create{
   display:inline-flex;
   align-items:stretch;
   color:var(--text);
   align-self:flex-end;
-  margin-left:5px;
+  margin-left:0;
   height:33px;
   border:2px solid var(--border);
   border-radius:8px;

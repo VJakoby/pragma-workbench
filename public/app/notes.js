@@ -753,11 +753,13 @@ function renderSessionNoteTabs() {
   }
 
   const createTab = canCreate
-    ? `<div class="session-note-tab session-note-tab-create" title="Create new note">
-      <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
-        <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
-        <span class="session-note-tab-title">New</span>
-      </button>
+    ? `<div class="session-note-tab-create-shell">
+      <div class="session-note-tab session-note-tab-create" title="Create new note">
+        <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
+          <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
+          <span class="session-note-tab-title">New</span>
+        </button>
+      </div>
     </div>`
     : "";
 
