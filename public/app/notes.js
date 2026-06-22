@@ -771,7 +771,8 @@ function renderSessionNoteTabs() {
         ? '🧾'
         : meta.icon;
       const active = note.id === activeNoteId;
-      const generatedClass = note.generated_note === true ? 'generated' : '';
+      const isHelperTab = note.generated_note === true || note.type === 'credentials' || note.type === 'network-enumeration';
+      const generatedClass = isHelperTab ? 'generated' : '';
       const pinnedClass = note.pinned ? 'pinned' : '';
       const pinBadge = note.pinned ? `<span class="session-note-tab-pin" aria-hidden="true">${ICONS.pin}</span>` : '';
       const closeBtn = active

@@ -2025,6 +2025,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .session-note-tab.generated .session-note-tab-title{
   font-weight:500;
+  color:var(--muted);
+}
+.session-note-tab.generated.active .session-note-tab-title{
+  color:var(--text);
 }
 .session-note-tab.pinned{
   background:rgba(184,134,11,0.34);
@@ -2276,7 +2280,8 @@ svg { vertical-align: middle; flex-shrink: 0; }
   white-space:nowrap;
   font-family:'Inter',sans-serif;
   font-size:12px;
-  font-weight:600;
+  font-weight:700;
+  color:var(--text);
 }
 .session-note-tab-close{
   display:inline-flex;
