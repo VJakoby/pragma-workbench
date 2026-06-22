@@ -2179,3 +2179,35 @@ RULES:
 - Do not redesign unrelated CodeMirror or KB editor spacing
 
 END
+
+
+## B-61 — Strengthen Target Ownership Clarity In Hidden Note Tab Groups
+STATUS: DONE
+
+CONTEXT:
+The hidden-notes tab strip already groups session notes by target, but when many notes are open the current grouping still reads too much like one long continuous row. The target label and green border help, yet ownership is still too subtle once several hosts and helper notes are visible at the same time.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/notes.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Each target note group must read as a clearer visual cluster rather than only a bordered row
+- The group header must be more prominent than it is today
+- The group header should expose:
+  - a primary target identifier
+  - an optional secondary label when available
+  - a compact count of notes in that target group
+- Spacing between separate target groups must be more distinct than spacing between tabs inside a group
+- Generated/helper notes should remain functional but be visually more secondary than operator-authored notes
+- The existing `New` tab create control must remain outside the target groups
+- Tab switching and close behavior must remain unchanged
+
+RULES:
+- Do not redesign the underlying hidden-notes workflow
+- Do not change note ordering logic
+- Do not alter note opening, closing, or creation behavior beyond this presentation improvement
+- Keep the change limited to grouped hidden note tabs
+
+END

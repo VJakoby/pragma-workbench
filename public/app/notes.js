@@ -726,14 +726,17 @@ function renderSessionNoteTabs() {
     const groupKey = target?.id || "__unassigned__";
     let group = groupMap.get(groupKey);
     if (!group) {
-      const targetPrimary = target ? (target.ip || target.domain || "") : "";
+      const targetPrimary = target ? String(target.ip || target.domain || target.label || "").trim() : "Unassigned";
       const targetSecondary = target ? String(target.label || "").trim() : "";
+      const secondaryLabel = targetSecondary && targetSecondary !== targetPrimary ? targetSecondary : "";
       const combinedLabel = target
-        ? [targetPrimary, targetSecondary].filter((value, index, arr) => value && arr.indexOf(value) === index).join(" // ") || "target"
+        ? [targetPrimary, secondaryLabel].filter(Boolean).join(" // ") || "target"
         : "Unassigned";
       group = {
         key: groupKey,
         label: combinedLabel,
+        primaryLabel: targetPrimary || "Unassigned",
+        secondaryLabel,
         targeted: !!target,
         notes: [],
       };
@@ -765,10 +768,11 @@ function renderSessionNoteTabs() {
         ? '🧾'
         : meta.icon;
       const active = note.id === activeNoteId;
+      const generatedClass = note.generated_note === true ? 'generated' : '';
       const closeBtn = active
         ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
         : "";
-      return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+      return `<div class="session-note-tab ${generatedClass} ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
         <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
           <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
           <span class="session-note-tab-icon" title="${esc(meta.label)}">${tabIcon}</span>
@@ -777,8 +781,18 @@ function renderSessionNoteTabs() {
         ${closeBtn}
       </div>`;
     }).join("");
+    const countLabel = `${group.notes.length}`;
+    const secondaryHtml = group.secondaryLabel
+      ? `<span class="session-note-tab-group-sub" title="${esc(group.secondaryLabel)}">${esc(group.secondaryLabel)}</span>`
+      : '';
     return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
-      <div class="session-note-tab-group-label" title="${esc(group.label)}">${esc(group.label)}</div>
+      <div class="session-note-tab-group-header" title="${esc(group.label)}">
+        <span class="session-note-tab-group-count" aria-label="${countLabel} note${group.notes.length === 1 ? '' : 's'}">${countLabel}</span>
+        <div class="session-note-tab-group-label-wrap">
+          <span class="session-note-tab-group-label">${esc(group.primaryLabel || group.label)}</span>
+          ${secondaryHtml}
+        </div>
+      </div>
       <div class="session-note-tab-group-tabs">${tabsHtml}</div>
     </div>`;
   }).join("");
