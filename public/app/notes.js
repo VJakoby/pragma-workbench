@@ -2918,7 +2918,9 @@ function renderTargetFilterBar() {
   const chips = targets
     .filter(t => usedIds.has(t.id))
     .map(t => {
-      const label = t.ip || t.domain || t.label || 'target';
+      const primary = String(t.ip || t.domain || t.label || 'target').trim();
+      const secondary = String(t.label || '').trim();
+      const label = secondary && secondary !== primary ? `${primary} // ${secondary}` : primary;
       const active = t.id === activeTargetFilter;
       return `<span class="target-filter-chip${active ? ' active' : ''}" onclick="setTargetFilter('${t.id}')">${esc(label)}</span>`;
     }).join('');

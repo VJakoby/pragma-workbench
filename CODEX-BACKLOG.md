@@ -2236,3 +2236,26 @@ RULES:
 - Keep the change limited to the hidden-notes tab strip presentation
 
 END
+
+
+## B-63 — Show Target Labels In Regular Notes List Filter Chips
+STATUS: DONE
+
+CONTEXT:
+In the regular notes list, the target filter chips currently show only the target IP or primary identifier. When several hosts are similar, that hides the operator-defined target label and makes the filter bar less useful than the grouped hidden tabs, which already expose both values.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/notes.js
+
+EXPECTED BEHAVIOR:
+- The regular notes list target filter chips must show the target label alongside the primary IP/domain when a label exists
+- The chip should still fall back cleanly when only one identifier exists
+- Filter behavior must remain unchanged
+
+RULES:
+- Keep the change limited to the regular notes list target filter chips
+- Do not redesign the chip styling as part of this task
+- Do not alter note filtering logic beyond the displayed label text
+
+END
