@@ -2259,3 +2259,28 @@ RULES:
 - Do not alter note filtering logic beyond the displayed label text
 
 END
+
+
+## B-64 — Improve Hidden Note Tab Quick Access And Group Readability
+STATUS: DONE
+
+CONTEXT:
+The hidden note tab strip is now grouped more clearly by target, but there are still several quick-access weaknesses once a session grows: the currently active target group is not emphasized enough, pinned notes still do not stand out strongly, long target labels can get dense, and generated/helper tabs can add noise when operators only want the primary authored notes in view.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/notes.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The currently active target group must be visually emphasized over the other target groups
+- Pinned notes must be easier to distinguish at a glance in the hidden tab strip
+- Long target labels must truncate more safely while still exposing full text on hover
+- Existing tab open, close, and create behavior must remain unchanged
+
+RULES:
+- Keep the change limited to the hidden grouped note tabs
+- Do not redesign the broader notes workflow
+- Do not alter note ordering logic
+
+END

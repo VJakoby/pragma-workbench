@@ -738,6 +738,7 @@ function renderSessionNoteTabs() {
         primaryLabel: targetPrimary || "Unassigned",
         secondaryLabel,
         targeted: !!target,
+        activeTarget: !!target && target.id === activeTargetId,
         notes: [],
       };
       groupMap.set(groupKey, group);
@@ -771,14 +772,17 @@ function renderSessionNoteTabs() {
         : meta.icon;
       const active = note.id === activeNoteId;
       const generatedClass = note.generated_note === true ? 'generated' : '';
+      const pinnedClass = note.pinned ? 'pinned' : '';
+      const pinBadge = note.pinned ? `<span class="session-note-tab-pin" aria-hidden="true">${ICONS.pin}</span>` : '';
       const closeBtn = active
         ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
         : "";
-      return `<div class="session-note-tab ${generatedClass} ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+      return `<div class="session-note-tab ${generatedClass} ${pinnedClass} ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
         <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
           <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
           <span class="session-note-tab-icon" title="${esc(meta.label)}">${tabIcon}</span>
-          <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
+          ${pinBadge}
+          <span class="session-note-tab-title">${esc(note.title || "Untitled")}</span>
         </button>
         ${closeBtn}
       </div>`;
@@ -787,7 +791,7 @@ function renderSessionNoteTabs() {
     const secondaryHtml = group.secondaryLabel
       ? `<span class="session-note-tab-group-sub" title="${esc(group.secondaryLabel)}">${esc(group.secondaryLabel)}</span>`
       : '';
-    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
+    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"} ${group.activeTarget ? 'active-target' : ''}" data-target-group="${esc(group.key)}">
       <div class="session-note-tab-group-header" title="${esc(group.label)}">
         <span class="session-note-tab-group-count" aria-label="${countLabel} note${group.notes.length === 1 ? '' : 's'}">${countLabel}</span>
         <div class="session-note-tab-group-label-wrap">
