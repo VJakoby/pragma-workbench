@@ -2156,3 +2156,26 @@ RULES:
 - Preserve current service and tactic creation semantics when no scoped folder/section is selected
 
 END
+
+
+## B-60 — Prevent Double-Digit Ordered List Markers From Clipping In The Note Editor
+STATUS: DONE
+
+CONTEXT:
+In the note editor, ordered lists render acceptably for single-digit items, but once the list reaches `10` or higher the left edge of the marker can appear slightly clipped. This suggests the editor content gutter is too tight on the left side for wider list markers.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Ordered list markers such as `10.` and above must render fully in the note editor
+- The left gutter should have enough space that future wider markers are not clipped
+- The change should remain visually subtle and not redesign the editor layout
+
+RULES:
+- Keep the fix limited to note editor spacing
+- Do not alter preview markdown list styling
+- Do not redesign unrelated CodeMirror or KB editor spacing
+
+END

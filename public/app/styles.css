@@ -2704,6 +2704,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
 }
 .note-unified-editor-host .cm-scroller{
   min-height:100%;
+  padding-left:22px;
+}
+.note-unified-editor-host .cm-line{
+  padding-left:4px;
 }
 .note-unified-live-preview{
   flex:1;
@@ -2715,6 +2719,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   min-height:0;
   height:100%;
   overflow:auto;
+}
+.note-unified-live-preview-whole ul,
+.note-unified-live-preview-whole ol{
+  padding-left:26px;
 }
 .note-unified-empty{ color:var(--muted); font-style:italic; }
 @container (max-width: 1100px){
@@ -5760,6 +5768,8 @@ kbd {
 }
 .cm-editor.cm-focused { outline: none !important; }
 .cm-editor .cm-scroller { padding: 16px; line-height: 1.8; overflow-y: auto; }
+.cm-wrap:not(.kb-editor) .cm-editor .cm-scroller { padding-left: 22px; }
+.cm-wrap:not(.kb-editor) .cm-editor .cm-line { padding-left: 4px; }
 .cm-wrap.kb-editor .cm-editor .cm-scroller { padding: 16px 20px; line-height: 1.75; }
 /* Override CM6 default background to match PRAGMA theme */
 .cm-editor .cm-content { caret-color: var(--text); }
