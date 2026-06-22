@@ -2308,3 +2308,26 @@ RULES:
 - Preserve generated-note secondary treatment overall
 
 END
+
+
+## B-66 — Normalize Authored Hidden Tab Title Weight
+STATUS: DONE
+
+CONTEXT:
+After inverting the hidden tab title emphasis so helper/generated notes recede, the authored note titles in the hidden tab strip now feel slightly too bold. The intended hierarchy is for authored notes to remain the primary tabs, but with a normal default title weight rather than a heavy one.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Authored hidden note tab titles must use a normal default font weight
+- Generated/helper tabs must remain slightly lighter than authored tabs
+- No tab layout, grouping, or behavior should change
+
+RULES:
+- Keep the change limited to the hidden tab title weight
+- Do not redesign colors or grouping as part of this task
+- Preserve the authored-vs-helper visual hierarchy established in the previous task
+
+END

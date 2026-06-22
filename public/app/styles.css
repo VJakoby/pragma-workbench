@@ -2280,7 +2280,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
   white-space:nowrap;
   font-family:'Inter',sans-serif;
   font-size:12px;
-  font-weight:700;
+  font-weight:600;
   color:var(--text);
 }
 .session-note-tab-close{
