@@ -71,15 +71,18 @@ function updateContentPanelSearchCount() {
   const countEl = document.getElementById('cpSearchCount');
   const prevBtn = document.getElementById('cpSearchPrevBtn');
   const nextBtn = document.getElementById('cpSearchNextBtn');
-  
-  let total;
-  if (isKbEditModeOpen() && kbEditor && typeof getKbEditorSearchCount === 'function') {
-    total = getKbEditorSearchCount();
+
+  let total = 0;
+  let active = 0;
+  if (isKbEditModeOpen() && kbEditor && typeof getKbEditorSearchMetrics === 'function') {
+    const metrics = getKbEditorSearchMetrics();
+    total = metrics.total;
+    active = metrics.active;
   } else {
     total = contentPanelSearchState.matches.length;
+    active = total ? contentPanelSearchState.activeIndex + 1 : 0;
   }
-  
-  const active = total ? 1 : 0;
+
   if (countEl) countEl.textContent = total ? `${active} / ${total}` : '0';
   if (prevBtn) prevBtn.disabled = total === 0;
   if (nextBtn) nextBtn.disabled = total === 0;
@@ -185,6 +188,7 @@ function stepContentPanelSearch(direction = 1) {
     } else {
       CM.findPrevious(kbEditor);
     }
+    updateContentPanelSearchCount();
     return;
   }
   

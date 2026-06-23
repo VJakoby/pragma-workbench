@@ -2179,3 +2179,28 @@ RULES:
 - Do not redesign unrelated CodeMirror or KB editor spacing
 
 END
+
+
+## B-67 — Fix KB Editor Find-In-Document Match Navigation Counter
+STATUS: DONE
+
+CONTEXT:
+When a KB note is open in the right-side content panel and the operator uses `Find in document`, matches are highlighted correctly and the total count is accurate. However, using the previous/next controls does not update the `current / total` indicator, which makes navigation appear broken even when the query itself is valid.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/content-panel.js
+public/app/kb-editor.js
+
+EXPECTED BEHAVIOR:
+- In KB edit mode, `Find in document` must display the correct current match index and total match count
+- Using previous/next controls must update the current match index
+- Enter and Shift+Enter behavior in the find field must remain consistent with previous/next navigation
+- Existing highlight behavior must remain unchanged
+
+RULES:
+- Keep the change limited to KB editor search state and content-panel search count/navigation
+- Do not redesign the search UI
+- Do not alter note/content-panel search behavior outside the KB editor-specific bug
+
+END

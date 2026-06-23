@@ -244,6 +244,15 @@ async function saveEdit(opts = {}) {
   }
 }
 
+function focusKbPanelSearch() {
+  if (typeof setContentPanelSearchVisible === 'function') setContentPanelSearchVisible(true);
+  const input = document.getElementById('cpSearchInput');
+  if (!input) return false;
+  input.focus();
+  input.select();
+  return true;
+}
+
 function cmInitKb(initialDoc) {
   const wrap = document.getElementById('cpEditWrap');
   if (!wrap || !CM) return;
@@ -268,7 +277,15 @@ function cmInitKb(initialDoc) {
       }),
       CM.EditorView.lineWrapping,
       CM.indentUnit.of('  '),
-      CM.keymap.of([CM.indentWithTab])
+      CM.keymap.of([
+        {
+          key: 'Mod-f',
+          run() {
+            return focusKbPanelSearch();
+          }
+        },
+        CM.indentWithTab,
+      ])
     ],
     parent: wrap,
   });
@@ -286,23 +303,35 @@ function searchInKbEditor(query) {
   });
 }
 
-function getKbEditorSearchCount() {
-  if (!kbEditor || !CM?.searchState) return 0;
+function getKbEditorSearchMetrics() {
+  if (!kbEditor || !CM?.searchState) return { total: 0, active: 0 };
   try {
     const state = kbEditor.state;
     const searchField = state.field(CM.searchState, false);
-    if (!searchField || !searchField.query || !searchField.query.spec.valid) return 0;
-    
+    if (!searchField || !searchField.query || !searchField.query.spec.valid) return { total: 0, active: 0 };
+
     const query = searchField.query;
     const cursor = query.getCursor(state);
-    let count = 0;
+    const selFrom = state.selection.main.from;
+    const selTo = state.selection.main.to;
+    let total = 0;
+    let active = 0;
     let result = cursor.next();
     while (!result.done) {
-      count++;
+      total++;
+      if (active === 0 && result.value.from === selFrom && result.value.to === selTo) {
+        active = total;
+      }
       result = cursor.next();
     }
-    return count;
+
+    if (!active && total) active = 1;
+    return { total, active };
   } catch (e) {
-    return 0;
+    return { total: 0, active: 0 };
   }
+}
+
+function getKbEditorSearchCount() {
+  return getKbEditorSearchMetrics().total;
 }
