@@ -726,15 +726,19 @@ function renderSessionNoteTabs() {
     const groupKey = target?.id || "__unassigned__";
     let group = groupMap.get(groupKey);
     if (!group) {
-      const targetPrimary = target ? (target.ip || target.domain || "") : "";
+      const targetPrimary = target ? String(target.ip || target.domain || target.label || "").trim() : "Unassigned";
       const targetSecondary = target ? String(target.label || "").trim() : "";
+      const secondaryLabel = targetSecondary && targetSecondary !== targetPrimary ? targetSecondary : "";
       const combinedLabel = target
-        ? [targetPrimary, targetSecondary].filter((value, index, arr) => value && arr.indexOf(value) === index).join(" // ") || "target"
+        ? [targetPrimary, secondaryLabel].filter(Boolean).join(" // ") || "target"
         : "Unassigned";
       group = {
         key: groupKey,
         label: combinedLabel,
+        primaryLabel: targetPrimary || "Unassigned",
+        secondaryLabel,
         targeted: !!target,
+        activeTarget: !!target && target.id === activeTargetId,
         notes: [],
       };
       groupMap.set(groupKey, group);
@@ -750,11 +754,13 @@ function renderSessionNoteTabs() {
   }
 
   const createTab = canCreate
-    ? `<div class="session-note-tab session-note-tab-create" title="Create new note">
-      <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
-        <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
-        <span class="session-note-tab-title">New</span>
-      </button>
+    ? `<div class="session-note-tab-create-shell">
+      <div class="session-note-tab session-note-tab-create" title="Create new note">
+        <button class="session-note-tab-open session-note-tab-create-btn" type="button" onclick="openNewNoteModal()" aria-label="Create new note">
+          <span class="session-note-tab-create-plus" aria-hidden="true">+</span>
+          <span class="session-note-tab-title">New</span>
+        </button>
+      </div>
     </div>`
     : "";
 
@@ -765,20 +771,35 @@ function renderSessionNoteTabs() {
         ? '🧾'
         : meta.icon;
       const active = note.id === activeNoteId;
+      const isHelperTab = note.generated_note === true || note.type === 'credentials' || note.type === 'network-enumeration';
+      const generatedClass = isHelperTab ? 'generated' : '';
+      const pinnedClass = note.pinned ? 'pinned' : '';
+      const pinBadge = note.pinned ? `<span class="session-note-tab-pin" aria-hidden="true">${ICONS.pin}</span>` : '';
       const closeBtn = active
         ? `<button class="session-note-tab-close" type="button" onclick="closeNoteFromTab(&quot;${note.id}&quot;, event)" title="Close note" aria-label="Close note">×</button>`
         : "";
-      return `<div class="session-note-tab ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
+      return `<div class="session-note-tab ${generatedClass} ${pinnedClass} ${active ? "active" : ""}" data-id="${note.id}" title="${esc(note.title || "Untitled")}">
         <button class="session-note-tab-open" type="button" onclick="openNote(&quot;${note.id}&quot;)">
           <span class="session-note-tab-accent ${meta.cssClass || ""}" aria-hidden="true"></span>
           <span class="session-note-tab-icon" title="${esc(meta.label)}">${tabIcon}</span>
-          <span class="session-note-tab-title">${note.pinned ? ICONS.pin + " " : ""}${esc(note.title || "Untitled")}</span>
+          ${pinBadge}
+          <span class="session-note-tab-title">${esc(note.title || "Untitled")}</span>
         </button>
         ${closeBtn}
       </div>`;
     }).join("");
-    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"}" data-target-group="${esc(group.key)}">
-      <div class="session-note-tab-group-label" title="${esc(group.label)}">${esc(group.label)}</div>
+    const countLabel = `${group.notes.length}`;
+    const secondaryHtml = group.secondaryLabel
+      ? `<span class="session-note-tab-group-sub" title="${esc(group.secondaryLabel)}">${esc(group.secondaryLabel)}</span>`
+      : '';
+    return `<div class="session-note-tab-group ${group.targeted ? "targeted" : "unassigned"} ${group.activeTarget ? 'active-target' : ''}" data-target-group="${esc(group.key)}">
+      <div class="session-note-tab-group-header" title="${esc(group.label)}">
+        <span class="session-note-tab-group-count" aria-label="${countLabel} note${group.notes.length === 1 ? '' : 's'}">${countLabel}</span>
+        <div class="session-note-tab-group-label-wrap">
+          <span class="session-note-tab-group-label">${esc(group.primaryLabel || group.label)}</span>
+          ${secondaryHtml}
+        </div>
+      </div>
       <div class="session-note-tab-group-tabs">${tabsHtml}</div>
     </div>`;
   }).join("");
@@ -2902,7 +2923,9 @@ function renderTargetFilterBar() {
   const chips = targets
     .filter(t => usedIds.has(t.id))
     .map(t => {
-      const label = t.ip || t.domain || t.label || 'target';
+      const primary = String(t.ip || t.domain || t.label || 'target').trim();
+      const secondary = String(t.label || '').trim();
+      const label = secondary && secondary !== primary ? `${primary} // ${secondary}` : primary;
       const active = t.id === activeTargetFilter;
       return `<span class="target-filter-chip${active ? ' active' : ''}" onclick="setTargetFilter('${t.id}')">${esc(label)}</span>`;
     }).join('');
