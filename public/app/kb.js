@@ -189,6 +189,20 @@ async function ensureRootKbSectionLoaded(folder) {
   return rootKbCollections[folder];
 }
 
+function rerenderOpenKbBrowserIfNeeded(view) {
+  if (!activeDoc?.isBrowser || activeDoc.view !== view) return;
+  const searchValue = document.getElementById('cpBrowserSearch')?.value || '';
+  openKbBrowserInPanel(view, {
+    folder: activeDoc.folder || '',
+    title: activeDoc.label || '',
+  });
+  const searchInput = document.getElementById('cpBrowserSearch');
+  if (searchInput) {
+    searchInput.value = searchValue;
+    filterContentPanelCards(searchValue);
+  }
+}
+
 async function refreshKbView(view) {
   const cfg = getKbFetchConfig(view);
   const r = await fetch(cfg.listUrl);
@@ -209,13 +223,25 @@ async function refreshKbView(view) {
     rootKbCollections[view.slice(3)] = items;
   }
 
-  if (view === 'services' || view === 'tactics') renderCards(view);
+  if (view === 'services' || view === 'tactics') {
+    renderCards(view);
+  } else if (typeof view === 'string' && view.startsWith('kb:')) {
+    const folder = view.slice(3);
+    if (activeView === 'services' && activeKbRootFolder === folder) {
+      renderKnowledgeFolderNav();
+      buildSidebar(view);
+      renderCards(view);
+      const input = document.getElementById('svcSearch');
+      if (input) filterCards(view, input.value || '');
+    }
+  }
   if (activeView === view) {
     if (view === 'services') renderKnowledgeFolderNav();
     else buildSidebar(view);
     const input = document.getElementById(view === 'services' ? 'svcSearch' : 'methSearch');
     if (input) filterCards(view, input.value || '');
   }
+  rerenderOpenKbBrowserIfNeeded(view);
 }
 
 function renderKnowledgeFolderNav() {

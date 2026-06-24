@@ -7,6 +7,7 @@ let kbPreviewOpen = localStorage.getItem('pragma-kb-preview-open') === '1';
 let kbEditorSyncing = false;
 let kbPreviewTimer = null;
 let lastKbPreviewMarkdown = null;
+let cpEditSavePromise = null;
 
 function invalidateKbPreviewCache() {
   lastKbPreviewMarkdown = null;
@@ -121,6 +122,42 @@ function setCpEditStatus(cls, msg) {
   el.textContent = msg;
 }
 
+function getActiveKbDocEndpoint() {
+  if (!activeDoc || !activeDoc.id || !activeDoc.view) return '';
+  return activeDoc.view === 'services'
+    ? `/api/service/${encodeURIComponent(activeDoc.id)}`
+    : activeDoc.view === 'tactics'
+      ? `/api/tactic/${encodeURIComponent(activeDoc.id)}`
+      : activeDoc.view.startsWith('kb:')
+        ? `/api/kb-section/${encodeURIComponent(activeDoc.view.slice(3))}/${encodeURIComponent(activeDoc.id)}`
+        : '';
+}
+
+function applyKbDocDetail(detail) {
+  if (!activeDoc || !detail) return;
+  activeDoc.html = detail.html;
+  activeDoc.raw = detail.raw;
+  activeDoc.title = detail.name || activeDoc.title;
+  activeDoc.meta = activeDoc.view === 'services'
+    ? `${detail.port} · ${detail.category}`
+    : `${detail.category} · ${detail.wordCount} words`;
+  activeDoc.category = detail.category || activeDoc.category || '';
+  if (typeof renderContent === 'function') {
+    renderContent(activeDoc.html, activeDoc.icon || ICONS.notes, activeDoc.title, activeDoc.meta);
+  }
+}
+
+async function refreshActiveKbDocFromServer() {
+  const endpoint = getActiveKbDocEndpoint();
+  if (!endpoint) return false;
+  const r = await fetch(endpoint);
+  const d = await r.json();
+  if (!r.ok || d.error) throw new Error(d.error || 'Could not refresh KB document');
+  applyKbDocDetail(d);
+  updateKbPreview();
+  return true;
+}
+
 async function toggleEditMode() {
   const editBody = document.getElementById('cpEditBody');
   const isEditing = editBody.style.display !== 'none';
@@ -129,7 +166,10 @@ async function toggleEditMode() {
       try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
       catch { return; }
     }
-    exitEditMode();
+    if (cpEditSavePromise) {
+      try { await cpEditSavePromise; } catch (_) {}
+    }
+    await exitEditMode();
   } else {
     enterEditMode();
   }
@@ -148,7 +188,13 @@ function enterEditMode() {
   setTimeout(() => kbEditor && kbEditor.focus(), 30);
 }
 
-function exitEditMode() {
+async function exitEditMode() {
+  if (cpEditSavePromise) {
+    try { await cpEditSavePromise; } catch (_) {}
+  }
+  try {
+    await refreshActiveKbDocFromServer();
+  } catch (_) {}
   document.getElementById('cpReadBody').style.display  = '';
   document.getElementById('cpEditBody').style.display  = 'none';
   document.getElementById('cpEditBtn').classList.remove('editing');
@@ -184,64 +230,46 @@ async function cancelEdit() {
     try { await showConfirmDialog({ icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, title: 'Discard Changes', bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`, description: 'You have unsaved changes. Discard them?', confirmLabel: 'Discard', danger: true }); }
     catch { return; }
   }
-  exitEditMode();
+  await exitEditMode();
 }
 
 async function saveEdit(opts = {}) {
-  if (!activeDoc || !activeDoc.id || !activeDoc.view) return;
-  if (cpEditSaving) return;
+  if (!activeDoc || !activeDoc.id || !activeDoc.view) return cpEditSavePromise;
+  if (cpEditSaving) return cpEditSavePromise;
   const savedView = activeDoc.view;
-  const savedId = activeDoc.id;
   const raw = cmGetValue(kbEditor);
   cpEditSaving = true;
   clearTimeout(cpEditSaveTimer);
   setCpEditStatus('', opts.auto ? '...saving' : '⏳ Saving…');
-  try {
-    const r = await fetch('/api/kb/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: activeDoc.id, view: activeDoc.view, content: raw }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Save failed');
-
-    activeDoc.raw = raw;
-    cpEditDirty   = false;
-    setCpEditStatus('saved', '✓ saved');
-
-    if (typeof refreshKbView === 'function') {
-      await refreshKbView(savedView);
-    }
-
+  cpEditSavePromise = (async () => {
     try {
-      const endpoint = savedView === 'services'
-        ? `/api/service/${encodeURIComponent(savedId)}`
-        : savedView === 'tactics'
-          ? `/api/tactic/${encodeURIComponent(savedId)}`
-          : savedView.startsWith('kb:')
-            ? `/api/kb-section/${encodeURIComponent(savedView.slice(3))}/${encodeURIComponent(savedId)}`
-            : '';
-      if (!endpoint) throw new Error('Unknown KB view');
-      const r2 = await fetch(endpoint);
-      const d2 = await r2.json();
-      activeDoc.html = d2.html;
-      activeDoc.raw  = d2.raw;
-      activeDoc.meta = savedView === 'services'
-        ? `${d2.port} · ${d2.category}`
-        : `${d2.category} · ${d2.wordCount} words`;
-      activeDoc.title = d2.name || activeDoc.title;
-      if (typeof renderContent === 'function') {
-        renderContent(activeDoc.html, activeDoc.icon || ICONS.notes, activeDoc.title, activeDoc.meta);
-      }
-      updateKbPreview();
-    } catch (_) {}
+      const r = await fetch('/api/kb/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activeDoc.id, view: activeDoc.view, content: raw }),
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'Save failed');
 
-    setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
-  } catch (e) {
-    setCpEditStatus('unsaved', '✗ ' + e.message);
-  } finally {
-    cpEditSaving = false;
-  }
+      activeDoc.raw = raw;
+      cpEditDirty   = false;
+      setCpEditStatus('saved', '✓ saved');
+
+      if (typeof refreshKbView === 'function') {
+        await refreshKbView(savedView);
+      }
+      await refreshActiveKbDocFromServer();
+
+      setTimeout(() => { if (!cpEditDirty) setCpEditStatus('', activeDoc.meta || ''); }, 2000);
+    } catch (e) {
+      setCpEditStatus('unsaved', '✗ ' + e.message);
+      throw e;
+    } finally {
+      cpEditSaving = false;
+      cpEditSavePromise = null;
+    }
+  })();
+  return cpEditSavePromise;
 }
 
 function focusKbPanelSearch() {

@@ -2356,3 +2356,24 @@ RULES:
 - Do not alter note/content-panel search behavior outside the KB editor-specific bug
 
 END
+
+## B-68 — Refresh KB Reader Header Immediately After Edit Exit
+
+CONTEXT:
+When a Knowledge Base note is edited and saved, the read-mode title and metadata do not always reflect the latest saved content immediately after leaving edit mode. This makes the live editing flow feel stale even though the underlying file has been updated.
+
+SCOPE:
+public/app/kb-editor.js
+public/app/kb.js
+
+EXPECTED BEHAVIOR:
+- After a KB note save completes, the active KB document state must reflect the latest saved title, metadata, and rendered content
+- Exiting KB edit mode while a save is still in progress must wait for that save to finish before returning to read mode
+- The KB reader header and content must update immediately after edit mode is exited, without requiring the operator to reopen the document
+- Existing autosave behavior must remain intact
+
+RULES:
+- Keep the change limited to KB editor save/exit synchronization
+- Do not redesign the KB editor UI
+- Do not alter unrelated note editor behavior
+
