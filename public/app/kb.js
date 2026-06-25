@@ -354,6 +354,7 @@ function openKbBrowserInPanel(view, { folder = '', title = '', meta = '' } = {})
   document.getElementById('cpTitle').textContent = label;
   document.getElementById('cpMeta').textContent = countLabel;
   document.getElementById('cpEditBtn').style.display = 'none';
+  document.getElementById('cpDeleteBtn').style.display = 'none';
   if (typeof clearLastLocationFields === 'function') {
     clearLastLocationFields('contentPanelKind', 'contentPanelView', 'contentPanelId');
   }

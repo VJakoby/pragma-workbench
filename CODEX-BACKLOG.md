@@ -2358,6 +2358,7 @@ RULES:
 END
 
 ## B-68 — Refresh KB Reader Header Immediately After Edit Exit
+STATUS: DONE
 
 CONTEXT:
 When a Knowledge Base note is edited and saved, the read-mode title and metadata do not always reflect the latest saved content immediately after leaving edit mode. This makes the live editing flow feel stale even though the underlying file has been updated.
@@ -2377,3 +2378,53 @@ RULES:
 - Do not redesign the KB editor UI
 - Do not alter unrelated note editor behavior
 
+## B-69 — Add Preview-Only Markdown Zoom Controls
+
+CONTEXT:
+Rendered markdown can feel too small or too large depending on monitor size, browser scaling, and layout mode. Operators need a way to zoom the preview surface itself without changing the editor font size or relying on full browser zoom.
+
+SCOPE:
+public/app/note-editor.js
+public/app/content-panel.js
+public/app/kb-editor.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Rendered markdown preview surfaces must support a preview-only zoom level
+- The zoom must affect preview/read surfaces only, not the raw editor text size
+- The operator should be able to zoom while hovering a preview surface, for example with a modifier plus mouse wheel
+- The zoom level should apply consistently to:
+  - normal note preview
+  - unified note preview
+  - KB/content-panel markdown preview
+- A sensible reset/default level must exist
+- The zoom level should persist locally for the operator
+
+RULES:
+- Do not replace browser-native zoom
+- Do not change editor font sizing behavior
+- Keep the change limited to markdown preview/read rendering scale and its controls
+
+## B-70 — Add KB Document Delete Action In Content Panel
+
+CONTEXT:
+Knowledge Base documents created from inside the app can currently be created and edited, but not deleted through the same interface. Operators must be able to remove KB documents directly from the content panel using the same confirmation style already used elsewhere in the app.
+
+SCOPE:
+CODEX-BACKLOG.md
+server/routes/kb.js
+views/partials/content-panel.ejs
+public/app/content-panel.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- When a KB document is open in the content panel, a delete button must appear beside the existing edit action
+- Pressing delete must open a destructive confirmation dialog consistent with existing delete confirmations in the app
+- Confirming delete must remove the underlying KB markdown file
+- After delete, KB lists/cards/tabs must refresh immediately so the removed document no longer appears
+- If the document was opened from a KB browser/list state, the UI should return to that state after deletion instead of leaving stale content visible
+
+RULES:
+- Keep the change limited to KB document deletion flow
+- Do not change normal note deletion behavior
+- Do not redesign the content panel header beyond adding the delete action

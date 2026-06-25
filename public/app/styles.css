@@ -1354,6 +1354,7 @@ body.bottom-bar-mode .topbar{
 #cpBackBtn,
 #cpCreateBtn,
 #cpEditBtn,
+#cpDeleteBtn,
 .content-panel-close{
   background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);cursor:pointer;
   color:color-mix(in srgb, var(--text) 88%, white 12%);font-size:18px;padding:0 8px;
@@ -1364,13 +1365,15 @@ body.bottom-bar-mode .topbar{
 }
 #cpBackBtn svg,
 #cpCreateBtn svg,
-#cpEditBtn svg{
+#cpEditBtn svg,
+#cpDeleteBtn svg{
   width:14px;
   height:14px;
 }
 #cpBackBtn:hover,
 #cpCreateBtn:hover,
 #cpEditBtn:hover,
+#cpDeleteBtn:hover,
 .content-panel-close:hover{
   background:rgba(var(--accent-rgb),0.08);
   border-color:rgba(var(--accent-rgb),0.28);
@@ -1379,6 +1382,7 @@ body.bottom-bar-mode .topbar{
 #cpBackBtn:active,
 #cpCreateBtn:active,
 #cpEditBtn:active,
+#cpDeleteBtn:active,
 .content-panel-close:active{
   background:rgba(var(--accent-rgb),0.12);
   border-color:rgba(var(--accent-rgb),0.34);

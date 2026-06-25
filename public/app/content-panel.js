@@ -54,6 +54,62 @@ function clearContentPanelCreateState() {
   setContentPanelCreateState(null);
 }
 
+async function deleteActiveKbDocument() {
+  if (!activeDoc?.isLocal || activeDoc?.isBrowser || !activeDoc?.id || !activeDoc?.view) return;
+
+  const deletingTitle = activeDoc.title || activeDoc.id;
+  const deletingView = activeDoc.view;
+  const backState = contentPanelBackState ? { ...contentPanelBackState } : null;
+  const isEditingDirty = typeof isKbEditModeOpen === 'function' && isKbEditModeOpen() && typeof cpEditDirty !== 'undefined' && cpEditDirty;
+  const description = isEditingDirty
+    ? 'This KB document will be permanently deleted. Unsaved changes will be lost.'
+    : 'This KB document will be permanently deleted.';
+
+  try {
+    await showConfirmDialog({
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+      title: 'Delete KB Document',
+      bigIcon: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+      description: description + '<div style="margin-top:8px;color:var(--muted);font-family:&quot;JetBrains Mono&quot;, monospace;font-size:12px">' + esc(deletingTitle) + '</div>',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+  } catch {
+    return;
+  }
+
+  if (typeof cpEditSaveTimer !== 'undefined' && cpEditSaveTimer) clearTimeout(cpEditSaveTimer);
+  if (typeof cpEditSavePromise !== 'undefined' && cpEditSavePromise) {
+    try { await cpEditSavePromise; } catch (_) {}
+  }
+
+  const response = await fetch('/api/kb/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: activeDoc.id, view: deletingView }),
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    showToast(payload.error || 'Could not delete KB document');
+    return;
+  }
+
+  if (typeof refreshKbView === 'function') {
+    await refreshKbView(deletingView);
+  }
+
+  if (backState?.type === 'kb-browser' && typeof openKbBrowserInPanel === 'function') {
+    openKbBrowserInPanel(backState.view, {
+      folder: backState.folder || '',
+      title: backState.label || backState.title || '',
+    });
+  } else {
+    closeContent();
+  }
+
+  showToast('Deleted');
+}
+
 function getContentPanelSearchRoot() {
   return document.getElementById('cpContentInner') || document.getElementById('cpContent');
 }
@@ -515,6 +571,7 @@ async function openItem(view, id) {
       renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
     }
     document.getElementById('cpEditBtn').style.display = '';
+    document.getElementById('cpDeleteBtn').style.display = '';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
@@ -560,6 +617,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
     renderContentPanelTabs(activeDoc);
     renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
+  document.getElementById('cpDeleteBtn').style.display = 'none';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `
       <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
@@ -655,4 +713,5 @@ function closeContent() {
   setContentPanelSearchVisible(false);
   exitEditMode();
   document.getElementById('cpEditBtn').style.display = 'none';
+  document.getElementById('cpDeleteBtn').style.display = 'none';
 }
