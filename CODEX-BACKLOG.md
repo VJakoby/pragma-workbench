@@ -2431,6 +2431,7 @@ RULES:
 - Do not redesign the content panel header beyond adding the delete action
 
 ## B-71 — Add Soft Re-Welcome Timeout For Session Modal
+STATUS: DONE
 
 CONTEXT:
 The welcome/session selector modal currently appears only for brand-new browser/session state, which works for first use. A softer returning-user flow is needed so the modal can reappear after a long inactivity period without resetting sessions, notes, or personal UI preferences.
