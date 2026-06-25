@@ -223,7 +223,8 @@ async function init() {
   const showWelcomeSessionModal = typeof shouldOpenWelcomeSessionModalOnStartup === 'function'
     ? shouldOpenWelcomeSessionModalOnStartup()
     : false;
-  if (!showWelcomeSessionModal && activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
+  const shouldRestoreBehindWelcome = showWelcomeSessionModal && !!activeSessionId;
+  if ((!showWelcomeSessionModal || shouldRestoreBehindWelcome) && activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
 
   document.getElementById('svc-count').textContent = SERVICES.length;
   document.getElementById('tactics-count').textContent = TACTICS.length;
@@ -239,7 +240,7 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
-  if (!showWelcomeSessionModal) await restoreLastLocation();
+  if (!showWelcomeSessionModal || shouldRestoreBehindWelcome) await restoreLastLocation();
 }
 
 

@@ -66,7 +66,7 @@
   </div>
 </div>
 <!-- -- WELCOME / SESSION SELECTOR -- -->
-<div class="cmd-overlay" id="welcomeSessionOverlay">
+<div class="cmd-overlay" id="welcomeSessionOverlay" data-welcome-mode="first-run">
   <div class="cmd-box welcome-session-box">
     <div class="cmd-input-row">
       <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 12l7-4"/><path d="M12 12V3"/><path d="M12 12l-7-4"/></svg></span>
@@ -76,16 +76,16 @@
     <div class="welcome-session-body">
       <div class="welcome-session-intro">
         <div class="welcome-session-kicker">PRAGMA <span>// Workbench</span></div>
-        <div class="welcome-session-title">Choose a session to continue</div>
-        <div class="welcome-session-copy">Resume an existing workspace or create a new session before you start working.</div>
+        <div class="welcome-session-title" id="welcomeSessionTitle">Choose a session to continue</div>
+        <div class="welcome-session-copy" id="welcomeSessionCopy">Resume an existing workspace or create a new session before you start working.</div>
       </div>
       <div class="welcome-session-layout">
-        <div class="welcome-session-panel">
-          <div class="welcome-session-panel-hdr">Existing Sessions</div>
+        <div class="welcome-session-panel welcome-session-existing-panel" id="welcomeSessionExistingPanel">
+          <div class="welcome-session-panel-hdr" id="welcomeSessionExistingHdr">Existing Sessions</div>
           <div class="welcome-session-list" id="welcomeSessionList"></div>
         </div>
-        <div class="welcome-session-panel welcome-session-create-panel">
-          <div class="welcome-session-panel-hdr">Create Engagement Session</div>
+        <div class="welcome-session-panel welcome-session-create-panel" id="welcomeSessionCreatePanel">
+          <div class="welcome-session-panel-hdr" id="welcomeSessionCreateHdr">Create Engagement Session</div>
           <div class="session-field">
             <label>Session Name</label>
             <input id="welcomeSessionName" type="text" placeholder="" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">

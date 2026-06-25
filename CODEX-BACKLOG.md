@@ -2429,3 +2429,29 @@ RULES:
 - Keep the change limited to KB document deletion flow
 - Do not change normal note deletion behavior
 - Do not redesign the content panel header beyond adding the delete action
+
+## B-71 — Add Soft Re-Welcome Timeout For Session Modal
+
+CONTEXT:
+The welcome/session selector modal currently appears only for brand-new browser/session state, which works for first use. A softer returning-user flow is needed so the modal can reappear after a long inactivity period without resetting sessions, notes, or personal UI preferences.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/workbench.js
+views/partials/overlays.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Add a soft re-welcome timeout for the welcome/session modal based on a persisted local timestamp
+- After the timeout expires, the modal should appear again on a fresh visit/load even if sessions already exist
+- Existing sessions, notes, theme choice, editor preferences, and other personal UI settings must remain intact
+- The modal must support two UX states:
+  - first-run: true new-user / no-sessions onboarding copy
+  - returning: welcome-back copy when sessions already exist
+- In returning mode, the modal should make continuing with an existing session feel primary, while still allowing new session creation
+- Closing or completing the modal should refresh the welcome timestamp so it does not immediately reappear again
+
+RULES:
+- Keep this as a soft re-welcome only; do not clear or reset stored workbench data
+- Do not reset theme, layout, editor font/theme, or other unrelated preferences
+- Reuse the existing welcome modal shell rather than creating a second modal

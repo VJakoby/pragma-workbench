@@ -38,6 +38,9 @@ let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
 let shouldPromptForSessionOnStartup = false;
+let welcomeSessionMode = 'first-run';
+const WELCOME_SESSION_SEEN_KEY = 'ops-welcome-last-seen';
+const WELCOME_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 const DEFAULT_GENERATED_NOTE_SETTINGS = Object.freeze({
   services_note: true,
@@ -586,13 +589,16 @@ async function initNotes() {
   }
 
   const savedSid = localStorage.getItem('ops-active-session');
+  const hasSessions = Object.keys(sessions || {}).length > 0;
+  const welcomeExpired = hasWelcomeSessionTimeoutExpired();
   if (savedSid && sessions[savedSid]) {
     activeSessionId = savedSid;
-    shouldPromptForSessionOnStartup = false;
+    shouldPromptForSessionOnStartup = welcomeExpired;
   } else {
     activeSessionId = null;
     shouldPromptForSessionOnStartup = true;
   }
+  welcomeSessionMode = hasSessions ? 'returning' : 'first-run';
 
   renderSessionSidebar();
   renderNotesList();
@@ -755,6 +761,53 @@ function openSessionModal() {
 
 function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
 
+function getWelcomeSessionSeenTimestamp() {
+  const raw = parseInt(localStorage.getItem(WELCOME_SESSION_SEEN_KEY) || '', 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+function getWelcomeSessionMode() {
+  const hasSessions = Object.keys(sessions || {}).length > 0;
+  const seenAt = getWelcomeSessionSeenTimestamp();
+  if (!seenAt) return 'first-run';
+  return hasSessions ? 'returning' : 'first-run';
+}
+
+function hasWelcomeSessionTimeoutExpired() {
+  const seenAt = getWelcomeSessionSeenTimestamp();
+  if (!seenAt) return true;
+  return (Date.now() - seenAt) >= WELCOME_SESSION_TTL_MS;
+}
+
+function markWelcomeSessionSeen() {
+  localStorage.setItem(WELCOME_SESSION_SEEN_KEY, String(Date.now()));
+}
+
+function syncWelcomeSessionModalContent() {
+  const overlay = document.getElementById('welcomeSessionOverlay');
+  const title = document.getElementById('welcomeSessionTitle');
+  const copy = document.getElementById('welcomeSessionCopy');
+  const existingHdr = document.getElementById('welcomeSessionExistingHdr');
+  const createHdr = document.getElementById('welcomeSessionCreateHdr');
+  if (!overlay || !title || !copy || !existingHdr || !createHdr) return;
+
+  welcomeSessionMode = getWelcomeSessionMode();
+  overlay.dataset.welcomeMode = welcomeSessionMode;
+
+  if (welcomeSessionMode === 'returning') {
+    title.textContent = 'Welcome Back';
+    copy.textContent = 'Continue with an existing engagement session or create a new one.';
+    existingHdr.textContent = 'Resume Existing Sessions';
+    createHdr.textContent = 'Create New Engagement Session';
+    return;
+  }
+
+  title.textContent = 'Create Engagement Session';
+  copy.textContent = 'Start a new engagement session to begin organizing notes, targets, and findings.';
+  existingHdr.textContent = 'Existing Sessions';
+  createHdr.textContent = 'Create Engagement Session';
+}
+
 function getSessionFormRefs(source = 'session') {
   return source === 'welcome'
     ? {
@@ -784,6 +837,7 @@ function clearSessionForm(source = 'session') {
 }
 
 function renderWelcomeSessionList() {
+  syncWelcomeSessionModalContent();
   const list = document.getElementById('welcomeSessionList');
   if (!list) return;
   const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
@@ -820,17 +874,25 @@ function renderWelcomeSessionList() {
 function openWelcomeSessionModal() {
   renderWelcomeSessionList();
   clearSessionForm('welcome');
+  syncWelcomeSessionModalContent();
   const feedback = document.getElementById('welcomeImportFeedback');
   if (feedback) feedback.style.display = 'none';
   const overlay = document.getElementById('welcomeSessionOverlay');
   const esc = document.getElementById('welcomeSessionEsc');
   if (esc) esc.style.display = activeSessionId ? '' : 'none';
   overlay?.classList.add('open');
-  setTimeout(() => document.getElementById('welcomeSessionName')?.focus(), 60);
+  setTimeout(() => {
+    if (welcomeSessionMode === 'returning') {
+      document.querySelector('#welcomeSessionList .welcome-session-card')?.focus();
+      return;
+    }
+    document.getElementById('welcomeSessionName')?.focus();
+  }, 60);
 }
 
 function closeWelcomeSessionModal(force = false) {
   if (!force && !activeSessionId) return;
+  markWelcomeSessionSeen();
   document.getElementById('welcomeSessionOverlay')?.classList.remove('open');
 }
 
@@ -1151,6 +1213,7 @@ function setSessionStatus(e, sessId, status) {
 function switchSession(id) {
   if (!sessions[id]) return;
   shouldPromptForSessionOnStartup = false;
+  markWelcomeSessionSeen();
   activeSessionId = id;
   localStorage.setItem('ops-active-session', id);
   activeNoteScope = 'session';
