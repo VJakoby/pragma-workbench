@@ -2406,6 +2406,7 @@ RULES:
 - Keep the change limited to markdown preview/read rendering scale and its controls
 
 ## B-70 — Add KB Document Delete Action In Content Panel
+STATUS: DONE
 
 CONTEXT:
 Knowledge Base documents created from inside the app can currently be created and edited, but not deleted through the same interface. Operators must be able to remove KB documents directly from the content panel using the same confirmation style already used elsewhere in the app.
