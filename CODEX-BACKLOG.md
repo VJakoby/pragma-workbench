@@ -2458,7 +2458,7 @@ RULES:
 - Reuse the existing welcome modal shell rather than creating a second modal
 
 ## B-72 — Align KB Side Preview Table Typography With Note Preview
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 Markdown tables rendered in the KB side content panel currently use a smaller table font size than regular note preview tables. This makes KB tables feel denser and slightly harder to read even when the markdown content is otherwise equivalent.
@@ -2476,3 +2476,30 @@ RULES:
 - Keep the change limited to KB side preview table typography
 - Do not alter regular note preview table sizing
 - Do not redesign unrelated markdown preview styles
+
+## B-73 — Add Compact Workflow Guidance To Welcome Session Modal
+STATUS: TODO
+
+CONTEXT:
+The welcome/session modal now handles first-run onboarding and soft returning-user re-entry, but it still assumes the operator already understands the intended session workflow. A compact guidance block should explain the basic workbench flow without turning the modal into a full feature tour.
+
+SCOPE:
+CODEX-BACKLOG.md
+views/partials/overlays.ejs
+public/app/workbench.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The welcome/session modal should include a small informational workflow guide
+- The guide should briefly explain the normal operator flow:
+  - create or continue a session
+  - add targets for the engagement
+  - use notes and Quick Log to track ports, paths, loot, and findings
+- The guide should mention that generated notes and summaries are optional helper features, not required workflow
+- The guide should remain compact and visually secondary to the actual continue/create actions
+- First-run and returning states may use slightly different guide wording if helpful, but both should stay brief
+
+RULES:
+- Keep the guidance limited to a short onboarding/info box inside the existing modal
+- Do not turn the modal into a full feature walkthrough
+- Do not change session creation or selection behavior as part of this task

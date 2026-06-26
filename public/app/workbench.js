@@ -789,6 +789,9 @@ function syncWelcomeSessionModalContent() {
   const copy = document.getElementById('welcomeSessionCopy');
   const existingHdr = document.getElementById('welcomeSessionExistingHdr');
   const createHdr = document.getElementById('welcomeSessionCreateHdr');
+  const guideHdr = document.getElementById('welcomeSessionGuideHdr');
+  const guideNote = document.getElementById('welcomeSessionGuideNote');
+  const guideKbNote = document.getElementById('welcomeSessionGuideKbNote');
   if (!overlay || !title || !copy || !existingHdr || !createHdr) return;
 
   welcomeSessionMode = getWelcomeSessionMode();
@@ -799,6 +802,9 @@ function syncWelcomeSessionModalContent() {
     copy.textContent = 'Continue with an existing engagement session or create a new one.';
     existingHdr.textContent = 'Resume Existing Sessions';
     createHdr.textContent = 'Create New Engagement Session';
+    if (guideHdr) guideHdr.textContent = 'Quick reminder';
+    if (guideNote) guideNote.textContent = 'Generated notes and summaries remain optional helper features. Use them only when they support your workflow.';
+    if (guideKbNote) guideKbNote.textContent = 'The Knowledge Base integration is optional but recommended for the full intended workflow.';
     return;
   }
 
@@ -806,6 +812,9 @@ function syncWelcomeSessionModalContent() {
   copy.textContent = 'Start a new engagement session to begin organizing notes, targets, and findings.';
   existingHdr.textContent = 'Existing Sessions';
   createHdr.textContent = 'Create Engagement Session';
+  if (guideHdr) guideHdr.textContent = 'Suggested workflow';
+  if (guideNote) guideNote.textContent = 'Generated notes and summaries are optional helpers. You can still work fully manually if you prefer.';
+  if (guideKbNote) guideKbNote.textContent = 'The Knowledge Base integration is optional but recommended for the full intended workflow.';
 }
 
 function getSessionFormRefs(source = 'session') {
