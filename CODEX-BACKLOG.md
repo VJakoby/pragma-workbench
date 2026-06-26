@@ -2456,3 +2456,23 @@ RULES:
 - Keep this as a soft re-welcome only; do not clear or reset stored workbench data
 - Do not reset theme, layout, editor font/theme, or other unrelated preferences
 - Reuse the existing welcome modal shell rather than creating a second modal
+
+## B-72 — Align KB Side Preview Table Typography With Note Preview
+STATUS: TODO
+
+CONTEXT:
+Markdown tables rendered in the KB side content panel currently use a smaller table font size than regular note preview tables. This makes KB tables feel denser and slightly harder to read even when the markdown content is otherwise equivalent.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- KB side preview markdown tables should use a slightly larger font size
+- The result should move KB side preview table text closer to the normal note preview table size
+- General KB preview typography, spacing, and layout should remain unchanged
+
+RULES:
+- Keep the change limited to KB side preview table typography
+- Do not alter regular note preview table sizing
+- Do not redesign unrelated markdown preview styles
