@@ -2429,3 +2429,77 @@ RULES:
 - Keep the change limited to KB document deletion flow
 - Do not change normal note deletion behavior
 - Do not redesign the content panel header beyond adding the delete action
+
+## B-71 — Add Soft Re-Welcome Timeout For Session Modal
+STATUS: DONE
+
+CONTEXT:
+The welcome/session selector modal currently appears only for brand-new browser/session state, which works for first use. A softer returning-user flow is needed so the modal can reappear after a long inactivity period without resetting sessions, notes, or personal UI preferences.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/workbench.js
+views/partials/overlays.ejs
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- Add a soft re-welcome timeout for the welcome/session modal based on a persisted local timestamp
+- After the timeout expires, the modal should appear again on a fresh visit/load even if sessions already exist
+- Existing sessions, notes, theme choice, editor preferences, and other personal UI settings must remain intact
+- The modal must support two UX states:
+  - first-run: true new-user / no-sessions onboarding copy
+  - returning: welcome-back copy when sessions already exist
+- In returning mode, the modal should make continuing with an existing session feel primary, while still allowing new session creation
+- Closing or completing the modal should refresh the welcome timestamp so it does not immediately reappear again
+
+RULES:
+- Keep this as a soft re-welcome only; do not clear or reset stored workbench data
+- Do not reset theme, layout, editor font/theme, or other unrelated preferences
+- Reuse the existing welcome modal shell rather than creating a second modal
+
+## B-72 — Align KB Side Preview Table Typography With Note Preview
+STATUS: DONE
+
+CONTEXT:
+Markdown tables rendered in the KB side content panel currently use a smaller table font size than regular note preview tables. This makes KB tables feel denser and slightly harder to read even when the markdown content is otherwise equivalent.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- KB side preview markdown tables should use a slightly larger font size
+- The result should move KB side preview table text closer to the normal note preview table size
+- General KB preview typography, spacing, and layout should remain unchanged
+
+RULES:
+- Keep the change limited to KB side preview table typography
+- Do not alter regular note preview table sizing
+- Do not redesign unrelated markdown preview styles
+
+## B-73 — Add Compact Workflow Guidance To Welcome Session Modal
+STATUS: DONE
+
+CONTEXT:
+The welcome/session modal now handles first-run onboarding and soft returning-user re-entry, but it still assumes the operator already understands the intended session workflow. A compact guidance block should explain the basic workbench flow without turning the modal into a full feature tour.
+
+SCOPE:
+CODEX-BACKLOG.md
+views/partials/overlays.ejs
+public/app/workbench.js
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The welcome/session modal should include a small informational workflow guide
+- The guide should briefly explain the normal operator flow:
+  - create or continue a session
+  - add targets for the engagement
+  - use notes and Quick Log to track ports, paths, loot, and findings
+- The guide should mention that generated notes and summaries are optional helper features, not required workflow
+- The guide should remain compact and visually secondary to the actual continue/create actions
+- First-run and returning states may use slightly different guide wording if helpful, but both should stay brief
+
+RULES:
+- Keep the guidance limited to a short onboarding/info box inside the existing modal
+- Do not turn the modal into a full feature walkthrough
+- Do not change session creation or selection behavior as part of this task
