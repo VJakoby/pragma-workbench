@@ -2478,7 +2478,7 @@ RULES:
 - Do not redesign unrelated markdown preview styles
 
 ## B-73 — Add Compact Workflow Guidance To Welcome Session Modal
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The welcome/session modal now handles first-run onboarding and soft returning-user re-entry, but it still assumes the operator already understands the intended session workflow. A compact guidance block should explain the basic workbench flow without turning the modal into a full feature tour.
