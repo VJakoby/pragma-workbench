@@ -2531,7 +2531,7 @@ RULES:
 - Do not remove the existing title or top-row metadata behavior
 
 ## B-76 — Add KB Editor Hint Examples For Internal Note And KB Links
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The KB editor hint bar currently shows generic markdown examples and a wiki-link example, but it does not show the platform-specific internal link formats operators actually use inside KB notes. The hint bar should include concise examples for engagement-note references and KB service references.
