@@ -19,6 +19,8 @@ function setContentPanelHeader(icon, title, meta, opts = {}) {
   const iconEl = document.getElementById('cpIcon');
   const titleEl = document.getElementById('cpTitle');
   const metaEl = document.getElementById('cpMeta');
+  const pathRowEl = document.getElementById('cpPathRow');
+  const pathEl = document.getElementById('cpPath');
   const showIcon = opts.showIcon !== false;
   if (iconEl) {
     iconEl.innerHTML = showIcon ? icon : '';
@@ -26,6 +28,9 @@ function setContentPanelHeader(icon, title, meta, opts = {}) {
   }
   if (titleEl) titleEl.textContent = title || '';
   if (metaEl) metaEl.textContent = meta || '';
+  const pathValue = typeof opts.path === 'string' ? opts.path.trim() : '';
+  if (pathEl) pathEl.textContent = pathValue;
+  if (pathRowEl) pathRowEl.style.display = pathValue ? '' : 'none';
 }
 
 function setContentPanelAccent(accent) {
@@ -53,6 +58,18 @@ function setContentPanelCreateState(state) {
 function clearContentPanelCreateState() {
   setContentPanelCreateState(null);
 }
+
+function getKbRelativeContentPath(view, doc = {}) {
+  const file = String(doc.file || '').trim();
+  const folder = String(doc.folder || '').trim();
+  const subfolder = String(doc.subfolder || '').trim();
+  if (!file) return '';
+  if (view === 'services') return ['services', folder, file].filter(Boolean).join('/');
+  if (view === 'tactics') return ['tactics', folder, file].filter(Boolean).join('/');
+  if (typeof view === 'string' && view.startsWith('kb:')) return [view.slice(3), subfolder, file].filter(Boolean).join('/');
+  return file;
+}
+
 
 async function deleteActiveKbDocument() {
   if (!activeDoc?.isLocal || activeDoc?.isBrowser || !activeDoc?.id || !activeDoc?.view) return;
@@ -545,17 +562,25 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
+    const relativePath = getKbRelativeContentPath(view, {
+      file: d.file || itemMeta?.file || '',
+      folder: itemMeta?.folder || d.folder || '',
+      subfolder: d.subfolder || itemMeta?.subfolder || '',
+    });
     activeDoc = {
       html: d.html,
       raw: d.raw,
       icon: d.icon || ICONS.notes,
       title: d.name,
       meta,
+      path: relativePath,
       id,
       view,
       isLocal: true,
       folder: itemMeta?.folder || '',
       category: itemMeta?.category || d.category || '',
+      file: d.file || itemMeta?.file || '',
+      subfolder: d.subfolder || itemMeta?.subfolder || '',
     };
     persistContentPanelLocation({
       contentPanelKind: 'kb-item',
@@ -568,7 +593,7 @@ async function openItem(view, id) {
     if (wasEditing && typeof syncKbEditorToActiveDoc === 'function') {
       syncKbEditorToActiveDoc();
     } else {
-      renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
+      renderContent(d.html, d.icon || ICONS.notes, d.name, meta, '', { path: relativePath });
     }
     document.getElementById('cpEditBtn').style.display = '';
     document.getElementById('cpDeleteBtn').style.display = '';
@@ -667,9 +692,9 @@ function makeCollapsible(container) {
   });
 }
 
-function renderContent(html, icon, title, meta, query = '') {
+function renderContent(html, icon, title, meta, query = '', opts = {}) {
   const isLocalKbDoc = !query && !!activeDoc?.isLocal && !activeDoc?.isBrowser;
-  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc });
+  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc, path: opts.path || '' });
   const el = document.getElementById('cpContent');
   const renderedHtml = html;
 
