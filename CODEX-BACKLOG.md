@@ -2505,7 +2505,7 @@ RULES:
 - Do not change session creation or selection behavior as part of this task
 
 ## B-75 — Show KB-Relative File Path In Content Panel Header
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 When a Knowledge Base note is opened in the right-side content panel, the title is shown but the operator cannot immediately see where that file lives inside the Knowledge Base tree. A small metadata row should show the KB-relative location and filename so the document context is clearer without changing the main title line.
@@ -2529,3 +2529,24 @@ RULES:
 - Keep the change limited to KB document header metadata presentation
 - Do not redesign the broader content panel layout
 - Do not remove the existing title or top-row metadata behavior
+
+## B-76 — Add KB Editor Hint Examples For Internal Note And KB Links
+STATUS: TODO
+
+CONTEXT:
+The KB editor hint bar currently shows generic markdown examples and a wiki-link example, but it does not show the platform-specific internal link formats operators actually use inside KB notes. The hint bar should include concise examples for engagement-note references and KB service references.
+
+SCOPE:
+CODEX-BACKLOG.md
+views/partials/content-panel.ejs
+
+EXPECTED BEHAVIOR:
+- The KB editor hint row must include an engagement-note reference example like `[en:target:note-title]`
+- The KB editor hint row must include a KB service reference example like `[kb:service:filename]`
+- The KB service example should imply the filename is used without the file extension
+- Existing KB editor behavior and toolbar layout must remain unchanged
+
+RULES:
+- Keep the change limited to KB editor hint text
+- Do not redesign the broader KB editor toolbar
+- Do not alter note editor hint text unless required by this task
