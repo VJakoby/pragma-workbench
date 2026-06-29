@@ -2550,3 +2550,24 @@ RULES:
 - Keep the change limited to KB editor hint text
 - Do not redesign the broader KB editor toolbar
 - Do not alter note editor hint text unless required by this task
+
+## B-77 — Make KB Edit Toolbar Responsive On Narrow Widths
+STATUS: TODO
+
+CONTEXT:
+The KB side-view edit toolbar currently uses a fixed single-row flex layout. When the available width becomes too small, toolbar controls are clipped or pushed out of view instead of wrapping cleanly.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/styles.css
+
+EXPECTED BEHAVIOR:
+- The KB edit toolbar must remain usable on narrower widths
+- Toolbar controls must stay visible instead of being hidden off-screen
+- When width becomes constrained, the toolbar may wrap to additional rows
+- The status text, preview button, theme picker, and font controls must all remain accessible
+
+RULES:
+- Keep the fix limited to KB edit toolbar responsiveness
+- Do not redesign the broader KB editor layout
+- Do not change editor functionality or control semantics
