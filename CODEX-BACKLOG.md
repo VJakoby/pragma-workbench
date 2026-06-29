@@ -2552,7 +2552,7 @@ RULES:
 - Do not alter note editor hint text unless required by this task
 
 ## B-77 — Make KB Edit Toolbar Responsive On Narrow Widths
-STATUS: TODO
+STATUS: DONE
 
 CONTEXT:
 The KB side-view edit toolbar currently uses a fixed single-row flex layout. When the available width becomes too small, toolbar controls are clipped or pushed out of view instead of wrapping cleanly.
