@@ -7,6 +7,11 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const {
+  parseTemplateDocument,
+  loadTemplateFile,
+  writeTemplateFileAtomic,
+} = require('../lib/note-templates');
+const {
   IMAGE_TYPE_TO_EXT,
   sanitizePathSegment,
   buildAttachmentDir,
@@ -66,6 +71,116 @@ function registerNotesRoutes(app, { sessionsDir, templatesFile, storage, renderM
         if (!fs.existsSync(shadowDir)) return;
         try { fs.rmSync(shadowDir, { recursive: true, force: true }); } catch (_) {}
       });
+  }
+
+  function noteDisplayTitle(note) {
+    const title = String(note?.title || '').trim();
+    if (title) return title;
+    const id = String(note?.id || '').trim();
+    return id || 'Untitled';
+  }
+
+  function buildAttachmentUsagePayload(source) {
+    const notesMap = source?.notes && typeof source.notes === 'object' ? source.notes : {};
+    const sessionsMap = source?.sessions && typeof source.sessions === 'object' ? source.sessions : {};
+    const inspection = inspectAttachmentStore(sessionsDir, notesMap);
+    const referencedByKey = new Map(inspection.referenced.map((item) => [`${item.noteId}:${item.filename}`, item]));
+    const attachments = new Map();
+
+    Object.values(notesMap).forEach((note) => {
+      const noteTitle = noteDisplayTitle(note);
+      extractAttachmentRefsFromMarkdown(note?.body || '').forEach((ref) => {
+        const key = `${ref.noteId}:${ref.filename}`;
+        if (!attachments.has(key)) {
+          const stored = referencedByKey.get(key);
+          const ownerNote = notesMap[ref.noteId] || null;
+          let sizeBytes = 0;
+          if (stored?.storedPath && fs.existsSync(stored.storedPath)) {
+            try {
+              sizeBytes = fs.statSync(stored.storedPath).size || 0;
+            } catch (_) {}
+          }
+          attachments.set(key, {
+            key,
+            note_id: ref.noteId,
+            filename: ref.filename,
+            url: ref.url,
+            owner_note_id: ownerNote?.id || '',
+            owner_note_title: ownerNote ? noteDisplayTitle(ownerNote) : '',
+            owner_session_name: ownerNote?.session_id && sessionsMap[ownerNote.session_id]
+              ? String(sessionsMap[ownerNote.session_id].codename || '').trim()
+              : '',
+            exists: !!stored?.exists,
+            missing: !stored?.exists,
+            orphaned: false,
+            mode: stored?.mode || null,
+            size_bytes: sizeBytes,
+            references: [],
+            reference_count: 0,
+          });
+        }
+        const entry = attachments.get(key);
+        if (entry.references.some((item) => item.id === note.id)) return;
+        entry.references.push({
+          id: note.id,
+          title: noteTitle,
+          session_id: note.session_id || null,
+        });
+        entry.reference_count = entry.references.length;
+      });
+    });
+
+    inspection.orphaned.forEach((item) => {
+      const filename = String(item.filename || '').endsWith('.enc')
+        ? String(item.filename).slice(0, -4)
+        : String(item.filename || '');
+      const key = `${item.noteId}:${filename}`;
+      if (attachments.has(key)) return;
+      let sizeBytes = 0;
+      if (item.path && fs.existsSync(item.path)) {
+        try {
+          sizeBytes = fs.statSync(item.path).size || 0;
+        } catch (_) {}
+      }
+      attachments.set(key, {
+        key,
+        note_id: item.noteId,
+        filename,
+        url: '',
+        owner_note_id: notesMap[item.noteId]?.id || '',
+        owner_note_title: notesMap[item.noteId] ? noteDisplayTitle(notesMap[item.noteId]) : '',
+        owner_session_name: notesMap[item.noteId]?.session_id && sessionsMap[notesMap[item.noteId].session_id]
+          ? String(sessionsMap[notesMap[item.noteId].session_id].codename || '').trim()
+          : '',
+        exists: true,
+        missing: false,
+        orphaned: true,
+        mode: String(item.filename || '').endsWith('.enc') ? 'encrypted' : 'raw',
+        size_bytes: sizeBytes,
+        references: [],
+        reference_count: 0,
+      });
+    });
+
+    const rows = Array.from(attachments.values()).sort((a, b) => {
+      const score = (item) => (item.orphaned ? 0 : item.missing ? 1 : 2);
+      const delta = score(a) - score(b);
+      if (delta !== 0) return delta;
+      return String(a.filename || '').localeCompare(String(b.filename || ''));
+    });
+
+    return {
+      ok: true,
+      summary: {
+        tracked_count: rows.length,
+        referenced_count: rows.filter((item) => !item.orphaned).length,
+        referenced_note_count: rows.reduce((sum, item) => sum + Number(item.reference_count || 0), 0),
+        orphaned_count: rows.filter((item) => item.orphaned).length,
+        missing_count: rows.filter((item) => item.missing).length,
+        total_bytes: rows.reduce((sum, item) => sum + Number(item.size_bytes || 0), 0),
+      },
+      attachments: rows,
+    };
   }
 
   function inlineAttachmentImages(html, outDir) {
@@ -222,6 +337,18 @@ ${htmlBody}
     }
   });
 
+  app.post('/api/notes/attachments/usage', (req, res) => {
+    try {
+      const source = resolveNotesSourceFromRequest(req);
+      if (!source) {
+        return res.status(423).json({ error: 'Encrypted storage enabled. Client must provide sessions + notes.' });
+      }
+      res.json(buildAttachmentUsagePayload(source));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/notes/attachments/cleanup-orphans', (req, res) => {
     try {
       const source = resolveNotesSourceFromRequest(req);
@@ -261,12 +388,13 @@ ${htmlBody}
 
   app.get('/api/templates', async (req, res) => {
     try {
-      const raw = await fs.promises.readFile(templatesFile, 'utf-8');
-      const data = JSON.parse(raw);
-      const templates = Array.isArray(data.templates) ? data.templates.map((template) => ({
+      res.set('Cache-Control', 'no-store');
+      const loaded = loadTemplateFile(templatesFile);
+      if (!loaded.ok) throw new Error(loaded.errors.join('; '));
+      const templates = loaded.templates.map((template) => ({
         ...expandTemplateBody(template),
         variants: Array.isArray(template?.variants) ? template.variants.map(expandTemplateBody) : [],
-      })) : [];
+      }));
       console.log(`[PRAGMA] /api/templates — file: ${templatesFile}, parsed ${templates.length} templates`);
       if (!templates.length) return res.json({ templates: null });
       res.json({ templates });
@@ -278,6 +406,7 @@ ${htmlBody}
 
   app.get('/api/config/templates', async (req, res) => {
     try {
+      res.set('Cache-Control', 'no-store');
       const content = await fs.promises.readFile(templatesFile, 'utf-8');
       res.json({ ok: true, content });
     } catch (err) {
@@ -288,21 +417,31 @@ ${htmlBody}
   app.post('/api/config/templates', async (req, res) => {
     try {
       const content = String(req.body?.content || '');
-      let parsed;
-      try {
-        parsed = JSON.parse(content);
-      } catch (err) {
-        return res.status(400).json({ error: `Invalid JSON: ${err.message}` });
+      const parsed = parseTemplateDocument(content, path.basename(templatesFile));
+      if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join('; ') });
+      const normalized = await writeTemplateFileAtomic(templatesFile, parsed.document);
+      res.json({ ok: true, templates: parsed.document.templates.length, content: normalized });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/templates/import', async (req, res) => {
+    try {
+      const filename = path.basename(String(req.body?.filename || 'template file'));
+      const content = String(req.body?.content || '');
+      const parsed = parseTemplateDocument(content, filename);
+      if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join('; ') });
+      if (!parsed.document.templates.length) {
+        return res.status(400).json({ error: 'The imported file does not contain any templates.' });
       }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return res.status(400).json({ error: 'Root JSON value must be an object.' });
-      }
-      if (!Array.isArray(parsed.templates)) {
-        return res.status(400).json({ error: 'Expected a top-level "templates" array.' });
-      }
-      const normalized = `${JSON.stringify(parsed, null, 2)}\n`;
-      await fs.promises.writeFile(templatesFile, normalized, 'utf-8');
-      res.json({ ok: true, templates: parsed.templates.length });
+      const normalized = await writeTemplateFileAtomic(templatesFile, parsed.document);
+      res.json({
+        ok: true,
+        source_filename: filename,
+        templates: parsed.document.templates.length,
+        content: normalized,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -331,7 +470,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest);
+      cleanupAttachmentStore(sessionsDir, attachmentManifest, { preferredMode: 'raw' });
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }
@@ -418,7 +557,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchEncFile());
       storage.atomicWrite(storage.workbenchEncFile(), JSON.stringify(blob, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {});
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : {}, { preferredMode: 'encrypted' });
       if (fs.existsSync(storage.workbenchFile())) {
         try { fs.unlinkSync(storage.workbenchFile()); } catch (_) {}
       }
@@ -440,7 +579,7 @@ ${htmlBody}
       fs.mkdirSync(sessionsDir, { recursive: true });
       storage.rotateBackups(storage.workbenchFile());
       storage.atomicWrite(storage.workbenchFile(), JSON.stringify({ sessions, notes }, null, 2));
-      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes));
+      cleanupAttachmentStore(sessionsDir, attachmentManifest && typeof attachmentManifest === 'object' ? attachmentManifest : buildAttachmentManifestFromNotes(notes), { preferredMode: 'raw' });
       if (fs.existsSync(storage.workbenchEncFile())) {
         try { fs.unlinkSync(storage.workbenchEncFile()); } catch (_) {}
       }

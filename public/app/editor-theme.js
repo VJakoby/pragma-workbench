@@ -85,11 +85,12 @@ const SYNTAX_THEMES = {
 
 let activeSyntaxTheme = localStorage.getItem('pragma-syntax-theme') || 'monokai';
 let activeEditorFontSize = Math.min(22, Math.max(11, parseInt(localStorage.getItem('pragma-editor-font-size') || '14', 10) || 14));
-let activeEditorFontFamily = localStorage.getItem('pragma-editor-font-family') || 'mono';
+const storedEditorFontFamily = localStorage.getItem('pragma-editor-font-family');
+let activeEditorFontFamily = storedEditorFontFamily === 'inter' ? 'plex' : (storedEditorFontFamily || 'mono');
 const EDITOR_FONT_FAMILIES = {
   classic: 'monospace',
   mono: "'JetBrains Mono', monospace",
-  inter: "'Inter', system-ui, sans-serif",
+  plex: "'IBM Plex Mono', monospace",
 };
 
 function applyEditorFontFamily(mode = activeEditorFontFamily) {
@@ -105,8 +106,9 @@ function applyEditorFontSize(size = activeEditorFontSize) {
   activeEditorFontSize = Math.min(22, Math.max(11, size));
   localStorage.setItem('pragma-editor-font-size', String(activeEditorFontSize));
   document.documentElement.style.setProperty('--editor-font-size', `${activeEditorFontSize}px`);
-  const label = document.getElementById('editorFontSizeLabel');
-  if (label) label.textContent = `${activeEditorFontSize}px`;
+  document.querySelectorAll('[data-editor-font-size-label]').forEach(label => {
+    label.textContent = `${activeEditorFontSize}px`;
+  });
 }
 
 function increaseEditorFont() {
@@ -136,6 +138,9 @@ function setSyntaxTheme(name) {
 
   if (typeof cmInitNote === 'function') cmInitNote(noteContent);
   if (typeof cmInitKb === 'function') cmInitKb(kbContent);
+  if (typeof renderNoteUnifiedSurface === 'function' && typeof noteUnifiedPreview !== 'undefined' && noteUnifiedPreview) {
+    void renderNoteUnifiedSurface();
+  }
 }
 
 function initSyntaxThemePicker() {

@@ -17,6 +17,7 @@ function registerKbRoutes(app, deps) {
     normalizeKbFilename,
     safeCategoryPath,
     normalizeFolderName,
+    unifiedSearchIndex,
   } = deps;
 
   function getServiceCategoryRoots() {
@@ -131,6 +132,14 @@ function registerKbRoutes(app, deps) {
     res.json({ total: items.length, items });
   });
 
+  app.get('/api/unified-search-index', (req, res) => {
+    if (!unifiedSearchIndex) {
+      return res.status(503).json({ error: 'Unified search index not available' });
+    }
+    const items = unifiedSearchIndex.getIndexData({ fresh: true });
+    res.json({ total: items.length, items });
+  });
+
   app.get('/api/kb-section/:folder', (req, res) => {
     const section = getRootKbSection(req.params.folder);
     if (!section) return res.status(404).json({ error: 'KB section not found' });
@@ -236,7 +245,7 @@ function registerKbRoutes(app, deps) {
         id: svc.id,
         title: svc.name,
         page_name: svc.file,
-        source_name: `knowledge_base/${svc.file}`,
+        source_name: `knowledge-base/${svc.file}`,
         source_id: svc.id,
         url: `file://${svc.filepath}`,
         file_path: svc.filepath,
@@ -323,22 +332,26 @@ function registerKbRoutes(app, deps) {
     });
   });
 
+  function getKbEntriesForView(view) {
+    const serviceIndex = kbIndex.getServiceIndex();
+    const tacticsIndex = kbIndex.getTacticsIndex();
+    const rootKbSections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
+    return view === 'services'
+      ? serviceIndex
+      : view === 'tactics'
+        ? tacticsIndex
+        : typeof view === 'string' && view.startsWith('kb:')
+          ? ((rootKbSections.find(section => `kb:${section.folder}` === view)?.items) || [])
+          : [];
+  }
+
   app.post('/api/kb/save', (req, res) => {
     try {
-      const serviceIndex = kbIndex.getServiceIndex();
-      const tacticsIndex = kbIndex.getTacticsIndex();
-      const rootKbSections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
       const { id, view, content } = req.body;
       if (!id || !view || typeof content !== 'string') {
         return res.status(400).json({ error: 'id, view, and content are required' });
       }
-      const index = view === 'services'
-        ? serviceIndex
-        : view === 'tactics'
-          ? tacticsIndex
-          : view.startsWith('kb:')
-            ? ((rootKbSections.find(section => `kb:${section.folder}` === view)?.items) || [])
-            : [];
+      const index = getKbEntriesForView(view);
       const entry = index.find(e => e.id === id);
       if (!entry) return res.status(404).json({ error: 'File not found in index' });
       fs.writeFileSync(entry.filepath, content, 'utf8');
@@ -406,6 +419,28 @@ function registerKbRoutes(app, deps) {
       const relativeBase = path.relative(rootDir, filePath);
       console.log(`[PRAGMA] Created KB file: ${filePath}`);
       res.json({ ok: true, file: relativeBase, id });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/kb/delete', (req, res) => {
+    try {
+      const { id, view } = req.body || {};
+      if (!id || !view) {
+        return res.status(400).json({ error: 'id and view are required' });
+      }
+      const index = getKbEntriesForView(view);
+      const entry = index.find(e => e.id === id);
+      if (!entry || !entry.filepath) return res.status(404).json({ error: 'File not found in index' });
+      if (!fs.existsSync(entry.filepath)) return res.status(404).json({ error: 'KB file no longer exists' });
+
+      fs.unlinkSync(entry.filepath);
+      if (view === 'services' || String(view).startsWith('kb:')) buildIndex();
+      else buildTacticsIndex();
+
+      console.log(`[PRAGMA] Deleted KB file: ${entry.filepath}`);
+      res.json({ ok: true, file: entry.file, id, view });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

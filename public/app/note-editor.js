@@ -3,6 +3,12 @@
 // ═══════════════════════════════════════════════
 let notePreviewOpen = localStorage.getItem('pragma-preview-open') === '1';
 let previewLayout = localStorage.getItem('pragma-preview-layout') || 'vertical';
+let noteUnifiedPreview = localStorage.getItem('pragma-preview-unified') === '1';
+let notePreviewTimer = null;
+let noteUnifiedRenderTimer = null;
+let noteUnifiedSyncing = false;
+let noteUnifiedEditor = null;
+let lastNotePreviewMarkdown = null;
 const NOTE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
 const NOTE_IMAGE_URL_RE = /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i;
 const NOTE_ATTACHMENT_URL_RE = /\/api\/notes\/attachments\/([^/\s)]+)\/([^)\s?#]+)/g;
@@ -57,7 +63,7 @@ function extractNoteAttachmentRefs(markdown) {
   return refs;
 }
 
-async function fetchNoteAttachmentBlobFromUrl(url) {
+async function fetchNoteAttachmentSourceFromUrl(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) {
     let detail = '';
@@ -65,18 +71,24 @@ async function fetchNoteAttachmentBlobFromUrl(url) {
       const payload = await res.json();
       detail = payload?.error || payload?.detail || '';
     } catch (_) {}
-    const suffix = detail ? `: ${detail}` : '';
-    throw new Error(`Attachment fetch failed (${res.status}) for ${url}${suffix}`);
+    const suffix = detail ? ': ' + detail : '';
+    throw new Error('Attachment fetch failed (' + res.status + ') for ' + url + suffix);
   }
   const contentType = String(res.headers.get('content-type') || '').toLowerCase();
   if (contentType.includes('application/json')) {
     const payload = await res.json();
     if (!payload?.encrypted) throw new Error('Attachment payload invalid');
-    if (!encryptedStoragePassword) throw new Error('Workbench is locked');
-    const decrypted = await decryptBinaryPayload(payload, encryptedStoragePassword);
-    return new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
+    return { mode: 'encrypted', payload };
   }
-  return res.blob();
+  return { mode: 'raw', blob: await res.blob() };
+}
+
+async function fetchNoteAttachmentBlobFromUrl(url) {
+  const source = await fetchNoteAttachmentSourceFromUrl(url);
+  if (source.mode === 'raw') return source.blob;
+  if (!encryptedStoragePassword) throw new Error('Workbench is locked');
+  const decrypted = await decryptBinaryPayload(source.payload, encryptedStoragePassword);
+  return new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
 }
 
 async function blobToDataUrl(blob) {
@@ -225,6 +237,13 @@ function insertImageMarkdownAt(view, markdown, pos) {
   view.focus();
 }
 
+async function persistInsertedAttachmentReference(noteId = activeNoteId) {
+  if (!noteId || !notes[noteId] || typeof syncActiveNoteDraft !== 'function' || typeof saveNotes !== 'function') return;
+  const syncResult = syncActiveNoteDraft(noteId);
+  if (!syncResult?.ok) return;
+  await saveNotes({ reason: 'note-attachment-insert', immediate: true });
+}
+
 async function uploadNoteImage(file, opts = {}) {
   const noteId = String(opts.noteId || activeNoteId || '').trim();
   if (!noteId || !notes[noteId]) throw new Error('Open a note first');
@@ -267,6 +286,7 @@ async function uploadNoteImage(file, opts = {}) {
 async function resolveRenderedAttachmentImages(root) {
   if (!root) return;
   const images = [...root.querySelectorAll('img[src^="/api/notes/attachments/"]')];
+  const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
   const renderAttachmentWarning = (img, message) => {
     if (!img || img.dataset.pragmaAttachmentBroken === '1') return;
@@ -286,20 +306,28 @@ async function resolveRenderedAttachmentImages(root) {
   for (const img of images) {
     const src = img.getAttribute('src') || '';
     if (!src || img.dataset.pragmaResolvedAttachment === src) continue;
-    img.addEventListener('error', () => {
-      renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
-    }, { once: true });
-    if (!encryptedStorageEnabled) continue;
+    if (!encryptedStorageEnabled) {
+      img.addEventListener('error', () => {
+        renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
+      }, { once: true });
+      continue;
+    }
     if (!encryptedStoragePassword) {
       renderAttachmentWarning(img, 'Workbench is locked. Unlock it to decrypt this attachment.');
       continue;
     }
     try {
+      // Prevent the browser from trying to decode the encrypted JSON payload as an image
+      // before we replace it with a decrypted object URL.
+      img.src = transparentPixel;
       const blob = await fetchNoteAttachmentBlobFromUrl(src);
       const objectUrl = URL.createObjectURL(blob);
       if (img.dataset.pragmaObjectUrl) {
         try { URL.revokeObjectURL(img.dataset.pragmaObjectUrl); } catch (_) {}
       }
+      img.addEventListener('error', () => {
+        renderAttachmentWarning(img, 'Attachment file is missing or no longer readable.');
+      }, { once: true });
       img.dataset.pragmaResolvedAttachment = src;
       img.dataset.pragmaObjectUrl = objectUrl;
       img.src = objectUrl;
@@ -312,17 +340,34 @@ async function resolveRenderedAttachmentImages(root) {
 async function migrateNoteAttachmentsStorage(targetMode) {
   const seen = new Set();
   const refs = [];
+  let preservedEncryptedCount = 0;
   Object.values(notes || {}).forEach((note) => {
     extractNoteAttachmentRefs(note?.body || '').forEach((ref) => {
       const ownerNoteId = String(note?.id || '').trim();
-      const key = `${ref.noteId || ownerNoteId}:${ref.filename}`;
+      const key = (ref.noteId || ownerNoteId) + ':' + ref.filename;
       if (seen.has(key)) return;
       seen.add(key);
       refs.push({ ...ref, ownerNoteId });
     });
   });
   for (const ref of refs) {
-    const blob = await fetchNoteAttachmentBlobFromUrl(ref.url);
+    const source = await fetchNoteAttachmentSourceFromUrl(ref.url);
+    let blob = null;
+    if (source.mode === 'raw') {
+      blob = source.blob;
+    } else {
+      if (!encryptedStoragePassword) throw new Error('Workbench is locked');
+      try {
+        const decrypted = await decryptBinaryPayload(source.payload, encryptedStoragePassword);
+        blob = new Blob([decrypted.buffer], { type: decrypted.mimeType || 'application/octet-stream' });
+      } catch (err) {
+        if (targetMode === 'encrypted') {
+          preservedEncryptedCount += 1;
+          continue;
+        }
+        throw err;
+      }
+    }
     const file = new File([blob], ref.filename, { type: blob.type || 'application/octet-stream' });
     await uploadNoteImage(file, {
       noteId: ref.noteId || ref.ownerNoteId,
@@ -330,6 +375,7 @@ async function migrateNoteAttachmentsStorage(targetMode) {
       forceMode: targetMode,
     });
   }
+  return { preservedEncryptedCount, total: refs.length };
 }
 
 async function handleNoteImageDrop(event, view) {
@@ -347,9 +393,11 @@ async function handleNoteImageDrop(event, view) {
     if (imageFile) {
       const uploadedUrl = await uploadNoteImage(imageFile);
       insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name), pos);
+      await persistInsertedAttachmentReference();
       showToast?.('✓ Image attached');
     } else if (imageUrl) {
       insertImageMarkdownAt(view, buildNoteImageMarkdown(imageUrl, imageUrl), pos);
+      await persistInsertedAttachmentReference();
       showToast?.('✓ Image link inserted');
     }
     return true;
@@ -371,6 +419,7 @@ async function handleNoteImagePaste(event, view) {
   try {
     const uploadedUrl = await uploadNoteImage(imageFile);
     insertImageMarkdownAt(view, buildNoteImageMarkdown(uploadedUrl, imageFile.name || 'clipboard-image'), pos);
+    await persistInsertedAttachmentReference();
     showToast?.('✓ Screenshot attached');
     return true;
   } catch (err) {
@@ -404,6 +453,22 @@ function continueOrderedListFallback(view) {
   return true;
 }
 
+function invalidateNotePreviewCache() {
+  lastNotePreviewMarkdown = null;
+}
+
+function scheduleNotePreviewUpdate({ immediate = false } = {}) {
+  if (notePreviewTimer) clearTimeout(notePreviewTimer);
+  if (immediate) {
+    void updateNotePreview();
+    return;
+  }
+  notePreviewTimer = setTimeout(() => {
+    notePreviewTimer = null;
+    void updateNotePreview();
+  }, 100);
+}
+
 async function updateNotePreview() {
   if (activeConfigDoc) return;
   const pane = document.getElementById('notePreviewPane');
@@ -411,8 +476,10 @@ async function updateNotePreview() {
   const md = noteEditor ? cmGetValue(noteEditor) : '';
   const el = document.getElementById('notePreviewContent');
   if (!el) return;
+  if (md === lastNotePreviewMarkdown) return;
   if (window.markdownPreview?.renderInto) {
-    await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    const rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+    if (rendered) lastNotePreviewMarkdown = md;
     return;
   }
   const rendered = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
@@ -421,6 +488,7 @@ async function updateNotePreview() {
   if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
   if (typeof makeCollapsible === 'function') makeCollapsible(el);
   el.querySelectorAll('.copy-btn').forEach(b => b.style.display = 'none');
+  lastNotePreviewMarkdown = md;
 }
 
 async function refreshRenderedMarkdownSurfaces() {
@@ -431,14 +499,109 @@ async function refreshRenderedMarkdownSurfaces() {
     if (typeof updateKbPreview === 'function') await updateKbPreview();
   } catch (_) {}
   try {
-    if (typeof renderContent === 'function' && activeDoc) await renderContent(activeDoc);
+    if (typeof renderContent === 'function' && activeDoc) await renderContent(activeDoc.html, activeDoc.icon, activeDoc.title, activeDoc.meta);
   } catch (_) {}
+}
+
+async function refreshInjectedNoteContext() {
+  if (activeConfigDoc) return;
+  invalidateNotePreviewCache();
+  if (noteUnifiedPreview) {
+    try {
+      await renderNoteUnifiedSurface();
+    } catch (_) {}
+    return;
+  }
+  if (notePreviewOpen) scheduleNotePreviewUpdate({ immediate: true });
+}
+
+function scheduleNoteUnifiedRender() {
+  if (noteUnifiedRenderTimer) clearTimeout(noteUnifiedRenderTimer);
+  noteUnifiedRenderTimer = setTimeout(() => {
+    noteUnifiedRenderTimer = null;
+    void renderNoteUnifiedSurface();
+  }, 80);
+}
+
+async function renderUnifiedWholePreview(el, markdown) {
+  if (!el) return;
+  const md = String(markdown || '').trim();
+  if (!md) {
+    el.innerHTML = '<div class="note-unified-empty">Empty note</div>';
+    return;
+  }
+  let rendered = false;
+  if (window.markdownPreview?.renderInto) {
+    rendered = await window.markdownPreview.renderInto(el, md, { injectTargets: true });
+  }
+  if (rendered && String(el.innerHTML || '').trim()) return;
+  const html = marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+  el.innerHTML = typeof sanitizeRenderedHtml === 'function' ? sanitizeRenderedHtml(html) : html;
+  if (typeof wrapCodeBlocks === 'function') wrapCodeBlocks(el);
+  if (typeof wrapInlineCodes === 'function') wrapInlineCodes(el);
+  if (typeof makeCollapsible === 'function') makeCollapsible(el);
+  el.querySelectorAll('.copy-btn').forEach((b) => { b.style.display = 'none'; });
+}
+
+function syncUnifiedWholeToEditor(markdown) {
+  if (!noteEditor) return;
+  noteUnifiedSyncing = true;
+  try {
+    if (cmGetValue(noteEditor) !== markdown) cmSetValue(noteEditor, markdown);
+  } finally {
+    noteUnifiedSyncing = false;
+  }
+}
+
+async function renderNoteUnifiedSurface() {
+  const surface = document.getElementById('noteUnifiedSurface');
+  const body = document.getElementById('noteUnifiedBody');
+  if (!surface || !body || !noteUnifiedPreview || activeConfigDoc || !noteEditor) return;
+
+  const markdown = cmGetValue(noteEditor);
+  body.innerHTML = `
+    <section class="note-unified-whole">
+      <div class="note-unified-whole-col note-unified-whole-editor-col">
+        <div class="note-unified-editor-host" id="noteUnifiedWholeEditorHost"></div>
+      </div>
+      <div class="note-unified-whole-col note-unified-whole-preview-col">
+        <div class="md-content note-unified-live-preview note-unified-live-preview-whole" id="noteUnifiedWholePreview"></div>
+      </div>
+    </section>`;
+
+  const editorHost = document.getElementById('noteUnifiedWholeEditorHost');
+  const previewEl = document.getElementById('noteUnifiedWholePreview');
+  if (!editorHost || !previewEl) return;
+
+  createUnifiedNoteEditor(editorHost, markdown, (nextMarkdown) => {
+    void renderUnifiedWholePreview(previewEl, nextMarkdown);
+  });
+
+  await renderUnifiedWholePreview(previewEl, markdown);
+  requestAnimationFrame(() => {
+    noteUnifiedEditor?.focus();
+  });
 }
 
 function toggleNotePreview() {
   if (activeConfigDoc) return;
+  if (noteUnifiedPreview) {
+    noteUnifiedPreview = false;
+    localStorage.setItem('pragma-preview-unified', '0');
+    notePreviewOpen = true;
+    localStorage.setItem('pragma-preview-open', '1');
+    applyNotePreviewState();
+    return;
+  }
   notePreviewOpen = !notePreviewOpen;
   localStorage.setItem('pragma-preview-open', notePreviewOpen ? '1' : '0');
+  applyNotePreviewState();
+}
+
+function toggleNoteUnifiedPreview() {
+  if (activeConfigDoc) return;
+  noteUnifiedPreview = !noteUnifiedPreview;
+  localStorage.setItem('pragma-preview-unified', noteUnifiedPreview ? '1' : '0');
   applyNotePreviewState();
 }
 
@@ -470,7 +633,23 @@ function applyNotePreviewState() {
   const handle = document.getElementById('notePreviewHandle');
   const pane   = document.getElementById('notePreviewPane');
   const btn    = document.getElementById('notePreviewBtn');
+  const unifiedBtn = document.getElementById('noteUnifiedBtn');
+  const unifiedSurface = document.getElementById('noteUnifiedSurface');
   if (!split || !handle || !pane || !btn) return;
+
+  if (unifiedBtn) unifiedBtn.classList.toggle('active', noteUnifiedPreview);
+  if (noteUnifiedPreview) {
+    split.style.display = 'none';
+    if (unifiedSurface) unifiedSurface.style.display = 'flex';
+    btn.classList.remove('active');
+    btn.title = 'Toggle markdown preview';
+    renderNoteUnifiedSurface();
+    return;
+  }
+
+  destroyUnifiedNoteEditor();
+  split.style.display = 'flex';
+  if (unifiedSurface) unifiedSurface.style.display = 'none';
 
   const open = notePreviewOpen;
   split.classList.toggle('preview-open', open);
@@ -486,8 +665,8 @@ function applyNotePreviewState() {
     const saved = localStorage.getItem('pragma-preview-split');
     if (saved) split.style.setProperty('--note-editor-h', saved);
     applyPreviewLayout();
-    updateNotePreview();
-    initPreviewDragHandle();
+    scheduleNotePreviewUpdate({ immediate: true });
+    if (!noteUnifiedPreview) initPreviewDragHandle();
   } else {
     split.classList.remove('split-side');
     split.style.removeProperty('--note-editor-w');
@@ -527,12 +706,16 @@ function initPreviewDragHandle() {
   });
 }
 
-function cmInitNote(initialDoc) {
-  const wrap = document.getElementById('noteBodyWrap');
-  if (!wrap || !CM) return;
-  if (noteEditor) noteEditor.destroy();
 
-  const extensions = [
+function destroyUnifiedNoteEditor() {
+  if (noteUnifiedEditor) {
+    noteUnifiedEditor.destroy();
+    noteUnifiedEditor = null;
+  }
+}
+
+function buildNoteEditorExtensions({ onDocChange } = {}) {
+  return [
     CM.basicSetup,
     ...buildCmTheme(),
     CM.EditorView.domEventHandlers({
@@ -565,22 +748,63 @@ function cmInitNote(initialDoc) {
       }
     }),
     CM.EditorView.updateListener.of(update => {
-      if (typeof syncEvidenceSelectionPrompt === 'function') syncEvidenceSelectionPrompt(update);
+      if (typeof syncFindingSelectionPrompt === 'function') syncFindingSelectionPrompt(update);
       if (!update.docChanged) return;
       if (activeConfigDoc) {
         autoSaveActiveConfig();
         return;
       }
+      if (typeof onDocChange === 'function') {
+        onDocChange(update);
+        return;
+      }
       if (activeNoteId) {
         autoSaveNote();
-        updateNotePreview();
+        if (noteUnifiedPreview) {
+          if (!noteUnifiedSyncing) scheduleNoteUnifiedRender();
+        } else {
+          scheduleNotePreviewUpdate();
+        }
       }
     }),
     CM.EditorView.lineWrapping,
     CM.indentUnit.of('  '),
     CM.keymap.of([CM.indentWithTab]),
   ];
+}
 
+function createUnifiedNoteEditor(parent, initialDoc, onPreviewSync) {
+  if (!parent || !CM) return null;
+  destroyUnifiedNoteEditor();
+  const extensions = buildNoteEditorExtensions({
+    onDocChange() {
+      if (!activeNoteId) return;
+      autoSaveNote();
+      const nextMarkdown = cmGetValue(noteUnifiedEditor);
+      noteUnifiedSyncing = true;
+      try {
+        if (noteEditor && cmGetValue(noteEditor) !== nextMarkdown) cmSetValue(noteEditor, nextMarkdown);
+      } finally {
+        noteUnifiedSyncing = false;
+      }
+      if (typeof onPreviewSync === 'function') onPreviewSync(nextMarkdown);
+    }
+  });
+  if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
+  noteUnifiedEditor = new CM.EditorView({
+    doc: initialDoc ?? '',
+    extensions,
+    parent,
+  });
+  return noteUnifiedEditor;
+}
+
+function cmInitNote(initialDoc) {
+  const wrap = document.getElementById('noteBodyWrap');
+  if (!wrap || !CM) return;
+  if (noteEditor) noteEditor.destroy();
+
+  const extensions = buildNoteEditorExtensions();
   if (!activeConfigDoc) extensions.splice(1, 0, CM.markdown());
 
   noteEditor = new CM.EditorView({

@@ -8,8 +8,60 @@ let _activeSvcTab = 'ports';
 let _activeLootType = 'cleartext';
 let _editingTodoId = null;
 let _editingQuickLog = null;
-let _evidenceFilterType = '';
-let _evidenceFilterTarget = '';
+let _findingFilterType = '';
+let _findingFilterTarget = '';
+let _pendingFindingFocusId = null;
+let _activeSvcTopbarButtonId = 'svcTopbarPortsBtn';
+
+function buildQuickLogOptionMap(options) {
+  const list = Array.isArray(options) ? options : [];
+  return Object.fromEntries(list.map((item) => [item.value, item.label]));
+}
+
+const FINDING_SEVERITY_LABELS = buildQuickLogOptionMap(window.FINDING_SEVERITY_OPTIONS || []);
+const FINDING_SEVERITY_VALUES = new Set(Object.keys(FINDING_SEVERITY_LABELS));
+
+function normalizeFindingEntry(entry, index = 0) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  const normalized = { ...entry };
+  normalized.id = typeof normalized.id === 'string' && normalized.id ? normalized.id : `finding_${Date.now()}_${index}`;
+  normalized.type = String(normalized.type || 'discovery').trim() || 'discovery';
+  normalized.title = String(normalized.title || '').trim();
+  const normalizedSummary = String(normalized.summary || '').trim();
+  const normalizedDetails = String(normalized.details || '').trim();
+  normalized.summary = normalizedSummary || normalizedDetails;
+  normalized.details = normalizedDetails;
+  normalized.impact = String(normalized.impact || '').trim();
+  normalized.recommendation = String(normalized.recommendation || '').trim();
+  normalized.source_command = String(normalized.source_command || '').trim();
+  normalized.target_id = normalizeSessionTargetId(normalized.target_id, { allowSessionWide: true });
+  normalized.source_note_id = normalized.source_note_id ? String(normalized.source_note_id).trim() : (normalized.note_id ? String(normalized.note_id).trim() : null);
+  normalized.note_id = normalized.note_id ? String(normalized.note_id).trim() : null;
+  normalized.support_note_ids = [...new Set(
+    (Array.isArray(normalized.support_note_ids)
+      ? normalized.support_note_ids
+      : (normalized.support_note_ids ? [normalized.support_note_ids] : [])
+    )
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+  )];
+  normalized.sync_mode = String(normalized.sync_mode || 'export_only').trim() || 'export_only';
+  normalized.severity = FINDING_SEVERITY_VALUES.has(String(normalized.severity || '').trim()) ? String(normalized.severity).trim() : 'medium';
+  normalized.created = Number(normalized.created) || Date.now();
+  normalized.updated = Number(normalized.updated) || normalized.created;
+  return normalized;
+}
+
+function findingSeverityLabel(value) {
+  return FINDING_SEVERITY_LABELS[String(value || '').trim()] || 'Medium';
+}
+
+
+function buildFindingSeverityOptionsHtml(selectedValue = 'medium') {
+  const configured = Array.isArray(window.FINDING_SEVERITY_OPTIONS) ? window.FINDING_SEVERITY_OPTIONS : [];
+  return configured.map(({ value, label }) => `<option value="${esc(value)}"${value === selectedValue ? ' selected' : ''}>${esc(label)}</option>`).join('');
+}
+
 
 function ensureActiveSession(actionLabel = 'this action') {
   if (!activeSessionId || !sessions[activeSessionId]) {
@@ -38,12 +90,8 @@ const SVC_TAB_CONFIG = {
     panelId: 'svcPanelLoot',
     focusId: 'lootCredInput',
     onActivate: () => {
+      renderLootTargetOptions();
       renderLootTable();
-      const hostInput = document.getElementById('lootHostInput');
-      if (hostInput && !hostInput.value) {
-        const ip = getIP();
-        if (ip !== '<IP>') hostInput.value = ip;
-      }
     },
   },
 };
@@ -149,7 +197,7 @@ function switchSvcTab(tab) {
 function updateSvcTabCounts() {
   const ports = getSessionServices().length;
   const paths = getSessionPaths().length;
-  const loot = getSessionLoot().length;
+  const loot = getSessionLoot({ scoped: false }).length;
   const cp = document.getElementById('svcTabCountPorts');
   const ch = document.getElementById('svcTabCountPaths');
   const cl = document.getElementById('svcTabCountLoot');
@@ -157,12 +205,16 @@ function updateSvcTabCounts() {
   if (ch) ch.textContent = paths || '';
   if (cl) cl.textContent = loot || '';
 
-  const btn = document.getElementById('svcTopbarCount');
-  if (btn) {
-    const total = ports + paths + loot;
-    btn.textContent = total || '';
-    btn.classList.toggle('has-entries', total > 0);
-  }
+  [
+    ['svcTopbarCountPorts', ports],
+    ['svcTopbarCountPaths', paths],
+    ['svcTopbarCountLoot', loot],
+  ].forEach(([id, value]) => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = value || '';
+    badge.classList.toggle('has-entries', value > 0);
+  });
   renderSvcClearAction();
   updateTodoCount();
 }
@@ -192,65 +244,87 @@ function updateTodoCount() {
   btn.classList.toggle('has-entries', openCount > 0);
 }
 
-function getSessionEvidence() {
+function getSessionFindings() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].evidence || [];
+  return ensureSessionFindings() || [];
 }
 
-function ensureSessionEvidence() {
+function ensureSessionFindings() {
   if (!activeSessionId || !sessions[activeSessionId]) return null;
-  if (!Array.isArray(sessions[activeSessionId].evidence)) sessions[activeSessionId].evidence = [];
-  return sessions[activeSessionId].evidence;
+  const current = Array.isArray(sessions[activeSessionId].findings) ? sessions[activeSessionId].findings : [];
+  const normalized = current.map((entry, index) => normalizeFindingEntry(entry, index)).filter(Boolean);
+  sessions[activeSessionId].findings = normalized;
+  return normalized;
 }
 
-function updateEvidenceCount() {
-  const entries = getSessionEvidence();
-  const btn = document.getElementById('evidenceTopbarCount');
+function updateFindingsCount() {
+  const entries = getSessionFindings();
+  const btn = document.getElementById('findingsTopbarCount');
   if (!btn) return;
   btn.textContent = entries.length || '';
   btn.classList.toggle('has-entries', entries.length > 0);
 }
 
-function renderEvidenceClearAction() {
-  const btn = document.getElementById('evidenceClearBtn');
+function renderFindingsClearAction() {
+  const btn = document.getElementById('findingsClearBtn');
   if (!btn) return;
-  const count = getSessionEvidence().length;
+  const count = getSessionFindings().length;
   btn.textContent = count ? `Clear All (${count})` : 'Clear All';
   btn.disabled = !activeSessionId || count === 0;
 }
 
-function renderEvidenceTargetOptions(selectedValue = '') {
-  const select = document.getElementById('evidenceTargetInput');
+function renderLootTargetOptions(selectedValue = '') {
+  const select = document.getElementById('lootTargetInput');
   if (!select) return;
   const targets = getSessionTargets();
-  const current = selectedValue || activeTargetId || '';
+  const current = normalizeSessionTargetId(selectedValue || activeTargetId || '', { allowSessionWide: true }) || '';
   const options = ['<option value="">Session-wide</option>'];
   targets.forEach((target) => {
-    const label = esc(target.ip || target.domain || target.label || 'Unnamed');
-    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${label}</option>`);
+    const parts = [target.ip, target.label, target.domain].filter(Boolean);
+    const label = parts.join(' // ') || 'Unnamed';
+    options.push(`<option value="${esc(target.id)}"${target.id === current ? ' selected' : ''}>${esc(label)}</option>`);
   });
   select.innerHTML = options.join('');
 }
 
-function getSessionNotesForEvidence() {
+function getSelectedLootTargetId() {
+  const select = document.getElementById('lootTargetInput');
+  return normalizeSessionTargetId(select?.value || '', { allowSessionWide: true });
+}
+
+function formatLootHostDisplay(entry) {
+  const hostText = String(entry?.host || '').trim();
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  if (!target) return hostText || '—';
+  const targetPrimary = String(target.ip || target.domain || '').trim();
+  const targetLabel = String(target.label || '').trim();
+  const base = targetPrimary || hostText || targetLabel || '—';
+  if (!targetLabel) return base;
+  const normalizedBase = base.toLowerCase();
+  if (normalizedBase === targetLabel.toLowerCase()) return base;
+  return base + ' // ' + targetLabel;
+}
+
+function formatLootTargetSummaryDisplay(entry) {
+  const hostText = String(entry?.host || '').trim();
+  const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
+  if (!target) return hostText || '—';
+  const ip = String(target.ip || '').trim();
+  const label = String(target.label || '').trim();
+  const domain = String(target.domain || '').trim();
+  const primary = label || domain || ip || hostText || '—';
+  if (!ip || primary.toLowerCase() === ip.toLowerCase()) return primary;
+  return primary + ' (' + ip + ')';
+}
+
+function getSessionNotesForFindings() {
   if (!activeSessionId) return [];
   return Object.values(notes)
     .filter((note) => note.session_id === activeSessionId)
     .sort((a, b) => (b.updated || 0) - (a.updated || 0));
 }
 
-function renderEvidenceNoteOptions(selectedValue = '') {
-  const select = document.getElementById('evidenceNoteInput');
-  if (!select) return;
-  const noteItems = getSessionNotesForEvidence();
-  const options = ['<option value="">Select session note…</option>'];
-  noteItems.forEach((note) => {
-    options.push(`<option value="${esc(note.id)}"${note.id === selectedValue ? ' selected' : ''}>${esc(note.title || 'Untitled')}</option>`);
-  });
-  select.innerHTML = options.join('');
-}
-
-function evidenceTypeLabel(type) {
+function findingTypeLabel(type) {
   const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
   const configuredHit = configured.find((item) => item.value === type);
   if (configuredHit) return configuredHit.label;
@@ -263,32 +337,32 @@ function evidenceTypeLabel(type) {
     cleanup: 'Cleanup',
     note: 'Note',
   };
-  return labels[type] || (type ? String(type) : 'Evidence');
+  return labels[type] || (type ? String(type) : 'Finding');
 }
 
-function buildEvidenceTypeOptionsHtml(selectedType = '') {
+function buildFindingTypeOptionsHtml(selectedType = '') {
   const configured = Array.isArray(window.EVIDENCE_TYPE_OPTIONS) ? window.EVIDENCE_TYPE_OPTIONS : [];
   const options = configured.map(({ value, label }) =>
     `<option value="${esc(value)}"${value === selectedType ? ' selected' : ''}>${esc(label)}</option>`
   );
   if (selectedType && !configured.find((item) => item.value === selectedType)) {
-    options.push(`<option value="${esc(selectedType)}" selected>${esc(evidenceTypeLabel(selectedType))}</option>`);
+    options.push(`<option value="${esc(selectedType)}" selected>${esc(findingTypeLabel(selectedType))}</option>`);
   }
   return options.join('');
 }
 
-function evidenceSyncLabel(mode) {
+function findingSyncLabel(mode) {
   if (mode === 'none') return 'No sync';
   if (mode === 'note') return 'Note';
   if (mode === 'both') return 'Both';
   return 'Summary';
 }
 
-function evidenceUsesNoteSync(mode) {
+function findingUsesNoteSync(mode) {
   return mode === 'note' || mode === 'both';
 }
 
-function formatEvidenceTimestamp(ts) {
+function formatFindingTimestamp(ts) {
   if (!ts) return '';
   return new Date(ts).toLocaleString('en-GB', {
     day: '2-digit',
@@ -298,62 +372,78 @@ function formatEvidenceTimestamp(ts) {
   });
 }
 
-function evidenceTargetDisplay(entry) {
+function findingTargetDisplay(entry) {
   const target = entry?.target_id ? getSessionTargets().find((item) => item.id === entry.target_id) : null;
   return target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
 }
 
-function renderEvidenceProofCell(entry) {
+function getFindingSupportNotes(entry) {
+  if (!entry || !Array.isArray(entry.support_note_ids) || !entry.support_note_ids.length) return [];
+  const excludedIds = new Set([entry.source_note_id, entry.note_id].filter(Boolean));
+  return entry.support_note_ids
+    .filter((noteId) => !excludedIds.has(noteId))
+    .map((noteId) => notes[noteId] || null)
+    .filter((note) => note && note.session_id === activeSessionId && note.generated_note !== true);
+}
+
+function getFindingSupportSummary(entry) {
+  const supportNotes = getFindingSupportNotes(entry);
+  const supportLabels = supportNotes
+    .map((note) => String(note.title || 'Untitled').trim())
+    .filter(Boolean);
+  if (!supportLabels.length) return '—';
+  const preview = supportLabels.slice(0, 2).join(' · ');
+  return supportLabels.length > 2 ? `${preview} +${supportLabels.length - 2}` : preview;
+}
+
+function getFindingSupportableNotes() {
+  return getSessionNotesForFindings().filter((note) => note?.generated_note !== true);
+}
+
+function renderFindingProofCell(entry) {
   const lines = [];
-  if (entry.impact) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Impact</span>${esc(entry.impact)}</span>`);
-  if (entry.source_command) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Command</span><code>${esc(entry.source_command)}</code></span>`);
-  if (entry.details) lines.push(`<span class="evidence-proof-line"><span class="evidence-proof-key">Details</span>${esc(entry.details)}</span>`);
-  return lines.length ? `<div class="evidence-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
+  if (entry.summary) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Summary</span>${esc(entry.summary)}</span>`);
+  if (entry.impact) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Impact</span>${esc(entry.impact)}</span>`);
+  if (entry.recommendation) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Recommendation</span>${esc(entry.recommendation)}</span>`);
+  if (entry.source_command) lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Proof</span>${esc(entry.source_command)}</span>`);
+  const supportSummary = getFindingSupportSummary(entry);
+  if (supportSummary !== '—') lines.push(`<span class="finding-proof-line"><span class="finding-proof-key">Support</span>${esc(supportSummary)}</span>`);
+  return lines.length ? `<div class="finding-proof-cell">${lines.join('')}</div>` : '<span class="muted">—</span>';
 }
 
-function updateEvidenceSyncUi(selectedNoteId = '') {
-  const syncEl = document.getElementById('evidenceSyncInput');
-  const row = document.getElementById('evidenceNoteRow');
-  if (!syncEl || !row) return;
-  const syncMode = (syncEl.value || 'export_only').trim();
-  const showNote = evidenceUsesNoteSync(syncMode);
-  row.style.display = showNote ? 'flex' : 'none';
-  renderEvidenceNoteOptions(selectedNoteId);
+function buildFindingMarkerId(entryId) {
+  return `pragma:findings:${entryId}`;
 }
 
-function buildEvidenceMarkerId(entryId) {
-  return `pragma:evidence:${entryId}`;
-}
-
-function getEvidenceSourceNoteId(entry) {
+function getFindingSourceNoteId(entry) {
   return entry?.source_note_id || entry?.note_id || null;
 }
 
-function getEvidenceSourceNote(entry) {
-  const noteId = getEvidenceSourceNoteId(entry);
+function getFindingSourceNote(entry) {
+  const noteId = getFindingSourceNoteId(entry);
   return noteId ? notes[noteId] || null : null;
 }
 
-function getEvidenceSyncNote(entry) {
-  if (!evidenceUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
+function getFindingSyncNote(entry) {
+  if (!findingUsesNoteSync(entry?.sync_mode || 'export_only')) return null;
   const noteId = entry?.note_id || null;
   return noteId ? notes[noteId] || null : null;
 }
 
-function evidenceTypeBadgeClass(type) {
+function findingTypeBadgeClass(type) {
   if (type === 'proof') return 'loot-type-token';
   return 'loot-type-other';
 }
 
-function getEvidenceSourceSnippet(entry) {
-  const sourceNote = getEvidenceSourceNote(entry);
+function getFindingSourceSnippet(entry) {
+  const sourceNote = getFindingSourceNote(entry);
   if (!sourceNote) return '';
-  const range = findEvidenceMarkerRange(sourceNote.body || '', entry.id);
+  const range = findFindingMarkerRange(sourceNote.body || '', entry.id);
   const raw = range
     ? String(sourceNote.body || '').slice(range.from, range.to)
-    : String(entry.source_command || entry.details || '');
+    : String(entry.source_command || entry.summary || entry.details || '');
   const compact = String(raw || '')
-    .replace(/<!--\s*pragma:evidence:[\s\S]*?-->/g, '')
+    .replace(/<!--\s*pragma:findings:[\s\S]*?-->/g, '')
     .replace(/```[a-z0-9_-]*\n?/gi, '')
     .replace(/```/g, '')
     .replace(/\s+/g, ' ')
@@ -362,9 +452,9 @@ function getEvidenceSourceSnippet(entry) {
   return compact.length > 140 ? `${compact.slice(0, 140).trim()}…` : compact;
 }
 
-function findEvidenceMarkerRange(body, entryId) {
+function findFindingMarkerRange(body, entryId) {
   const text = String(body || '');
-  const marker = buildEvidenceMarkerId(entryId);
+  const marker = buildFindingMarkerId(entryId);
   const startToken = `<!-- ${marker}:start -->`;
   const endToken = `<!-- ${marker}:end -->`;
   const startIdx = text.indexOf(startToken);
@@ -378,57 +468,26 @@ function findEvidenceMarkerRange(body, entryId) {
   return { from, to };
 }
 
-async function jumpToEvidenceSource(entryId) {
-  if (!activeSessionId || !sessions[activeSessionId]) return;
-  const entry = getSessionEvidence().find((item) => item.id === entryId);
-  const noteId = getEvidenceSourceNoteId(entry);
-  if (!noteId || !notes[noteId]) {
-    showToast?.('⚠ No source note linked', 'err');
-    return;
-  }
 
-  closeEvidencePopover?.();
-  if (typeof switchView === 'function') {
-    switchView('notes', document.getElementById('nav-notes'));
-  }
-  if (typeof openNote === 'function') {
-    await openNote(noteId);
-  }
 
-  if (typeof noteEditor === 'undefined' || !noteEditor) return;
-  const docText = noteEditor.state.doc.toString();
-  const range = findEvidenceMarkerRange(docText, entryId);
-  if (!range) {
-    noteEditor.focus();
-    showToast?.('⚠ Evidence marker not found in note', 'err');
-    return;
-  }
-
-  noteEditor.dispatch({
-    selection: { anchor: range.from, head: range.to },
-    scrollIntoView: true
-  });
-  noteEditor.focus();
-}
-
-function removeEvidenceBlockFromBody(body, entryId) {
-  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function removeFindingBlockFromBody(body, entryId) {
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`\\n*<!-- ${marker}:start -->[\\s\\S]*?<!-- ${marker}:end -->\\n*`, 'g');
   return String(body || '').replace(pattern, '\n\n').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
-function unwrapEvidenceBlockInBody(body, entryId) {
-  const marker = buildEvidenceMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function unwrapFindingBlockInBody(body, entryId) {
+  const marker = buildFindingMarkerId(entryId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`<!-- ${marker}:start -->\\n?([\\s\\S]*?)\\n?<!-- ${marker}:end -->`, 'g');
   return String(body || '').replace(pattern, '$1').replace(/\n{3,}/g, '\n\n').trimEnd();
 }
 
-function updateEvidenceBlockInBody(body, entry, prevEntry) {
+function updateFindingBlockInBody(body, entry, prevEntry) {
   if (!entry?.id || !entry?.source_command) return body;
   const prevCommand = String(prevEntry?.source_command || '');
   const nextCommand = String(entry.source_command || '');
   if (prevCommand === nextCommand) return body;
-  const range = findEvidenceMarkerRange(body || '', entry.id);
+  const range = findFindingMarkerRange(body || '', entry.id);
   if (!range) return body;
   const block = String(body || '').slice(range.from, range.to);
   let updatedBlock = block;
@@ -443,17 +502,19 @@ function updateEvidenceBlockInBody(body, entry, prevEntry) {
   return `${String(body || '').slice(0, range.from)}${updatedBlock}${String(body || '').slice(range.to)}`;
 }
 
-function buildEvidenceMarkdownBlock(entry) {
-  const marker = buildEvidenceMarkerId(entry.id);
-  const targetText = evidenceTargetDisplay(entry);
+function buildFindingMarkdownBlock(entry) {
+  const marker = buildFindingMarkerId(entry.id);
+  const targetText = findingTargetDisplay(entry);
   const lines = [
     `<!-- ${marker}:start -->`,
-    `### ${evidenceTypeLabel(entry.type)}: ${entry.title}`,
+    `### ${findingTypeLabel(entry.type)}: ${entry.title}`,
     '',
     `- Target: ${targetText}`,
+    `- Severity: ${findingSeverityLabel(entry.severity)}`,
   ];
+  if (entry.summary) lines.push(`- Summary: ${entry.summary}`);
   if (entry.impact) lines.push(`- Impact: ${entry.impact}`);
-  if (entry.details) lines.push(`- Details: ${entry.details}`);
+  if (entry.recommendation) lines.push(`- Recommendation: ${entry.recommendation}`);
   if (entry.source_command) {
     lines.push('', '```text', entry.source_command, '```');
   }
@@ -461,13 +522,13 @@ function buildEvidenceMarkdownBlock(entry) {
   return lines.join('\n');
 }
 
-function upsertEvidenceBlockInBody(body, entry) {
-  const cleanBody = removeEvidenceBlockFromBody(body, entry.id);
-  const block = buildEvidenceMarkdownBlock(entry);
-  const sectionMatch = cleanBody.match(/^##\s+Evidence\s*$/im);
+function upsertFindingBlockInBody(body, entry) {
+  const cleanBody = removeFindingBlockFromBody(body, entry.id);
+  const block = buildFindingMarkdownBlock(entry);
+  const sectionMatch = cleanBody.match(/^##\s+Findings\s*$/im);
   if (!sectionMatch || sectionMatch.index == null) {
     const prefix = cleanBody.trimEnd();
-    return `${prefix}${prefix ? '\n\n' : ''}## Evidence\n\n${block}\n`;
+    return `${prefix}${prefix ? '\n\n' : ''}## Findings\n\n${block}\n`;
   }
   const sectionStart = sectionMatch.index;
   const sectionHeader = sectionMatch[0];
@@ -480,17 +541,17 @@ function upsertEvidenceBlockInBody(body, entry) {
   return `${before}\n\n${block}${after}`.replace(/\n{3,}/g, '\n\n');
 }
 
-function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
+function applyFindingNoteSyncChanges(prevEntry, nextEntry) {
   const syncedNotes = [];
-  const prevSourceNoteId = getEvidenceSourceNoteId(prevEntry);
-  const prevSyncNoteId = evidenceUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
-  const nextSourceNoteId = getEvidenceSourceNoteId(nextEntry);
-  const nextSyncNoteId = evidenceUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
+  const prevSourceNoteId = getFindingSourceNoteId(prevEntry);
+  const prevSyncNoteId = findingUsesNoteSync(prevEntry?.sync_mode || 'export_only') ? (prevEntry?.note_id || null) : null;
+  const nextSourceNoteId = getFindingSourceNoteId(nextEntry);
+  const nextSyncNoteId = findingUsesNoteSync(nextEntry?.sync_mode || 'export_only') ? (nextEntry?.note_id || null) : null;
 
   const shouldRemoveSourceMarker = !nextEntry || !nextSourceNoteId || nextSourceNoteId !== prevSourceNoteId;
   if (prevEntry?.id && prevSourceNoteId && notes[prevSourceNoteId] && shouldRemoveSourceMarker) {
     const prevNote = notes[prevSourceNoteId];
-    const cleaned = unwrapEvidenceBlockInBody(prevNote.body || '', prevEntry.id);
+    const cleaned = unwrapFindingBlockInBody(prevNote.body || '', prevEntry.id);
     if (cleaned !== (prevNote.body || '')) {
       prevNote.body = cleaned;
       prevNote.updated = Date.now();
@@ -500,7 +561,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (prevEntry?.id && prevSyncNoteId && prevSyncNoteId !== prevSourceNoteId && notes[prevSyncNoteId]) {
     const prevSyncNote = notes[prevSyncNoteId];
-    const cleaned = removeEvidenceBlockFromBody(prevSyncNote.body || '', prevEntry.id);
+    const cleaned = removeFindingBlockFromBody(prevSyncNote.body || '', prevEntry.id);
     if (cleaned !== (prevSyncNote.body || '')) {
       prevSyncNote.body = cleaned;
       prevSyncNote.updated = Date.now();
@@ -510,7 +571,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (nextEntry?.id && nextSourceNoteId && notes[nextSourceNoteId]) {
     const sourceNote = notes[nextSourceNoteId];
-    const updated = updateEvidenceBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
+    const updated = updateFindingBlockInBody(sourceNote.body || '', nextEntry, prevEntry);
     if (updated !== (sourceNote.body || '')) {
       sourceNote.body = updated;
       sourceNote.updated = Date.now();
@@ -520,7 +581,7 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
 
   if (nextEntry?.id && nextSyncNoteId && nextSyncNoteId !== nextSourceNoteId && notes[nextSyncNoteId]) {
     const nextNote = notes[nextSyncNoteId];
-    const nextBody = upsertEvidenceBlockInBody(nextNote.body || '', nextEntry);
+    const nextBody = upsertFindingBlockInBody(nextNote.body || '', nextEntry);
     if (nextBody !== (nextNote.body || '')) {
       nextNote.body = nextBody;
       nextNote.updated = Date.now();
@@ -531,14 +592,35 @@ function applyEvidenceNoteSyncChanges(prevEntry, nextEntry) {
   return syncedNotes;
 }
 
-function setEvidenceFilterType(value) {
-  _evidenceFilterType = String(value || '').trim();
-  renderEvidenceList();
+function setFindingFilterType(value) {
+  _findingFilterType = String(value || '').trim();
+  renderFindingsList();
 }
 
-function setEvidenceFilterTarget(value) {
-  _evidenceFilterTarget = String(value || '').trim();
-  renderEvidenceList();
+function setFindingFilterTarget(value) {
+  _findingFilterTarget = String(value || '').trim();
+  renderFindingsList();
+}
+
+function ensureFindingVisibleInFilters(entry) {
+  if (!entry) return;
+  const targetToken = String(entry.target_id || '').trim() || '__session__';
+  if (_findingFilterType && entry.type !== _findingFilterType) _findingFilterType = '';
+  if (_findingFilterTarget && _findingFilterTarget !== targetToken) _findingFilterTarget = targetToken;
+  _pendingFindingFocusId = entry.id || null;
+}
+
+function focusPendingFindingRow() {
+  if (!_pendingFindingFocusId) return;
+  const row = document.getElementById(`findingRow_${_pendingFindingFocusId}`);
+  if (!row) return;
+  row.classList.add('finding-item-highlight');
+  row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const focusId = _pendingFindingFocusId;
+  _pendingFindingFocusId = null;
+  setTimeout(() => {
+    document.getElementById(`findingRow_${focusId}`)?.classList.remove('finding-item-highlight');
+  }, 1800);
 }
 
 function renderTodoClearAction() {
@@ -719,104 +801,133 @@ function clearCompletedTodos() {
   renderTodoList();
 }
 
-function renderEvidenceList() {
-  const listEl = document.getElementById('evidenceList');
+function renderFindingsList() {
+  const listEl = document.getElementById('findingsList');
   if (!listEl) return;
-  renderEvidenceTargetOptions();
-  renderEvidenceNoteOptions();
-  renderEvidenceClearAction();
-  updateEvidenceCount();
-  updateEvidenceSyncUi(document.getElementById('evidenceNoteInput')?.value || '');
+  renderFindingsClearAction();
+  updateFindingsCount();
 
   if (!activeSessionId || !sessions[activeSessionId]) {
-    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured evidence entries.</div>`;
+    listEl.innerHTML = `<div class="todo-empty">Open or create a session to keep structured findings entries.</div>`;
     return;
   }
 
-  const allEntries = [...getSessionEvidence()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
+  const allEntries = [...getSessionFindings()].sort((a, b) => (b.created || b.updated || 0) - (a.created || a.updated || 0));
   const targets = getSessionTargets();
-  const notes = getSessionNotesForEvidence();
+  const notes = getSessionNotesForFindings();
   const entries = allEntries.filter((entry) => {
-    if (_evidenceFilterType && entry.type !== _evidenceFilterType) return false;
-    if (_evidenceFilterTarget) {
+    if (_findingFilterType && entry.type !== _findingFilterType) return false;
+    if (_findingFilterTarget) {
       const targetId = entry.target_id || '__session__';
-      if (targetId !== _evidenceFilterTarget) return false;
+      if (targetId !== _findingFilterTarget) return false;
     }
     return true;
   });
+  const newFindingButtonHtml = `
+    <div class="finding-actions-row">
+      <button class="svc-quick-add-btn" type="button" onclick="openManualFindingDialog()">+ New Finding</button>
+    </div>
+  `;
+
   if (!entries.length) {
     if (!allEntries.length) {
-      listEl.innerHTML = `<div class="todo-empty">No evidence yet. Flag a command or proof block from a session note to add it here.</div>`;
+      listEl.innerHTML = `
+        <div class="finding-filters">
+          <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterType(this.value)">
+            <option value="">All types</option>
+            ${buildFindingTypeOptionsHtml(_findingFilterType)}
+          </select>
+          <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterTarget(this.value)">
+            <option value="">All targets</option>
+            <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+            ${targets.map((target) => {
+              const label = esc(target.ip || target.domain || target.label || 'Unnamed');
+              return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        ${newFindingButtonHtml}
+        <div class="todo-empty">No findings yet. Use <strong>New Finding</strong> to create the first one.</div>`;
       return;
     }
     listEl.innerHTML = `
-      <div class="evidence-filters">
-        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+      <div class="finding-filters">
+        <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterType(this.value)">
           <option value="">All types</option>
-          ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+          ${buildFindingTypeOptionsHtml(_findingFilterType)}
         </select>
-        <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+        <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterTarget(this.value)">
           <option value="">All targets</option>
-          <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+          <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
           ${targets.map((target) => {
             const label = esc(target.ip || target.domain || target.label || 'Unnamed');
-            return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+            return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
           }).join('')}
         </select>
       </div>
-      <div class="todo-empty">No evidence matches the current filters. Try clearing the type or target filter.</div>
+      ${newFindingButtonHtml}
+      <div class="todo-empty">No findings match the current filters. Try clearing the type or target filter.</div>
     `;
     return;
   }
 
   listEl.innerHTML = `
-    <div class="evidence-filters">
-      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterType(this.value)">
+    <div class="finding-filters">
+      <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterType(this.value)">
         <option value="">All types</option>
-        ${buildEvidenceTypeOptionsHtml(_evidenceFilterType)}
+        ${buildFindingTypeOptionsHtml(_findingFilterType)}
       </select>
-      <select class="ql-row-input ql-row-select evidence-filter-select" onchange="setEvidenceFilterTarget(this.value)">
+      <select class="ql-row-input ql-row-select finding-filter-select" onchange="setFindingFilterTarget(this.value)">
         <option value="">All targets</option>
-        <option value="__session__"${_evidenceFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
+        <option value="__session__"${_findingFilterTarget === '__session__' ? ' selected' : ''}>Session-wide</option>
         ${targets.map((target) => {
           const label = esc(target.ip || target.domain || target.label || 'Unnamed');
-          return `<option value="${esc(target.id)}"${target.id === _evidenceFilterTarget ? ' selected' : ''}>${label}</option>`;
+          return `<option value="${esc(target.id)}"${target.id === _findingFilterTarget ? ' selected' : ''}>${label}</option>`;
         }).join('')}
       </select>
-      <div class="evidence-filter-count">${entries.length} / ${allEntries.length}</div>
+      <div class="finding-filter-count">${entries.length} / ${allEntries.length}</div>
     </div>
-    <div class="evidence-items">${entries.map((entry) => {
+    ${newFindingButtonHtml}
+    <div class="finding-items">${entries.map((entry) => {
       const target = entry.target_id ? targets.find((item) => item.id === entry.target_id) : null;
       const targetLabel = target ? (target.ip || target.domain || target.label || 'Unnamed') : 'Session-wide';
-      const syncLabel = evidenceSyncLabel(entry.sync_mode || 'export_only');
-      const sourceNote = getEvidenceSourceNote(entry);
+      const syncLabel = findingSyncLabel(entry.sync_mode || 'export_only');
+      const sourceNote = getFindingSourceNote(entry);
       const sourceNoteLabel = sourceNote?.title || 'Unknown source';
-      const sourceSnippet = getEvidenceSourceSnippet(entry);
-      const syncNote = getEvidenceSyncNote(entry);
-      const syncNoteLabel = syncNote?.title || (evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
-      const timestampLabel = formatEvidenceTimestamp(entry.updated || entry.created || 0);
-      if (isQuickLogEditing('evidence', entry.id)) {
+      const sourceSnippet = getFindingSourceSnippet(entry);
+      const syncNote = getFindingSyncNote(entry);
+      const syncNoteLabel = syncNote?.title || (findingUsesNoteSync(entry.sync_mode || 'export_only') ? 'Select note' : '—');
+      const timestampLabel = formatFindingTimestamp(entry.updated || entry.created || 0);
+      const supportableNotes = getFindingSupportableNotes();
+      const selectedSupportIds = new Set(Array.isArray(entry.support_note_ids) ? entry.support_note_ids : []);
+      if (isQuickLogEditing('finding', entry.id)) {
         return `
-          <section class="evidence-item evidence-item-editing">
-            <div class="evidence-item-head">
-              <div class="evidence-item-title-group evidence-item-title-group-editing">
-                <label class="evidence-edit-field evidence-edit-field-type">
-                  <span class="evidence-edit-label">Type</span>
-                  <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
-                    ${buildEvidenceTypeOptionsHtml(entry.type)}
+          <section class="finding-item finding-item-editing" id="findingRow_${entry.id}">
+            <div class="finding-item-head">
+              <div class="finding-item-title-group finding-item-title-group-editing">
+                <label class="finding-edit-field finding-edit-field-type">
+                  <span class="finding-edit-label">Type</span>
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="findingEditType_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
+                    ${buildFindingTypeOptionsHtml(entry.type)}
                   </select>
                 </label>
-                <label class="evidence-edit-field evidence-edit-field-title">
-                  <span class="evidence-edit-label">Title</span>
-                  <input class="svc-notes-cell ql-row-input" id="evidenceEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+                <label class="finding-edit-field">
+                  <span class="finding-edit-label">Severity</span>
+                  <select class="svc-notes-cell ql-row-input ql-row-select" id="findingEditSeverity_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
+                    ${buildFindingSeverityOptionsHtml(entry.severity || 'medium')}
+                  </select>
+                </label>
+                <label class="finding-edit-field finding-edit-field-title">
+                  <span class="finding-edit-label">Title</span>
+                  <input class="svc-notes-cell ql-row-input" id="findingEditTitle_${entry.id}" type="text" value="${esc(entry.title || '')}" placeholder="title" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                 </label>
               </div>
-              <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+              <div class="finding-item-actions">${renderFindingRowActions(entry.id)}</div>
             </div>
-            <div class="evidence-edit-grid">
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Target</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+            <div class="finding-edit-grid">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Target</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="findingEditTarget_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="">Session-wide</option>
                   ${targets.map((targetItem) => {
                     const label = esc(targetItem.ip || targetItem.domain || targetItem.label || 'Unnamed');
@@ -824,198 +935,195 @@ function renderEvidenceList() {
                   }).join('')}
                 </select>
               </label>
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Sync</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Sync</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="findingEditSync_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="export_only"${(entry.sync_mode || 'export_only') === 'export_only' ? ' selected' : ''}>Summary</option>
                   <option value="both"${(entry.sync_mode || 'export_only') === 'both' ? ' selected' : ''}>Both</option>
                   <option value="note"${(entry.sync_mode || 'export_only') === 'note' ? ' selected' : ''}>Note</option>
                   <option value="none"${(entry.sync_mode || 'export_only') === 'none' ? ' selected' : ''}>No export</option>
                 </select>
               </label>
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Synced note</span>
-                <select class="svc-notes-cell ql-row-input ql-row-select" id="evidenceEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Synced note</span>
+                <select class="svc-notes-cell ql-row-input ql-row-select" id="findingEditNote_${entry.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
                   <option value="">Select note…</option>
                   ${notes.map((item) => `<option value="${esc(item.id)}"${item.id === entry.note_id ? ' selected' : ''}>${esc(item.title || 'Untitled')}</option>`).join('')}
                 </select>
               </label>
             </div>
-            <div class="evidence-item-body evidence-item-body-editing">
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Impact</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+            <div class="finding-item-body finding-item-body-editing">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Summary</span>
+                <input class="svc-notes-cell ql-row-input" id="findingEditSummary_${entry.id}" type="text" value="${esc(entry.summary || entry.details || '')}" placeholder="summary" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Details</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditDetails_${entry.id}" type="text" value="${esc(entry.details || '')}" placeholder="details" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Impact</span>
+                <input class="svc-notes-cell ql-row-input" id="findingEditImpact_${entry.id}" type="text" value="${esc(entry.impact || '')}" placeholder="impact" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
               </label>
-              <label class="evidence-edit-field">
-                <span class="evidence-edit-label">Command</span>
-                <input class="svc-notes-cell ql-row-input" id="evidenceEditCommand_${entry.id}" type="text" value="${esc(entry.source_command || '')}" placeholder="source command" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'evidence','${entry.id}')">
+              <label class="finding-edit-field">
+                <span class="finding-edit-label">Recommendation</span>
+                <input class="svc-notes-cell ql-row-input" id="findingEditRecommendation_${entry.id}" type="text" value="${esc(entry.recommendation || '')}" placeholder="recommendation" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">
+              </label>
+              <label class="finding-edit-field finding-edit-field-span-3">
+                <span class="finding-edit-label">Proof / Command</span>
+                <textarea class="svc-notes-cell ql-row-input finding-edit-textarea" id="findingEditCommand_${entry.id}" placeholder="proof command or short proof context" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'finding','${entry.id}')">${esc(entry.source_command || '')}</textarea>
+              </label>
+              <label class="finding-edit-field finding-edit-field-span-3">
+                <span class="finding-edit-label">Support Notes</span>
+                <div class="finding-support-picker" id="findingEditSupportWrap_${entry.id}" onclick="event.stopPropagation()">
+                  ${supportableNotes.length ? supportableNotes.map((item) => `
+                    <label class="finding-support-option">
+                      <input type="checkbox" value="${esc(item.id)}"${selectedSupportIds.has(item.id) ? ' checked' : ''}>
+                      <span class="finding-support-option-title">${esc(item.title || 'Untitled')}</span>
+                    </label>
+                  `).join('') : '<div class="finding-support-empty">No session notes available yet.</div>'}
+                </div>
               </label>
             </div>
           </section>
         `;
       }
       return `
-        <section class="evidence-item">
-            <div class="evidence-item-head">
-              <div class="evidence-item-title-group">
-              <span class="loot-type-badge ${evidenceTypeBadgeClass(entry.type)}">${esc(evidenceTypeLabel(entry.type))}</span>
-              <div class="evidence-item-title-wrap">
-                <div class="evidence-item-title">${esc(entry.title || 'Untitled')}</div>
-                <div class="evidence-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
-                ${sourceSnippet ? `<div class="evidence-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
+        <section class="finding-item" id="findingRow_${entry.id}">
+            <div class="finding-item-head">
+              <div class="finding-item-title-group">
+              <span class="loot-type-badge ${findingTypeBadgeClass(entry.type)}">${esc(findingTypeLabel(entry.type))}</span>
+              <div class="finding-item-title-wrap">
+                <div class="finding-item-title">${esc(entry.title || 'Untitled')}</div>
+                <div class="finding-item-source" title="${esc(sourceNoteLabel)}">Source: ${esc(sourceNoteLabel)}</div>
+                ${sourceSnippet ? `<div class="finding-item-snippet" title="${esc(sourceSnippet)}">${esc(sourceSnippet)}</div>` : ''}
               </div>
             </div>
-            <div class="evidence-item-actions">${renderEvidenceRowActions(entry.id)}</div>
+            <div class="finding-item-actions">${renderFindingRowActions(entry.id)}</div>
           </div>
-          ${timestampLabel ? `<div class="evidence-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
-          <div class="evidence-item-meta">
-            <span class="evidence-meta-pill">
-              <span class="evidence-meta-key">Sync</span>
-              <span class="evidence-meta-value">${esc(syncLabel)}</span>
+          ${timestampLabel ? `<div class="finding-item-timestamp">Added ${esc(timestampLabel)}</div>` : ''}
+          <div class="finding-item-meta">
+            <span class="finding-meta-pill finding-severity-pill ${esc(entry.severity || 'medium')}">
+              <span class="finding-meta-key">Severity</span>
+              <span class="finding-meta-value">${esc(findingSeverityLabel(entry.severity))}</span>
             </span>
-            <span class="evidence-meta-pill evidence-target-pill" title="${esc(targetLabel)}">
-              <span class="evidence-meta-key">Target</span>
-              <span class="evidence-meta-value evidence-target-cell">${esc(targetLabel)}</span>
+            <span class="finding-meta-pill">
+              <span class="finding-meta-key">Sync</span>
+              <span class="finding-meta-value">${esc(syncLabel)}</span>
             </span>
-            ${evidenceUsesNoteSync(entry.sync_mode || 'export_only') ? `
-            <span class="evidence-meta-pill" title="${esc(syncNoteLabel)}">
-              <span class="evidence-meta-key">Synced</span>
-              <span class="evidence-meta-value">${esc(syncNoteLabel)}</span>
+            <span class="finding-meta-pill finding-target-pill" title="${esc(targetLabel)}">
+              <span class="finding-meta-key">Target</span>
+              <span class="finding-meta-value finding-target-cell">${esc(targetLabel)}</span>
+            </span>
+            ${findingUsesNoteSync(entry.sync_mode || 'export_only') ? `
+            <span class="finding-meta-pill" title="${esc(syncNoteLabel)}">
+              <span class="finding-meta-key">Synced</span>
+              <span class="finding-meta-value">${esc(syncNoteLabel)}</span>
             </span>
             ` : ''}
           </div>
-          <div class="evidence-item-body">
-            ${renderEvidenceProofCell(entry)}
+          <div class="finding-item-body">
+            ${renderFindingProofCell(entry)}
           </div>
         </section>
       `;
     }).join('')}</div>
   `;
 
-  if (_editingQuickLog?.kind === 'evidence') focusQuickLogEditInput(`evidenceEditTitle_${_editingQuickLog.id}`);
+  if (_editingQuickLog?.kind === 'finding') focusQuickLogEditInput(`findingEditTitle_${_editingQuickLog.id}`);
+  else focusPendingFindingRow();
 }
 
-function addEvidenceEntry() {
+function deleteFindingEntry(entryId) {
   if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
-  if (!entries) return;
-  const type = (document.getElementById('evidenceTypeInput')?.value || 'discovery').trim();
-  const titleEl = document.getElementById('evidenceTitleInput');
-  const detailsEl = document.getElementById('evidenceDetailsInput');
-  const commandEl = document.getElementById('evidenceCommandInput');
-  const targetEl = document.getElementById('evidenceTargetInput');
-  const syncEl = document.getElementById('evidenceSyncInput');
-  const noteEl = document.getElementById('evidenceNoteInput');
-  const title = (titleEl?.value || '').trim();
-  const details = (detailsEl?.value || '').trim();
-  const sourceCommand = (commandEl?.value || '').trim();
-  const targetId = (targetEl?.value || '').trim() || null;
-  const syncMode = (syncEl?.value || 'export_only').trim();
-  const noteId = evidenceUsesNoteSync(syncMode) ? ((noteEl?.value || '').trim() || null) : null;
-  if (!title) {
-    titleEl?.focus();
-    return;
-  }
-  if (evidenceUsesNoteSync(syncMode) && !noteId) {
-    noteEl?.focus();
-    return;
-  }
-  const entry = {
-    id: `evidence_${Date.now()}`,
-    type,
-    title,
-    details,
-    source_command: sourceCommand,
-    target_id: targetId,
-    note_id: noteId,
-    sync_mode: syncMode,
-    created: Date.now(),
-    updated: Date.now(),
-  };
-  entries.push(entry);
-  const syncedNotes = applyEvidenceNoteSyncChanges(null, entry);
-  if (titleEl) titleEl.value = '';
-  if (detailsEl) detailsEl.value = '';
-  if (commandEl) commandEl.value = '';
-  if (targetEl) targetEl.value = activeTargetId || '';
-  if (syncEl) syncEl.value = 'export_only';
-  if (noteEl) noteEl.value = '';
-  saveNotes();
-  syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
-  updateEvidenceSyncUi();
-  titleEl?.focus();
-}
-
-function deleteEvidenceEntry(entryId) {
-  if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
+  const entries = ensureSessionFindings();
   if (!entries) return;
   const entry = entries.find((item) => item.id === entryId);
-  if (isQuickLogEditing('evidence', entryId)) clearQuickLogEditing();
-  sessions[activeSessionId].evidence = entries.filter((entry) => entry.id !== entryId);
-  const syncedNotes = entry ? applyEvidenceNoteSyncChanges(entry, null) : [];
+  if (isQuickLogEditing('finding', entryId)) clearQuickLogEditing();
+  sessions[activeSessionId].findings = entries.filter((entry) => entry.id !== entryId);
+  const syncedNotes = entry ? applyFindingNoteSyncChanges(entry, null) : [];
+  syncGeneratedFindingNotesAfterMutation();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
-  showToast('✓ Evidence unflagged');
+  renderFindingsList();
+  showToast('✓ Finding removed');
 }
 
-function clearEvidenceEntries() {
+async function clearFindingEntries() {
   if (!activeSessionId) return;
-  const entries = ensureSessionEvidence();
+  const entries = ensureSessionFindings();
   if (!entries?.length) return;
+
+  try {
+    await showConfirmDialog({
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      title: 'Clear Findings',
+      bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+      description: `Remove all ${entries.length} findings?`,
+      confirmLabel: 'Clear All',
+      danger: true,
+    });
+  } catch {
+    return;
+  }
+
   const syncedNotes = [];
   entries.forEach((entry) => {
-    applyEvidenceNoteSyncChanges(entry, null).forEach((note) => {
+    applyFindingNoteSyncChanges(entry, null).forEach((note) => {
       if (!syncedNotes.includes(note)) syncedNotes.push(note);
     });
   });
-  if (_editingQuickLog?.kind === 'evidence') clearQuickLogEditing();
-  sessions[activeSessionId].evidence = [];
+  if (_editingQuickLog?.kind === 'finding') clearQuickLogEditing();
+  sessions[activeSessionId].findings = [];
+  syncGeneratedFindingNotesAfterMutation();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
+  renderFindingsList();
 }
 
-function commitEvidenceEdit(entryId) {
+function commitFindingEdit(entryId) {
   if (!activeSessionId) return;
-  const entry = (sessions[activeSessionId].evidence || []).find((item) => item.id === entryId);
+  const entry = (sessions[activeSessionId].findings || []).find((item) => item.id === entryId);
   if (!entry) return;
   const prevEntry = { ...entry };
-  const title = (document.getElementById(`evidenceEditTitle_${entryId}`)?.value || '').trim();
+  const title = (document.getElementById(`findingEditTitle_${entryId}`)?.value || '').trim();
   if (!title) {
-    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+    focusQuickLogEditInput(`findingEditTitle_${entryId}`);
     return;
   }
-  entry.type = (document.getElementById(`evidenceEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
+  entry.type = (document.getElementById(`findingEditType_${entryId}`)?.value || entry.type || 'discovery').trim();
+  entry.severity = (document.getElementById(`findingEditSeverity_${entryId}`)?.value || entry.severity || 'medium').trim();
   entry.title = title;
-  entry.details = (document.getElementById(`evidenceEditDetails_${entryId}`)?.value || '').trim();
-  entry.impact = (document.getElementById(`evidenceEditImpact_${entryId}`)?.value || '').trim();
-  entry.source_command = (document.getElementById(`evidenceEditCommand_${entryId}`)?.value || '').trim();
-  entry.target_id = (document.getElementById(`evidenceEditTarget_${entryId}`)?.value || '').trim() || null;
-  entry.sync_mode = (document.getElementById(`evidenceEditSync_${entryId}`)?.value || 'export_only').trim();
+  entry.summary = (document.getElementById(`findingEditSummary_${entryId}`)?.value || '').trim();
+  entry.details = entry.details || '';
+  entry.impact = (document.getElementById(`findingEditImpact_${entryId}`)?.value || '').trim();
+  entry.recommendation = (document.getElementById(`findingEditRecommendation_${entryId}`)?.value || '').trim();
+  entry.source_command = (document.getElementById(`findingEditCommand_${entryId}`)?.value || '').trim();
+  entry.target_id = normalizeSessionTargetId((document.getElementById(`findingEditTarget_${entryId}`)?.value || '').trim(), { allowSessionWide: true });
+  entry.sync_mode = (document.getElementById(`findingEditSync_${entryId}`)?.value || 'export_only').trim();
   entry.source_note_id = entry.source_note_id || prevEntry.source_note_id || prevEntry.note_id || null;
-  entry.note_id = evidenceUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`evidenceEditNote_${entryId}`)?.value || '').trim() || null) : null;
-  if (evidenceUsesNoteSync(entry.sync_mode) && !entry.note_id) {
-    focusQuickLogEditInput(`evidenceEditTitle_${entryId}`);
+  entry.note_id = findingUsesNoteSync(entry.sync_mode) ? ((document.getElementById(`findingEditNote_${entryId}`)?.value || '').trim() || null) : null;
+  entry.support_note_ids = [...new Set(
+    Array.from(document.querySelectorAll(`#findingEditSupportWrap_${entryId} input[type="checkbox"]:checked`))
+      .map((input) => String(input.value || '').trim())
+      .filter(Boolean)
+  )];
+  if (findingUsesNoteSync(entry.sync_mode) && !entry.note_id) {
+    focusQuickLogEditInput(`findingEditTitle_${entryId}`);
     return;
   }
   entry.updated = Date.now();
-  const syncedNotes = applyEvidenceNoteSyncChanges(prevEntry, entry);
+  const syncedNotes = applyFindingNoteSyncChanges(prevEntry, entry);
+  syncGeneratedFindingNotesAfterMutation();
   clearQuickLogEditing();
   saveNotes();
   syncedNotes.forEach(applySyncedNoteUpdate);
-  renderEvidenceList();
+  if (activeNoteId && notes[activeNoteId]?.generated_note === true && notes[activeNoteId]?.session_id === activeSessionId) {
+    applySyncedNoteUpdate(notes[activeNoteId]);
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);
+  }
+  renderFindingsList();
 }
 
 function getActiveQuickLogEntries() {
   if (_activeSvcTab === 'paths') return getSessionPaths();
-  if (_activeSvcTab === 'loot') return getSessionLoot();
+  if (_activeSvcTab === 'loot') return getSessionLoot({ scoped: false });
   return getSessionServices();
 }
 
@@ -1039,7 +1147,7 @@ async function clearActiveQuickLog() {
     loot: { title: 'Clear Loot', key: 'loot', noun: 'loot entries' },
   };
   const config = labels[_activeSvcTab] || labels.ports;
-  const entries = Array.isArray(sess[config.key]) ? sess[config.key] : [];
+  const entries = getActiveQuickLogEntries();
   if (!entries.length) return;
 
   try {
@@ -1047,7 +1155,7 @@ async function clearActiveQuickLog() {
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
       title: config.title,
       bigIcon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
-      description: `Remove all ${entries.length} ${config.noun} from this session?`,
+      description: `Remove all ${entries.length} visible ${config.noun}?`,
       confirmLabel: 'Clear All',
       danger: true,
     });
@@ -1055,7 +1163,8 @@ async function clearActiveQuickLog() {
     return;
   }
 
-  sess[config.key] = [];
+  const removeIds = new Set(entries.map((entry) => entry.id));
+  sess[config.key] = (Array.isArray(sess[config.key]) ? sess[config.key] : []).filter((entry) => !removeIds.has(entry?.id));
   const syncedNetworkNotes = config.key === 'services'
     ? [...new Set(entries.map(entry => entry?.target_id).filter(Boolean))]
         .map(targetId => syncSessionServicesToNetworkEnumerationNote(targetId, false))
@@ -1088,6 +1197,7 @@ async function clearActiveQuickLog() {
   }
   syncedNetworkNotes.forEach(applySyncedNoteUpdate);
   syncedWebNotes.forEach(applySyncedNoteUpdate);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Cleared ${config.noun}`);
 }
 
@@ -1234,14 +1344,15 @@ function parseAndPreviewPorts() {
     commitBtn.style.display = 'none';
     return;
   }
-  const existing = new Set(getSessionServices().map(s => `${s.port}/${s.proto}`));
-  const fresh = _portParsed.filter(r => !existing.has(`${r.port}/${r.proto}`));
+  const previewTargetId = resolveQuickLogTargetId();
+  const existing = new Set(getSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id || previewTargetId)));
+  const fresh = _portParsed.filter(r => !existing.has(buildScopedServiceKey(r.port, r.proto, previewTargetId)));
   const dupes = _portParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_portParsed.length}</span> port${_portParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += '</div><table class="svc-table svc-table-ports" style="margin-bottom:4px"><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody>';
   html += _portParsed.map(r => {
-    const isDupe = existing.has(`${r.port}/${r.proto}`);
+    const isDupe = existing.has(buildScopedServiceKey(r.port, r.proto, previewTargetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(r.port)}${r.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(r.proto)}</span>` : ''}</td><td>${esc(r.service || '—')}</td><td style="color:var(--text2)">${esc(r.version || '')}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -1259,11 +1370,14 @@ function commitPortParse() {
   if (!_portParsed.length) return;
   if (!ensureActiveSession('add ports')) return;
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const existing = new Set(sessions[activeSessionId].services.map(s => `${s.port}/${s.proto}`));
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add ports');
+  if (!targetId) return;
+  const existing = new Set(getAllSessionServices().map(s => buildScopedServiceKey(s.port, s.proto, s.target_id)));
   let added = 0;
   for (const r of _portParsed) {
-    if (existing.has(`${r.port}/${r.proto}`)) continue;
+    const key = buildScopedServiceKey(r.port, r.proto, targetId);
+    if (existing.has(key)) continue;
+    existing.add(key);
     const entry = { id: `svc_${Date.now()}_${added}`, target_id: targetId, port: r.port, proto: r.proto, service: r.service, version: r.version, notes: '', added: Date.now() };
     sessions[activeSessionId].services.push(entry);
     added++;
@@ -1273,6 +1387,7 @@ function commitPortParse() {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
   toggleToolPaste('ports');
 }
@@ -1337,6 +1452,7 @@ function insertQuickLogPortsFromMatrixPreview(previewTarget) {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   if (added > 0) {
     showToast(`✓ Added ${added} port${added !== 1 ? 's' : ''}`);
     return true;
@@ -1459,14 +1575,15 @@ function parseAndPreviewPaths() {
     commitBtn.style.display = 'none';
     return;
   }
-  const existing = new Set(getSessionPaths().map(p => p.path));
-  const fresh = _pathParsed.filter(r => !existing.has(r.path));
+  const previewTargetId = resolveQuickLogTargetId();
+  const existing = new Set(getSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id || previewTargetId)));
+  const fresh = _pathParsed.filter(r => !existing.has(buildScopedPathKey(r.path, previewTargetId)));
   const dupes = _pathParsed.length - fresh.length;
   let html = `<div class="nmap-preview-hdr"><span>${_pathParsed.length}</span> path${_pathParsed.length !== 1 ? 's' : ''} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += '</div><table class="path-table" style="margin-bottom:4px"><thead><tr><th>Status</th><th>Path</th><th>Size</th></tr></thead><tbody>';
   html += _pathParsed.map(r => {
-    const isDupe = existing.has(r.path);
+    const isDupe = existing.has(buildScopedPathKey(r.path, previewTargetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td><span class="path-status ${statusClass(r.status)}">${esc(r.status || '—')}</span></td><td style="color:var(--text);word-break:break-all">${esc(r.path)}</td><td style="color:var(--muted)">${esc(r.size)}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -1484,11 +1601,14 @@ function commitPathParse() {
   if (!_pathParsed.length) return;
   if (!ensureActiveSession('add paths')) return;
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const existing = new Set(sessions[activeSessionId].paths.map(p => p.path));
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add paths');
+  if (!targetId) return;
+  const existing = new Set(getAllSessionPaths().map(p => buildScopedPathKey(p.path, p.target_id)));
   let added = 0;
   for (const r of _pathParsed) {
-    if (existing.has(r.path)) continue;
+    const key = buildScopedPathKey(r.path, targetId);
+    if (existing.has(key)) continue;
+    existing.add(key);
     sessions[activeSessionId].paths.push({ id: `path_${Date.now()}_${added}`, target_id: targetId, path: r.path, status: r.status, size: r.size, notes: r.notes, added: Date.now() });
     added++;
   }
@@ -1497,6 +1617,7 @@ function commitPathParse() {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
   showToast(`✓ Added ${added} path${added !== 1 ? 's' : ''}`);
   toggleToolPaste('paths');
 }
@@ -1514,7 +1635,11 @@ function addPathLog() {
   else { path = raw.split(/\s+/)[0]; notes = raw.slice(path.length).trim(); }
   if (!path.startsWith('/') && !path.includes('.')) { input.focus(); return; }
   if (!sessions[activeSessionId].paths) sessions[activeSessionId].paths = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add a path');
+  if (!targetId) {
+    input.focus();
+    return;
+  }
   const entry = { id: `path_${Date.now()}`, target_id: targetId, path, status, size: '', notes, added: Date.now() };
   sessions[activeSessionId].paths.push(entry);
   const syncedNetworkNote = targetId ? syncSessionPathsToNetworkEnumerationNote(targetId, true) : false;
@@ -1524,6 +1649,7 @@ function addPathLog() {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function deletePathLog(pathId) {
@@ -1536,6 +1662,7 @@ function deletePathLog(pathId) {
   renderPathTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function updatePathNotes(pathId, val) {
@@ -1546,6 +1673,7 @@ function updatePathNotes(pathId, val) {
   const syncedNetworkNote = p.target_id ? syncSessionPathsToNetworkEnumerationNote(p.target_id, false) : false;
   saveNotes();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function commitPathEdit(pathId) {
@@ -1568,11 +1696,61 @@ function commitPathEdit(pathId) {
   saveNotes();
   renderPathTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
-function getSessionPaths() {
+function getQuickLogScopeTargetId() {
+  return resolveQuickLogTargetId();
+}
+
+function getAllSessionServices() {
   if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].paths || [];
+  return (sessions[activeSessionId].services || []).filter((entry) =>
+    !!normalizeSessionTargetId(entry?.target_id, { allowSessionWide: false })
+  );
+}
+
+function getAllSessionPaths() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  return (sessions[activeSessionId].paths || []).filter((entry) =>
+    !!normalizeSessionTargetId(entry?.target_id, { allowSessionWide: false })
+  );
+}
+
+function getAllSessionLoot() {
+  if (!activeSessionId || !sessions[activeSessionId]) return [];
+  const lootEntries = Array.isArray(sessions[activeSessionId].loot) ? sessions[activeSessionId].loot : [];
+  let mutated = false;
+  lootEntries.forEach((entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    const nextTargetId = normalizeSessionTargetId(entry.target_id, { allowSessionWide: true });
+    if ((entry.target_id || null) !== nextTargetId) {
+      entry.target_id = nextTargetId;
+      mutated = true;
+    }
+  });
+  if (mutated) sessions[activeSessionId].loot = lootEntries;
+  return lootEntries;
+}
+
+function buildScopedServiceKey(port, proto = 'tcp', targetId = null) {
+  return `${targetId || ''}::${String(port || '').trim()}/${String(proto || 'tcp').trim().toLowerCase() || 'tcp'}`;
+}
+
+function buildScopedPathKey(path, targetId = null) {
+  return `${targetId || ''}::${String(path || '').trim()}`;
+}
+
+function buildScopedLootKey(type, credential, host = '', targetId = null) {
+  return `${targetId || ''}::${String(type || '').trim()}::${String(credential || '').trim()}::${String(host || '').trim()}`;
+}
+
+function getSessionPaths(options = {}) {
+  const entries = getAllSessionPaths();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  return entries.filter((entry) => (entry?.target_id || null) === targetId);
 }
 
 function renderPathTable() {
@@ -1613,7 +1791,13 @@ function parseSvcInput(raw) {
   let version = '';
   let notes = '';
   const portProtoMatch = str.match(/^(\d+)(?:\/(tcp|udp|sctp))?/i);
-  if (!portProtoMatch) { service = str; return { port, proto, service, version, notes }; }
+  if (!portProtoMatch) {
+    const tokens = str.split(/\s+/).filter(Boolean);
+    if (tokens.length >= 1) service = tokens[0];
+    if (tokens.length >= 2) version = tokens[1];
+    if (tokens.length >= 3) notes = tokens.slice(2).join(' ');
+    return { port, proto, service, version, notes };
+  }
   port = portProtoMatch[1];
   proto = (portProtoMatch[2] || 'tcp').toLowerCase();
   const tokens = str.slice(portProtoMatch[0].length).trim().split(/\s+/).filter(Boolean);
@@ -1623,9 +1807,12 @@ function parseSvcInput(raw) {
   return { port, proto, service, version, notes };
 }
 
-function getSessionServices() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].services || [];
+function getSessionServices(options = {}) {
+  const entries = getAllSessionServices();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  return entries.filter((entry) => (entry?.target_id || null) === targetId);
 }
 
 function escapeMarkdownTableCell(value) {
@@ -1755,6 +1942,19 @@ function getSessionTargetById(targetId) {
   return targets.find(target => target.id === targetId) || null;
 }
 
+function normalizeSessionTargetId(targetId, { allowSessionWide = true } = {}) {
+  const cleanTargetId = String(targetId || '').trim();
+  if (!cleanTargetId) return allowSessionWide ? null : null;
+  return getSessionTargetById(cleanTargetId)?.id || null;
+}
+
+function requireValidatedSessionTargetId(actionLabel = 'continue') {
+  const targetId = normalizeSessionTargetId(resolveQuickLogTargetId(), { allowSessionWide: false });
+  if (targetId) return targetId;
+  showToast(`⚠ Select a valid session target first to ${actionLabel}`, 'err');
+  return null;
+}
+
 function populateNetworkEnumerationOverview(body, target = null) {
   const resolvedTarget = target || getActiveTarget() || null;
   const ip = resolvedTarget?.ip || '';
@@ -1781,7 +1981,23 @@ function populateNetworkEnumerationOverview(body, target = null) {
 }
 
 function resolveQuickLogTargetId() {
-  return activeTargetId || getActiveTarget()?.id || null;
+  return normalizeSessionTargetId(activeTargetId || getActiveTarget()?.id || null, { allowSessionWide: true });
+}
+
+function isSupportingHelperNoteEnabled(key, sessionId = activeSessionId) {
+  const session = sessionId ? sessions?.[sessionId] : null;
+  if (!session) return true;
+  const settings = typeof ensureSessionGeneratedNoteSettings === 'function'
+    ? ensureSessionGeneratedNoteSettings(session)
+    : (session.generated_notes && typeof session.generated_notes === 'object' && !Array.isArray(session.generated_notes)
+      ? {
+          services_note: session.generated_notes.services_note !== false,
+          session_summary: session.generated_notes.session_summary !== false,
+          network_enumeration: session.generated_notes.network_enumeration !== false,
+          credentials_note: session.generated_notes.credentials_note !== false,
+        }
+      : { services_note: true, session_summary: true, network_enumeration: true, credentials_note: true });
+  return settings?.[key] !== false;
 }
 
 function findTargetNetworkEnumerationNote(targetId) {
@@ -1795,6 +2011,7 @@ function findTargetNetworkEnumerationNote(targetId) {
 
 function ensureTargetNetworkEnumerationNote(targetId) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !activeSessionId || !targetId) return null;
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) return null;
   const target = getSessionTargetById(targetId);
   if (!target) return null;
 
@@ -1844,21 +2061,34 @@ function syncServiceEntryToNetworkEnumerationNote(entry) {
 function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getSessionServices()
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
+  const serviceRows = getAllSessionServices()
     .filter(entry => entry?.target_id === targetId)
     .map(parseServiceForNetworkRow)
     .filter(Boolean);
+  const pathRows = getAllSessionPaths()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parsePathForWebRow)
+    .filter(Boolean);
 
-  let note = findTargetNetworkEnumerationNote(targetId);
-  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && serviceRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
+  if (!serviceRows.length && !pathRows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, rows);
+  let nextBody = replaceNetworkEnumerationTableInBody(withOverview, serviceRows);
   if (!nextBody) {
     const fallbackBody = buildNetworkEnumerationBody(target);
-    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, rows);
+    nextBody = replaceNetworkEnumerationTableInBody(fallbackBody, serviceRows);
   }
   if (!nextBody || nextBody === note.body) return false;
 
@@ -1870,27 +2100,64 @@ function syncSessionServicesToNetworkEnumerationNote(targetId, createIfMissing =
 function syncSessionPathsToNetworkEnumerationNote(targetId, createIfMissing = false) {
   if (!NOTE_TEMPLATES?.['network-enumeration'] || !targetId) return false;
 
-  const rows = getSessionPaths()
+  let note = findTargetNetworkEnumerationNote(targetId);
+  if (!isSupportingHelperNoteEnabled('network_enumeration')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
+  const pathRows = getAllSessionPaths()
     .filter(entry => entry?.target_id === targetId)
     .map(parsePathForWebRow)
     .filter(Boolean);
+  const serviceRows = getAllSessionServices()
+    .filter(entry => entry?.target_id === targetId)
+    .map(parseServiceForNetworkRow)
+    .filter(Boolean);
 
-  let note = findTargetNetworkEnumerationNote(targetId);
-  if (!note && createIfMissing && rows.length) note = ensureTargetNetworkEnumerationNote(targetId);
+  if (!note && createIfMissing && pathRows.length) note = ensureTargetNetworkEnumerationNote(targetId);
   if (!note) return false;
+  if (!pathRows.length && !serviceRows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   const target = getSessionTargetById(targetId);
   const withOverview = populateNetworkEnumerationOverview(note.body || '', target);
-  let nextBody = replaceWebEndpointsTableInBody(withOverview, rows);
+  let nextBody = replaceWebEndpointsTableInBody(withOverview, pathRows);
   if (!nextBody) {
     const fallbackBody = buildNetworkEnumerationBody(target);
-    nextBody = replaceWebEndpointsTableInBody(fallbackBody, rows);
+    nextBody = replaceWebEndpointsTableInBody(fallbackBody, pathRows);
   }
   if (!nextBody || nextBody === note.body) return false;
 
   note.body = nextBody;
   note.updated = Date.now();
   return note;
+}
+
+function removeSyncedSupportingNote(note) {
+  if (!note?.id || !notes[note.id]) return false;
+  delete notes[note.id];
+  const total = Object.keys(notes).length;
+  const wasActive = activeNoteId === note.id;
+  if (wasActive) {
+    activeNoteId = null;
+    if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+  }
+  renderNotesList();
+  renderSessionSidebar();
+  const countEl = document.getElementById('notes-count');
+  if (countEl) countEl.textContent = total || '—';
+  if (wasActive) {
+    const emptyEl = document.getElementById('notesEmpty');
+    const editEl = document.getElementById('noteEditArea');
+    if (emptyEl) emptyEl.style.display = 'flex';
+    if (editEl) editEl.style.display = 'none';
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+  }
+  if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+  return true;
 }
 
 function applySyncedNoteUpdate(note) {
@@ -1909,6 +2176,68 @@ function applySyncedNoteUpdate(note) {
   }
 }
 
+function syncGeneratedNotesAfterMutation() {
+  if (!activeSessionId || typeof syncGeneratedEngagementNotes !== 'function') return;
+  const previousActiveNoteId = activeNoteId;
+  const changed = syncGeneratedEngagementNotes(activeSessionId);
+  if (!changed) return;
+  renderNotesList();
+  renderSessionSidebar();
+  if (previousActiveNoteId && !notes[previousActiveNoteId]) {
+    activeNoteId = null;
+    if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+    document.getElementById('notesEmpty').style.display = 'flex';
+    document.getElementById('noteEditArea').style.display = 'none';
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+    if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+    return;
+  }
+  if (activeNoteId && notes[activeNoteId]?.generated_note === true && notes[activeNoteId]?.session_id === activeSessionId) {
+    applySyncedNoteUpdate(notes[activeNoteId]);
+    if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(notes[activeNoteId]);
+  }
+}
+
+function syncGeneratedFindingNotesAfterMutation() {
+  syncGeneratedNotesAfterMutation();
+}
+
+function syncSupportingHelperNotesForSession(sessionId = activeSessionId) {
+  if (!sessionId || !sessions?.[sessionId] || sessionId !== activeSessionId) return false;
+  let changed = false;
+  const session = sessions[sessionId];
+  const targets = Array.isArray(session.targets) ? session.targets : [];
+
+  if (!isSupportingHelperNoteEnabled('network_enumeration', sessionId)) {
+    Object.values(notes).forEach((note) => {
+      if (note?.session_id === sessionId && note?.type === 'network-enumeration') {
+        changed = removeSyncedSupportingNote(note) || changed;
+      }
+    });
+  } else {
+    targets.forEach((target) => {
+      if (!target?.id) return;
+      const beforeNote = findTargetNetworkEnumerationNote(target.id);
+      const updatedByServices = syncSessionServicesToNetworkEnumerationNote(target.id, true);
+      const updatedByPaths = syncSessionPathsToNetworkEnumerationNote(target.id, true);
+      const afterNote = findTargetNetworkEnumerationNote(target.id);
+      if (updatedByServices || updatedByPaths || beforeNote !== afterNote) changed = true;
+    });
+  }
+
+  if (!isSupportingHelperNoteEnabled('credentials_note', sessionId)) {
+    const existingCredentials = findSessionCredentialsNote();
+    if (existingCredentials) changed = removeSyncedSupportingNote(existingCredentials) || changed;
+  } else {
+    const beforeCredentials = findSessionCredentialsNote();
+    const syncedCredentials = syncSessionLootToCredentialsNote(true);
+    const afterCredentials = findSessionCredentialsNote();
+    if (syncedCredentials || beforeCredentials !== afterCredentials) changed = true;
+  }
+
+  return changed;
+}
+
 function isQuickLogEditing(kind, id) {
   return _editingQuickLog?.kind === kind && _editingQuickLog?.id === id;
 }
@@ -1921,7 +2250,7 @@ function rerenderQuickLogKind(kind) {
   if (kind === 'service') renderSvcLogTable();
   else if (kind === 'path') renderPathTable();
   else if (kind === 'loot') renderLootTable();
-  else if (kind === 'evidence') renderEvidenceList();
+  else if (kind === 'finding') renderFindingsList();
 }
 
 function startQuickLogEdit(kind, id) {
@@ -1953,7 +2282,7 @@ function handleQuickLogEditKeydown(event, kind, id) {
     if (kind === 'service') commitServiceEdit(id);
     else if (kind === 'path') commitPathEdit(id);
     else if (kind === 'loot') commitLootEdit(id);
-    else if (kind === 'evidence') commitEvidenceEdit(id);
+    else if (kind === 'finding') commitFindingEdit(id);
     return;
   }
   if (event.key === 'Escape') {
@@ -1971,7 +2300,7 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
         ? `commitPathEdit('${id}')`
         : kind === 'loot'
           ? `commitLootEdit('${id}')`
-          : `commitEvidenceEdit('${id}')`;
+          : `commitFindingEdit('${id}')`;
     return `
       <div class="ql-row-actions">
         <button class="svc-quick-add-btn ql-row-save-btn" onclick="event.stopPropagation(); ${saveCall}" title="Save row" aria-label="Save row">Save</button>
@@ -1980,8 +2309,16 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
       </div>
     `;
   }
+  
+  const noteButton = kind === 'service' ? `
+    <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); createNoteForService('${id}')" title="Create note for this service" aria-label="Create note for this service">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </button>
+  ` : '';
+  
   return `
     <div class="ql-row-actions">
+      ${noteButton}
       <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('${kind}','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
@@ -1990,18 +2327,12 @@ function renderQuickLogRowActions(kind, id, deleteFnName) {
   `;
 }
 
-function renderEvidenceRowActions(id) {
-  if (isQuickLogEditing('evidence', id)) return renderQuickLogRowActions('evidence', id, 'deleteEvidenceEntry');
+function renderFindingRowActions(id) {
+  if (isQuickLogEditing('finding', id)) return renderQuickLogRowActions('finding', id, 'deleteFindingEntry');
   return `
     <div class="ql-row-actions">
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); jumpToEvidenceSource('${id}')" title="Jump to source" aria-label="Jump to source">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
-      </button>
-      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('evidence','${id}')" title="Edit row" aria-label="Edit row">
+      <button class="svc-del-btn ql-row-edit-btn" onclick="event.stopPropagation(); startQuickLogEdit('finding','${id}')" title="Edit row" aria-label="Edit row">
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      </button>
-      <button class="svc-del-btn ql-row-edit-btn ql-row-unflag-btn" onclick="event.stopPropagation(); deleteEvidenceEntry('${id}')" title="Unflag evidence and keep the note content" aria-label="Unflag evidence and keep the note content">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/><path d="m18 6-9 12"/></svg>
       </button>
     </div>
   `;
@@ -2014,16 +2345,26 @@ function addServiceLog() {
   if (!ensureActiveSession('add a service')) { if (input) input.focus(); return; }
   const parsed = parseSvcInput(raw);
   if (!parsed) return;
+  const normalized = normalizeQuickLogServiceEntry(parsed);
+  if (!normalized.port) {
+    showToast('⚠ Enter a port or a known KB service', 'err');
+    if (input) input.focus();
+    return;
+  }
   if (!sessions[activeSessionId].services) sessions[activeSessionId].services = [];
-  const targetId = resolveQuickLogTargetId();
+  const targetId = requireValidatedSessionTargetId('add a service');
+  if (!targetId) {
+    input.focus();
+    return;
+  }
   const entry = {
     id: `svc_${Date.now()}`,
     target_id: targetId,
-    port: parsed.port,
-    proto: parsed.proto,
-    service: parsed.service,
-    version: parsed.version,
-    notes: parsed.notes,
+    port: normalized.port,
+    proto: normalized.proto,
+    service: normalized.service,
+    version: normalized.version,
+    notes: normalized.notes,
     added: Date.now(),
   };
   sessions[activeSessionId].services.push(entry);
@@ -2034,6 +2375,7 @@ function addServiceLog() {
   renderSvcLogTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function deleteServiceLog(svcId) {
@@ -2045,6 +2387,7 @@ function deleteServiceLog(svcId) {
   saveNotes();
   renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 function updateSvcNotes(svcId, val) {
@@ -2066,21 +2409,107 @@ function commitServiceEdit(svcId) {
   const service = (document.getElementById(`svcEditService_${svcId}`)?.value || '').trim();
   const version = (document.getElementById(`svcEditVersion_${svcId}`)?.value || '').trim();
   const notes = (document.getElementById(`svcEditNotes_${svcId}`)?.value || '').trim();
-  if (!port) {
+  const normalized = normalizeQuickLogServiceEntry({ port, proto, service, version, notes });
+  if (!normalized.port) {
     showToast('⚠ Port cannot be empty', 'err');
     focusQuickLogEditInput(`svcEditPort_${svcId}`);
     return;
   }
-  svc.port = port;
-  svc.proto = proto;
-  svc.service = service;
-  svc.version = version;
-  svc.notes = notes;
+  svc.port = normalized.port;
+  svc.proto = normalized.proto;
+  svc.service = normalized.service;
+  svc.version = normalized.version;
+  svc.notes = normalized.notes;
   clearQuickLogEditing();
   const syncedNetworkNote = svc.target_id ? syncSessionServicesToNetworkEnumerationNote(svc.target_id, false) : false;
   saveNotes();
   renderSvcLogTable();
   applySyncedNoteUpdate(syncedNetworkNote);
+  syncGeneratedNotesAfterMutation();
+}
+
+function createNoteForService(svcId) {
+  if (!activeSessionId) {
+    showToast('No active session', 'err');
+    return;
+  }
+
+  const svcs = getAllSessionServices();
+  const svc = svcs.find(s => s.id === svcId);
+  if (!svc) {
+    showToast('Service not found', 'err');
+    return;
+  }
+
+  const target = svc.target_id ? getSessionTargetById(svc.target_id) : null;
+  const targetIp = target?.ip || getIP();
+  const targetDomain = target?.domain || getDomain();
+
+  const tmpl = typeof resolveTemplateForCreation === 'function'
+    ? resolveTemplateForCreation('recon')
+    : NOTE_TEMPLATES['recon'] || NOTE_TEMPLATES['scratch'];
+
+  const id = 'note_' + Date.now();
+  const portProto = `${svc.port}${svc.proto ? '/' + svc.proto : ''}`;
+  const serviceLabel = svc.service || 'Unknown Service';
+  const title = `${portProto} ${serviceLabel} - ${targetIp !== '<IP>' ? targetIp : 'No Target'}`;
+
+  const existingNote = Object.values(notes).find(n => 
+    n.title === title && n.session_id === activeSessionId
+  );
+  if (existingNote) {
+    showToast('The engagement note already exists', 'warn');
+    return;
+  }
+
+  const contextHeader = [
+    '## Service Context',
+    `- **Port**: ${portProto}`,
+    `- **Service**: ${serviceLabel}`,
+    svc.version ? `- **Version**: ${svc.version}` : null,
+    `- **Target**: ${targetIp !== '<IP>' ? targetIp : 'N/A'}${targetDomain && targetDomain !== '<DOMAIN>' ? ' (' + targetDomain + ')' : ''}`,
+    '',
+    '---',
+    '',
+    '',
+  ].filter(item => item !== null && item !== undefined).join('\n');
+
+  const body = contextHeader + '## Enumeration\n\n\n## Exploitation\n';
+
+  const note = {
+    id,
+    session_id: activeSessionId,
+    target_id: svc.target_id || null,
+    type: 'recon',
+    template_variant: tmpl.variant_id || null,
+    title,
+    body,
+    tags: tmpl.default_tags ? [...tmpl.default_tags, 'service-enumeration'] : ['service-enumeration'],
+    target_ip: targetIp !== '<IP>' ? targetIp : null,
+    target_domain: targetDomain !== '<DOMAIN>' ? targetDomain : null,
+    created: Date.now(),
+    updated: Date.now(),
+  };
+
+  notes[id] = note;
+  saveNotes();
+
+  if (activeSessionId) {
+    tlLog(activeSessionId, {
+      type: 'note_created',
+      noteId: id,
+      noteType: 'recon',
+      targetId: svc.target_id || null,
+      context: `Created from service ${portProto} ${serviceLabel}`
+    });
+  }
+
+  renderNotesList();
+  renderSessionSidebar();
+  switchView('notes', document.getElementById('nav-notes'));
+  openNote(id);
+
+  showToast(`Created note: ${title}`, 'ok');
 }
 
 function renderSvcLogTable() {
@@ -2105,13 +2534,13 @@ function renderSvcLogTable() {
           <td>
             <div class="ql-port-edit-wrap">
               <input class="svc-notes-cell ql-row-input ql-port-input" id="svcEditPort_${s.id}" type="text" value="${esc(s.port || '')}" placeholder="445"
-                onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
+                onclick="event.stopPropagation()" onblur="syncQuickLogServiceEditFields('${s.id}','port')" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
               <input class="svc-notes-cell ql-row-input ql-proto-input" id="svcEditProto_${s.id}" type="text" value="${esc(s.proto || 'tcp')}" placeholder="tcp"
                 onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')">
             </div>
           </td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditService_${s.id}" type="text" value="${esc(s.service || '')}" placeholder="service"
-            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
+            onclick="event.stopPropagation()" onblur="syncQuickLogServiceEditFields('${s.id}','service')" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditVersion_${s.id}" type="text" value="${esc(s.version || '')}" placeholder="version"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'service','${s.id}')"></td>
           <td><input class="svc-notes-cell ql-row-input" id="svcEditNotes_${s.id}" type="text" value="${esc(s.notes || '')}" placeholder="notes…"
@@ -2119,7 +2548,7 @@ function renderSvcLogTable() {
           <td>${renderQuickLogRowActions('service', s.id, 'deleteServiceLog')}</td>
         </tr>` : `
         <tr>
-          <td>${esc(s.port)}${s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:400">/${esc(s.proto)}</span>` : ''}</td>
+          <td>${renderQuickLogKbServiceLink(s) || (esc(s.port) + (s.proto && s.proto !== 'tcp' ? `<span style="color:var(--muted);font-weight:500;font-size:11px">/${esc(s.proto)}</span>` : ''))}</td>
           <td>${esc(s.service || '—')}</td>
           <td style="color:var(--text2)">${esc(s.version || '')}</td>
           <td>${esc(s.notes || '')}</td>
@@ -2130,15 +2559,207 @@ function renderSvcLogTable() {
   if (_editingQuickLog?.kind === 'service') focusQuickLogEditInput(`svcEditPort_${_editingQuickLog.id}`);
 }
 
+function normalizeKbServiceLookupValue(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeKbServiceFileStem(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\.md$/i, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function getQuickLogKbCanonicalServiceSlug(item) {
+  if (!item) return '';
+  const candidates = [item.id, item.file, item.name];
+  for (const candidate of candidates) {
+    const slug = normalizeKbServiceFileStem(candidate || '');
+    if (slug && !/^\d+$/.test(slug)) return slug;
+  }
+  return '';
+}
+
+function parseQuickLogKbPortMeta(portValue) {
+  const match = String(portValue || '').trim().match(/^(\d+)(?:\/([a-z+]+))?/i);
+  if (!match) return { port: '', proto: '' };
+  const protoToken = String(match[2] || '').toLowerCase();
+  let proto = '';
+  if (protoToken.includes('udp')) proto = 'udp';
+  else if (protoToken.includes('tcp')) proto = 'tcp';
+  else if (protoToken.includes('sctp')) proto = 'sctp';
+  return { port: match[1], proto };
+}
+
+function normalizeQuickLogServiceEntry(entry) {
+  if (!entry) return entry;
+  const next = {
+    ...entry,
+    port: String(entry.port || '').trim(),
+    proto: String(entry.proto || 'tcp').trim().toLowerCase() || 'tcp',
+    service: String(entry.service || '').trim(),
+    version: String(entry.version || '').trim(),
+    notes: String(entry.notes || '').trim(),
+  };
+  if (!next.port && !next.service) return next;
+  const kbItem = findKbServiceForQuickLogEntry(next);
+  if (!kbItem) return next;
+  const canonicalService = getQuickLogKbCanonicalServiceSlug(kbItem);
+  const canonicalPort = parseQuickLogKbPortMeta(kbItem.port || '');
+
+  if (next.port) {
+    if (canonicalService) next.service = canonicalService;
+    if (canonicalPort.proto && !String(entry.proto || '').trim()) next.proto = canonicalPort.proto;
+    return next;
+  }
+
+  if (canonicalService) next.service = canonicalService;
+  if (canonicalPort.port) next.port = canonicalPort.port;
+  if (canonicalPort.proto) next.proto = canonicalPort.proto;
+  return next;
+}
+
+function buildQuickLogServiceInputValue(entry) {
+  if (!entry) return '';
+  const parts = [];
+  if (entry.port) {
+    const proto = entry.proto && entry.proto !== 'tcp' ? '/' + entry.proto : '/tcp';
+    parts.push(entry.port + proto);
+  }
+  if (entry.service) parts.push(entry.service);
+  if (entry.version) parts.push(entry.version);
+  if (entry.notes) parts.push(entry.notes);
+  return parts.join(' ').trim();
+}
+
+function normalizeSvcQuickInput() {
+  const input = document.getElementById('svcQuickInput');
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  if (!raw) return;
+  const parsed = parseSvcInput(raw);
+  if (!parsed) return;
+  const normalized = normalizeQuickLogServiceEntry(parsed);
+  input.value = buildQuickLogServiceInputValue(normalized);
+}
+
+function syncQuickLogServiceEditFields(svcId, source = '') {
+  const portEl = document.getElementById('svcEditPort_' + svcId);
+  const protoEl = document.getElementById('svcEditProto_' + svcId);
+  const serviceEl = document.getElementById('svcEditService_' + svcId);
+  if (!portEl || !protoEl || !serviceEl) return;
+  const rawEntry = {
+    port: portEl.value,
+    proto: protoEl.value,
+    service: serviceEl.value,
+    version: '',
+    notes: '',
+  };
+  const normalized = normalizeQuickLogServiceEntry(rawEntry);
+  if (source === 'port') {
+    if (normalized.service) serviceEl.value = normalized.service;
+    if (normalized.proto) protoEl.value = normalized.proto;
+    return;
+  }
+  if (source === 'service' && !String(rawEntry.port || '').trim()) {
+    if (normalized.port) portEl.value = normalized.port;
+    if (normalized.proto) protoEl.value = normalized.proto;
+    if (normalized.service) serviceEl.value = normalized.service;
+  }
+}
+
+function getQuickLogServiceLookupAliases(entry) {
+  const aliases = new Set();
+  const serviceValue = normalizeKbServiceLookupValue(entry?.service || '');
+  const serviceSlug = normalizeKbServiceFileStem(serviceValue);
+  if (serviceSlug) aliases.add(serviceSlug);
+
+  const portValue = String(entry?.port || '').trim();
+  if (portValue === '111') {
+    aliases.add('rpc');
+    aliases.add('rpcbind');
+  }
+  if (portValue === '135') aliases.add('msrpc');
+  if (portValue === '139') aliases.add('netbios');
+  if (portValue === '636') aliases.add('ldaps');
+  if (portValue === '5432') aliases.add('postgresql');
+  if (portValue === '1521') {
+    aliases.add('oracle_db');
+    aliases.add('oracledb');
+  }
+
+  if (serviceValue.includes('rpc')) aliases.add('rpc');
+  if (serviceValue.includes('msrpc') || serviceValue.includes('microsoft rpc')) aliases.add('msrpc');
+  if (serviceValue.includes('netbios')) aliases.add('netbios');
+  if (serviceValue.includes('ldaps')) aliases.add('ldaps');
+  if (serviceValue.includes('postgres')) aliases.add('postgresql');
+  if (serviceValue.includes('oracle')) {
+    aliases.add('oracle_db');
+    aliases.add('oracledb');
+  }
+
+  return Array.from(aliases);
+}
+
+function findKbServiceForQuickLogEntry(entry) {
+  if (!entry || typeof getKbCollection !== 'function') return null;
+  const items = getKbCollection('services') || [];
+  if (!items.length) return null;
+
+  const portValue = String(entry.port || '').trim();
+  const serviceValue = normalizeKbServiceLookupValue(entry.service || '');
+  const lookupAliases = getQuickLogServiceLookupAliases(entry);
+
+  let hit = null;
+  if (portValue) {
+    hit = items.find((item) => String(item.id || '').trim() === portValue)
+      || items.find((item) => String(item.port || '').split('/')[0].trim() === portValue);
+  }
+  if (!hit && lookupAliases.length) {
+    hit = items.find((item) => lookupAliases.includes(String(item.id || '').trim().toLowerCase()))
+      || items.find((item) => lookupAliases.includes(normalizeKbServiceFileStem(item.file || '')))
+      || items.find((item) => normalizeKbServiceLookupValue(item.name || '') === serviceValue);
+  }
+  return hit || null;
+}
+
+function openQuickLogKbService(id) {
+  if (!id) return;
+  closeSvcPopover();
+  if (typeof openItem === 'function') openItem('services', id);
+}
+
+function renderQuickLogKbServiceLink(entry) {
+  const kbItem = findKbServiceForQuickLogEntry(entry);
+  if (!kbItem) return '';
+  const portValue = esc(String(entry?.port || ''));
+  const protoValue = entry?.proto && entry.proto !== 'tcp'
+    ? '<span style="color:var(--muted);font-weight:500;font-size:11px">/' + esc(String(entry.proto || '')) + '</span>'
+    : '';
+  return '<button class="ql-kb-port-btn" type="button" onclick="openQuickLogKbService(\'' + esc(String(kbItem.id || '')) + '\')" title="Open matching KB service">' + portValue + protoValue + '</button>';
+}
+
 function setLootType(btn, type) {
   _activeLootType = type;
   document.querySelectorAll('.loot-type-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
 
-function getSessionLoot() {
-  if (!activeSessionId || !sessions[activeSessionId]) return [];
-  return sessions[activeSessionId].loot || [];
+function getSessionLoot(options = {}) {
+  const entries = getAllSessionLoot();
+  if (options.scoped === false) return entries;
+  const targetId = getQuickLogScopeTargetId();
+  if (!targetId) return entries;
+  const includeSessionWide = options.includeSessionWide !== false;
+  return entries.filter((entry) => {
+    const entryTargetId = entry?.target_id || null;
+    if (!entryTargetId) return includeSessionWide;
+    return entryTargetId === targetId;
+  });
 }
 
 function escapeCredentialsCell(value) {
@@ -2182,7 +2803,7 @@ function parseLootForCredentialsRow(entry) {
     username: escapeCredentialsCell(username),
     password: escapeCredentialsCell(password),
     hash: escapeCredentialsCell(hash),
-    service: escapeCredentialsCell(host),
+    service: escapeCredentialsCell(formatLootTargetSummaryDisplay(entry)),
     notes: escapeCredentialsCell(note),
   };
 }
@@ -2213,17 +2834,18 @@ function parseAndPreviewLoot() {
     return;
   }
 
-  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const host = (document.getElementById('lootHostInput')?.value || '').trim();
   const type = _activeLootType;
-  const existing = new Set(getSessionLoot().map(l => `${l.type}::${l.credential}::${l.host || ''}`));
-  const fresh = _lootParsed.filter(entry => !existing.has(`${type}::${entry.credential}::${host}`));
+  const targetId = getSelectedLootTargetId();
+  const existing = new Set(getSessionLoot({ scoped: false }).map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
+  const fresh = _lootParsed.filter(entry => !existing.has(buildScopedLootKey(type, entry.credential, host, targetId)));
   const dupes = _lootParsed.length - fresh.length;
 
   let html = `<div class="nmap-preview-hdr"><span>${_lootParsed.length}</span> entr${_lootParsed.length === 1 ? 'y' : 'ies'} found`;
   if (dupes) html += ` &nbsp;·&nbsp; <span style="color:var(--muted)">${dupes} already logged</span>`;
   html += `</div><table class="svc-table" style="margin-bottom:4px"><thead><tr><th>Type</th><th>Credential</th><th>Detected</th></tr></thead><tbody>`;
   html += _lootParsed.map(entry => {
-    const isDupe = existing.has(`${type}::${entry.credential}::${host}`);
+    const isDupe = existing.has(buildScopedLootKey(type, entry.credential, host, targetId));
     return `<tr style="${isDupe ? 'opacity:0.4' : ''}"><td>${esc(type)}</td><td>${esc(entry.credential)}</td><td style="color:var(--text2)">${entry.hasSecret ? 'username:secret' : 'username only'}</td></tr>`;
   }).join('');
   html += '</tbody></table>';
@@ -2243,18 +2865,20 @@ function commitLootParse() {
   if (!ensureActiveSession('add loot')) return;
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
 
-  const host = (document.getElementById('lootHostInput')?.value || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const host = (document.getElementById('lootHostInput')?.value || '').trim();
   const note = (document.getElementById('lootNoteInput')?.value || '').trim();
   const type = _activeLootType;
-  const existing = new Set(sessions[activeSessionId].loot.map(l => `${l.type}::${l.credential}::${l.host || ''}`));
+  const targetId = getSelectedLootTargetId();
+  const existing = new Set(getAllSessionLoot().map(l => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   let added = 0;
 
   _lootParsed.forEach((item, idx) => {
-    const key = `${type}::${item.credential}::${host}`;
+    const key = buildScopedLootKey(type, item.credential, host, targetId);
     if (existing.has(key)) return;
     existing.add(key);
     const entry = {
       id: `loot_${Date.now()}_${idx}`,
+      target_id: targetId,
       type,
       credential: item.credential,
       host,
@@ -2270,6 +2894,7 @@ function commitLootParse() {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2288,11 +2913,20 @@ function commitLootParse() {
   showToast(added ? `✓ Added ${added} loot entr${added === 1 ? 'y' : 'ies'}` : 'No new loot entries');
 }
 
+function formatCredentialCellValue(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return `\`${text.replace(/`/g, '\\`')}\``;
+}
+
 function buildCredentialsTableRow(row, mode = 'default') {
+  const username = formatCredentialCellValue(row.username);
+  const password = formatCredentialCellValue(row.password);
+  const hash = formatCredentialCellValue(row.hash);
   if (mode === 'web') {
-    return `| ${row.username} | ${row.password} | ${row.service} |  | ${row.notes} |`;
+    return `| ${username} | ${password} | ${row.service} |  | ${row.notes} |`;
   }
-  return `| ${row.username} | ${row.password} | ${row.hash} | ${row.service} | ${row.notes} |`;
+  return `| ${username} | ${password} | ${hash} | ${row.service} | ${row.notes} |`;
 }
 
 function ensureCredentialsSection(lines) {
@@ -2344,11 +2978,12 @@ function findSessionCredentialsNote() {
 }
 
 function sessionHasCredentialSyncLootEntries() {
-  return getSessionLoot().some(lootEntryShouldSyncToCredentials);
+  return getAllSessionLoot().some(lootEntryShouldSyncToCredentials);
 }
 
 function ensureSessionCredentialsNote() {
   if (!NOTE_TEMPLATES?.credentials || !activeSessionId) return null;
+  if (!isSupportingHelperNoteEnabled('credentials_note')) return null;
   let note = findSessionCredentialsNote();
   if (note) return note;
 
@@ -2385,14 +3020,23 @@ function buildCredentialsBody() {
 function syncSessionLootToCredentialsNote(createIfMissing = false) {
   if (!NOTE_TEMPLATES?.credentials) return false;
 
-  const rows = getSessionLoot()
+  let note = findSessionCredentialsNote();
+  if (!isSupportingHelperNoteEnabled('credentials_note')) {
+    if (note) removeSyncedSupportingNote(note);
+    return false;
+  }
+
+  const rows = getAllSessionLoot()
     .map(parseLootForCredentialsRow)
     .filter(Boolean);
   const shouldEnsureNote = !!createIfMissing || rows.length > 0 || sessionHasCredentialSyncLootEntries();
 
-  let note = findSessionCredentialsNote();
   if (!note && shouldEnsureNote) note = ensureSessionCredentialsNote();
   if (!note) return false;
+  if (!rows.length) {
+    removeSyncedSupportingNote(note);
+    return false;
+  }
 
   let nextBody = replaceCredentialsTableInBody(note.body || '', rows);
   if (!nextBody) {
@@ -2406,21 +3050,23 @@ function syncSessionLootToCredentialsNote(createIfMissing = false) {
   return note;
 }
 
-function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false } = {}) {
+function addLootEntryFromData({ type = 'other', credential = '', host = '', note = '', syncToCredentials = false, targetId = resolveQuickLogTargetId() } = {}) {
   if (!ensureActiveSession('add loot')) return { entry: null, syncedCredentialsNote: false, duplicate: false };
   const cleanCredential = String(credential || '').trim();
   if (!cleanCredential) return { entry: null, syncedCredentialsNote: false, duplicate: false };
   if (!sessions[activeSessionId].loot) sessions[activeSessionId].loot = [];
 
   const cleanType = String(type || 'other').trim() || 'other';
-  const cleanHost = String(host || '').trim() || (getIP() !== '<IP>' ? getIP() : '');
+  const cleanHost = String(host || '').trim();
   const cleanNote = String(note || '').trim();
-  const dupeKey = `${cleanType}::${cleanCredential}::${cleanHost}`;
-  const existing = new Set(sessions[activeSessionId].loot.map((l) => `${l.type}::${l.credential}::${l.host || ''}`));
+  const cleanTargetId = normalizeSessionTargetId(targetId, { allowSessionWide: true });
+  const dupeKey = buildScopedLootKey(cleanType, cleanCredential, cleanHost, cleanTargetId);
+  const existing = new Set(getAllSessionLoot().map((l) => buildScopedLootKey(l.type, l.credential, l.host || '', l.target_id)));
   if (existing.has(dupeKey)) return { entry: null, syncedCredentialsNote: false, duplicate: true };
 
   const entry = {
     id: `loot_${Date.now()}`,
+    target_id: cleanTargetId,
     type: cleanType,
     credential: cleanCredential,
     host: cleanHost,
@@ -2437,6 +3083,7 @@ function addLootEntry() {
   const credEl = document.getElementById('lootCredInput');
   const hostEl = document.getElementById('lootHostInput');
   const noteEl = document.getElementById('lootNoteInput');
+  const targetId = getSelectedLootTargetId();
   const cred = credEl?.value.trim();
   const host = hostEl?.value.trim();
   const note = noteEl?.value.trim();
@@ -2448,6 +3095,7 @@ function addLootEntry() {
     host,
     note,
     syncToCredentials: true,
+    targetId,
   });
   if (!entry) {
     credEl?.focus();
@@ -2460,6 +3108,7 @@ function addLootEntry() {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2484,6 +3133,7 @@ function deleteLootEntry(lootId) {
   saveNotes();
   renderLootTable();
   updateSvcTabCounts();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2507,6 +3157,7 @@ function updateLootNote(lootId, val) {
   entry.note = val;
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
   saveNotes();
+  syncGeneratedNotesAfterMutation();
   if (syncedCredentialsNote) {
     renderNotesList();
     renderSessionSidebar();
@@ -2529,7 +3180,7 @@ function commitLootEdit(lootId) {
   if (!entry) return;
   const type = (document.getElementById(`lootEditType_${lootId}`)?.value || '').trim();
   const credential = (document.getElementById(`lootEditCredential_${lootId}`)?.value || '').trim();
-  const host = (document.getElementById(`lootEditHost_${lootId}`)?.value || '').trim();
+  const targetId = normalizeSessionTargetId((document.getElementById(`lootEditTarget_${lootId}`)?.value || '').trim(), { allowSessionWide: true });
   const note = (document.getElementById(`lootEditNote_${lootId}`)?.value || '').trim();
   if (!credential) {
     showToast('⚠ Credential cannot be empty', 'err');
@@ -2538,7 +3189,7 @@ function commitLootEdit(lootId) {
   }
   entry.type = ['cleartext', 'hash', 'token', 'key', 'other'].includes(type) ? type : 'other';
   entry.credential = credential;
-  entry.host = host;
+  entry.target_id = targetId;
   entry.note = note;
   clearQuickLogEditing();
   const syncedCredentialsNote = syncSessionLootToCredentialsNote(false);
@@ -2546,6 +3197,7 @@ function commitLootEdit(lootId) {
   renderLootTable();
   updateSvcTabCounts();
   applySyncedNoteUpdate(syncedCredentialsNote);
+  syncGeneratedNotesAfterMutation();
 }
 
 const LOOT_TYPE_CSS = {
@@ -2560,7 +3212,7 @@ function renderLootTable() {
   const el = document.getElementById('lootLogTable');
   if (!el) return;
   updateSvcTabCounts();
-  const entries = [...getSessionLoot()].sort((a, b) => (a.added || 0) - (b.added || 0));
+  const entries = [...getSessionLoot({ scoped: false })].sort((a, b) => (a.added || 0) - (b.added || 0));
   if (!entries.length) {
     el.innerHTML = '<div class="svc-empty">No loot logged yet — add credentials, hashes or tokens above</div>';
     return;
@@ -2578,16 +3230,21 @@ function renderLootTable() {
           </td>
           <td><input class="svc-notes-cell ql-row-input" id="lootEditCredential_${l.id}" type="text" value="${esc(l.credential || '')}" placeholder="credential"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
-          <td><input class="svc-notes-cell ql-row-input" id="lootEditHost_${l.id}" type="text" value="${esc(l.host || '')}" placeholder="host"
-            onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
+          <td><select class="svc-notes-cell ql-row-input ql-row-select" id="lootEditTarget_${l.id}" onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')">
+              <option value="">Session-wide</option>
+              ${getSessionTargets().map((targetItem) => {
+                const label = esc([targetItem.ip, targetItem.label, targetItem.domain].filter(Boolean).join(' // ') || 'Unnamed');
+                return `<option value="${esc(targetItem.id)}"${targetItem.id === (l.target_id || '') ? ' selected' : ''}>${label}</option>`;
+              }).join('')}
+            </select></td>
           <td><input class="svc-notes-cell ql-row-input" id="lootEditNote_${l.id}" type="text" value="${esc(l.note || '')}" placeholder="context…"
             onclick="event.stopPropagation()" onkeydown="handleQuickLogEditKeydown(event,'loot','${l.id}')"></td>
           <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>` : `<tr>
           <td><span class="loot-type-badge ${typeCss}">${esc(l.type)}</span></td>
           <td class="loot-cred-cell" onclick="copyLootCred('${l.id}')" title="Click to copy">${esc(l.credential)}</td>
-          <td style="color:var(--text2);white-space:nowrap">${esc(l.host || '—')}</td>
-          <td style="min-width:160px;width:35%">${esc(l.note || '')}</td>
+          <td class="loot-host-cell">${esc(formatLootHostDisplay(l))}</td>
+          <td class="loot-context-cell">${esc(l.note || '')}</td>
           <td>${renderQuickLogRowActions('loot', l.id, 'deleteLootEntry')}</td>
         </tr>`;
       }).join('')}
@@ -2632,16 +3289,26 @@ function buildLootMarkdown(sessionId) {
   return md;
 }
 
-function toggleSvcPopover() {
+function setActiveSvcTopbarButton(buttonId) {
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.toggle('open', id === buttonId);
+  });
+  _activeSvcTopbarButtonId = buttonId || 'svcTopbarPortsBtn';
+}
+
+function openSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  _activeSvcTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  setActiveSvcTopbarButton(buttonId);
   if (document.getElementById('svcPopover')?.classList.contains('open')) {
-    closeSvcPopover();
+    updateUtilitySessionLabel('svcSessionLabel');
+    switchSvcTab(_activeSvcTab);
     return;
   }
   openUtilityPopover({
     popoverId: 'svcPopover',
-    buttonId: 'svcTopbarBtn',
+    buttonId,
     labelId: 'svcSessionLabel',
-    closeOthers: [closeTodoPopover, closeEvidencePopover],
+    closeOthers: [closeTodoPopover, closeFindingsPopover],
     outsideHandler: _svcOutsideClose,
     onOpen: () => {
       updateSvcPopoverLayout();
@@ -2650,25 +3317,31 @@ function toggleSvcPopover() {
       renderLootTable();
       updateSvcTabCounts();
       renderSvcClearAction();
-      setTimeout(() => {
-        const hi = document.getElementById('lootHostInput');
-        if (hi && !hi.value) {
-          const ip = getIP();
-          if (ip !== '<IP>') hi.value = ip;
-        }
-        const inputId = _activeSvcTab === 'ports'
-          ? 'svcQuickInput'
-          : _activeSvcTab === 'loot'
-            ? 'lootCredInput'
-            : 'pathQuickInput';
-        document.getElementById(inputId)?.focus();
-      }, 40);
+      switchSvcTab(_activeSvcTab);
     },
   });
 }
 
+function toggleSvcPopover(tab = 'ports', buttonId = 'svcTopbarPortsBtn') {
+  const popover = document.getElementById('svcPopover');
+  const nextTab = SVC_TAB_CONFIG[tab] ? tab : 'ports';
+  if (popover?.classList.contains('open')) {
+    if (_activeSvcTab === nextTab && _activeSvcTopbarButtonId === buttonId) {
+      closeSvcPopover();
+      return;
+    }
+    openSvcPopover(nextTab, buttonId);
+    return;
+  }
+  openSvcPopover(nextTab, buttonId);
+}
+
 function closeSvcPopover() {
-  closeUtilityPopover('svcPopover', 'svcTopbarBtn', updateSvcPopoverLayout);
+  document.getElementById('svcPopover')?.classList.remove('open');
+  ['svcTopbarPortsBtn', 'svcTopbarPathsBtn', 'svcTopbarLootBtn'].forEach((id) => {
+    document.getElementById(id)?.classList.remove('open');
+  });
+  updateSvcPopoverLayout();
 }
 
 function _svcOutsideClose(e) {
@@ -2690,7 +3363,7 @@ function toggleTodoPopover() {
     popoverId: 'todoPopover',
     buttonId: 'todoTopbarBtn',
     labelId: 'todoSessionLabel',
-    closeOthers: [closeSvcPopover, closeEvidencePopover],
+    closeOthers: [closeSvcPopover, closeFindingsPopover],
     outsideHandler: _todoOutsideClose,
     onOpen: () => {
       renderTodoList();
@@ -2713,33 +3386,33 @@ function _todoOutsideClose(e) {
   }
 }
 
-function toggleEvidencePopover() {
-  if (document.getElementById('evidencePopover')?.classList.contains('open')) {
-    closeEvidencePopover();
+function toggleFindingsPopover() {
+  if (document.getElementById('findingsPopover')?.classList.contains('open')) {
+    closeFindingsPopover();
     return;
   }
   openUtilityPopover({
-    popoverId: 'evidencePopover',
-    buttonId: 'evidenceTopbarBtn',
-    labelId: 'evidenceSessionLabel',
+    popoverId: 'findingsPopover',
+    buttonId: 'findingsTopbarBtn',
+    labelId: 'findingsSessionLabel',
     closeOthers: [closeSvcPopover, closeTodoPopover],
-    outsideHandler: _evidenceOutsideClose,
+    outsideHandler: _findingsOutsideClose,
     onOpen: () => {
-      renderEvidenceList();
+      renderFindingsList();
     },
   });
 }
 
-function closeEvidencePopover() {
-  closeUtilityPopover('evidencePopover', 'evidenceTopbarBtn');
+function closeFindingsPopover() {
+  closeUtilityPopover('findingsPopover', 'findingsTopbarBtn');
 }
 
-function _evidenceOutsideClose(e) {
-  if (isEventInsideWrap(e, 'evidenceTopbarWrap')) {
-    if (document.getElementById('evidencePopover')?.classList.contains('open')) {
-      reopenUtilityOutsideListener(_evidenceOutsideClose);
+function _findingsOutsideClose(e) {
+  if (isEventInsideWrap(e, 'findingsTopbarWrap')) {
+    if (document.getElementById('findingsPopover')?.classList.contains('open')) {
+      reopenUtilityOutsideListener(_findingsOutsideClose);
     }
   } else {
-    closeEvidencePopover();
+    closeFindingsPopover();
   }
 }

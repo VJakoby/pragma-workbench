@@ -142,20 +142,36 @@ function buildAttachmentManifestFromNotes(notes) {
   return manifest;
 }
 
-function cleanupAttachmentStore(sessionsDir, manifest = {}) {
+function cleanupAttachmentStore(sessionsDir, manifest = {}, opts = {}) {
   const root = buildAttachmentRoot(sessionsDir);
   if (!fs.existsSync(root)) return;
 
+  const preferredMode = String(opts?.preferredMode || 'mixed').trim().toLowerCase();
   const allowedByDir = new Map();
   Object.entries(manifest || {}).forEach(([noteId, filenames]) => {
     const safeNoteId = sanitizePathSegment(noteId, '');
     if (!safeNoteId) return;
-    const expected = new Set(
-      (Array.isArray(filenames) ? filenames : [])
-        .map((name) => normalizeAttachmentFilename(name))
-        .filter(Boolean)
-        .flatMap((name) => [name, `${name}.enc`])
-    );
+    const expected = new Set();
+    (Array.isArray(filenames) ? filenames : [])
+      .map((name) => normalizeAttachmentFilename(name))
+      .filter(Boolean)
+      .forEach((name) => {
+        const resolved = resolveAttachmentPaths(sessionsDir, safeNoteId, name);
+        const rawExists = fs.existsSync(resolved.rawPath);
+        const encExists = fs.existsSync(resolved.encryptedPath);
+        if (preferredMode === 'raw') {
+          if (rawExists || !encExists) expected.add(name);
+          else expected.add(name + '.enc');
+          return;
+        }
+        if (preferredMode === 'encrypted') {
+          if (encExists || !rawExists) expected.add(name + '.enc');
+          else expected.add(name);
+          return;
+        }
+        expected.add(name);
+        expected.add(name + '.enc');
+      });
     allowedByDir.set(safeNoteId, expected);
   });
 

@@ -19,6 +19,8 @@ function setContentPanelHeader(icon, title, meta, opts = {}) {
   const iconEl = document.getElementById('cpIcon');
   const titleEl = document.getElementById('cpTitle');
   const metaEl = document.getElementById('cpMeta');
+  const pathRowEl = document.getElementById('cpPathRow');
+  const pathEl = document.getElementById('cpPath');
   const showIcon = opts.showIcon !== false;
   if (iconEl) {
     iconEl.innerHTML = showIcon ? icon : '';
@@ -26,6 +28,9 @@ function setContentPanelHeader(icon, title, meta, opts = {}) {
   }
   if (titleEl) titleEl.textContent = title || '';
   if (metaEl) metaEl.textContent = meta || '';
+  const pathValue = typeof opts.path === 'string' ? opts.path.trim() : '';
+  if (pathEl) pathEl.textContent = pathValue;
+  if (pathRowEl) pathRowEl.style.display = pathValue ? '' : 'none';
 }
 
 function setContentPanelAccent(accent) {
@@ -54,6 +59,74 @@ function clearContentPanelCreateState() {
   setContentPanelCreateState(null);
 }
 
+function getKbRelativeContentPath(view, doc = {}) {
+  const file = String(doc.file || '').trim();
+  const folder = String(doc.folder || '').trim();
+  const subfolder = String(doc.subfolder || '').trim();
+  if (!file) return '';
+  if (view === 'services') return ['services', folder, file].filter(Boolean).join('/');
+  if (view === 'tactics') return ['tactics', folder, file].filter(Boolean).join('/');
+  if (typeof view === 'string' && view.startsWith('kb:')) return [view.slice(3), subfolder, file].filter(Boolean).join('/');
+  return file;
+}
+
+
+async function deleteActiveKbDocument() {
+  if (!activeDoc?.isLocal || activeDoc?.isBrowser || !activeDoc?.id || !activeDoc?.view) return;
+
+  const deletingTitle = activeDoc.title || activeDoc.id;
+  const deletingView = activeDoc.view;
+  const backState = contentPanelBackState ? { ...contentPanelBackState } : null;
+  const isEditingDirty = typeof isKbEditModeOpen === 'function' && isKbEditModeOpen() && typeof cpEditDirty !== 'undefined' && cpEditDirty;
+  const description = isEditingDirty
+    ? 'This KB document will be permanently deleted. Unsaved changes will be lost.'
+    : 'This KB document will be permanently deleted.';
+
+  try {
+    await showConfirmDialog({
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+      title: 'Delete KB Document',
+      bigIcon: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+      description: description + '<div style="margin-top:8px;color:var(--muted);font-family:&quot;JetBrains Mono&quot;, monospace;font-size:12px">' + esc(deletingTitle) + '</div>',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+  } catch {
+    return;
+  }
+
+  if (typeof cpEditSaveTimer !== 'undefined' && cpEditSaveTimer) clearTimeout(cpEditSaveTimer);
+  if (typeof cpEditSavePromise !== 'undefined' && cpEditSavePromise) {
+    try { await cpEditSavePromise; } catch (_) {}
+  }
+
+  const response = await fetch('/api/kb/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: activeDoc.id, view: deletingView }),
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    showToast(payload.error || 'Could not delete KB document');
+    return;
+  }
+
+  if (typeof refreshKbView === 'function') {
+    await refreshKbView(deletingView);
+  }
+
+  if (backState?.type === 'kb-browser' && typeof openKbBrowserInPanel === 'function') {
+    openKbBrowserInPanel(backState.view, {
+      folder: backState.folder || '',
+      title: backState.label || backState.title || '',
+    });
+  } else {
+    closeContent();
+  }
+
+  showToast('Deleted');
+}
+
 function getContentPanelSearchRoot() {
   return document.getElementById('cpContentInner') || document.getElementById('cpContent');
 }
@@ -71,8 +144,18 @@ function updateContentPanelSearchCount() {
   const countEl = document.getElementById('cpSearchCount');
   const prevBtn = document.getElementById('cpSearchPrevBtn');
   const nextBtn = document.getElementById('cpSearchNextBtn');
-  const total = contentPanelSearchState.matches.length;
-  const active = total ? contentPanelSearchState.activeIndex + 1 : 0;
+
+  let total = 0;
+  let active = 0;
+  if (isKbEditModeOpen() && kbEditor && typeof getKbEditorSearchMetrics === 'function') {
+    const metrics = getKbEditorSearchMetrics();
+    total = metrics.total;
+    active = metrics.active;
+  } else {
+    total = contentPanelSearchState.matches.length;
+    active = total ? contentPanelSearchState.activeIndex + 1 : 0;
+  }
+
   if (countEl) countEl.textContent = total ? `${active} / ${total}` : '0';
   if (prevBtn) prevBtn.disabled = total === 0;
   if (nextBtn) nextBtn.disabled = total === 0;
@@ -137,6 +220,13 @@ function applyContentPanelSearch() {
     updateContentPanelSearchCount();
     return;
   }
+  
+  if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+    searchInKbEditor(query);
+    updateContentPanelSearchCount();
+    return;
+  }
+  
   contentPanelSearchState.matches = collectContentPanelSearchMatches(query);
   contentPanelSearchState.activeIndex = contentPanelSearchState.matches.length ? 0 : -1;
   scrollToActiveContentPanelSearchMatch();
@@ -152,6 +242,9 @@ function setContentPanelSearchVisible(visible) {
     contentPanelSearchState.matches = [];
     contentPanelSearchState.activeIndex = -1;
     clearContentPanelSearchMarks();
+    if (isKbEditModeOpen() && kbEditor && typeof searchInKbEditor === 'function') {
+      searchInKbEditor('');
+    }
   }
   updateContentPanelSearchCount();
 }
@@ -162,6 +255,16 @@ function updateContentPanelSearch() {
 }
 
 function stepContentPanelSearch(direction = 1) {
+  if (isKbEditModeOpen() && kbEditor && CM?.findNext && CM?.findPrevious) {
+    if (direction > 0) {
+      CM.findNext(kbEditor);
+    } else {
+      CM.findPrevious(kbEditor);
+    }
+    updateContentPanelSearchCount();
+    return;
+  }
+  
   const total = contentPanelSearchState.matches.length;
   if (!total) return;
   contentPanelSearchState.activeIndex = (contentPanelSearchState.activeIndex + direction + total) % total;
@@ -208,11 +311,20 @@ function goBackContentPanel() {
 }
 
 function injectTargets(rawHtml, opts = {}) {
-  const ip     = esc(getIP());
-  const domain = esc(getDomain());
-  const label  = esc(getTargetLabelValue());
-  const attacker = esc(getAttackerIP());
+  const rawIp = getIP();
+  const rawDomain = getDomain();
+  const rawLabel = getTargetLabelValue();
+  const rawAttacker = getAttackerIP();
+  const ipSet = rawIp !== '<IP>';
+  const domainSet = rawDomain !== '<DOMAIN>';
+  const labelSet = rawLabel !== '<LABEL>';
+  const attackerSet = rawAttacker !== '<ATTACKER-IP>';
+  const ip     = esc(rawIp);
+  const domain = esc(rawDomain);
+  const label  = esc(rawLabel);
+  const attacker = esc(rawAttacker);
   const span   = (val, cls = 'ip-injected') => `<span class="${cls}">${val}</span>`;
+  const unsetBadge = (text) => `<span class="ip-injected ip-injected-unset">${text}</span>`;
   const matcherFactory = globalThis.PRAGMA_PLACEHOLDERS?.getPlaceholderMatchers;
   if (typeof matcherFactory !== 'function') return rawHtml;
   const {
@@ -225,17 +337,27 @@ function injectTargets(rawHtml, opts = {}) {
     includeBare: opts.includeBare === true,
   });
 
+  function combinePatterns(patterns) {
+    const source = patterns.map(p => '(?:' + p.source + ')').join('|');
+    return new RegExp(source, 'gi');
+  }
+
+  const ipCombined = combinePatterns(ipPatterns);
+  const domainCombined = combinePatterns(domainPatterns);
+  const labelCombined = combinePatterns(labelPatterns);
+  const attackerCombined = combinePatterns(attackerPatterns);
+
   let out = rawHtml;
-  for (const p of ipPatterns) out = out.replace(p, span(ip, 'ip-injected ip-injected-ip'));
-  for (const p of domainPatterns) out = out.replace(p, span(domain, 'ip-injected ip-injected-domain'));
-  for (const p of labelPatterns) out = out.replace(p, span(label, 'ip-injected ip-injected-label'));
-  for (const p of attackerPatterns) out = out.replace(p, span(attacker, 'ip-injected ip-injected-attacker'));
+  out = out.replace(ipCombined, ipSet ? span(ip, 'ip-injected ip-injected-ip') : unsetBadge('[IP NOT SET]'));
+  out = out.replace(domainCombined, domainSet ? span(domain, 'ip-injected ip-injected-domain') : unsetBadge('[DOMAIN NOT SET]'));
+  out = out.replace(labelCombined, labelSet ? span(label, 'ip-injected ip-injected-label') : unsetBadge('[LABEL NOT SET]'));
+  out = out.replace(attackerCombined, attackerSet ? span(attacker, 'ip-injected ip-injected-attacker') : unsetBadge('[ATTACKER NOT SET]'));
 
   return out;
 }
 
 function injectTargetsInCodeLine(rawLine) {
-  return injectTargets(esc(rawLine), { includeBare: true });
+  return injectTargets(esc(rawLine));
 }
 
 function copyIconSvg() {
@@ -271,7 +393,7 @@ function wrapCodeBlocks(container) {
       codeEl.textContent = rawText;
       delete codeEl.dataset.hljsDone;
       highlightCodeBlock(codeEl);
-      codeEl.innerHTML = injectTargets(codeEl.innerHTML, { includeBare: true });
+      codeEl.innerHTML = injectTargets(codeEl.innerHTML);
 
       if (!copyBtn) {
         copyBtn = document.createElement('button');
@@ -334,7 +456,7 @@ function wrapInlineCodes(container) {
     if (el.dataset.inlineWrapped) return;
     el.dataset.inlineWrapped = '1';
 
-    el.innerHTML = injectTargets(el.innerHTML, { includeBare: true });
+    el.innerHTML = injectTargets(el.innerHTML);
     el.style.cursor = 'pointer';
     el.title = 'Click to copy';
 
@@ -440,17 +562,25 @@ async function openItem(view, id) {
     const meta = view === 'services'
       ? `${d.port} · ${d.category}`
       : `${d.category} · ${d.wordCount} words`;
+    const relativePath = getKbRelativeContentPath(view, {
+      file: d.file || itemMeta?.file || '',
+      folder: itemMeta?.folder || d.folder || '',
+      subfolder: d.subfolder || itemMeta?.subfolder || '',
+    });
     activeDoc = {
       html: d.html,
       raw: d.raw,
       icon: d.icon || ICONS.notes,
       title: d.name,
       meta,
+      path: relativePath,
       id,
       view,
       isLocal: true,
       folder: itemMeta?.folder || '',
       category: itemMeta?.category || d.category || '',
+      file: d.file || itemMeta?.file || '',
+      subfolder: d.subfolder || itemMeta?.subfolder || '',
     };
     persistContentPanelLocation({
       contentPanelKind: 'kb-item',
@@ -463,9 +593,10 @@ async function openItem(view, id) {
     if (wasEditing && typeof syncKbEditorToActiveDoc === 'function') {
       syncKbEditorToActiveDoc();
     } else {
-      renderContent(d.html, d.icon || ICONS.notes, d.name, meta);
+      renderContent(d.html, d.icon || ICONS.notes, d.name, meta, '', { path: relativePath });
     }
     document.getElementById('cpEditBtn').style.display = '';
+    document.getElementById('cpDeleteBtn').style.display = '';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `<p style="color:var(--red)">Error: ${esc(e.message || 'Unknown error')}</p>`;
   }
@@ -511,6 +642,7 @@ async function openPreviewByPath(title, filePath, query = '', sourceId = '', sou
     renderContentPanelTabs(activeDoc);
     renderContent(d.html, ICONS.search, title, meta, query);
     document.getElementById('cpEditBtn').style.display = 'none';
+  document.getElementById('cpDeleteBtn').style.display = 'none';
   } catch (e) {
     document.getElementById('cpContent').innerHTML = `
       <div style="padding:40px 24px;color:var(--red);font-family:'Inter',sans-serif">
@@ -531,6 +663,8 @@ function makeCollapsible(container) {
   if (!headings.length) return;
 
   headings.forEach(heading => {
+    if (heading.classList.contains('kb-heading-toggle')) return;
+
     const level = parseInt(heading.tagName[1]);
     const siblings = [];
     let node = heading.nextSibling;
@@ -558,9 +692,9 @@ function makeCollapsible(container) {
   });
 }
 
-function renderContent(html, icon, title, meta, query = '') {
+function renderContent(html, icon, title, meta, query = '', opts = {}) {
   const isLocalKbDoc = !query && !!activeDoc?.isLocal && !activeDoc?.isBrowser;
-  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc });
+  setContentPanelHeader(icon, title, meta || '', { showIcon: !isLocalKbDoc, path: opts.path || '' });
   const el = document.getElementById('cpContent');
   const renderedHtml = html;
 
@@ -574,13 +708,13 @@ function renderContent(html, icon, title, meta, query = '') {
       </div>`;
     const inner = document.getElementById('cpContentInner');
     inner.innerHTML = renderedHtml;
-    wrapCodeBlocks(inner);
-    wrapInlineCodes(inner);
+    try { wrapCodeBlocks(inner); } catch (_) {}
+    try { wrapInlineCodes(inner); } catch (_) {}
     makeCollapsible(inner);
   } else {
     el.innerHTML = renderedHtml;
-    wrapCodeBlocks(el);
-    wrapInlineCodes(el);
+    try { wrapCodeBlocks(el); } catch (_) {}
+    try { wrapInlineCodes(el); } catch (_) {}
     makeCollapsible(el);
   }
 
@@ -604,4 +738,5 @@ function closeContent() {
   setContentPanelSearchVisible(false);
   exitEditMode();
   document.getElementById('cpEditBtn').style.display = 'none';
+  document.getElementById('cpDeleteBtn').style.display = 'none';
 }

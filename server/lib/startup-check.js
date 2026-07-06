@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadTemplateFile } = require('./note-templates');
 
 function probeDirectoryWritable(dir, label, results) {
   const probe = path.join(dir, `.pragma-write-test-${process.pid}-${Date.now()}`);
@@ -20,16 +21,15 @@ function validateTemplatesFile(templatesFile, results) {
     results.push({ level: 'warn', msg: `Templates file missing: ${templatesFile} — built-in fallback will be used` });
     return;
   }
-  try {
-    const raw = JSON.parse(fs.readFileSync(templatesFile, 'utf8'));
-    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.templates)) {
-      results.push({ level: 'error', msg: `Templates file invalid: ${path.basename(templatesFile)} must contain a top-level templates array` });
-      return;
-    }
-    results.push({ level: 'ok', msg: `Templates file OK: ${path.basename(templatesFile)} (${raw.templates.length} templates)` });
-  } catch (err) {
-    results.push({ level: 'error', msg: `Templates file unreadable: ${path.basename(templatesFile)} (${err.message})` });
+  const loaded = loadTemplateFile(templatesFile);
+  if (!loaded.ok) {
+    loaded.errors.forEach((error) => results.push({ level: 'error', msg: `Templates invalid: ${error}` }));
+    return;
   }
+  results.push({
+    level: 'ok',
+    msg: `Templates file OK: ${path.basename(templatesFile)} (${loaded.templates.length} templates)`,
+  });
 }
 
 async function probeHttpEndpoint(label, enabled, url) {

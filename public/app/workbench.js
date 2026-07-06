@@ -37,6 +37,79 @@ const NOTE_TEMPLATES_FALLBACK = {
 let NOTE_TEMPLATES = { ...NOTE_TEMPLATES_FALLBACK };
 const NOTE_TEMPLATE_VARIANT_SELECTIONS = {};
 let NOTE_TEMPLATE_WARNING_SHOWN = false;
+let shouldPromptForSessionOnStartup = false;
+let welcomeSessionMode = 'first-run';
+const WELCOME_SESSION_SEEN_KEY = 'ops-welcome-last-seen';
+const WELCOME_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+
+const DEFAULT_GENERATED_NOTE_SETTINGS = Object.freeze({
+  services_note: true,
+  session_summary: true,
+  network_enumeration: true,
+  credentials_note: true,
+});
+
+function normalizeSessionGeneratedNoteSettings(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return {
+    services_note: source.services_note !== false,
+    session_summary: source.session_summary !== false,
+    network_enumeration: source.network_enumeration !== false,
+    credentials_note: source.credentials_note !== false,
+  };
+}
+
+function ensureSessionGeneratedNoteSettings(session) {
+  if (!session || typeof session !== 'object' || Array.isArray(session)) {
+    return { ...DEFAULT_GENERATED_NOTE_SETTINGS };
+  }
+  const normalized = normalizeSessionGeneratedNoteSettings(session.generated_notes);
+  session.generated_notes = normalized;
+  return normalized;
+}
+
+function normalizeLoadedWorkbenchState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { notes: {}, sessions: {} };
+  }
+  const hasCompositeShape = Object.prototype.hasOwnProperty.call(raw, 'notes')
+    || Object.prototype.hasOwnProperty.call(raw, 'sessions');
+  const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
+    ? Object.fromEntries(Object.entries(raw.sessions).map(([id, session]) => {
+        const nextSession = session && typeof session === 'object' && !Array.isArray(session)
+          ? { ...session, generated_notes: normalizeSessionGeneratedNoteSettings(session.generated_notes) }
+          : session;
+        return [id, nextSession];
+      }))
+    : {};
+  const rawNotesState = hasCompositeShape
+    ? (raw.notes && typeof raw.notes === 'object' && !Array.isArray(raw.notes) ? raw.notes : {})
+    : raw;
+  const sessionIds = new Set(Object.keys(sessionsState));
+  const hasSessions = sessionIds.size > 0;
+  const notesState = hasSessions
+    ? Object.fromEntries(Object.entries(rawNotesState || {}).filter(([, note]) => {
+        if (!note || typeof note !== 'object' || Array.isArray(note)) return false;
+        const sessionId = note.session_id == null ? null : String(note.session_id || '').trim();
+        return !!sessionId && sessionIds.has(sessionId);
+      }))
+    : {};
+  return {
+    notes: notesState,
+    sessions: sessionsState,
+  };
+}
+
+function hasMeaningfulWorkbenchState(state) {
+  if (!state || typeof state !== 'object') return false;
+  return Object.keys(state.notes || {}).length > 0 || Object.keys(state.sessions || {}).length > 0;
+}
+
+function preferNonEmptyWorkbenchState(primary, fallback) {
+  if (hasMeaningfulWorkbenchState(primary)) return primary;
+  if (hasMeaningfulWorkbenchState(fallback)) return fallback;
+  return primary;
+}
 
 function getFallbackTemplates() {
   return Object.fromEntries(Object.entries(NOTE_TEMPLATES_FALLBACK).map(([id, tmpl]) => [id, { ...tmpl }]));
@@ -151,7 +224,7 @@ function getEncryptedCache() {
 
 async function loadNoteTemplates() {
   try {
-    const r = await fetch(TEMPLATES_PATH);
+    const r = await fetch(TEMPLATES_PATH, { cache: 'no-store' });
     const d = await r.json();
     if (!d.templates || !d.templates.length) {
       console.log('[Templates] No templates file or empty — using hardcoded fallback');
@@ -221,7 +294,6 @@ function renderNoteTypeGrid() {
 
 function updateEncryptedStorageUI() {
   const btn      = document.getElementById('encStorageBtn');
-  const dlBtn    = document.getElementById('encDownloadBtn');
   const bakBtn   = document.getElementById('bakDownloadBtn');
   const sidebar  = document.querySelector('.sidebar');
   if (!btn) return;
@@ -234,8 +306,16 @@ function updateEncryptedStorageUI() {
   btn.innerHTML = '<span style="display:flex;align-items:center;gap:5px">' + ICONS.lock + ' Encrypted Workbench</span>';
   btn.title = locked ? 'Encrypted Workbench (Locked)' : active ? 'Encrypted Workbench (Enabled)' : 'Encrypted Workbench';
   btn.setAttribute('aria-label', btn.title);
-  if (dlBtn) dlBtn.style.display = encryptedStorageEnabled ? '' : 'none';
-  if (bakBtn) bakBtn.style.display = encryptedStorageEnabled ? 'none' : '';
+  if (bakBtn) {
+    bakBtn.style.display = '';
+    bakBtn.title = encryptedStorageEnabled ? 'Download encrypted workbench backup' : 'Download latest backup';
+    bakBtn.setAttribute('aria-label', bakBtn.title);
+  }
+}
+
+async function downloadCurrentWorkbenchBackup() {
+  if (encryptedStorageEnabled) return downloadWorkbench();
+  return downloadBackup();
 }
 
 async function downloadWorkbench() {
@@ -348,9 +428,10 @@ async function toggleEncryptedStorage(e) {
     encryptedStoragePassword = pw1.password;
     encryptedStorageHint     = pw1.hint || '';
     updateEncryptedStorageUI();
+    let attachmentMigration = null;
     try {
       if (typeof migrateNoteAttachmentsStorage === 'function') {
-        await migrateNoteAttachmentsStorage('encrypted');
+        attachmentMigration = await migrateNoteAttachmentsStorage('encrypted');
       }
     } catch (err) {
       encryptedStorageEnabled = false;
@@ -359,6 +440,10 @@ async function toggleEncryptedStorage(e) {
       updateEncryptedStorageUI();
       showToast('⚠ Attachment encryption failed: ' + (err.message || 'unknown error'), 'err');
       return;
+    }
+    if (attachmentMigration?.preservedEncryptedCount) {
+      const count = attachmentMigration.preservedEncryptedCount;
+      showToast('⚠ Preserved ' + count + ' existing encrypted attachment' + (count === 1 ? '' : 's') + ' as-is during migration', 'err');
     }
     if (typeof refreshRenderedMarkdownSurfaces === 'function') await refreshRenderedMarkdownSurfaces();
     await saveNotes({ reason: 'enable-encrypted-storage', immediate: true });
@@ -416,6 +501,7 @@ async function toggleEncryptedStorage(e) {
 }
 
 async function initNotes() {
+  const cachedLocalState = normalizeLoadedWorkbenchState(JSON.parse(localStorage.getItem('ops-notes-v2') || '{}'));
   try {
     const r = await fetch('/api/notes');
     const d = await r.json();
@@ -444,13 +530,11 @@ async function initNotes() {
       encryptedStorageHint     = encObj.hint || '';
       updateEncryptedStorageUI();
       const parsed = JSON.parse(plain);
-      notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-      sessions = parsed.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
       setEncryptedCache(encObj);
       localStorage.removeItem('ops-notes-v2');
     } else {
-      notes    = (d.notes !== undefined ? d.notes : d) || {};
-      sessions = d.sessions || {};
+      ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(d), cachedLocalState));
       localStorage.setItem('ops-notes-v2', JSON.stringify({ notes, sessions }));
       clearEncryptedCache();
       encryptedStorageEnabled  = false;
@@ -487,15 +571,13 @@ async function initNotes() {
           encryptedStorageHint     = encObj.hint || '';
           updateEncryptedStorageUI();
           const parsed = JSON.parse(plain);
-          notes    = (parsed.notes !== undefined ? parsed.notes : parsed) || {};
-          sessions = parsed.sessions || {};
+          ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(parsed), cachedLocalState));
           setEncryptedCache(encObj);
         }
       }
       if (!encryptedStorageEnabled) {
         const cached = JSON.parse(localStorage.getItem('ops-notes-v2') || '{}');
-        notes    = cached.notes || {};
-        sessions = cached.sessions || {};
+        ({ notes, sessions } = preferNonEmptyWorkbenchState(normalizeLoadedWorkbenchState(cached), cachedLocalState));
       }
     } catch (innerErr) {
       if (innerErr.message && (innerErr.message.includes('decrypt') || innerErr.message.includes('Password') || innerErr.message.includes('Incorrect') || innerErr.message.includes('cancelled') || innerErr.message.includes('required'))) {
@@ -507,8 +589,16 @@ async function initNotes() {
   }
 
   const savedSid = localStorage.getItem('ops-active-session');
-  if (savedSid && sessions[savedSid]) activeSessionId = savedSid;
-  else if (Object.keys(sessions).length) activeSessionId = Object.keys(sessions)[0];
+  const hasSessions = Object.keys(sessions || {}).length > 0;
+  const welcomeExpired = hasWelcomeSessionTimeoutExpired();
+  if (savedSid && sessions[savedSid]) {
+    activeSessionId = savedSid;
+    shouldPromptForSessionOnStartup = welcomeExpired;
+  } else {
+    activeSessionId = null;
+    shouldPromptForSessionOnStartup = true;
+  }
+  welcomeSessionMode = hasSessions ? 'returning' : 'first-run';
 
   renderSessionSidebar();
   renderNotesList();
@@ -522,6 +612,8 @@ async function initNotes() {
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+  } else {
+    activeTargetId = null;
   }
   if (sess && (!sess.targets || !sess.targets.length) && (sess.target_ip || sess.target_domain)) {
     const id = 'tgt_migrate_' + sess.id;
@@ -535,10 +627,42 @@ async function initNotes() {
   renderPathTable();
   renderLootTable();
   updateSvcTabCounts();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
 }
 
 async function executeAppSave() {
+  const activeGeneratedNote = activeNoteId ? notes[activeNoteId] : null;
+  const activeGeneratedNoteId = activeGeneratedNote?.generated_note === true ? activeNoteId : null;
+
+  if (activeGeneratedNoteId && typeof syncActiveNoteDraft === 'function') {
+    syncActiveNoteDraft(activeGeneratedNoteId);
+  }
+  if (activeGeneratedNoteId && activeGeneratedNote?.generated_kind === 'target_findings' && typeof syncGeneratedFindingEntriesFromNote === 'function') {
+    syncGeneratedFindingEntriesFromNote(activeGeneratedNoteId);
+  }
+
+  const generatedNotesChanged = typeof syncGeneratedEngagementNotes === 'function'
+    ? syncGeneratedEngagementNotes(activeSessionId)
+    : false;
+  if (generatedNotesChanged) {
+    if (typeof renderNotesList === 'function') renderNotesList();
+    if (typeof renderSessionSidebar === 'function') renderSessionSidebar();
+    if (activeGeneratedNoteId && !notes[activeGeneratedNoteId]) {
+      activeNoteId = null;
+      if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+      document.getElementById('notesEmpty').style.display = 'flex';
+      document.getElementById('noteEditArea').style.display = 'none';
+      if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+      if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+    } else if (activeGeneratedNoteId && notes[activeGeneratedNoteId]?.generated_note === true) {
+      const activeNote = notes[activeGeneratedNoteId];
+      const titleInput = document.getElementById('noteTitleInput');
+      if (titleInput && activeNote) titleInput.value = activeNote.title || '';
+      if (typeof invalidateNotePreviewCache === 'function') invalidateNotePreviewCache();
+    } else if (activeNoteId && notes[activeNoteId]?.generated_note === true && typeof openNote === 'function') {
+      openNote(activeNoteId);
+    }
+  }
   const payload = { notes, sessions };
   const attachmentManifest = typeof buildAttachmentManifestFromClientNotes === 'function'
     ? buildAttachmentManifestFromClientNotes(notes)
@@ -595,7 +719,7 @@ function renderSessionSidebar() {
     name.textContent = sess.codename;
     name.title = sess.codename || '';
     if (card) card.title = sess.codename || 'Sessions';
-    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : '— click to set';
+    const targetLabel = activeTarget ? (activeTarget.label || activeTarget.ip || activeTarget.domain || 'target') : (sess.domain || '— click to set');
     target.textContent = targetLabel;
     target.style.display = '';
     const badge = document.getElementById('sessionNotesBadge');
@@ -622,10 +746,13 @@ function renderSessionSidebar() {
 
 function openSessionModal() {
   document.getElementById('newSessionName').value = '';
+  document.getElementById('newSessionDomain').value = '';
   document.getElementById('newSessionTargetIP').value = '';
   document.getElementById('newSessionTargetDomain').value = '';
   document.getElementById('newSessionTargetLabel').value = '';
+  updateSessionDomainField();
   updateSessionAttackerIpField();
+  updateSessionGeneratedNotesField();
   syncSummaryExportPrefsUI();
   renderSessionList();
   document.getElementById('sessionOverlay').classList.add('open');
@@ -634,21 +761,178 @@ function openSessionModal() {
 
 function closeSessionModal() { document.getElementById('sessionOverlay').classList.remove('open'); }
 
+function getWelcomeSessionSeenTimestamp() {
+  const raw = parseInt(localStorage.getItem(WELCOME_SESSION_SEEN_KEY) || '', 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+function getWelcomeSessionMode() {
+  const hasSessions = Object.keys(sessions || {}).length > 0;
+  const seenAt = getWelcomeSessionSeenTimestamp();
+  if (!seenAt) return 'first-run';
+  return hasSessions ? 'returning' : 'first-run';
+}
+
+function hasWelcomeSessionTimeoutExpired() {
+  const seenAt = getWelcomeSessionSeenTimestamp();
+  if (!seenAt) return true;
+  return (Date.now() - seenAt) >= WELCOME_SESSION_TTL_MS;
+}
+
+function markWelcomeSessionSeen() {
+  localStorage.setItem(WELCOME_SESSION_SEEN_KEY, String(Date.now()));
+}
+
+function syncWelcomeSessionModalContent() {
+  const overlay = document.getElementById('welcomeSessionOverlay');
+  const title = document.getElementById('welcomeSessionTitle');
+  const copy = document.getElementById('welcomeSessionCopy');
+  const existingHdr = document.getElementById('welcomeSessionExistingHdr');
+  const createHdr = document.getElementById('welcomeSessionCreateHdr');
+  const guideHdr = document.getElementById('welcomeSessionGuideHdr');
+  const guideNote = document.getElementById('welcomeSessionGuideNote');
+  const guideKbNote = document.getElementById('welcomeSessionGuideKbNote');
+  if (!overlay || !title || !copy || !existingHdr || !createHdr) return;
+
+  welcomeSessionMode = getWelcomeSessionMode();
+  overlay.dataset.welcomeMode = welcomeSessionMode;
+
+  if (welcomeSessionMode === 'returning') {
+    title.textContent = 'Welcome Back';
+    copy.textContent = 'Continue with an existing engagement session or create a new one.';
+    existingHdr.textContent = 'Resume Existing Sessions';
+    createHdr.textContent = 'Create New Engagement Session';
+    if (guideHdr) guideHdr.textContent = 'Quick reminder';
+    if (guideNote) guideNote.textContent = 'Generated notes and summaries remain optional helper features. Use them only when they support your workflow.';
+    if (guideKbNote) guideKbNote.textContent = 'The Knowledge Base integration is optional but recommended for the full intended workflow.';
+    return;
+  }
+
+  title.textContent = 'Create Engagement Session';
+  copy.textContent = 'Start a new engagement session to begin organizing notes, targets, and findings.';
+  existingHdr.textContent = 'Existing Sessions';
+  createHdr.textContent = 'Create Engagement Session';
+  if (guideHdr) guideHdr.textContent = 'Suggested workflow';
+  if (guideNote) guideNote.textContent = 'Generated notes and summaries are optional helpers. You can still work fully manually if you prefer.';
+  if (guideKbNote) guideKbNote.textContent = 'The Knowledge Base integration is optional but recommended for the full intended workflow.';
+}
+
+function getSessionFormRefs(source = 'session') {
+  return source === 'welcome'
+    ? {
+        name: document.getElementById('welcomeSessionName'),
+        domain: document.getElementById('welcomeSessionDomain'),
+        targetIp: document.getElementById('welcomeSessionTargetIP'),
+        targetDomain: document.getElementById('welcomeSessionTargetDomain'),
+        targetLabel: document.getElementById('welcomeSessionTargetLabel'),
+      }
+    : {
+        name: document.getElementById('newSessionName'),
+        domain: document.getElementById('newSessionDomain'),
+        targetIp: document.getElementById('newSessionTargetIP'),
+        targetDomain: document.getElementById('newSessionTargetDomain'),
+        targetLabel: document.getElementById('newSessionTargetLabel'),
+      };
+}
+
+function clearSessionForm(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  if (!refs.name) return;
+  refs.name.value = '';
+  if (refs.domain) refs.domain.value = '';
+  refs.targetIp.value = '';
+  refs.targetDomain.value = '';
+  refs.targetLabel.value = '';
+}
+
+function renderWelcomeSessionList() {
+  syncWelcomeSessionModalContent();
+  const list = document.getElementById('welcomeSessionList');
+  if (!list) return;
+  const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!entries.length) {
+    list.innerHTML = `
+      <div class="welcome-session-empty">
+        <div class="welcome-session-empty-title">No sessions yet</div>
+        <div class="welcome-session-empty-copy">Create your first session or import an existing <code>.session</code> file to begin.</div>
+      </div>`;
+    return;
+  }
+  const noteCount = (id) => Object.values(notes).filter((n) => n.session_id === id).length;
+  const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
+  list.innerHTML = entries.map((session) => {
+    const targets = Array.isArray(session.targets) ? session.targets : [];
+    const targetLabel = targets[0]
+      ? (targets[0].label || targets[0].ip || targets[0].domain || 'target')
+      : 'No targets yet';
+    return `
+      <button class="welcome-session-card${session.id === activeSessionId ? ' active' : ''}" type="button" onclick="selectWelcomeSession('${session.id}')">
+        <div class="welcome-session-card-top">
+          <div class="welcome-session-card-title">${esc(session.codename || 'Untitled Session')}</div>
+          <div class="session-status-pill ${session.status || 'active'}">
+            <span class="status-dot ${session.status || 'active'}"></span>${statusLabel[session.status || 'active'] || 'Active'}
+          </div>
+        </div>
+        <div class="welcome-session-card-meta">${noteCount(session.id)} notes · ${targets.length} target${targets.length !== 1 ? 's' : ''} · ${new Date(session.created || Date.now()).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+        <div class="welcome-session-card-target">Session domain: ${esc(session.domain || '—')}</div>
+        <div class="welcome-session-card-target">Primary target: ${esc(targetLabel)}</div>
+      </button>`;
+  }).join('');
+}
+
+function openWelcomeSessionModal() {
+  renderWelcomeSessionList();
+  clearSessionForm('welcome');
+  syncWelcomeSessionModalContent();
+  const feedback = document.getElementById('welcomeImportFeedback');
+  if (feedback) feedback.style.display = 'none';
+  const overlay = document.getElementById('welcomeSessionOverlay');
+  const esc = document.getElementById('welcomeSessionEsc');
+  if (esc) esc.style.display = activeSessionId ? '' : 'none';
+  overlay?.classList.add('open');
+  setTimeout(() => {
+    if (welcomeSessionMode === 'returning') {
+      document.querySelector('#welcomeSessionList .welcome-session-card')?.focus();
+      return;
+    }
+    document.getElementById('welcomeSessionName')?.focus();
+  }, 60);
+}
+
+function closeWelcomeSessionModal(force = false) {
+  if (!force && !activeSessionId) return;
+  markWelcomeSessionSeen();
+  document.getElementById('welcomeSessionOverlay')?.classList.remove('open');
+}
+
+function shouldOpenWelcomeSessionModalOnStartup() {
+  if (!shouldPromptForSessionOnStartup) return false;
+  openWelcomeSessionModal();
+  return true;
+}
+
+function selectWelcomeSession(id) {
+  if (!sessions[id]) return;
+  switchSession(id);
+  closeWelcomeSessionModal(true);
+}
+
 function renderSessionList() {
   const list = document.getElementById('sessionList');
   const entries = Object.values(sessions).sort((a, b) => (b.created || 0) - (a.created || 0));
+  if (!list) return;
   if (!entries.length) {
-    list.innerHTML = '<div class="session-list-hdr" style="padding-top:4px">No sessions yet</div>';
+    list.innerHTML = '<div class="session-list-empty">No sessions yet. Create your first engagement session above or import an existing <code>.session</code> file.</div>';
     return;
   }
   const noteCount   = id => Object.values(notes).filter(n => n.session_id === id).length;
   const targetCount = id => (sessions[id]?.targets || []).length;
   const statusLabel = { active: 'Active', paused: 'Paused', complete: 'Complete' };
-  list.innerHTML = '<div class="session-list-hdr">Existing sessions</div>' +
-    entries.map(s => {
+  list.innerHTML = entries.map(s => {
       const status = s.status || 'active';
       const tCount = targetCount(s.id);
       const tLabel = tCount === 0 ? '<span style="color:var(--accent)">no targets</span>' : `${tCount} target${tCount !== 1 ? 's' : ''}`;
+      const sessionDomain = s.domain ? ` · domain ${esc(s.domain)}` : '';
       const attacker = s.attacker_ip ? ` · attacker ${esc(s.attacker_ip)}` : '';
       return `
     <div class="session-list-item${s.id === activeSessionId ? ' active-session' : ''}${status === 'complete' ? ' status-complete' : ''}" onclick="switchSession('${s.id}')">
@@ -658,7 +942,7 @@ function renderSessionList() {
         </div>
         <div class="session-list-item-name">${esc(s.codename)}</div>
       </div>
-      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+      <div class="session-list-item-meta">${noteCount(s.id)} notes · ${tLabel}${sessionDomain}${attacker} · ${new Date(s.created).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'})}</div>
       <div class="session-list-item-bottom" onclick="event.stopPropagation()">
         <div class="session-item-actions">
           <button class="session-item-export-btn" onclick="renameSession('${s.id}')" title="Rename session">${ICONS.edit}</button>
@@ -671,12 +955,14 @@ function renderSessionList() {
     }).join('');
 }
 
-function createSession() {
-  const name = document.getElementById('newSessionName').value.trim();
-  const targetIp = document.getElementById('newSessionTargetIP').value.trim();
-  const targetDomain = document.getElementById('newSessionTargetDomain').value.trim();
-  const targetLabel = document.getElementById('newSessionTargetLabel').value.trim();
-  if (!name) { document.getElementById('newSessionName').focus(); return; }
+async function createSession(source = 'session') {
+  const refs = getSessionFormRefs(source);
+  const name = refs.name?.value.trim() || '';
+  const sessionDomain = refs.domain?.value.trim() || '';
+  const targetIp = refs.targetIp?.value.trim() || '';
+  const targetDomain = refs.targetDomain?.value.trim() || '';
+  const targetLabel = refs.targetLabel?.value.trim() || '';
+  if (!name) { refs.name?.focus(); return; }
   const id = 'sess_' + Date.now();
   const targets = [];
   if (targetIp || targetDomain || targetLabel) {
@@ -687,21 +973,38 @@ function createSession() {
       label: targetLabel,
     });
   }
-  const sess = { id, codename: name, created: Date.now(), targets, attacker_ip: '', todos: [], evidence: [] };
+  const sess = { id, codename: name, created: Date.now(), domain: sessionDomain, targets, attacker_ip: '', todos: [], findings: [], generated_notes: { ...DEFAULT_GENERATED_NOTE_SETTINGS } };
   sessions[id] = sess;
   tlLog(id, { type: 'session_created', name: sess.codename });
   if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   }
   switchSession(id);
-  saveNotes();
+  await saveNotes({ reason: 'session-create', immediate: true });
   renderSessionList();
+  renderWelcomeSessionList();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
-  document.getElementById('newSessionName').value = '';
-  document.getElementById('newSessionTargetIP').value = '';
-  document.getElementById('newSessionTargetDomain').value = '';
-  document.getElementById('newSessionTargetLabel').value = '';
+  updateSessionGeneratedNotesField();
+  clearSessionForm(source);
+  if (source === 'welcome') closeWelcomeSessionModal(true);
+  if (source === 'session') closeSessionModal();
+}
+
+function updateSessionDomainField() {
+  const wrap = document.getElementById('sessionDomainFieldWrap');
+  const input = document.getElementById('sessionDomainInput');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !input) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    input.value = '';
+    return;
+  }
+  wrap.style.display = '';
+  input.value = sess.domain || '';
 }
 
 function updateSessionAttackerIpField() {
@@ -716,6 +1019,81 @@ function updateSessionAttackerIpField() {
   }
   wrap.style.display = '';
   input.value = sess.attacker_ip || '';
+}
+
+function updateSessionGeneratedNotesField() {
+  const wrap = document.getElementById('sessionGeneratedNotesFieldWrap');
+  const servicesToggle = document.getElementById('sessionGeneratedServicesToggle');
+  const summaryToggle = document.getElementById('sessionGeneratedSummaryToggle');
+  const networkEnumToggle = document.getElementById('sessionGeneratedNetworkEnumToggle');
+  const credentialsToggle = document.getElementById('sessionGeneratedCredentialsToggle');
+  const sess = activeSessionId && sessions[activeSessionId];
+  if (!wrap || !servicesToggle || !summaryToggle || !networkEnumToggle || !credentialsToggle) return;
+  if (!sess) {
+    wrap.style.display = 'none';
+    servicesToggle.checked = true;
+    summaryToggle.checked = true;
+    networkEnumToggle.checked = true;
+    credentialsToggle.checked = true;
+    return;
+  }
+  const settings = ensureSessionGeneratedNoteSettings(sess);
+  wrap.style.display = '';
+  servicesToggle.checked = settings.services_note !== false;
+  summaryToggle.checked = settings.session_summary !== false;
+  networkEnumToggle.checked = settings.network_enumeration !== false;
+  credentialsToggle.checked = settings.credentials_note !== false;
+}
+
+async function saveActiveSessionGeneratedNoteSettings() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const servicesToggle = document.getElementById('sessionGeneratedServicesToggle');
+  const summaryToggle = document.getElementById('sessionGeneratedSummaryToggle');
+  const networkEnumToggle = document.getElementById('sessionGeneratedNetworkEnumToggle');
+  const credentialsToggle = document.getElementById('sessionGeneratedCredentialsToggle');
+  if (!sess || !servicesToggle || !summaryToggle || !networkEnumToggle || !credentialsToggle) return;
+  const previous = ensureSessionGeneratedNoteSettings(sess);
+  const next = {
+    services_note: !!servicesToggle.checked,
+    session_summary: !!summaryToggle.checked,
+    network_enumeration: !!networkEnumToggle.checked,
+    credentials_note: !!credentialsToggle.checked,
+  };
+  if (previous.services_note === next.services_note
+    && previous.session_summary === next.session_summary
+    && previous.network_enumeration === next.network_enumeration
+    && previous.credentials_note === next.credentials_note) return;
+  const activeGeneratedNoteId = activeNoteId && notes[activeNoteId]?.generated_note === true ? activeNoteId : null;
+  const activeSupportingNoteId = activeNoteId && notes[activeNoteId] && notes[activeNoteId]?.generated_note !== true ? activeNoteId : null;
+  sess.generated_notes = next;
+  let generatedChanged = false;
+  if (typeof syncGeneratedEngagementNotes === 'function') generatedChanged = !!syncGeneratedEngagementNotes(activeSessionId);
+  let supportingChanged = false;
+  if (typeof syncSupportingHelperNotesForSession === 'function') supportingChanged = !!syncSupportingHelperNotesForSession(activeSessionId);
+  if (generatedChanged || supportingChanged) {
+    if (typeof renderNotesList === 'function') renderNotesList();
+    if (typeof renderSessionSidebar === 'function') renderSessionSidebar();
+    if (typeof renderSessionNoteTabs === 'function') renderSessionNoteTabs();
+    if (activeGeneratedNoteId && !notes[activeGeneratedNoteId]) {
+      activeNoteId = null;
+      if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+      document.getElementById('notesEmpty').style.display = 'flex';
+      document.getElementById('noteEditArea').style.display = 'none';
+      if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+    } else if (activeGeneratedNoteId && typeof openNote === 'function') {
+      await openNote(activeGeneratedNoteId);
+    } else if (activeSupportingNoteId && !notes[activeSupportingNoteId]) {
+      activeNoteId = null;
+      if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+      document.getElementById('notesEmpty').style.display = 'flex';
+      document.getElementById('noteEditArea').style.display = 'none';
+      if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+    } else if (activeSupportingNoteId && notes[activeSupportingNoteId] && typeof openNote === 'function') {
+      await openNote(activeSupportingNoteId);
+    }
+  }
+  saveNotes();
+  showToast('✓ Generated helper note settings updated');
 }
 
 function syncSummaryExportPrefsUI() {
@@ -757,6 +1135,23 @@ function syncSummaryExportPrefsUI() {
   }
 }
 
+function saveActiveSessionDomain() {
+  const sess = activeSessionId && sessions[activeSessionId];
+  const input = document.getElementById('sessionDomainInput');
+  if (!sess || !input) return;
+  const next = input.value.trim();
+  if ((sess.domain || '') === next) return;
+  sess.domain = next;
+  saveNotes();
+  renderSessionList();
+  renderWelcomeSessionList();
+  renderSessionSidebar();
+  updateTargetSelector();
+  refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
+  showToast(next ? `✓ Session domain set: ${next}` : '✓ Session domain cleared');
+}
+
 function saveActiveSessionAttackerIp() {
   const sess = activeSessionId && sessions[activeSessionId];
   const input = document.getElementById('sessionAttackerIpInput');
@@ -768,6 +1163,7 @@ function saveActiveSessionAttackerIp() {
   renderSessionList();
   renderSessionSidebar();
   refreshCodeBlocks();
+  if (typeof refreshInjectedNoteContext === 'function') void refreshInjectedNoteContext();
   showToast(next ? `✓ Attacker IP set: ${next}` : '✓ Attacker IP cleared');
 }
 
@@ -824,6 +1220,9 @@ function setSessionStatus(e, sessId, status) {
 }
 
 function switchSession(id) {
+  if (!sessions[id]) return;
+  shouldPromptForSessionOnStartup = false;
+  markWelcomeSessionSeen();
   activeSessionId = id;
   localStorage.setItem('ops-active-session', id);
   activeNoteScope = 'session';
@@ -835,25 +1234,43 @@ function switchSession(id) {
     b.classList.toggle('active', b.dataset.scope === 'session'));
   const sess = sessions[id];
   const targets = (sess && sess.targets) || [];
+  const rememberedTarget = typeof getRememberedTargetForSession === 'function' ? getRememberedTargetForSession(id) : '';
   const savedTarget = localStorage.getItem('ops-active-target');
-  if (savedTarget && targets.find(t => t.id === savedTarget)) {
+  if (rememberedTarget && targets.find((t) => t.id === rememberedTarget)) {
+    activeTargetId = rememberedTarget;
+    localStorage.setItem('ops-active-target', activeTargetId);
+  } else if (savedTarget && targets.find((t) => t.id === savedTarget)) {
     activeTargetId = savedTarget;
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else if (targets.length) {
     activeTargetId = targets[0].id;
     localStorage.setItem('ops-active-target', activeTargetId);
+    if (typeof rememberActiveTargetForSession === 'function') rememberActiveTargetForSession(id, activeTargetId);
   } else {
     activeTargetId = null;
+    if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   }
+  activeNoteId = null;
+  if (typeof clearLastLocationFields === 'function') clearLastLocationFields('noteId');
+  const notesEmptyEl = document.getElementById('notesEmpty');
+  const noteEditAreaEl = document.getElementById('noteEditArea');
+  if (notesEmptyEl) notesEmptyEl.style.display = 'flex';
+  if (noteEditAreaEl) noteEditAreaEl.style.display = 'none';
+  if (typeof updateGeneratedNoteUi === 'function') updateGeneratedNoteUi(null);
+
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
+  updateSessionGeneratedNotesField();
   renderSessionList();
   renderNotesList();
   updateTargetSelector();
   refreshCodeBlocks();
   updateSvcTabCounts();
   renderTodoList();
-  if (typeof renderEvidenceList === 'function') renderEvidenceList();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
+  closeWelcomeSessionModal(true);
 }
 
 async function deleteSession(id) {
@@ -870,6 +1287,7 @@ async function deleteSession(id) {
   });
 
   delete sessions[id];
+  if (typeof clearRememberedTargetForSession === 'function') clearRememberedTargetForSession(id);
   if (activeSessionId === id) {
     activeSessionId = Object.keys(sessions)[0] || null;
     if (activeSessionId) localStorage.setItem('ops-active-session', activeSessionId);
@@ -877,12 +1295,14 @@ async function deleteSession(id) {
   }
   saveNotes();
   renderSessionSidebar();
+  updateSessionDomainField();
   updateSessionAttackerIpField();
+  updateSessionGeneratedNotesField();
   renderSessionList();
   renderNotesList();
   renderTodoList();
-  if (typeof renderEvidenceList === 'function') renderEvidenceList();
-  if (typeof updateEvidenceCount === 'function') updateEvidenceCount();
+  if (typeof renderFindingsList === 'function') renderFindingsList();
+  if (typeof updateFindingsCount === 'function') updateFindingsCount();
 }
 
 let _sessionRenameId = null;
@@ -941,7 +1361,8 @@ async function renameSession(id) {
 async function importSession(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const fb = document.getElementById('importFeedback');
+  const source = event.target.dataset.source || 'session';
+  const fb = document.getElementById(event.target.dataset.feedbackId || 'importFeedback');
   fb.style.display = 'block';
   fb.className = 'import-feedback';
   fb.textContent = '⏳ Importing…';
@@ -977,6 +1398,7 @@ async function importSession(event) {
       }
 
       const data = parsed;
+      if (data?.session) normalizeLegacySessionFindings(data.session);
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Could not load .session file. File is malformed.');
       if (!data.session || !Array.isArray(data.notes)) throw new Error('Could not load .session file. File is malformed.');
 
@@ -999,6 +1421,10 @@ async function importSession(event) {
               fields.forEach(([key, fallback = '']) => {
                 if (key === 'added' || key === 'created' || key === 'updated' || key === 'completed') {
                   out[key] = Number(entry[key]) || null;
+                } else if (key === 'support_note_ids') {
+                  out[key] = (Array.isArray(entry[key]) ? entry[key] : [])
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean);
                 } else {
                   out[key] = String(entry[key] ?? fallback);
                 }
@@ -1010,14 +1436,16 @@ async function importSession(event) {
         return {
           codename: String(session.codename || 'Imported Session'),
           created: Number(session.created) || Date.now(),
+          domain: String(session.domain || ''),
           attacker_ip: String(session.attacker_ip || ''),
+          generated_notes: normalizeSessionGeneratedNoteSettings(session.generated_notes),
           status: ['active', 'paused', 'complete'].includes(session.status) ? session.status : 'active',
           imported_from: String(session.codename || ''),
           targets: cleanTargets,
           services: cloneList(session.services, [['id'], ['target_id'], ['port'], ['proto', 'tcp'], ['service'], ['version'], ['notes'], ['added']]),
           paths: cloneList(session.paths, [['id'], ['target_id'], ['path'], ['status'], ['size'], ['notes'], ['added']]),
-          loot: cloneList(session.loot, [['id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
-          evidence: cloneList(session.evidence, [['id'], ['target_id'], ['note_id'], ['type'], ['title'], ['details'], ['impact'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
+          loot: cloneList(session.loot, [['id'], ['target_id'], ['type'], ['credential'], ['host'], ['note'], ['added']]),
+          findings: cloneList(Array.isArray(session.findings) ? session.findings : [], [['id'], ['target_id'], ['source_note_id'], ['note_id'], ['support_note_ids'], ['type'], ['title'], ['severity'], ['summary'], ['details'], ['impact'], ['recommendation'], ['source_command'], ['sync_mode', 'export_only'], ['created'], ['updated']]),
           todos: Array.isArray(session.todos) ? session.todos
             .filter(todo => todo && typeof todo === 'object' && !Array.isArray(todo))
             .map((todo, index) => ({
@@ -1048,6 +1476,9 @@ async function importSession(event) {
           updated: Number(note.updated) || Date.now(),
           target_ip: note.target_ip ? String(note.target_ip) : null,
           target_domain: note.target_domain ? String(note.target_domain) : null,
+          generated_note: note.generated_note === true,
+          generated_kind: note.generated_kind ? String(note.generated_kind) : null,
+          generated_target_id: typeof note.generated_target_id === 'string' ? note.generated_target_id : null,
         };
       };
 
@@ -1067,9 +1498,11 @@ async function importSession(event) {
       saveNotes();
       switchSession(newSessId);
       renderSessionList();
+      renderWelcomeSessionList();
 
       fb.className = 'import-feedback ok';
       fb.textContent = '✓ Imported "' + importedSess.codename + '" — ' + noteCount + ' note' + (noteCount !== 1 ? 's' : '');
+      if (source === 'welcome') closeWelcomeSessionModal(true);
       setTimeout(() => { fb.style.display = 'none'; }, 4000);
     } catch (err) {
       fb.className = 'import-feedback err';

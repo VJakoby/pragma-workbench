@@ -4,6 +4,7 @@ const ACCENT_COLORS = [
 ];
 
 const THEME_ORDER = ['dark', 'light'];
+const TOPBAR_LAYOUT_KEY = 'ops-topbar-layout';
 const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
 const ENGRAM_SEARCH_ENABLED = Boolean(window.PRAGMA_CONFIG?.engramSearchEnabled);
@@ -32,6 +33,33 @@ function refreshThemeToggle(theme) {
   lightBtn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
   darkBtn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
   toggle.title = `Current theme: ${theme}. Switch to ${nextTheme}`;
+}
+
+function refreshTopbarLayoutToggle(mode) {
+  const btn = document.getElementById('topbarLayoutBtn');
+  if (!btn) return;
+  const isBottom = mode === 'bottom';
+  btn.classList.toggle('active', isBottom);
+  btn.setAttribute('aria-pressed', isBottom ? 'true' : 'false');
+  btn.title = isBottom ? 'Move bar to top' : 'Move bar to bottom';
+  btn.setAttribute('aria-label', isBottom ? 'Move bar to top' : 'Move bar to bottom');
+}
+
+function applyTopbarLayout(mode) {
+  const normalized = mode === 'bottom' ? 'bottom' : 'top';
+  document.body.classList.toggle('bottom-bar-mode', normalized === 'bottom');
+  refreshTopbarLayoutToggle(normalized);
+}
+
+function setTopbarLayoutMode(mode) {
+  const normalized = mode === 'bottom' ? 'bottom' : 'top';
+  localStorage.setItem(TOPBAR_LAYOUT_KEY, normalized);
+  applyTopbarLayout(normalized);
+}
+
+function toggleTopbarLayoutMode() {
+  const current = localStorage.getItem(TOPBAR_LAYOUT_KEY) === 'bottom' ? 'bottom' : 'top';
+  setTopbarLayoutMode(current === 'bottom' ? 'top' : 'bottom');
 }
 
 function applyTheme(theme) {
@@ -78,7 +106,8 @@ function setTheme(theme) {
   }, 50);
 }
 
-applyTheme(localStorage.getItem('ops-theme') || 'dark');
+applyTheme(localStorage.getItem('ops-theme') || 'light');
+applyTopbarLayout(localStorage.getItem(TOPBAR_LAYOUT_KEY) || 'top');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';
@@ -191,7 +220,11 @@ async function init() {
   await loadNoteTemplates();
   renderNoteTypeGrid();
   renderNotesList();
-  if (activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
+  const showWelcomeSessionModal = typeof shouldOpenWelcomeSessionModalOnStartup === 'function'
+    ? shouldOpenWelcomeSessionModalOnStartup()
+    : false;
+  const shouldRestoreBehindWelcome = showWelcomeSessionModal && !!activeSessionId;
+  if ((!showWelcomeSessionModal || shouldRestoreBehindWelcome) && activeNoteId && notes[activeNoteId]) openNote(activeNoteId);
 
   document.getElementById('svc-count').textContent = SERVICES.length;
   document.getElementById('tactics-count').textContent = TACTICS.length;
@@ -207,8 +240,9 @@ async function init() {
   renderKnowledgeFolderNav();
   buildSidebar('tactics');
   setTimeout(() => window._observeCardGrids && window._observeCardGrids(), 150);
-  await restoreLastLocation();
+  if (!showWelcomeSessionModal || shouldRestoreBehindWelcome) await restoreLastLocation();
 }
+
 
 async function restoreLastLocation() {
   const saved = readLastLocation();
@@ -340,22 +374,34 @@ document.addEventListener('keydown', async e => {
       clearTimeout(noteSaveTimer);
       setNoteSaveIndicator('saving', '...saving');
       await persistTemplatesConfig({ reason: 'config-manual-save' });
-    } else if (activeNoteId) {
+      return;
+    }
+    if (activeNoteId) {
       e.preventDefault();
       clearTimeout(noteSaveTimer);
       setNoteSaveIndicator('saving', '...saving');
       await persistActiveNote({ reason: 'note-manual-save', immediate: true });
+      return;
     }
-    return;
   }
 
-  if (ctrl && key === 'f' && ENGRAM_SEARCH_ENABLED) {
+  if (ctrl && e.shiftKey && key === 'f' && ENGRAM_SEARCH_ENABLED) {
     if (document.activeElement.tagName !== 'TEXTAREA' &&
         document.activeElement.id !== 'noteBody' &&
         document.activeElement.id !== 'noteTitleInput') {
       e.preventDefault();
       switchView('search', document.getElementById('nav-search'));
       setTimeout(() => document.getElementById('searchInput')?.focus(), 50);
+      return;
+    }
+  }
+
+  if (ctrl && key === 'f' && !e.shiftKey) {
+    if (document.activeElement.tagName !== 'TEXTAREA' &&
+        document.activeElement.id !== 'noteBody' &&
+        document.activeElement.id !== 'noteTitleInput') {
+      e.preventDefault();
+      if (typeof toggleFindingsPopover === 'function') toggleFindingsPopover();
       return;
     }
   }
@@ -414,13 +460,13 @@ document.addEventListener('keydown', async e => {
     return;
   }
 
-  if (ctrl && code === 'Period') { e.preventDefault(); openTargetsPanel(); return; }
+  if (ctrl && code === 'Period') { e.preventDefault(); openContextSwitcher(); return; }
 
   if (e.key === 'Escape') {
     if (document.getElementById('sidebarInfo')?.classList.contains('open')) { setSidebarInfoOpen(false); return; }
     if (document.getElementById('shortcutsOverlay')?.classList.contains('open')) { closeShortcutsModal(); return; }
     if (document.getElementById('pwOverlay')?.classList.contains('open')) { pwCancel(); return; }
-    if (document.getElementById('evidenceFlagOverlay')?.classList.contains('open')) { cancelEvidenceFlagDialog(); return; }
+    if (document.getElementById('findingDialogOverlay')?.classList.contains('open')) { cancelFindingDialog(); return; }
     if (document.getElementById('targetEditOverlay')?.classList.contains('open')) { _targetEditCancel(); return; }
     if (document.getElementById('sessionRenameOverlay')?.classList.contains('open')) { _sessionRenameCancel(); return; }
     if (document.getElementById('kbCreateOverlay')?.classList.contains('open')) { closeKbCreateModal(); return; }
@@ -428,9 +474,11 @@ document.addEventListener('keydown', async e => {
     if (reassignDropdown?.classList.contains('open')) { reassignDropdown.classList.remove('open'); return; }
     const targetAssignDropdown = document.getElementById('noteTargetAssignDropdown');
     if (targetAssignDropdown?.classList.contains('open')) { targetAssignDropdown.classList.remove('open'); return; }
-    if (document.getElementById('evidencePopover')?.classList.contains('open')) { closeEvidencePopover(); return; }
+    if (document.getElementById('findingsPopover')?.classList.contains('open')) { closeFindingsPopover(); return; }
     if (document.getElementById('todoPopover')?.classList.contains('open')) { closeTodoPopover(); return; }
     if (document.getElementById('svcPopover')?.classList.contains('open')) { closeSvcPopover(); return; }
+    if (document.getElementById('contextSwitcherOverlay')?.classList.contains('open')) { closeContextSwitcher(); return; }
+    if (document.getElementById('welcomeSessionOverlay')?.classList.contains('open')) { closeWelcomeSessionModal(); return; }
     if (document.getElementById('targetsOverlay')?.classList.contains('open')) { closeTargetsPanel(); return; }
     if (document.getElementById('sessionOverlay')?.classList.contains('open')) { closeSessionModal(); return; }
     if (document.getElementById('newNoteOverlay')?.classList.contains('open')) { closeNewNoteModal(); return; }

@@ -17,7 +17,8 @@
             <div class="shortcut-row"><span class="shortcut-desc">Services</span>          <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>2</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>2</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Tactics</span>           <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>3</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>3</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Search Indexed KBs</span><span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>4</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>4</kbd></span></div>
-            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Toggle findings</span>  <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>F</kbd></span></div>
+            <div class="shortcut-row"><span class="shortcut-desc">Jump to search</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>F</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>F</kbd></span></div>
             <div class="shortcut-row"><span class="shortcut-desc">Toggle sidebar</span>    <span class="shortcut-keys"><kbd>&#8984;</kbd><kbd>B</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>B</kbd></span></div>
           </div>
         </div>
@@ -29,7 +30,8 @@
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Quick Log</span>   <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>L</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>L</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Toggle TODO</span>        <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>M</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>M</kbd></span></div>
               <div class="shortcut-row"><span class="shortcut-desc">Toggle Timeline</span>     <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span></div>
-              <div class="shortcut-row"><span class="shortcut-desc">Target selector</span>     <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd><span style="opacity:.6;padding:0 3px">/</span><kbd>Ctrl</kbd><kbd>&#8679;</kbd><kbd>.</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Context switcher</span>    <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>.</kbd></span></div>
+              <div class="shortcut-row"><span class="shortcut-desc">Switch tab in modal</span> <span class="shortcut-keys"><kbd>Tab</kbd></span></div>
             </div>
           </div>
           <div class="shortcuts-group">
@@ -63,57 +65,173 @@
     </div>
   </div>
 </div>
+<!-- -- WELCOME / SESSION SELECTOR -- -->
+<div class="cmd-overlay" id="welcomeSessionOverlay" data-welcome-mode="first-run">
+  <div class="cmd-box welcome-session-box">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v10l-7 4-7-4V7z"/><path d="M12 12l7-4"/><path d="M12 12V3"/><path d="M12 12l-7-4"/></svg></span>
+      <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Welcome</span>
+      <span class="cmd-esc" id="welcomeSessionEsc" onclick="closeWelcomeSessionModal()" style="cursor:pointer;display:none">ESC</span>
+    </div>
+    <div class="welcome-session-body">
+      <div class="welcome-session-intro">
+        <div class="welcome-session-kicker">PRAGMA <span>// Workbench</span></div>
+        <div class="welcome-session-title" id="welcomeSessionTitle">Choose a session to continue</div>
+        <div class="welcome-session-copy" id="welcomeSessionCopy">Resume an existing workspace or create a new session before you start working.</div>
+        <div class="welcome-session-guide" id="welcomeSessionGuide">
+          <div class="welcome-session-guide-hdr" id="welcomeSessionGuideHdr">Suggested workflow</div>
+          <div class="welcome-session-guide-steps">
+            <div class="welcome-session-guide-step">
+              <span class="welcome-session-guide-index">1</span>
+              <div class="welcome-session-guide-text">Create or continue an engagement session.</div>
+            </div>
+            <div class="welcome-session-guide-step">
+              <span class="welcome-session-guide-index">2</span>
+              <div class="welcome-session-guide-text">Add targets for the host, lab, or engagement scope you are working on.</div>
+            </div>
+            <div class="welcome-session-guide-step">
+              <span class="welcome-session-guide-index">3</span>
+              <div class="welcome-session-guide-text">Use notes and Quick Log to track ports, paths, loot, and findings as you work.</div>
+            </div>
+          </div>
+          <div class="welcome-session-guide-note" id="welcomeSessionGuideNote">Generated notes and summaries are optional helpers. You can still work fully manually if you prefer.</div>
+          <div class="welcome-session-guide-note welcome-session-guide-note-secondary" id="welcomeSessionGuideKbNote">The Knowledge Base integration is optional but recommended for the full intended workflow.</div>
+        </div>
+      </div>
+      <div class="welcome-session-layout">
+        <div class="welcome-session-panel welcome-session-existing-panel" id="welcomeSessionExistingPanel">
+          <div class="welcome-session-panel-hdr" id="welcomeSessionExistingHdr">Existing Sessions</div>
+          <div class="welcome-session-list" id="welcomeSessionList"></div>
+        </div>
+        <div class="welcome-session-panel welcome-session-create-panel" id="welcomeSessionCreatePanel">
+          <div class="welcome-session-panel-hdr" id="welcomeSessionCreateHdr">Create Engagement Session</div>
+          <div class="session-field">
+            <label>Session Name</label>
+            <input id="welcomeSessionName" type="text" placeholder="" autocomplete="off" onkeydown="if(event.key==='Enter')createSession('welcome')">
+          </div>
+          <div class="session-field">
+            <label>Session domain (optional)</label>
+            <input id="welcomeSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+            <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
+          </div>
+          <div class="session-field">
+            <label>Initial target (optional)</label>
+            <div class="session-inline-field welcome-session-inline-field">
+              <input id="welcomeSessionTargetIP" type="text" placeholder="IP / Host" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+              <input id="welcomeSessionTargetDomain" type="text" placeholder="Target domain-name" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+              <input id="welcomeSessionTargetLabel" type="text" placeholder="Label" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession('welcome')">
+            </div>
+            <div class="session-field-hint">Optional. If filled, the session opens with this target already added and selected.</div>
+          </div>
+          <div class="welcome-session-actions">
+            <button class="session-btn primary" type="button" onclick="createSession('welcome')">+ Create Session</button>
+            <button class="session-btn secondary" type="button" onclick="document.getElementById('welcomeImportSessionFile').click()">&#11014; Import .session</button>
+            <input type="file" id="welcomeImportSessionFile" accept=".session" data-source="welcome" data-feedback-id="welcomeImportFeedback" style="display:none" onchange="importSession(event)">
+          </div>
+          <div class="session-field-hint">You can manage session exports, attacker IPs, and summary settings after entering the workspace.</div>
+          <div id="welcomeImportFeedback" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- -- SESSION MODAL -- -->
 <div class="cmd-overlay" id="sessionOverlay">
-  <div class="cmd-box" style="max-width:540px">
+  <div class="cmd-box session-modal-box">
     <div class="cmd-input-row">
       <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
       <span style="font-family:'Inter',sans-serif;font-size:13px;color:var(--text);font-weight:700;flex:1">Sessions</span>
       <span class="cmd-esc" onclick="closeSessionModal()" style="cursor:pointer">ESC</span>
     </div>
     <div class="session-modal-body">
-      <!-- New session form -->
-      <div class="session-field">
-        <label>New session codename</label>
-        <input id="newSessionName" type="text" placeholder="e.g. OP-BLACKSITE, CLIENT-XYZ…" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
-      </div>
-      <div class="session-field">
-        <label>Initial target (optional)</label>
-        <div class="session-inline-field">
-          <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-          <input id="newSessionTargetDomain" type="text" placeholder="Domain, e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
-          <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+      <div class="session-modal-section session-modal-create-panel">
+        <div class="session-modal-section-head">
+          <div class="session-modal-section-kicker">Create Engagement Session</div>
+          <div class="session-modal-section-copy">Start a new engagement workspace here. Add an optional session domain and an initial target if you want the session ready for immediate work.</div>
         </div>
-        <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
-      </div>
-      <div class="session-actions">
-        <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
-        <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
-        <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
-      </div>
-      <div class="session-field" id="attackerIpFieldWrap" style="display:none">
-        <label>Attacker IP for active session</label>
-        <div class="session-inline-field">
-          <input id="sessionAttackerIpInput" type="text" placeholder="e.g. 10.10.14.7" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionAttackerIp()">
-          <button class="session-btn secondary" type="button" onclick="saveActiveSessionAttackerIp()">Save</button>
+        <div class="session-field">
+          <label>Session Name</label>
+          <input id="newSessionName" type="text" placeholder="" autocomplete="off" onkeydown="if(event.key==='Enter')createSession()">
         </div>
-        <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
-      </div>
-      <div class="session-field">
-        <label>Summary author (optional)</label>
-        <div class="session-inline-field">
-          <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
-          <label class="summary-export-check" id="summaryExportCheck" style="margin-top:0">
-            <input type="checkbox" id="summaryPdfDefault">
-            Generate PDF by default
-            <span class="summary-export-badge" id="summaryExportBadge" aria-live="polite"></span>
-          </label>
+        <div class="session-field">
+          <label>Session domain (optional)</label>
+          <input id="newSessionDomain" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          <div class="session-field-hint">Used as the default <code>DOMAIN</code> context for the session when a target-specific domain is not set.</div>
         </div>
-        <div class="session-field-hint" id="summaryExportHint">Used for summary exports.</div>
+        <div class="session-field">
+          <label>Initial target (optional)</label>
+          <div class="session-inline-field">
+            <input id="newSessionTargetIP" type="text" placeholder="IP / Host, e.g. 10.10.10.5" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+            <input id="newSessionTargetDomain" type="text" placeholder="Target domain-name, e.g. dc01.corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+            <input id="newSessionTargetLabel" type="text" placeholder="Label, e.g. DC01" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')createSession()">
+          </div>
+          <div class="session-field-hint">Optional. If filled, the session is created with this target already added and selected.</div>
+        </div>
+        <div class="session-actions">
+          <button class="session-btn primary" onclick="createSession()">+ Create Session</button>
+          <button class="session-btn secondary" onclick="document.getElementById('importSessionFile').click()">&#11014; Import .session</button>
+          <input type="file" id="importSessionFile" accept=".session" style="display:none" onchange="importSession(event)">
+        </div>
+        <div class="session-field" id="attackerIpFieldWrap" style="display:none">
+          <label>Attacker IP for active session</label>
+          <div class="session-inline-field">
+            <input id="sessionAttackerIpInput" type="text" placeholder="e.g. 10.10.14.7" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionAttackerIp()">
+            <button class="session-btn secondary" type="button" onclick="saveActiveSessionAttackerIp()">Save</button>
+          </div>
+          <div class="session-field-hint">Used for placeholders like <code>&lt;ATTACKER-IP&gt;</code>, <code>&lt;ATTACKER&gt;</code>, and <code>{{ ATTACKER }}</code>.</div>
+        </div>
+        <div class="session-field">
+          <label>Summary author (optional)</label>
+          <div class="session-inline-field">
+            <input id="summaryAuthorInput" type="text" placeholder="Operator name…" autocomplete="off" spellcheck="false">
+            <label class="summary-export-check" id="summaryExportCheck" style="margin-top:0">
+              <input type="checkbox" id="summaryPdfDefault">
+              Generate PDF by default
+              <span class="summary-export-badge" id="summaryExportBadge" aria-live="polite"></span>
+            </label>
+          </div>
+          <div class="session-field-hint" id="summaryExportHint">Used for summary exports.</div>
+        </div>
+        <div id="importFeedback" style="display:none"></div>
       </div>
-      <div id="importFeedback" style="display:none"></div>
-      <!-- Existing sessions -->
-      <div class="session-list" id="sessionList"></div>
+      <div class="session-modal-section session-modal-existing-panel">
+        <div class="session-modal-section-head">
+          <div class="session-modal-section-kicker">Existing Sessions</div>
+          <div class="session-modal-section-copy">Re-open an existing engagement, or manage its export and status from the list below.</div>
+        </div>
+        <div class="session-field" id="sessionDomainFieldWrap" style="display:none">
+          <label>Session-wide domain for active session</label>
+          <div class="session-inline-field">
+            <input id="sessionDomainInput" type="text" placeholder="e.g. corp.local" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')saveActiveSessionDomain()">
+            <button class="session-btn secondary" type="button" onclick="saveActiveSessionDomain()">Save</button>
+          </div>
+          <div class="session-field-hint">Default <code>DOMAIN</code> context for the full session. Use target-specific domains only when a single target needs to differ.</div>
+        </div>
+        <div class="session-field" id="sessionGeneratedNotesFieldWrap" style="display:none">
+          <label>Generated helper notes</label>
+          <div class="session-field-hint">Optional helper notes generated from engagement data. Disable them if you prefer to manage these notes manually.</div>
+          <div class="session-helper-checks">
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedServicesToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create Services notes from Quick Log Ports
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedSummaryToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create the session summary note
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedNetworkEnumToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create Network Enumeration notes
+            </label>
+            <label class="summary-export-check">
+              <input type="checkbox" id="sessionGeneratedCredentialsToggle" onchange="saveActiveSessionGeneratedNoteSettings()">
+              Auto-create the Credentials note
+            </label>
+          </div>
+        </div>
+        <button class="session-btn secondary session-modal-utility-btn" id="bakDownloadBtn" onclick="downloadCurrentWorkbenchBackup()" title="Download workbench backup" aria-label="Download workbench backup" style="display:none"><span style="display:flex;align-items:center;gap:5px"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"/><polyline points="9,12 12,15 15,12"/><line x1="12" y1="9" x2="12" y2="15"/></svg> Backup Workbench</span></button>
+        <div class="session-list" id="sessionList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -150,6 +268,31 @@
       <!-- Targets list -->
       <div id="targetsList" style="display:flex;flex-direction:column;gap:5px;margin-top:4px"></div>
 
+    </div>
+  </div>
+</div>
+
+
+<div class="cmd-overlay" id="contextSwitcherOverlay" onclick="if(event.target===this)closeContextSwitcher()">
+  <div class="cmd-box context-switcher-box">
+    <div class="cmd-input-row">
+      <span class="cmd-input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M12 3v3"/><path d="M12 18v3"/></svg></span>
+      <input class="cmd-input" id="contextSwitcherInput" type="text" placeholder="Switch target or session…" autocomplete="off" oninput="onContextSwitcherInput(this.value)" onkeydown="onContextSwitcherKey(event)">
+      <span class="cmd-esc" onclick="closeContextSwitcher()" style="cursor:pointer">ESC</span>
+    </div>
+    <div class="context-switcher-tabs">
+      <button class="context-switcher-tab active" type="button" data-tab="targets" onclick="setContextSwitcherTab('targets')">Targets</button>
+      <button class="context-switcher-tab" type="button" data-tab="sessions" onclick="setContextSwitcherTab('sessions')">Sessions</button>
+    </div>
+    <div class="context-switcher-helper-row">
+      <div class="context-switcher-title" id="contextSwitcherTitle">Switch Target</div>
+      <div class="context-switcher-helper" id="contextSwitcherHelper">Type to filter targets. Enter switches target and refreshes injected context.</div>
+      <div class="context-switcher-helper-example" id="contextSwitcherHelperExample">Quick create: <code>X.X.X.X</code> or <code>X.X.X.X labelname</code></div>
+    </div>
+    <div class="context-switcher-list" id="contextSwitcherList"></div>
+    <div class="context-switcher-footer">
+      <button class="session-btn secondary context-switcher-footer-btn" type="button" id="contextSwitcherManageBtn" onclick="openContextSwitcherManage()">Manage Targets</button>
+      <div class="context-switcher-footer-hint">Tab switches mode · Enter activates</div>
     </div>
   </div>
 </div>
@@ -195,9 +338,9 @@
   <div class="cmd-box">
     <div class="cmd-input-row">
       <span class="cmd-input-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"/>
-          <path d="m20 20-3.5-3.5"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4,6 10,12 4,18"/>
+          <line x1="12" y1="18" x2="20" y2="18"/>
         </svg>
       </span>
       <input class="cmd-input" id="cmdInput" type="text" placeholder="Search services, guides, notes…" autocomplete="off" oninput="onCmdInput(this.value)" onkeydown="onCmdKey(event)">
@@ -260,6 +403,20 @@
   </div>
 </div>
 
+<div class="pw-overlay" id="attachmentStorageOverlay" onclick="if(event.target===this)closeAttachmentStorageModal()">
+  <div class="pw-box attachment-storage-modal-box">
+    <div class="pw-header">
+      <span class="pw-header-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"/></svg></span>
+      <span class="pw-header-title">Attachment Storage</span>
+      <button class="pw-header-close" onclick="closeAttachmentStorageModal()">&times;</button>
+    </div>
+    <div class="pw-body attachment-storage-modal-body">
+      <div class="pw-description attachment-storage-modal-summary" id="attachmentStorageModalSummary">Loading attachment usage…</div>
+      <div class="attachment-storage-modal-list" id="attachmentStorageModalList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="pw-overlay" id="sessionRenameOverlay">
   <div class="pw-box" style="width:320px">
     <div class="pw-header">
@@ -281,58 +438,75 @@
   </div>
 </div>
 
-<div class="pw-overlay" id="evidenceFlagOverlay">
-  <div class="pw-box" style="width:440px">
+<div class="pw-overlay" id="findingDialogOverlay">
+  <div class="pw-box" style="width:620px">
     <div class="pw-header">
       <span class="pw-header-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
       </span>
-      <span class="pw-header-title">Add as Evidence</span>
-      <button class="pw-header-close" onclick="cancelEvidenceFlagDialog()">&times;</button>
+      <span class="pw-header-title">Add as Finding</span>
+      <button class="pw-header-close" onclick="cancelFindingDialog()">&times;</button>
     </div>
     <div class="pw-body">
-      <div class="pw-description">Review the selected note block, choose the evidence type, and add any supporting context before saving it to the session tracker.</div>
+      <div class="pw-description">Review the selected note block, choose the finding type, and add any supporting context before saving it to the session tracker.</div>
+      <div class="pw-field-grid pw-field-grid-2">
+        <div class="pw-field">
+          <label>Type</label>
+          <select class="pw-input finding-dialog-select" id="findingDialogType" onkeydown="handleFindingDialogKey(event)">
+            <option value="enumeration">Enumeration</option>
+            <option value="initial_access">Initial Access</option>
+            <option value="execution">Execution</option>
+            <option value="persistence">Persistence</option>
+            <option value="privilege_escalation">Privilege Escalation</option>
+            <option value="credential_access">Credential Access</option>
+            <option value="discovery">Discovery</option>
+            <option value="lateral_movement">Lateral Movement</option>
+            <option value="pivoting">Pivoting</option>
+            <option value="collection">Collection</option>
+            <option value="exfiltration">Exfiltration</option>
+            <option value="cleanup">Cleanup</option>
+            <option value="proof">Proof</option>
+          </select>
+        </div>
+        <div class="pw-field">
+          <label>Severity</label>
+          <select class="pw-input finding-dialog-select" id="findingDialogSeverity" onkeydown="handleFindingDialogKey(event)">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </div>
+      </div>
       <div class="pw-field">
-        <label>Type</label>
-        <select class="pw-input evidence-flag-select" id="evidenceFlagType" onkeydown="handleEvidenceFlagKey(event)">
-          <option value="enumeration">Enumeration</option>
-          <option value="initial_access">Initial Access</option>
-          <option value="execution">Execution</option>
-          <option value="persistence">Persistence</option>
-          <option value="privilege_escalation">Privilege Escalation</option>
-          <option value="credential_access">Credential Access</option>
-          <option value="discovery">Discovery</option>
-          <option value="lateral_movement">Lateral Movement</option>
-          <option value="pivoting">Pivoting</option>
-          <option value="collection">Collection</option>
-          <option value="exfiltration">Exfiltration</option>
-          <option value="cleanup">Cleanup</option>
-          <option value="proof">Proof</option>
-        </select>
+        <label>Target</label>
+        <select class="pw-input finding-dialog-select" id="findingDialogTarget" onkeydown="handleFindingDialogKey(event)"></select>
       </div>
       <div class="pw-field">
         <label>Title</label>
-        <input class="pw-input" id="evidenceFlagTitle" type="text" placeholder="Evidence title…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+        <input class="pw-input" id="findingDialogTitle" type="text" placeholder="Finding title…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
       </div>
       <div class="pw-field">
-        <label>Details</label>
-        <textarea class="pw-input evidence-flag-textarea" id="evidenceFlagDetails" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <label>Summary</label>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogSummary" placeholder="Why it matters, what it proved, or any operator context…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
       <div class="pw-field">
-        <label>Command / Block</label>
-        <textarea class="pw-input evidence-flag-textarea evidence-flag-command" id="evidenceFlagCommand" placeholder="Selected command or proof block…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+        <label>Recommendation</label>
+        <textarea class="pw-input finding-dialog-textarea" id="findingDialogRecommendation" placeholder="Suggested fix, hardening step, or operator recommendation…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
       </div>
-      <div class="evidence-flag-toggle-row">
-        <label class="evidence-flag-check">
-          <input id="evidenceFlagAlsoLoot" type="checkbox" onchange="syncEvidenceFlagLootUi()">
+      <div class="pw-field-hint" style="margin-top:-4px">The generated target findings note will include an editable <code>### POC</code> block after the finding is created.</div>
+      <div class="finding-dialog-toggle-row">
+        <label class="finding-dialog-check">
+          <input id="findingDialogAlsoLoot" type="checkbox" onchange="syncFindingDialogLootUi()">
           <span>Also add as Loot</span>
         </label>
       </div>
-      <div class="evidence-flag-loot-fields" id="evidenceFlagLootFields" style="display:none">
-        <div class="evidence-flag-loot-grid">
+      <div class="finding-dialog-loot-fields" id="findingDialogLootFields" style="display:none">
+        <div class="finding-dialog-loot-grid">
           <div class="pw-field">
             <label>Loot type</label>
-            <select class="pw-input evidence-flag-select" id="evidenceFlagLootType" onchange="syncEvidenceFlagLootUi()" onkeydown="handleEvidenceFlagKey(event)">
+            <select class="pw-input finding-dialog-select" id="findingDialogLootType" onchange="syncFindingDialogLootUi()" onkeydown="handleFindingDialogKey(event)">
               <option value="cleartext">Cleartext</option>
               <option value="hash">Hash</option>
               <option value="token">Token</option>
@@ -341,39 +515,39 @@
             </select>
           </div>
           <div class="pw-field">
-            <label>Target / Host</label>
-            <input class="pw-input" id="evidenceFlagLootHost" type="text" placeholder="10.10.11.5 or DC01" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+            <label>Service / Source</label>
+            <input class="pw-input" id="findingDialogLootHost" type="text" placeholder="SMB share, dump file, browser storage…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
           </div>
         </div>
         <div class="pw-field">
           <label>Loot value</label>
-          <textarea class="pw-input evidence-flag-textarea evidence-flag-loot-value" id="evidenceFlagLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)"></textarea>
+          <textarea class="pw-input finding-dialog-textarea finding-dialog-loot-value" id="findingDialogLootValue" placeholder="Credential, hash, token, key, or flag…" spellcheck="false" onkeydown="handleFindingDialogKey(event)"></textarea>
         </div>
         <div class="pw-field">
           <label>Loot context</label>
-          <input class="pw-input" id="evidenceFlagLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleEvidenceFlagKey(event)">
+          <input class="pw-input" id="findingDialogLootNote" type="text" placeholder="Optional context for the Loot tab…" autocomplete="off" spellcheck="false" onkeydown="handleFindingDialogKey(event)">
         </div>
-        <div class="evidence-flag-loot-sync" id="evidenceFlagLootSyncWrap">
-          <label class="evidence-flag-check">
-            <input id="evidenceFlagLootSyncCredentials" type="checkbox">
+        <div class="finding-dialog-loot-sync" id="findingDialogLootSyncWrap">
+          <label class="finding-dialog-check">
+            <input id="findingDialogLootSyncCredentials" type="checkbox">
             <span>Sync cleartext/hash into the Credentials note</span>
           </label>
         </div>
       </div>
       <div class="pw-actions">
-        <button class="pw-btn secondary" onclick="cancelEvidenceFlagDialog()">Cancel</button>
-        <button class="pw-btn primary" onclick="confirmEvidenceFlagDialog()">Add Evidence</button>
+        <button class="pw-btn secondary" onclick="cancelFindingDialog()">Cancel</button>
+        <button class="pw-btn primary" onclick="confirmFindingDialog()">Add Finding</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="evidence-selection-prompt" id="evidenceSelectionPrompt">
-  <button class="evidence-selection-prompt-btn" onclick="flagPromptedSelectionAsEvidence()">
+<div class="finding-selection-prompt" id="findingSelectionPrompt">
+  <button class="finding-selection-prompt-btn" onclick="addPromptedSelectionAsFinding()">
     <span aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="m5 4 12 3-4 5 4 5-12-3"/></svg>
     </span>
-    <span>Add as Evidence</span>
+    <span>Add as Finding</span>
   </button>
 </div>
 

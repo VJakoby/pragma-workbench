@@ -58,12 +58,19 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
     'smtp': { name: 'SMTP', port: '25/tcp', category: 'Mail', icon: '✉️' },
     'imap': { name: 'IMAP', port: '143/tcp', category: 'Mail', icon: '📥' },
     'snmp': { name: 'SNMP', port: '161/udp', category: 'Network', icon: '📡' },
+    'rpc': { name: 'RPC', port: '111/tcp', category: 'Network', icon: '🔌' },
+    'rpcbind': { name: 'RPC', port: '111/tcp', category: 'Network', icon: '🔌' },
+    'msrpc': { name: 'MSRPC', port: '135/tcp', category: 'Windows', icon: '🪟' },
+    'netbios': { name: 'NetBIOS', port: '139/tcp', category: 'File Sharing', icon: '🖧' },
     'nfs': { name: 'NFS', port: '2049/tcp', category: 'File Sharing', icon: '📁' },
     'kerberos': { name: 'Kerberos', port: '88/tcp', category: 'Directory', icon: '🐕' },
+    'ldaps': { name: 'LDAPS', port: '636/tcp', category: 'Directory', icon: '🗂️' },
     'winrm': { name: 'WinRM', port: '5985/tcp', category: 'Remote Access', icon: '⚡' },
     'docker': { name: 'Docker', port: '2375/tcp', category: 'Container', icon: '🐳' },
     'vnc': { name: 'VNC', port: '5900/tcp', category: 'Remote Access', icon: '👁️' },
     'rsync': { name: 'rsync', port: '873/tcp', category: 'File Transfer', icon: '🔄' },
+    'oracle_db': { name: 'Oracle DB', port: '1521/tcp', category: 'Database', icon: '🛢️' },
+    'oracledb': { name: 'Oracle DB', port: '1521/tcp', category: 'Database', icon: '🛢️' },
     'linux_privesc': { name: 'Linux PrivEsc', port: 'Local', category: 'Privilege Escalation', icon: '🐧' },
     'windows_privesc': { name: 'Windows PrivEsc', port: 'Local', category: 'Privilege Escalation', icon: '🪟' },
     'sqli': { name: 'SQL Injection', port: 'Web', category: 'Web', icon: '💉' },
@@ -245,7 +252,10 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
 
   function extractTitle(content, filename) {
     const match = content.match(/^#\s+(.+)$/m);
-    if (match) return match[1].trim();
+    if (match) {
+      // Strip leading emojis to prevent duplicates with KB index icons
+      return match[1].trim().replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]+\s*/gu, '');
+    }
     return displayFilename(filename);
   }
 
@@ -269,7 +279,7 @@ function createKbIndex({ kbDir, servicesDir, tacticsDir }) {
   function buildTacticsIndex() {
     if (!fs.existsSync(tacticsDir)) {
       tacticsIndex = [];
-      console.log('[PRAGMA] knowledge_base/tactics/ not found — skipping.');
+      console.log('[PRAGMA] knowledge-base/tactics/ not found — skipping.');
       return;
     }
     const entries = walkMdFiles(tacticsDir, tacticsDir);
