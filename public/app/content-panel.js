@@ -4,6 +4,7 @@
 let contentPanelBackState = null;
 let contentPanelCreateState = null;
 let contentPanelSearchState = { query: '', matches: [], activeIndex: -1 };
+let contentPanelPresentationMode = 'default';
 
 function persistContentPanelLocation(patch = {}) {
   if (typeof persistLastLocation !== 'function') return;
@@ -14,6 +15,38 @@ function clearContentPanelLocation() {
   if (typeof clearLastLocationFields !== 'function') return;
   clearLastLocationFields('contentPanelKind', 'contentPanelView', 'contentPanelId');
 }
+
+function syncContentWorkspacePresentation() {
+  const panel = document.getElementById('contentPanel');
+  const split = document.querySelector('.body-split');
+  const workspaceEnabled = typeof isContentWorkspaceModeEnabled === 'function' && isContentWorkspaceModeEnabled();
+  const isOpen = !!panel && !panel.classList.contains('hidden-panel');
+  const active = workspaceEnabled && isOpen;
+  contentPanelPresentationMode = active ? 'workspace' : 'default';
+  if (panel) panel.classList.toggle('content-workspace-mode', active);
+  if (split) split.classList.toggle('content-workspace-open', active);
+}
+
+function setContentPanelPresentationMode(mode = 'default') {
+  contentPanelPresentationMode = mode || 'default';
+  const panel = document.getElementById('contentPanel');
+  const split = document.querySelector('.body-split');
+  const active = contentPanelPresentationMode === 'workspace';
+  if (panel) panel.classList.toggle('content-workspace-mode', active);
+  if (split) split.classList.toggle('content-workspace-open', active);
+}
+
+function clearContentPanelPresentationMode() {
+  setContentPanelPresentationMode('default');
+}
+
+async function openKbItemWithCurrentPresentation(view, id, opts = {}) {
+  return openItem(view, id, {
+    ...opts,
+    fromWorkspace: typeof isContentWorkspaceModeEnabled === 'function' && isContentWorkspaceModeEnabled(),
+  });
+}
+
 
 function setContentPanelHeader(icon, title, meta, opts = {}) {
   const iconEl = document.getElementById('cpIcon');
@@ -301,6 +334,11 @@ function goBackContentPanel() {
   if (!contentPanelBackState) return;
   const state = contentPanelBackState;
   clearContentPanelBackState();
+  if (state.type === 'workspace-close') {
+    closeContent();
+    if (state.focusId) document.getElementById(state.focusId)?.focus();
+    return;
+  }
   if (state.type === 'kb-browser' && typeof openKbBrowserInPanel === 'function') {
     openKbBrowserInPanel(state.view, {
       folder: state.folder || '',
@@ -520,7 +558,7 @@ function renderContentPanelTabs(doc = activeDoc) {
   tabs.style.display = 'flex';
 }
 
-async function openItem(view, id) {
+async function openItem(view, id, opts = {}) {
   view = decodeURIComponent(view);
   id = decodeURIComponent(id);
   const wasEditing = typeof isKbEditModeOpen === 'function' && isKbEditModeOpen();
@@ -532,23 +570,28 @@ async function openItem(view, id) {
     }
   }
   const itemMeta = getKbCollection(view).find(item => item.id === id) || null;
-  const hadBrowserState = activeDoc?.isBrowser && activeDoc?.view === view;
-  const backState = hadBrowserState
-    ? {
-        type: 'kb-browser',
-        view: activeDoc.view,
-        folder: activeDoc.folder || '',
-        title: document.getElementById('cpTitle')?.textContent || '',
-        meta: document.getElementById('cpMeta')?.textContent || '',
-        label: activeDoc.label || '',
-      }
-    : null;
+  const useWorkspace = !!opts.fromWorkspace || (typeof isContentWorkspaceModeEnabled === 'function' && isContentWorkspaceModeEnabled());
+  const hadBrowserState = !useWorkspace && activeDoc?.isBrowser && activeDoc?.view === view;
+  const backState = useWorkspace
+    ? { type: 'workspace-close', focusId: String(opts.returnFocusId || '').trim() }
+    : hadBrowserState
+      ? {
+          type: 'kb-browser',
+          view: activeDoc.view,
+          folder: activeDoc.folder || '',
+          title: document.getElementById('cpTitle')?.textContent || '',
+          meta: document.getElementById('cpMeta')?.textContent || '',
+          label: activeDoc.label || '',
+        }
+      : null;
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   const card = document.querySelector(`.card[data-id="${id}"]`);
   if (card) card.classList.add('active-card');
 
   const panel = document.getElementById('contentPanel');
   panel.classList.remove('hidden-panel');
+  if (useWorkspace) setContentPanelPresentationMode('workspace');
+  else clearContentPanelPresentationMode();
   setContentPanelAccent(card?.style.getPropertyValue('--card-accent') || 'var(--accent)');
   setContentPanelHeader('', 'Loading…', '', { showIcon: false });
   setContentPanelSearchVisible(true);
@@ -588,7 +631,7 @@ async function openItem(view, id) {
       contentPanelId: id,
     });
     setContentPanelBackState(backState);
-    setContentPanelCreateState(backState ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
+    setContentPanelCreateState(!useWorkspace && backState && backState.type === 'kb-browser' ? { view: backState.view, folder: backState.folder || '', label: backState.label || backState.title || '' } : null);
     renderContentPanelTabs(activeDoc);
     if (wasEditing && typeof syncKbEditorToActiveDoc === 'function') {
       syncKbEditorToActiveDoc();
@@ -602,13 +645,17 @@ async function openItem(view, id) {
   }
 }
 
-async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '') {
-  clearContentPanelBackState();
-  clearContentPanelCreateState();
+async function openPreviewByPath(title, filePath, query = '', sourceId = '', sourceName = '', opts = {}) {
   clearContentPanelLocation();
   renderContentPanelTabs(null);
   setContentPanelSearchVisible(false);
+  const useWorkspace = !!opts.fromWorkspace || (typeof isContentWorkspaceModeEnabled === 'function' && isContentWorkspaceModeEnabled());
+  const backState = useWorkspace ? { type: 'workspace-close', focusId: String(opts.returnFocusId || '').trim() } : null;
+  setContentPanelBackState(backState);
+  clearContentPanelCreateState();
   const panel = document.getElementById('contentPanel');
+  if (useWorkspace) setContentPanelPresentationMode('workspace');
+  else clearContentPanelPresentationMode();
   panel.classList.remove('hidden-panel');
   setContentPanelAccent('var(--accent)');
   setContentPanelHeader(ICONS.search, title, '', { showIcon: true });
@@ -728,7 +775,9 @@ function renderContent(html, icon, title, meta, query = '', opts = {}) {
 }
 
 function closeContent() {
+  clearContentPanelPresentationMode();
   document.getElementById('contentPanel').classList.add('hidden-panel');
+  syncContentWorkspacePresentation();
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active-card'));
   activeDoc = null;
   clearContentPanelLocation();

@@ -5,6 +5,7 @@ const ACCENT_COLORS = [
 
 const THEME_ORDER = ['dark', 'light'];
 const TOPBAR_LAYOUT_KEY = 'ops-topbar-layout';
+const CONTENT_WORKSPACE_MODE_KEY = 'ops-content-workspace-mode';
 const LAST_VIEW_KEY = 'ops-last-view';
 const LAST_LOCATION_KEY = 'ops-last-location';
 const ENGRAM_SEARCH_ENABLED = Boolean(window.PRAGMA_CONFIG?.engramSearchEnabled);
@@ -62,6 +63,37 @@ function toggleTopbarLayoutMode() {
   setTopbarLayoutMode(current === 'bottom' ? 'top' : 'bottom');
 }
 
+function isContentWorkspaceModeEnabled() {
+  return localStorage.getItem(CONTENT_WORKSPACE_MODE_KEY) === '1';
+}
+
+function refreshContentWorkspaceToggle(enabled) {
+  const btn = document.getElementById('contentWorkspaceBtn');
+  if (!btn) return;
+  btn.classList.toggle('active', !!enabled);
+  btn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  btn.title = enabled ? 'Use side KB workspace' : 'Use primary KB workspace';
+  btn.setAttribute('aria-label', enabled ? 'Use side KB workspace' : 'Use primary KB workspace');
+}
+
+function applyContentWorkspaceMode(enabled) {
+  const active = !!enabled;
+  document.body.classList.toggle('content-workspace-enabled', active);
+  refreshContentWorkspaceToggle(active);
+  if (typeof syncContentWorkspacePresentation === 'function') {
+    syncContentWorkspacePresentation();
+  }
+}
+
+function setContentWorkspaceMode(enabled) {
+  localStorage.setItem(CONTENT_WORKSPACE_MODE_KEY, enabled ? '1' : '0');
+  applyContentWorkspaceMode(!!enabled);
+}
+
+function toggleContentWorkspaceMode() {
+  setContentWorkspaceMode(!isContentWorkspaceModeEnabled());
+}
+
 function applyTheme(theme) {
   if (theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
@@ -108,6 +140,7 @@ function setTheme(theme) {
 
 applyTheme(localStorage.getItem('ops-theme') || 'light');
 applyTopbarLayout(localStorage.getItem(TOPBAR_LAYOUT_KEY) || 'top');
+applyContentWorkspaceMode(localStorage.getItem(CONTENT_WORKSPACE_MODE_KEY) === '1');
 
 let sidebarVisible = true;
 let sidebarState = localStorage.getItem('ops-sidebar-state') || 'full';

@@ -1322,6 +1322,12 @@ body.bottom-bar-mode .topbar{
   min-width:120px;
 }
 .content-panel.hidden-panel{width:0!important;overflow:hidden;border:none;min-width:0}
+.content-panel.content-workspace-mode{
+  width:auto !important;
+  min-width:0;
+  flex:1;
+  border-left:none;
+}
 
 .content-panel-hdr{
   display:flex;flex-direction:column;gap:4px;
@@ -8717,4 +8723,18 @@ body.bottom-bar-mode .finding-popover{
   .editor-font-controls{
     margin-left:0;
   }
+}
+
+
+.body-split.content-workspace-open .main-panel{
+  display:none;
+}
+.body-split.content-workspace-open .content-panel{
+  flex:1;
+  width:auto !important;
+  min-width:0;
+  border-left:none;
+}
+.body-split.content-workspace-open .content-panel .drag-handle{
+  display:none;
 }

@@ -2571,3 +2571,36 @@ RULES:
 - Keep the fix limited to KB edit toolbar responsiveness
 - Do not redesign the broader KB editor layout
 - Do not change editor functionality or control semantics
+
+## B-78 — Add Search-First Knowledge Workspace Mode And Safer Generated-Note Defaults
+STATUS: TODO
+
+CONTEXT:
+During real exam usage, the current knowledge-base interaction model feels slightly too finicky for fast retrieval-focused workflow. Two simplifications are needed: generated helper notes should default to off for new sessions, and the KB should support a dedicated global search-oriented workspace mode where KB documents can be opened as primary full-document content instead of relying mainly on the narrower side-view pattern.
+
+SCOPE:
+CODEX-BACKLOG.md
+public/app/workbench.js
+public/app/app.js
+public/app/kb.js
+public/app/content-panel.js
+public/app/styles.css
+views/partials/content-panel.ejs
+views/partials/head.ejs
+views/partials/overlays.ejs
+server/routes/kb.js
+
+EXPECTED BEHAVIOR:
+- New sessions must default generated helper note settings to off in the session settings UI and underlying stored session defaults
+- Existing sessions must preserve their current generated-note settings unchanged
+- Add a dedicated global search mode intended primarily for retrieval and document navigation
+- In that mode, KB results should open as full-document reading surfaces rather than feeling constrained to the existing side KB view
+- The global search mode should remain scoped to KB-centric content first; note support may be included only if it does not blur the distinction between KB data and engagement-note data
+- KB documents opened from that mode must still support normal read/edit flow
+- The mode should feel simpler and more stable for exam-time lookup than the current side-panel-first interaction
+
+RULES:
+- Keep this task focused on workflow simplification, default settings, and KB document presentation in search-first mode
+- Do not redesign unrelated note editing workflows as part of this task
+- Do not silently change generated-note defaults for already existing sessions
+- If engagement-note search support is added to the new mode, it must stay clearly separated from KB content in the UI

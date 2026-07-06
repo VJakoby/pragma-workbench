@@ -43,27 +43,34 @@ const WELCOME_SESSION_SEEN_KEY = 'ops-welcome-last-seen';
 const WELCOME_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 
 const DEFAULT_GENERATED_NOTE_SETTINGS = Object.freeze({
+  services_note: false,
+  session_summary: false,
+  network_enumeration: false,
+  credentials_note: false,
+});
+const LEGACY_GENERATED_NOTE_SETTINGS = Object.freeze({
   services_note: true,
   session_summary: true,
   network_enumeration: true,
   credentials_note: true,
 });
 
-function normalizeSessionGeneratedNoteSettings(value) {
-  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+function normalizeSessionGeneratedNoteSettings(value, fallbackDefaults = DEFAULT_GENERATED_NOTE_SETTINGS) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  if (!source) return { ...fallbackDefaults };
   return {
-    services_note: source.services_note !== false,
-    session_summary: source.session_summary !== false,
-    network_enumeration: source.network_enumeration !== false,
-    credentials_note: source.credentials_note !== false,
+    services_note: typeof source.services_note === 'boolean' ? source.services_note : !!fallbackDefaults.services_note,
+    session_summary: typeof source.session_summary === 'boolean' ? source.session_summary : !!fallbackDefaults.session_summary,
+    network_enumeration: typeof source.network_enumeration === 'boolean' ? source.network_enumeration : !!fallbackDefaults.network_enumeration,
+    credentials_note: typeof source.credentials_note === 'boolean' ? source.credentials_note : !!fallbackDefaults.credentials_note,
   };
 }
 
-function ensureSessionGeneratedNoteSettings(session) {
+function ensureSessionGeneratedNoteSettings(session, fallbackDefaults = DEFAULT_GENERATED_NOTE_SETTINGS) {
   if (!session || typeof session !== 'object' || Array.isArray(session)) {
-    return { ...DEFAULT_GENERATED_NOTE_SETTINGS };
+    return { ...fallbackDefaults };
   }
-  const normalized = normalizeSessionGeneratedNoteSettings(session.generated_notes);
+  const normalized = normalizeSessionGeneratedNoteSettings(session.generated_notes, fallbackDefaults);
   session.generated_notes = normalized;
   return normalized;
 }
@@ -77,7 +84,7 @@ function normalizeLoadedWorkbenchState(raw) {
   const sessionsState = hasCompositeShape && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
     ? Object.fromEntries(Object.entries(raw.sessions).map(([id, session]) => {
         const nextSession = session && typeof session === 'object' && !Array.isArray(session)
-          ? { ...session, generated_notes: normalizeSessionGeneratedNoteSettings(session.generated_notes) }
+          ? { ...session, generated_notes: normalizeSessionGeneratedNoteSettings(session.generated_notes, LEGACY_GENERATED_NOTE_SETTINGS) }
           : session;
         return [id, nextSession];
       }))
@@ -1031,18 +1038,18 @@ function updateSessionGeneratedNotesField() {
   if (!wrap || !servicesToggle || !summaryToggle || !networkEnumToggle || !credentialsToggle) return;
   if (!sess) {
     wrap.style.display = 'none';
-    servicesToggle.checked = true;
-    summaryToggle.checked = true;
-    networkEnumToggle.checked = true;
-    credentialsToggle.checked = true;
+    servicesToggle.checked = DEFAULT_GENERATED_NOTE_SETTINGS.services_note;
+    summaryToggle.checked = DEFAULT_GENERATED_NOTE_SETTINGS.session_summary;
+    networkEnumToggle.checked = DEFAULT_GENERATED_NOTE_SETTINGS.network_enumeration;
+    credentialsToggle.checked = DEFAULT_GENERATED_NOTE_SETTINGS.credentials_note;
     return;
   }
   const settings = ensureSessionGeneratedNoteSettings(sess);
   wrap.style.display = '';
-  servicesToggle.checked = settings.services_note !== false;
-  summaryToggle.checked = settings.session_summary !== false;
-  networkEnumToggle.checked = settings.network_enumeration !== false;
-  credentialsToggle.checked = settings.credentials_note !== false;
+  servicesToggle.checked = !!settings.services_note;
+  summaryToggle.checked = !!settings.session_summary;
+  networkEnumToggle.checked = !!settings.network_enumeration;
+  credentialsToggle.checked = !!settings.credentials_note;
 }
 
 async function saveActiveSessionGeneratedNoteSettings() {

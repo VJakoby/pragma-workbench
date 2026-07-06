@@ -300,9 +300,39 @@ function renderResults(query, results, offline, docsSearched, timeMs) {
   }).join('');
 }
 
-function handleResultClick(el) {
+async function resolveKbSearchResult(filePath = '', sourceName = '') {
+  try {
+    const response = await fetch('/api/kb-resolve-search-doc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: filePath, source_name: sourceName }),
+    });
+    const payload = await response.json();
+    if (!response.ok || payload?.error || payload?.kind !== 'kb') return null;
+    return payload;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function handleResultClick(el) {
   if (el.dataset.local === '1') {
-    openPreviewByPath(el.dataset.title, el.dataset.filepath, el.dataset.query || '', el.dataset.sourceid || '', el.dataset.sourcename || '');
+    const sourceName = el.dataset.sourcename || '';
+    const filePath = el.dataset.filepath || '';
+    const returnFocusId = activeView === 'search' ? 'searchInput' : '';
+    const resolvedKb = await resolveKbSearchResult(filePath, sourceName);
+    if (resolvedKb && typeof openKbItemWithCurrentPresentation === 'function') {
+      await openKbItemWithCurrentPresentation(resolvedKb.view, resolvedKb.id, { returnFocusId });
+      return;
+    }
+    openPreviewByPath(
+      el.dataset.title,
+      filePath,
+      el.dataset.query || '',
+      el.dataset.sourceid || '',
+      sourceName || '',
+      { fromWorkspace: typeof isContentWorkspaceModeEnabled === 'function' && isContentWorkspaceModeEnabled(), returnFocusId }
+    );
   } else {
     window.open(el.dataset.url, '_blank', 'noopener');
   }

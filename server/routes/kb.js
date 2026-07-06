@@ -173,6 +173,54 @@ function registerKbRoutes(app, deps) {
     });
   });
 
+  function normalizeKbRelativePath(value) {
+    return String(value || '').replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+  }
+
+  function resolveKbSearchDocument(filePath, sourceName) {
+    const normalizedFilePath = filePath ? path.resolve(String(filePath)) : '';
+    const normalizedSourceName = normalizeKbRelativePath(sourceName);
+
+    const services = kbIndex.getServiceIndex();
+    for (const entry of services) {
+      const rel = normalizeKbRelativePath(path.relative(kbDir, entry.filepath));
+      if ((normalizedFilePath && path.resolve(entry.filepath) === normalizedFilePath)
+        || (normalizedSourceName && normalizedSourceName === `knowledge-base/${rel}`)) {
+        return { kind: 'kb', view: 'services', id: entry.id };
+      }
+    }
+
+    const tactics = kbIndex.getTacticsIndex();
+    for (const entry of tactics) {
+      const rel = normalizeKbRelativePath(path.relative(kbDir, entry.filepath));
+      if ((normalizedFilePath && path.resolve(entry.filepath) === normalizedFilePath)
+        || (normalizedSourceName && normalizedSourceName === `knowledge-base/${rel}`)) {
+        return { kind: 'kb', view: 'tactics', id: entry.id };
+      }
+    }
+
+    const sections = kbIndex.getRootKbSections ? kbIndex.getRootKbSections() : [];
+    for (const section of sections) {
+      for (const entry of section.items || []) {
+        const rel = normalizeKbRelativePath(path.relative(kbDir, entry.filepath));
+        if ((normalizedFilePath && path.resolve(entry.filepath) === normalizedFilePath)
+          || (normalizedSourceName && normalizedSourceName === `knowledge-base/${rel}`)) {
+          return { kind: 'kb', view: `kb:${section.folder}`, id: entry.id };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  app.post('/api/kb-resolve-search-doc', (req, res) => {
+    const { file_path = '', source_name = '' } = req.body || {};
+    const resolved = resolveKbSearchDocument(file_path, source_name);
+    if (!resolved) return res.status(404).json({ error: 'KB document not found for search result' });
+    return res.json({ ok: true, ...resolved });
+  });
+
+
   app.get('/api/sources', (req, res) => {
     const serviceIndex = kbIndex.getServiceIndex();
     res.json({
